@@ -1,0 +1,65 @@
+### OWL
+
+# ...
+
+
+
+### Common
+
+*.bak
+*.tmp
+
+
+
+### Linux
+
+*~
+
+# KDE directory preferences
+.directory
+
+# Vim
+.swap
+.swp
+
+
+
+### MacOS
+
+*.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+
+
+### Windows
+
+# Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+
+# Folder config file
+Desktop.ini
+
+# Windows shortcuts
+*.lnk
+
+
+
+### JetBrains IDEs
+
+*.iml
+
+# Directory-based project format:
+.idea/
+
+# File-based project format:
+*.ipr
+*.iws
