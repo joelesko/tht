@@ -72,7 +72,7 @@ EOS;
         return 'menlo, consolas, monospace';
     }
 
-    function u_include($id, $arg1=null) {
+    function u_include($id, $arg1=null, $arg2=null) {
 
         if (isset($this->included[$id])) {
             return '';
@@ -80,7 +80,7 @@ EOS;
         $this->included[$id] = true;
 
         if ($id === 'base') {
-            return $this->inc_base($arg1);
+            return $this->inc_base($arg1, $arg2);
         }
         if ($id === 'reset') {
             return $this->inc_reset();
@@ -106,14 +106,14 @@ EOCSS;
         return new \o\CssLockString ($css);
     }
 
-    function inc_base ($nSizeX=0) {
+    function inc_base ($nSizeX=0, $breakCss=null) {
 
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
 
         $css = OLockString::getUnlocked($this->inc_reset());
 
-        $gridCss = $this->inc_grid($nSizeX)->u_unlocked();
+        $gridCss = $this->inc_grid($nSizeX, $breakCss)->u_unlocked();
 
         $css .= <<<EOCSS
 
@@ -291,8 +291,6 @@ EOCSS;
             font-size: 1.5rem;
             margin: 0 0 2rem;
             white-space: pre;
-            word-break: break-all;
-            word-wrap: break-word;
             line-height: 1.5;
             overflow: auto;
             background-color: #fcfcfc;
@@ -598,16 +596,17 @@ EOCSS;
 
         $css = u_Css::u_minify($css);
 
-        return new \o\CssLockString ($css); // OLockString::create($css);
+        return new \o\CssLockString ($css);
 
     }
 
-    // TODO: allow pass in custom breakpoint CSS rules
     // TODO: widths in rems?
-    function inc_grid($nSizeX = 760) {
+    function inc_grid($nSizeX = 760, $breakCss = null) {
 
         $breakX = ($nSizeX + 20) . 'px';
         $sizeX = $nSizeX . 'px';
+
+        $breakCss = is_null($breakCss) ? '' : \o\OLockString::getUnlocked($breakCss);
 
         $css = <<<EOCSS
 
@@ -651,6 +650,9 @@ EOCSS;
         	.hide-on-mobile { display: none !important; }
             .wide-on-mobile { display: block !important; max-width: 100%; }
             .center-on-mobile { text-align: center; margin-left: auto; margin-right: auto; }
+            main pre, main .pre { font-size: 3vw; }
+
+            $breakCss
         }
 EOCSS;
 

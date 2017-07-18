@@ -132,7 +132,7 @@ class u_File extends StdModule {
             $data = str_replace("\n", '\\n', $data);
         }
         $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $data . "\n";
-        return u_File::_call('file_put_contents', [Owl::path('files', $fileName), [$line], [LOCK_EX|FILE_APPEND]]);
+        return u_File::_call('file_put_contents', [Owl::path('logs', $fileName), [$line], [LOCK_EX|FILE_APPEND]]);
     }
 
 

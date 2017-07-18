@@ -12,7 +12,7 @@ class u_Jcon extends StdModule {
     private $mlStringKey = '';
 
     function u_parse_file($file) {
-        $path = Owl::path('files', $file);
+        $path = Owl::path('settings', $file);
         $text = Owl::module('File')->u_read($path, true);
 
         return $this->u_parse($text);

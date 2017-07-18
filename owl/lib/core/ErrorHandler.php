@@ -346,6 +346,7 @@ class ErrorHandler {
         }
 
         // convert quoted substrings to code
+        $error['message'] = preg_replace("/`(.*?)`/", '<span class="owl-error-code">$1</span>', $error['message']);
         $error['message'] = preg_replace("/'([a-zA-Z0-9\.]+)'/", '<span class="owl-error-code">$1</span>', $error['message']);
         $error['message'] = preg_replace("/\((.+?)\)/", '<span class="owl-error-code">$1</span>', $error['message']);
 

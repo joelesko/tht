@@ -10,5 +10,9 @@ class u_Global extends OClass {
         }
         $this->u_field[$key] = $v;
     }
+
+    function u_setting($key) {
+        return Owl::getTopConfig('app', $key);
+    }
 }
 

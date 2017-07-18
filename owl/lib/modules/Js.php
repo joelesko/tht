@@ -221,11 +221,18 @@ EOLAZY;
 ---------------------------------------------------------- */
 
 .syntax-highlighted .sh-value span,
-.syntax-highlighted .sh-comment span {
+.syntax-highlighted .sh-comment span,
+.syntax-highlighted .sh-prompt {
     color: inherit !important;
     font-weight: inherit !important;
 }
-
+.syntax-highlighted .sh-prompt {
+    opacity: 0.5;
+    -webkit-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
 
 $themeCss
 
@@ -251,17 +258,20 @@ $themeCss
 
                 var c = block.innerHTML;
 
-                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)sh-keyword(qq)>$1</span>$2');
-                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)sh-tag(qq)>$1</span>');
-                c = c.replace(/([^a-zA-Z])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>');
-                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');
+                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)sh-keyword(qq)>$1</span>$2');  // keywords
+                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)sh-tag(qq)>$1</span>');               // HTML tags
+                c = c.replace(/([^a-zA-Z])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>');    // tokens/vars
+                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');            // flags
+                c = c.replace(/("(.*?)")/g, '<span class=(qq)sh-value(qq)>$1</span>');                      // strings
+                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)sh-value(qq)>$1</span>');       // strings
+                c = c.replace(/(^|\\n)(\\$|\\%)(\s+)/gi, '<span class=(qq)sh-prompt(qq)>$1$2$3</span>');    // command prompt ($ or %)
 
-                c = c.replace(/("(.*?)")/g, '<span class=(qq)sh-value(qq)>$1</span>');
-                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)sh-value(qq)>$1</span>');
-                c = c.replace(/(\\/{3,}((.|\\s)*?)\\/{3,})/g, '<span class=(qq)sh-comment(qq)>$1</span>'); // OWL blocks
-                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)sh-comment(qq)>$1</span>'); // C-style blocks
-                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)sh-comment(qq)>$2</span>'); // single-line comments
+                // comments
+                c = c.replace(/(\\/{3,}((.|\\s)*?)\\/{3,})/g, '<span class=(qq)sh-comment(qq)>$1</span>');  // OWL blocks
+                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)sh-comment(qq)>$1</span>');  // C-style blocks
+                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)sh-comment(qq)>$2</span>');   // single-line comments
 
+                // replace quotes
                 c = c.replace(/\(qq\)/g, '"');
 
                 block.innerHTML = c;

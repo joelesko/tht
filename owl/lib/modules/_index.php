@@ -30,7 +30,6 @@ class LibModules {
         'Litemark',
         'Jcon',
         'Form',
-        'Settings'
     ];
 
     public static function load () {

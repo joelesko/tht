@@ -389,6 +389,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
             $t->error("Tag '$name' can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
         }
+        if ($name == 'script' && !preg_match('/nonce/', $tag['html'])) {
+            $t->error("'script' tags must have a secure 'nonce' attribute.  Either add `nonce=\"{{ Web.nonce() }}\"` or include the script as a Js template.", $tag['pos']);
+        }
     }
 
     function newTag ($tagName, $pos) {

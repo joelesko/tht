@@ -20,7 +20,8 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         } else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField];
         } else {
-            Owl::error('Invalid field: ' . $plainField);
+            $tip = $plainField == 'length' ? "  Try: `length()`" : '';
+            Owl::error("Invalid field: '$plainField'" . $tip);
         }
     }
 
@@ -32,7 +33,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         } else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField] = $val;
         } else {
-            Owl::error('Invalid field: ' . $plainField);
+            Owl::error("Invalid field: '$plainField'");
         }
     }
 

@@ -4,10 +4,7 @@ namespace o;
 
 class u_Web extends StdModule {
 
-    // number: range, negative, positive, decimal (to place), allow $
-    // dates
-    // password
-
+    // TODO: complete list
     static private $VALIDATION_RULES = [
         'url'      => '^https?://\\S+$',
         // ___@___.__ format, only one '@' symbol
@@ -206,7 +203,7 @@ class u_Web extends StdModule {
         return Owl::data('csrfToken');
     }
 
-    // PRINT DOCUMENTS
+    // SEND DOCUMENTS
     // --------------------------------------------
 
     // function u_print_block($h, $title='') {
@@ -336,18 +333,18 @@ class u_Web extends StdModule {
         $out = <<<HTML
 <!doctype html>
 <html>
-  <head>
-    <title>$title</title>
-    <meta name="description" content="$description"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta property="og:title" content="$title"/>
-    <meta property="og:description" content="$description"/>
-    $image $icon $css
-  </head>
-  <body class="$bodyClass">
-    $body
-    $js
-  </body>
+    <head>
+        <title>$title</title>
+        <meta name="description" content="$description"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <meta property="og:title" content="$title"/>
+        <meta property="og:description" content="$description"/>
+        $image $icon $css
+    </head>
+    <body class="$bodyClass">
+        $body
+        $js
+    </body>
 </html>
 HTML;
 
@@ -356,7 +353,8 @@ HTML;
        $this->endGzip();
        flush();
 
-       if (STATIC_CACHE_SECONDS !== 0 && isset($doc['staticCache']) && $doc['staticCache']) {
+       $cacheSecs = defined('STATIC_CACHE_SECONDS') ? constant('STATIC_CACHE_SECONDS') : 0;
+       if ($cacheSecs !== 0 && isset($doc['staticCache']) && $doc['staticCache']) {
            $cacheFile = md5(Owl::module('Web')->u_request()['url']['relative']);
            $cachePath = Owl::path('cache', 'html/' . $cacheFile . '.html');
            file_put_contents($cachePath, $out);
@@ -516,7 +514,7 @@ HTML;
         return OLockString::create('\o\HtmlLockString', $h);
     }
 
-    // KEEP
+    // DO NOT REMOVE
     // function makeStarIcon($centerX, $centerY, $outerRadius, $innerRadius) {
     //     $arms = 5;
     //     $angle = pi() / $arms;
@@ -641,16 +639,16 @@ HTML;
             Owl::error("Invalid input method: '$method'");
         }
 
-        // Disallow cross-origin request [security]
+        // [security]  Require https for non-GET requests
+        if ($method !== 'get' && !Owl::module('Web')->u_request()['isHttps'] && !Owl::isMode('testServer')) {
+            Owl::error("Page must be run under 'https' to accept non-GET requests.\n\nCheck your web host's admin panel, or visit 'letsencrypt.org' for a free SSL cert.");
+        }
+
+        // [security]  Disallow cross-origin request
         if ($method === 'post') {
             if ($this->isCrossOrigin()) {
                 Owl::module('Web')->u_send_error(403, 'Remote Origin Not Allowed');
             }
-            // $csrfCookie = trim(Owl::getPhpGlobal('cookie', '_csrf', false));
-            // $csrfField  = trim(Owl::getPhpGlobal('post', '_csrf', false));
-            // if (!$csrfCookie || !$csrfField || $csrfCookie !== $csrfField) {
-            //     Owl::module('Web')->u_send_error(403, 'Form Field Expired');
-            // }
         }
 
         if ($method == 'remotePost') {
@@ -776,7 +774,6 @@ HTML;
         return $this->validators[$vid];
     }
 
-
     function u_get_data($vid, $method) {
 
         $ruleset = $this->getRuleMap($vid);
@@ -819,17 +816,6 @@ HTML;
         return Owl::getWebRouteParam($key);
     }
 
-//     function newGetValue($method, $isAjax, $key, $rule) {
-//         $raw = Owl::getPhpGlobal($method, $key, '');
-//         // if (gettype($raw) === 'array' && $type !== 'list') {
-// //             $raw = '';
-// //         }
-//         return $raw;
-//
-//     }
-
-
-
     function checkAjax ($isAjax) {
         if ($isAjax !== $this->u_request()['isAjax']) {
             Owl::errorLog('Expected ' . ($isAjax ? 'Ajax' : 'non-Ajax') . ' request.');
@@ -837,10 +823,6 @@ HTML;
         }
         return true;
     }
-
-    // function u_route_param($key) {
-    //     return Owl::getWebRouteParam($key);
-    // }
 
     /***
 
@@ -885,7 +867,6 @@ HTML;
             (function(){
 
                 var val = $v;
-
                 var rules = $rules;
 
                 var markInvalid = function (el, v) {
@@ -933,7 +914,6 @@ HTML;
                     return isOk;
                 };
 
-
                 document.addEventListener('submit', function(e){
 
                     var isOk = true;
@@ -965,7 +945,6 @@ HTML;
                     }
 
                 });
-
 
             })();
 

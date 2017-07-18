@@ -4,7 +4,7 @@ namespace o;
 
 class Owl {
 
-    static private $VERSION = '0.1.0 - Beta';
+    static private $VERSION = '0.1.1 - Beta';
     static private $SRC_EXT = 'owl';
 
     static private $OWL_SITE = 'https://owl-lang.org';
@@ -17,7 +17,7 @@ class Owl {
 
     static private $data = [
         'phpGlobals'     => [],
-        'config'         => [],
+        'settings'         => [],
         'routeParams'    => [],
         'requestHeaders' => [],
         'cliOptions'     => [],
@@ -47,14 +47,15 @@ class Owl {
         'data'      => 'data',
         'db'        =>   'db',
         'uploads'   =>   'uploads',
+        'logs'      =>   'logs',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
         'kvCache'   =>     'keyValue',
         'fileCache' =>     'fileCache',
         'files'     =>   'files',
-        'counter'   =>     'counter',
-        'counterPage' =>      'page',
-        'counterDate' =>      'date',
+        'counter'   =>   'counter',
+        'counterPage' =>    'page',
+        'counterDate' =>    'date',
     ];
 
     static private $FILE = [
@@ -301,8 +302,9 @@ class Owl {
             Owl::$paths['docRoot'] = Owl::getPhpGlobal('server', 'DOCUMENT_ROOT');
         }
 
-        // App root is a sibling of doc root
+        // TODO: clarify app root constant name (appRoot vs docRootParent etc)
         $docRootParent = Owl::makePath(Owl::$paths['docRoot'], '..');
+        $owlAppRoot = defined('APP_ROOT') ? constant('APP_ROOT') : $docRootParent;
         Owl::$paths['root'] = Owl::makePath(realpath($docRootParent), Owl::$DIR['root']);
 
         if (!Owl::$paths['root']) {
@@ -321,11 +323,12 @@ class Owl {
 
         // data subdirs
         Owl::$paths['db']          = Owl::path('data', Owl::$DIR['db']);
+        Owl::$paths['logs']        = Owl::path('data', Owl::$DIR['logs']);
         Owl::$paths['cache']       = Owl::path('data', Owl::$DIR['cache']);
         Owl::$paths['phpCache']    = Owl::path('cache', Owl::$DIR['phpCache']);
         Owl::$paths['kvCache']     = Owl::path('cache', Owl::$DIR['kvCache']);
         Owl::$paths['files']       = Owl::path('data', Owl::$DIR['files']);
-        Owl::$paths['counter']     = Owl::path('files', Owl::$DIR['counter']);
+        Owl::$paths['counter']     = Owl::path('data', Owl::$DIR['counter']);
         Owl::$paths['counterPage'] = Owl::path('counter', Owl::$DIR['counterPage']);
         Owl::$paths['counterDate'] = Owl::path('counter', Owl::$DIR['counterDate']);
 
@@ -363,7 +366,7 @@ class Owl {
             }
         }
 
-        Owl::$data['config'] = $appConfig;
+        Owl::$data['settings'] = $appConfig;
 
         Owl::module('Perf')->u_stop();
     }
@@ -551,7 +554,7 @@ class Owl {
                 if (substr($id, -4, 4) === 'File') {
                     touch($p);
                 } else {
-                    Owl::module('File')->u_make_dir($p,  0755);
+                    Owl::module('File')->u_make_dir($p, 0755);
                 }
             }
 
@@ -563,12 +566,6 @@ class Owl {
             Owl::writeSetupFile(Owl::$FILE['frontFile'], "
 
             <?php
-
-                 // Static Cache
-                 //  0: Off
-                 // -1: Never Expire
-                 // 1+: Cache output of HTML when { staticCache: true } in Web.printHtml().
-                 define('STATIC_CACHE_SECONDS', 0);
 
                  define('APP_ROOT', '$appRoot');
                  define('OWL_MAIN', '$owlBinPath');
@@ -593,9 +590,9 @@ class Owl {
                 RewriteCond %{REQUEST_FILENAME} !-d
                 RewriteRule  ^(.*)$ /owlApp.php [QSA,NC,L]
 
-                # Redirect to HTTPS
-                RewriteCond %{HTTPS} off
-                RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+                # Uncomment to redirect to HTTPS
+                # RewriteCond %{HTTPS} off
+                # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
             ");
 
 
@@ -617,11 +614,16 @@ class Owl {
 
                     <main>
                         <div style='margin: 2em'>
+
                             <h1>> Hello World
                             <.subline>> {{ Web.icon('check') }}  Congratulations!  The hard part is over.
-                            <p>> Add new pages to:<br /><code>$publicPath</>
-                            <p>> For example, this file...<br /><code>pages/testPage.owl</>
-                            <p>> ... will automatically become this URL:<br /><code>https://yoursite/test-page</>
+
+                            <p>> Add new pages to:<br /> <code>> owl/pages
+
+                            <p>> For example, when you add this file...<br /> <code>> pages/testPage.owl
+
+                            <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite/test-page
+
                             <p style=\"margin-top: 4rem\">> For more info, see <a href=\"https://owl-lang.org/tutorials/how-to-create-a-basic-web-app\">How to Create a Basic Web App</a>.
                         </>
                     </>
@@ -663,7 +665,7 @@ class Owl {
                         // /post/{postId}:  post.owl
                     }
 
-                    // Custom app settings
+                    // Custom app settings.  Read via `Global.setting(key)`
                     app: {
                         // myVar: 1234
                     }
@@ -677,13 +679,6 @@ class Owl {
 
                         // Print performance timing info
                         showPerfScore: false
-
-                        // Send session cookies
-                        useSession: false
-
-                        // Enable user file uploads (security)
-                        // Recommended: false
-                        allowFileUploads: false
                     }
 
                     // Database settings
@@ -725,7 +720,7 @@ class Owl {
         echo "+-------------------+\n\n";
 
         echo "Your new OWL app directory is here:\n  " . Owl::$paths['root'] . "\n\n";
-        echo "*  Load 'https://yoursite.com' to see if it's working.\n";
+        echo "*  Load 'http://yoursite.com' to see if it's working.\n";
         echo "*  Or run 'owl server' to start a local web server.";
         echo "\n\n";
 
@@ -790,10 +785,6 @@ class Owl {
     static private function executeWeb () {
         if (Owl::getConfig('downtime')) {
             Owl::downtimePage(Owl::getConfig('downtime'));
-        }
-
-        if (!Owl::module('Web')->u_request()['isHttps'] && !Owl::isMode('testServer')) {
-            Owl::configError("Server must be run under HTTPS.  Here are some options:\n\n\n- Run 'owl server' to develop locally.\n\n- Check your admin panel to turn on HTTPS.\n\n- Visit letsencrypt.org for a free SSL cert.");
         }
 
         $controllerFile = Owl::initWebRoute();
@@ -1200,7 +1191,7 @@ class Owl {
     static function getTopConfig() {
         $args = func_get_args();
         if (is_array($args[0])) { $args = $args[0]; }
-        $val = Owl::searchConfig(Owl::$data['config'], $args);
+        $val = Owl::searchConfig(Owl::$data['settings'], $args);
         if ($val === null) {
             $val = Owl::searchConfig(Owl::getDefaultConfig(), $args);
             if ($val === null) {
@@ -1229,7 +1220,7 @@ class Owl {
     }
 
     static function getAllConfig () {
-        return Owl::$data['config'];
+        return Owl::$data['settings'];
     }
 
     static function getPhpGlobal ($g, $key, $def='') {

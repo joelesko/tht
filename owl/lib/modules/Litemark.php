@@ -59,6 +59,7 @@ class u_Litemark extends StdModule {
 
     function __construct($flags=[]) {
         $this->flags = $flags;
+        $this->flags['html'] = isset($this->flags['html']) && $this->flags['html'];
     }
 
     function u_parse_file($file) {
@@ -126,9 +127,10 @@ class u_Litemark extends StdModule {
     }
 
     function addParaLine ($l) {
-        if (!trim($l)) { return; }
-        $this->paraLines []= trim($l);
-        return true;
+        $l = trim($l);
+        if ($l) {
+            $this->paraLines []= $l;
+        }
     }
 
     function command ($raw) {
@@ -211,7 +213,7 @@ class u_Litemark extends StdModule {
         $indent = $this->countIndent($rawLine);
         $line = trim($rawLine);
 
-        if (!strlen($line)) {
+        if (!$line) {
             $this->onBlankLine($line);
             return;
         }
@@ -226,7 +228,6 @@ class u_Litemark extends StdModule {
                 return $this->add('</pre>');
             }
             else {
-                //
                 $this->blockContent .= htmlspecialchars($rawLine) . "\n";
                 return;
             }
@@ -235,6 +236,14 @@ class u_Litemark extends StdModule {
             $this->blockMode = 'pre';
             $this->blockLines = [];
             return $this->add('<pre>', true);
+        }
+
+        if (substr($line, 0, 1) === '<') {
+            if ($this->flags['html']) {
+               $this->add($this->parseInline($line));
+               $this->onBlankLine($line);
+               return;
+            }
         }
 
         // Single-liners
@@ -294,7 +303,6 @@ class u_Litemark extends StdModule {
         $tags = [];
         $i = 0;
         $len = strlen($line);
-        $allowHtml = isset($this->flags['html']) && $this->flags['html'];
 
         while (true) {
             if ($i >= $len) { break; }
@@ -315,7 +323,7 @@ class u_Litemark extends StdModule {
             } else if ($c === '<') {
 
                 // HTML tag
-                if ($allowHtml) {
+                if ($this->flags['html']) {
                     while (true) {
                         $str .= $c;
                         if ($i >= $len || $c === '>') { break; }
@@ -444,7 +452,7 @@ class u_Litemark extends StdModule {
 
             }
             else {
-                if ($allowHtml) {
+                if ($this->flags['html']) {
                     $str .= $c;
                 } else {
                     $str .= htmlspecialchars($c);

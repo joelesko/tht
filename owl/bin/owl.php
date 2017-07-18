@@ -14,18 +14,24 @@ if (!ini_get('date.timezone')) {
 }
 
 // Doing this right away to include hits from static cache
-startupHitCounter();
-startupStaticCache();
+if (isset($_SERVER['HTTP_USER_AGENT'])) {
+    startupHitCounter();
+    startupStaticCache();
+}
 
 restore_error_handler();
 
+// Include OWL lib
 require dirname(__FILE__) . '/../lib/core/Owl.php';
 
-$OWL_RETURN_STATUS = Owl::start();
+// Run app
+$owlReturnStatus = Owl::start();
 
+return $owlReturnStatus;
 
 
 //====================================
+
 
 
 // TODO: sanitize file paths
@@ -37,13 +43,15 @@ function onStartupError($a, $errstr) {
 
 function startupStaticCache() {
 
+    $cacheSecs = defined('STATIC_CACHE_SECONDS') ? constant('STATIC_CACHE_SECONDS') : 0;
+
     // Serve directly from HTML cache
-    if (defined('STATIC_CACHE_SECONDS') && STATIC_CACHE_SECONDS !== 0) {
+    if ($cacheSecs && $cacheSecs !== 0) {
 
         $cacheFile = md5($_SERVER['SCRIPT_NAME']);
         $cachePath = APP_ROOT . '/data/cache/html/' . $cacheFile . '.html';
         if (file_exists($cachePath)) {
-            if (STATIC_CACHE_SECONDS < 0 || time() < filemtime($cachePath) + STATIC_CACHE_SECONDS) {
+            if ($cacheSecs < 0 || time() < filemtime($cachePath) + $cacheSecs) {
 
                 // security headers
                 header("X-Content-Type-Options: nosniff");
@@ -70,20 +78,18 @@ function startupStaticCache() {
 // Hit Counter
 function startupHitCounter() {
 
-    if (!defined('APP_ROOT')) { return; }
-
     // skip bots
     $botRx = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
     if (preg_match($botRx, $_SERVER['HTTP_USER_AGENT'])) { return; }
 
-    $counterDir = APP_ROOT . '/data/files/counter';
+    $counterDir = APP_ROOT . '/data/counter';
 
     // date counter
     $date = strftime('%Y%m%d');
     $dateLogPath = $counterDir . '/date/' . $date . '.txt';
     file_put_contents($dateLogPath, '+', FILE_APPEND|LOCK_EX);
 
-    // page counter
+    // page counter - 1 byte per hit
     $page = $_SERVER['REQUEST_URI'];
     $page = preg_replace('/\?.*/', '', $page);
     $page = preg_replace('/[^a-zA-Z0-9]/', '_', $page);
@@ -92,8 +98,5 @@ function startupHitCounter() {
     file_put_contents($pageLogPath, '+', FILE_APPEND|LOCK_EX);
 }
 
-//====================================
 
-
-return $OWL_RETURN_STATUS;
 

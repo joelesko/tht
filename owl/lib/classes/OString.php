@@ -107,7 +107,7 @@ class OString extends OVar implements \ArrayAccess {
 
 
     // Just for convenience if mixing and matching with OLockStrings
-    function u_unlock () {
+    function u_unlocked () {
         return $this->val;
     }
 
