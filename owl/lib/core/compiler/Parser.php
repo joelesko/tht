@@ -562,7 +562,7 @@ class SymbolTable {
     }
 
     function compress ($sym) {
-        $c = implode("\t", [
+        $c = implode(TOKEN_SEP, [
             $sym->symbolId,
             $sym->token[TOKEN_POS],
             $sym->token[TOKEN_TYPE],
@@ -573,7 +573,7 @@ class SymbolTable {
     }
 
     function decompress ($symbol) {
-        $s = explode("\t", $symbol, 5);
+        $s = explode(TOKEN_SEP, $symbol, 5);
         // Don't need tokenType $s[2]
         return [
             'id' => $s[0],

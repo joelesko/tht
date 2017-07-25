@@ -9,6 +9,8 @@ const TOKEN_POS   = 1;
 const TOKEN_SPACE = 2;
 const TOKEN_VALUE = 3;
 
+define('TOKEN_SEP', chr(254)); // 254 = ■
+
 
 abstract class Glyph {
     const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~@';
@@ -38,7 +40,7 @@ class TokenStream {
     var $tokens = [];
 
     function add ($t) {
-        $this->tokens []= implode("\t", $t);
+        $this->tokens []= implode(TOKEN_SEP, $t);
     }
     function done () {
         $this->tokens = array_reverse($this->tokens);
@@ -50,7 +52,7 @@ class TokenStream {
     function next () {
         // note: array_pop is much faster than array_shift
         $t = array_pop($this->tokens);
-        return explode("\t", $t);
+        return explode(TOKEN_SEP, $t, 4);
     }
 }
 
@@ -247,10 +249,7 @@ class Tokenizer extends StringReader {
             $this->error("Unexpected newline inside of template expression '{{ ... }}'.");
         }
 
-        if ($c === "\t") {
-            $this->error('Unknown token: (tab)   Try: 4 spaces');
-        }
-        if ($c === ' ' || $c === "\n") {
+        if ($c === ' ' || $c === "\n" || $c === "\t") {
             $this->prevSpace = true;
         }
 
