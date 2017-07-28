@@ -4,7 +4,7 @@ namespace o;
 
 class Owl {
 
-    static private $VERSION = '0.1.1 - Beta';
+    static private $VERSION = '0.1.2 - Beta';
     static private $SRC_EXT = 'owl';
 
     static private $OWL_SITE = 'https://owl-lang.org';
