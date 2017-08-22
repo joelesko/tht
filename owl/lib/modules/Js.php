@@ -249,7 +249,7 @@ $themeCss
             for (var i=0; i < codes.length; i++) {
                 var block = codes[i];
                 var classes = block.classList;
-                if (classes.contains(hiClass)) {
+                if (classes.contains(hiClass) || classes.contains('no-highlight')) {
                     continue;
                 }
 
