@@ -72,7 +72,7 @@ class ErrorHandler {
                 preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
                 if ($m) {
                     $max = Owl::getConfig('memoryLimitMb');
-                    $error['message'] = "Max memory limit exceeded ($max MB).  Check config 'memoryLimitMb'.";
+                    $error['message'] = "Max memory limit exceeded ($max MB).  See 'memoryLimitMb' in `app.jcon`.";
                     $error['file'] = null;
                 }
 
@@ -80,7 +80,7 @@ class ErrorHandler {
                 if ($m) {
                     $max = Owl::getConfig('maxExecutionTimeSecs');
                     $secs = v('second')->u_plural($max);
-                    $error['message'] = "Max execution time exceeded ($max $secs).  Check config 'maxExecutionTimeSecs'.";
+                    $error['message'] = "Max execution time exceeded ($max $secs).  See 'maxExecutionTimeSecs' in `app.jcon`.";
                     $error['file'] = null;
                 }
 
