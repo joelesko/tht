@@ -371,7 +371,7 @@ class ErrorHandler {
                 .owl-caret { color: #eac222; font-size: 30px; position: relative; left: -3px; top: 2px; line-height: 0; }
                 .src-small .owl-caret { font-size: 24px; }
                 .owl-error-file { font-size: 90%; margin-bottom: 40px;  }
-                .owl-error-file b { margin-right: 40px; margin-left: 5px; font-size: 105%; }
+                .owl-error-file span { margin-right: 40px; margin-left: 5px; font-size: 105%; font-weight: bold; color: inherit; }
                 .owl-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= u_Css::u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2 8px; }
             </style>
 
@@ -382,8 +382,8 @@ class ErrorHandler {
 
                 <?php if ($error['src']) { ?>
                 <div class='owl-error-file'>
-                    File: <b><?= $error['src']['file'] ?></b>
-                    Line: <b><?= $error['src']['line'] ?></b>
+                    File: <span><?= $error['src']['file'] ?></span>
+                    Line: <span><?= $error['src']['line'] ?></span>
                 </div>
                 <?php } ?>
 
