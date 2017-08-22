@@ -137,7 +137,7 @@ class Tokenizer extends StringReader {
     function onNewline() {
         if ($this->colNum > MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
             && !$this->inMultiLineString) {
-            $this->error('(Style Checker) Line has ' . $this->colNum . ' characters.  Maximum is ' . MAX_LINE_LENGTH . '.');
+            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . MAX_LINE_LENGTH . '.');
         }
 
         //
@@ -581,6 +581,8 @@ class Tokenizer extends StringReader {
                 $this->addTemplateString($str);
                 $this->nextFor('}');
                 $this->makeToken(TokenType::GLYPH, ';');  // satisfy "semicolon at end of function" rule
+
+                $this->prevSpace = true;  // satisfy format checker (space before '}')
                 $this->insertToken(TokenType::GLYPH, '}');
 
                 $this->templateName = '';
