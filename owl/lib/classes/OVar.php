@@ -37,7 +37,7 @@ class OVar extends OClass implements \JsonSerializable {
     }
 
     function u_is_lock_string () {
-        return false; // OLockString::isa($this->val);
+        return false;
     }
 
     function u_is_number () {
@@ -64,27 +64,9 @@ class OVar extends OClass implements \JsonSerializable {
         return \get_called_class() === 'o\OMap';
     }
 
-    // TODO: change?
-    // function u_get_type() {
-    //     return gettype($this->val);
-    // }
-
     function u_compare_to ($a) {
         if ($this->val === $a) {  return 0;  }
         return $this->val > $a ? 1 : -1;
     }
-
-
-    // function u_methods() {
-    //     $ms = \get_class_methods(\get_called_class());
-    //     $fm = [];
-    //     foreach ($ms as $m) {
-    //         if (substr($m, 0, 2) == 'u_') {
-    //             $fm []= substr($m, 2);
-    //         }
-    //     }
-    //     sort($fm);
-    //     return $fm;
-    // }
 }
 
