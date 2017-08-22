@@ -340,9 +340,9 @@ class ErrorHandler {
         // TODO: fix this formatting
         $error['message'] = preg_replace("/\n+Got:(.*)/s", "<br /><br />    : '$1'", $error['message']);
 
-        if (preg_match('/Readability Checker/', $error['message'])) {
-            $error['message'] = preg_replace('/\(Readability Checker\)/i', '', $error['message']);
-            $heading = "Readability Checker";
+        if (preg_match('/Format Checker/', $error['message'])) {
+            $error['message'] = preg_replace('/\(Format Checker\)/i', '', $error['message']);
+            $heading = "Format Checker";
         }
 
         // convert quoted substrings to code
