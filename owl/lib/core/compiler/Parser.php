@@ -281,11 +281,12 @@ class Parser {
 
         $this->validator->newScope();
 
-        $this->now('{')->space(' { ')->next();
+        $this->now('{')->space(' { ', true)->next();
 
         while (true) {
             $s = $this->symbol;
             if ($s->isValue('}')) {
+                $this->space(' }*', true);
                 $this->next();
                 break;
             }
@@ -399,8 +400,8 @@ class Parser {
         return $this;
     }
 
-    function space ($mask) {
-        $this->symbol->space($mask);
+    function space ($mask, $isHard=false) {
+        $this->symbol->space($mask, $isHard);
         return $this;
     }
 
@@ -659,20 +660,22 @@ class Symbol {
     // 'x| ' = space not allowed before, required after
     // '*| ' = anything before, space required after
     // '*|n' = anything before, newline or non-space after
-    function space ($pattern) {
+    function space ($pattern, $isHard=false) {
 
-        if (Owl::getConfig('disableReadabilityChecker')) {
-            return;
+        if (Owl::getConfig('disableFormatChecker') && !$isHard) {
+            return $this;
         }
 
-        $this->spacePos('L', $pattern[0]);
-        $this->spacePos('R', $pattern[strlen($pattern) - 1]);
+        $this->spacePos($isHard, 'L', $pattern[0]);
+        $this->spacePos($isHard, 'R', $pattern[strlen($pattern) - 1]);
+
+        return $this;
     }
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
     // TODO: refactor. log is a little hairy
-    function spacePos ($pos, $require) {
+    function spacePos ($isHard, $pos, $require) {
 
         if ($require == '*') { return; }
 
@@ -691,7 +694,7 @@ class Symbol {
         }
 
         if ($hasNewline && $allowNewline) {
-            return $this;
+            return;
         }
 
         $msg = '';
@@ -720,10 +723,14 @@ class Symbol {
             $aPos = explode(',', $t[TOKEN_POS]);
             $posDelta = $pos === 'L' ? -1 : strlen($t[TOKEN_VALUE]);
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
-            $p->error('(Readability Checker)  Please ' . $msg . ' ' . $what . ' ' . $sPos . " '" . $t[TOKEN_VALUE] . "'.", $t);
+
+            $fullMsg = 'Please ' . $msg . ' ' . $what . ' ' . $sPos . " '" . $t[TOKEN_VALUE] . "'.";
+            if (!$isHard) { $fullMsg = '(Format Checker) ' . $fullMsg; }
+
+            $p->error($fullMsg, $t);
         }
 
-        return $this;
+        return;
     }
 }
 
@@ -779,7 +786,7 @@ class S_Prefix extends Symbol {
     var $type = SymbolType::PREFIX;
     function asLeft($p) {
         $p->next();
-        $this->space('*!x');
+        $this->space('*!x', true);
         $this->setKids([$p->parseExpression(70)]);
         return $this;
     }
@@ -833,7 +840,7 @@ class S_OpenBracket extends S_Infix {
     function asInner ($p, $left) {
         $p->next();
         $this->updateType(SymbolType::MEMBER);
-        $this->space('x[x');
+        $this->space('x[x', true);
         $this->setKids([$left, $p->parseExpression(0)]);
         $p->now(']')->space('x]*')->next();
         return $this;
@@ -868,7 +875,7 @@ class S_Dot extends S_Infix {
     // Dot member.  foo.bar
     function asInner ($p, $objName) {
         $p->next();
-        $this->space('x.x');
+        $this->space('x.x', true);
         $sMember = $p->symbol;
         if ($sMember->token[TOKEN_TYPE] !== TokenType::WORD) {
             $p->error('Expected a field name.  Ex: user.name');
@@ -957,7 +964,7 @@ class S_OpenParen extends Symbol {
     // Function call. foo()
     function asInner ($p, $left) {
 
-        $this->space('x(N');
+        $this->space('x(N', true);
 
         $p->next();
         $this->updateType(SymbolType::CALL);
@@ -1025,7 +1032,7 @@ class S_OpenBrace extends Symbol {
             $p->next();
 
             // colon
-            $p->now(':', 'Map key')->space('x: ')->next();
+            $p->now(':', 'Map key')->space('x: ', true)->next();
 
             // value
             $val = $p->parseExpression(0);
@@ -1125,18 +1132,18 @@ class S_If extends S_Statement {
         $p->expressionDepth += 1;  // prevent assignment
 
         // conditional. if (...)
-        $p->now('(', 'if')->space(' (x')->next();
+        $p->now('(', 'if')->space(' (x', true)->next();
         $this->addKid($p->parseExpression(0));
-        $p->now(')', 'if')->space('x) ')->next();
+        $p->now(')', 'if')->space('x) ', true)->next();
 
         // block. { ... }
         $this->addKid($p->parseBlock());
 
         // else/if
         if ($p->symbol->isValue('else')) {
-            $p->space(' else ')->next();
+            $p->space(' else ', true)->next();
             if ($p->symbol->isValue('if')) {
-                $p->space(' if ');
+                $p->space(' if ', true);
                 $this->addKid($p->parseStatement());
             } else {
                 $this->addKid($p->parseBlock());
@@ -1174,7 +1181,7 @@ class S_For extends S_Statement {
         //  $inParens = false;
         //  if ($p->symbol->isValue('(')) {
         //    $inParens = true;
-              $p->now('(')->space(' (x')->next();
+              $p->now('(')->space(' (x', true)->next();
         //  }
 
         if ($p->symbol->isValue('let')) {
@@ -1191,7 +1198,7 @@ class S_For extends S_Statement {
 
         // key:value alias.  for (_k:v_ in map) { ... }
         if ($p->symbol->isValue(':')) {
-            $p->space('x:x')->next();
+            $p->space('x:x', true)->next();
             if ($p->symbol->type !== SymbolType::USER_VAR) {
                 $p->error('Expected a key:value pair.  Ex: for (userName:age in users) { ... }');
             }
@@ -1200,14 +1207,14 @@ class S_For extends S_Statement {
             $p->next();
         }
 
-        $p->now('in', 'for...in')->next();
+        $p->now('in', 'for/in')->next();
 
 
         // Iterator.  for (a in _iterator_) { ... }
         $this->addKid($p->parseExpression(0));
 
         // if ($inParens) {
-            $p->now(')')->space('x) ')->next();
+            $p->now(')')->space('x) ', true)->next();
         // }
 
         $this->addKid($p->parseBlock());
@@ -1231,7 +1238,7 @@ class S_NewFunction extends S_Statement {
     function asStatement ($p) {
 
         $p->next();
-        $this->space('*function ');
+        $this->space('*function ', true);
 
         $hasName = false;
 
@@ -1265,7 +1272,7 @@ class S_NewFunction extends S_Statement {
         if ($p->symbol->isValue("(")) {
 
             $space = $hasName ? 'x(x' : ' (x';
-            $p->now('(', 'function')->space($space)->next();
+            $p->now('(', 'function')->space($space, true)->next();
             $argSymbols = [];
             $hasOptionalArg = false;
             while (true) {
@@ -1362,6 +1369,8 @@ class S_Class extends S_Statement {
     // e.g. class Foo { ... }
     function asStatement ($p) {
 
+        $p->space(' class ', true);
+
         $p->next();
 
         $sClassName = $p->symbol;
@@ -1385,13 +1394,15 @@ class S_TryCatch extends S_Statement {
     // try { ... } catch (e) { ... }
     function asStatement ($p) {
 
+        $p->space(' try ', true);
+
         $p->next();
 
         // try
         $this->addKid($p->parseBlock());
 
         // catch
-        $p->now('catch')->next();
+        $p->now('catch')->space(' catch ', true)->next();
 
         // exception var
         $p->now('(', 'try/catch')->next();
@@ -1404,6 +1415,7 @@ class S_TryCatch extends S_Statement {
 
         // finally
         if ($p->symbol->isValue('finally')) {
+            $p->space(' finally ', true);
             $p->next();
             $this->addKid($p->parseBlock());
         }
@@ -1473,7 +1485,7 @@ class S_Return extends S_Command {
     function asStatement ($p) {
         $p->next();
         if (!$p->symbol->isValue(';')) {
-            $this->space('*| ');
+            $this->space('*| ', true);
             $p->expressionDepth += 1; // prevent assignment
             $this->addKid($p->parseExpression(0));
         }
