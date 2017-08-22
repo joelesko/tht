@@ -111,8 +111,10 @@ class Owl {
         Owl::initMode();
 
         if (Owl::isMode('testServer')) {
-            // return static assets
-            if (file_exists($_SERVER["SCRIPT_FILENAME"])) {
+            // Need to construct path manually.
+            // See: https://github.com/joelesko/owl/issues/2
+            $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
+            if ($_SERVER["REQUEST_URI"] !== "/" && file_exists($path)) {
                 return false;
             }
         }
@@ -490,9 +492,9 @@ class Owl {
             "tempParseCss"     => false,
 
             // features
-            "showPerfScore"    => false,
-            "useSession"       => false,
-            "disableReadabilityChecker" => false,
+            "showPerfScore"        => false,
+            "useSession"           => false,
+            "disableFormatChecker" => false,
 
             // [security]
             "allowFileAccess"         => false,
