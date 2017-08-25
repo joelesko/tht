@@ -19,7 +19,6 @@ class LibClasses {
         'ONothing',
         'OModule',
         'OTemplate',
- //       'Runtime',
     ];
 
     static public function load () {
