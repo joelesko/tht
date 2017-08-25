@@ -197,11 +197,13 @@ class u_File extends StdModule {
     }
 
     function u_is_relative_path($p) {
-        return strlen($p) && $p[0] !== '/';
+        $this->validatePath($p);
+        return $p[0] !== '/';
     }
 
     function u_is_absolute_path($p) {
-        return strlen($p) && $p[0] === '/';
+        $this->validatePath($p);
+        return $p[0] === '/';
     }
 
 
