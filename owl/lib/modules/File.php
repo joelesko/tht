@@ -49,6 +49,10 @@ class u_File extends StdModule {
 
     // [security]
     function validatePath ($path) {
+
+        if (!strlen($path)) {
+            Owl::error('File path cannot be empty: `' . $path . '`');
+        }
         if (v($path)->u_is_url()) {
             Owl::error('Remote URL not allowed: ' . $path);
         }
@@ -193,11 +197,11 @@ class u_File extends StdModule {
     }
 
     function u_is_relative_path($p) {
-        return $p[0] !== '/';
+        return strlen($p) && $p[0] !== '/';
     }
 
     function u_is_absolute_path($p) {
-        return $p[0] === '/';
+        return strlen($p) && $p[0] === '/';
     }
 
 
