@@ -17,7 +17,8 @@ abstract class Glyph {
     const MULTI_GLYPH_SUFFIX = '=<>&|+-*:';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
-    const BLOCK_COMMENT = '///';
+    const BLOCK_COMMENT_START = '/*';
+    const BLOCK_COMMENT_END = '*/';
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
     const TEMPLATE_CODE_LINE = '::';
@@ -190,6 +191,9 @@ class Tokenizer extends StringReader {
                 }
                 else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
                     $this->handleComment($c);
+                }
+                else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
+                    $this->handleBlockComment($c);
                 }
                 else {
                     $this->handleGlyph($c);
@@ -431,50 +435,50 @@ class Tokenizer extends StringReader {
 
     }
 
-    function handleComment ($c) {
+    function handleBlockComment($c) {
 
         $this->updateTokenPos();
-
-        $isBlock = ($this->isGlyph(Glyph::BLOCK_COMMENT));
-        if ($isBlock) {
-            $this->checkBlockComment();
-        }
-        else {
-            $this->nextFor(Glyph::LINE_COMMENT);
-        }
+        $commentDepth = 0;
 
         while (true) {
-            $c = $this->char();
+            if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
+                if (!$this->atStartOfLine()) {
+                    $this->error("Block comment should be on a separate line.");
+                }
+                $this->nextFor(Glyph::BLOCK_COMMENT_START);
+                $this->updateTokenPos();
+                $commentDepth += 1;
+            }
+            else if ($this->isGlyph(Glyph::BLOCK_COMMENT_END)) {
+                $this->nextFor(Glyph::BLOCK_COMMENT_END);
+                $this->updateTokenPos();
 
-            if ($this->atEndOfFile()) {
-                if ($isBlock) {
-                    $this->error("Unclosed comment block.  You missed a '" . Glyph::BLOCK_COMMENT . "' somewhere.");
+                if ($this->char() !== "\n") {
+                    $this->error("Missing newline after block comment `" . Glyph::BLOCK_COMMENT_END . "`.");
                 }
-                break;
-            }
-            else if ($isBlock) {
-                if ($this->isGlyph(Glyph::BLOCK_COMMENT)) {
-                    $this->updateTokenPos();
-                    $this->checkBlockComment();
-                    break;
+                $commentDepth -= 1;
+                if (!$commentDepth) { break; }
+
+            } else {
+                if ($this->atEndOfFile()) {
+                    $this->error("Unclosed comment block.  You missed a `" . Glyph::BLOCK_COMMENT_END . "` somewhere.");
                 }
             }
-            else {
-                if ($c === "\n") {
-                    break;
-                }
-            }
-            $this->next(1, true);
+            $this->next();
         }
     }
 
-    function checkBlockComment () {
-        if (!$this->atStartOfLine()) {
-            $this->error("Block comment should be on a separate line.");
-        }
-        $this->nextFor(Glyph::BLOCK_COMMENT);
-        if ($this->char() !== "\n") {
-            $this->error("Missing newline after block comment '" . Glyph::BLOCK_COMMENT . "'.");
+    function handleComment ($c) {
+
+        $this->updateTokenPos();
+        $this->nextFor(Glyph::LINE_COMMENT);
+
+        while (true) {
+            $c = $this->char();
+            if ($c === "\n" || $this->atEndOfFile()) {
+                break;
+            }
+            $this->next();
         }
     }
 
@@ -574,7 +578,7 @@ class Tokenizer extends StringReader {
             } else if ($this->atStartOfLine() && !$this->isWhitespace($c) && $this->indent <= $this->templateIndent) {
 
                 if (!$this->isGlyph('}')) {
-                    $this->error("Unexpected end of template '" . $this->templateName . "'.\n\nExpected '}' to match indent of line " .$this->templateLineNum . ".");
+                    $this->error("Line should be indented inside template '" . $this->templateName . "' starting at Line " .$this->templateLineNum . ".");
                 }
                 // end of template body '}'
                 $this->currentTemplateTransformer->onEndTemplateBody();
