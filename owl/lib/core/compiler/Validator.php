@@ -43,13 +43,13 @@ class Validator {
 
         $existingName = $this->isDefined($lowerName);
         if ($existingName) {
-            $this->parser->error("Name '" . $existingName . "' is already defined in this scope.", $token);
+            $this->parser->error("Name `" . $existingName . "` is already defined in this scope.", $token);
         }
         if (OBare::isa($lowerName)) {
-            $this->parser->error("Name '" . $lowerName . "' is the name of a core function.", $token);
+            $this->parser->error("Name `" . $lowerName . "` is the name of a core function.", $token);
         }
         if (in_array($lowerName, ParserData::$RESERVED_NAMES)) {
-            $this->parser->error("Name '" . $lowerName . "' is a reserved word.", $token);
+            $this->parser->error("Name `" . $lowerName . "` is a reserved word.", $token);
         }
 
         $currentScope = count($this->scopes) - 1;
@@ -76,7 +76,7 @@ class Validator {
     function validateUndefined () {
         foreach ($this->undefinedVars as $s) {
             if ($s->type === SymbolType::USER_VAR && !$s->getDefined()) {
-                $this->parser->error('Unknown variable: ' . $s->getValue(), $s->token);
+                $this->parser->error('Unknown variable: `' . $s->getValue() . '`', $s->token);
             }
         }
     }
@@ -90,7 +90,7 @@ class Validator {
             if (isset($defined[$fuzzy])) {
                 $exact = $defined[$fuzzy];
                 if ($funName !== $exact) {
-                    $this->parser->error("Function name case mismatch.  Use '$exact' instead.", $funToken);
+                    $this->parser->error("Function name case mismatch.  Use `$exact` instead.", $funToken);
                 }
             }
         }
@@ -113,10 +113,10 @@ class Validator {
             if (preg_match("/^[A-Z]/", $name) && preg_match("/[a-z]/", $name)) {
                 $case = 'UpperCamelCase';
             }
-            $this->parser->error("Word '$name' should be pure $case.", $token);
+            $this->parser->error("Word `$name` should be pure $case.", $token);
         }
         else if (strrpos($name, '_') > -1) {
-            $this->parser->error("Word '$name' should be camelCase. No underscores.", $token);
+            $this->parser->error("Word `$name` should be camelCase. No underscores.", $token);
         }
         else if (strlen($name) === 1 && $name >= 'A' && $name <= 'Z') {
             $this->parser->error("UpperCamelCase words must be longer than 1 character.", $token);
@@ -125,7 +125,7 @@ class Validator {
             $this->parser->error("Words must be " . ParserData::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
         else if ($name == 'data') {
-            $this->parser->error("Word '$name' has no meaning. Try renaming to describe what kind of data it is.", $token);
+            $this->parser->error("Word `$name` is meaningless. Try renaming it to describe what kind of data it is.", $token);
         }
     }
 
