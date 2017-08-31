@@ -9,7 +9,7 @@ class u_Form extends StdModule {
 
     function openTag($name, $params, $getRaw=false) {
         if (!$this->isOpen && $name !== 'form') {
-            Owl::error("Call Form.open() before adding form fields.");
+            Owl::error("Call `Form.open()` before adding form fields.");
         }
         $ps = [];
         foreach ($params as $k => $v) {
@@ -27,24 +27,33 @@ class u_Form extends StdModule {
         return $getRaw ? "</$name>" : new HtmlLockString ("</$name>");
     }
 
-    function u_open ($url='', $p=[], $honeyPot=true) {
+    function u_open ($actionUrl='', $atts=[], $honeyPot=true) {
 
         if ($this->isOpen) { Owl::error("A form is already open."); }
         $this->isOpen = true;
 
-        if (!$url) { $url = Owl::getPhpGlobal('server', 'SCRIPT_NAME'); }
+        // Target current page by default
+        if (!$actionUrl) { $actionUrl = Owl::getPhpGlobal('server', 'SCRIPT_NAME'); }
 
-        $p = uv($p);
-        $p['action'] = $url;
+        $atts = uv($atts);
+        $atts['action'] = $actionUrl;
 
-        if (!isset($p['files'])) {
+        // Extra attributes to allow file uploads
+        if (isset($atts['fileUpload']) && $atts['fileUpload']) {
+            if (!Owl::getConfig('allowFileUploads')) {
+                Owl::error("To enable file uploads, you must also set `allowFileUploads: true` in `settings/app.jcon`");
+            }
             $this->isFileUpload = true;
-            $p['enctype'] = "multipart/form-data";
-            $p['method'] = 'post';
-            unset($p['files']);
+            $atts['enctype'] = "multipart/form-data";
+            $atts['method'] = 'POST';
+            unset($atts['files']);
         }
-        if (!isset($p['method'])) { $p['method'] = 'post'; }
-        $html = $this->openTag('form', $p);
+
+        // Default method: POST
+        if (!isset($atts['method'])) { $atts['method'] = 'POST'; }
+
+
+        $html = $this->openTag('form', $atts);
 
         if ($honeyPot) {
           //  $key = $this->honeyPotKey();
@@ -82,109 +91,141 @@ class u_Form extends StdModule {
 
 
     function u_close () {
+        if (!$this->isOpen) { Owl::error("A form is not currently open."); }
         $this->isOpen = false;
         return $this->closeTag('form');
     }
 
-    function u_text($name, $val='', $p=[]) {
-        return $this->u_input('text', $name, $val, $p);
+    function u_text($name, $val='', $atts=[]) {
+        return $this->u_input('text', $name, $val, $atts);
     }
 
-    function u_email($name, $val='', $p=[]) {
-        return $this->u_input('email', $name, $val, $p);
+    function u_email($name, $val='', $atts=[]) {
+        return $this->u_input('email', $name, $val, $atts);
     }
 
-    function u_password($name, $val='', $p=[]) {
-        return $this->u_input('email', $name, $val, $p);
+    function u_password($name, $val='', $atts=[]) {
+        return $this->u_input('email', $name, $val, $atts);
     }
 
-    function u_hidden($name, $val='', $p=[]) {
-        return $this->u_input('hidden', $name, $val, $p);
+    function u_hidden($name, $val='', $atts=[]) {
+        return $this->u_input('hidden', $name, $val, $atts);
     }
 
-    function u_button($val='', $p=[]) {
-        return $this->u_input('button', '', $val, $p);
+    function u_button($val='', $atts=[]) {
+        return $this->u_input('button', '', $val, $atts);
     }
 
-    function u_submit($val, $p=[]) {
-        return $this->u_input('submit', '', $val, $p);
+    function u_submit($val, $atts=[]) {
+        return $this->u_input('submit', '', $val, $atts);
     }
 
-    function u_input($type, $name, $val='', $p=[]) {
-        $p = uv($p);
-        $p['id'] = 'field_' . $name;
-        $p['name'] = $name;
-        $p['value'] = $val;
-        $p['type'] = $type;
-        return $this->openTag('input', $p);
+    function u_input($type, $name, $val='', $atts=[]) {
+        $atts = uv($atts);
+        $atts['id'] = 'field_' . $name;
+        $atts['name'] = $name;
+        $atts['value'] = $val;
+        $atts['type'] = $type;
+        return $this->openTag('input', $atts);
     }
 
-    function u_label($name, $text, $p=[]) {
-        $p = uv($p);
-        $p['for'] = 'field_' . $name;
-        $html = $this->openTag('label', $p, true) . $text . '</label>';
+    function u_label($name, $text, $atts=[]) {
+        $atts = uv($atts);
+        $atts['for'] = 'field_' . $name;
+        $html = $this->openTag('label', $atts, true) . $text . '</label>';
         return new HtmlLockString ($html);
     }
 
-    function checkable($type, $name, $value, $label, $p=[]) {
-        $p = uv($p);
-        if (isset($p['on'])) { $p['checked'] = 'checked'; unset($p['on']); }
+    function checkable($type, $name, $value, $label, $atts=[]) {
+        $atts = uv($atts);
+        if (isset($atts['on'])) {
+            $atts['checked'] = 'checked';
+            unset($atts['on']);
+        }
         $html = '<label>';
-        $html .= $this->u_input($type, $name, $value, $p)->u_unlocked();
+        $html .= $this->u_input($type, $name, $value, $atts)->u_unlocked();
         $html .= '<span>' . $label . '</span></label>';
         return new HtmlLockString($html);
     }
 
-    function u_checkbox($name, $value, $label, $p=[]) {
-        return $this->checkable('checkbox', $name, $value, $label, $p);
+    function u_checkbox($name, $value, $label, $atts=[]) {
+        return $this->checkable('checkbox', $name, $value, $label, $atts);
     }
 
-    function u_radio($name, $value, $label, $p=[]) {
-        return $this->checkable('radio', $name, $value, $label, $p);
+    function u_radio($name, $value, $label, $atts=[]) {
+        return $this->checkable('radio', $name, $value, $label, $atts);
     }
 
-    function u_textarea($name, $val='', $p=[]) {
-        $p = uv($p);
-        $p['id'] = 'field_' . $name;
-        $p['name'] = $name;
-        $html = $this->openTag('textarea', $p)->u_unlocked();
+    function u_textarea($name, $val='', $atts=[]) {
+        $atts = uv($atts);
+        $atts['id'] = 'field_' . $name;
+        $atts['name'] = $name;
+        $html = $this->openTag('textarea', $atts)->u_unlocked();
         $html .= $val . '</textarea>';
         return new HtmlLockString ($html);
     }
 
-    function u_options_range($min, $max) {
+    function u_file($name, $atts=[]) {
+        if (!$this->isFileUpload) {
+            Owl::error('`Form.open()` needs `{ fileUpload: true }` to support file uploads.');
+        }
+        return $this->u_input('file', $name);
+    }
+
+    function u_select($name, $firstOption, $optionsHtml, $atts=[]) {
+        $atts = uv($atts);
+        $atts['name'] = $name;
+        $html = $this->openTag('select', $atts, true);
+        if ($firstOption) {
+            $html .= $this->openTag('option', ['value' => ''], true) . htmlspecialchars($firstOption) . '</option>';
+        }
+        $html .= $optionsHtml->u_unlocked();
+        $html .= '</select>';
+        return new HtmlLockString ($html);
+    }
+
+    function u_options($items, $default=null, $key=null, $value=null) {
+        $items = uv($items);
+        if (v($items)->u_is_map()) {
+            return $this->options_from_map($items, $default);
+        } else if (!is_null($key)) {
+            return $this->options_from_rows($items, $default, $key, $value);
+        } else {
+            return $this->options_from_list($items, $default);
+        }
+    }
+
+    // Value = 'name' and 'value'
+    function options_from_list($items, $default=null) {
         $ops = [];
-        for ($i = $min; $i <= $max; $i++) {
-            $ops[$i] = $i;
+        if (count($items)) {
+            if (v(reset($items))->u_is_map()) {
+                Owl::error('Need a `key` argument to create options from a List of Maps.');
+            }
         }
-        return $ops;
+        $num = 0;
+        foreach ($items as $i) {
+            $ops []= [ '_k' => $num, '_v' => $i ];
+            $num += 1;
+        }
+        return $this->options($ops, $default, '_k', '_v');
     }
 
-    function u_options_from_list($al, $def=null) {
-        $al = uv($al);
-        $l = [];
-        foreach ($al as $i) {
-            $l []= [ 'k' => $i, 'v' => $i ];
+    // Key = 'name', value = 'value'
+    function options_from_map($items, $default=null) {
+        $ops = [];
+        foreach ($items as $k => $v) {
+            $ops []= [ '_k' => $k, '_v' => $v ];
         }
-        return $this->options($l, $def, 'k', 'v');
+        return $this->options($ops, $default, '_k', '_v');
     }
 
-    function u_options_from_map($al, $def=null) {
-        $al = uv($al);
-        $l = [];
-        foreach ($al as $k => $v) {
-            $l []= [ 'k' => $k, 'v' => $v ];
-        }
-        return $this->options($l, $def, 'k', 'v');
-    }
-
-    function u_options_from_rows($al, $def, $k, $v) {
-        return $this->options($al, $def, $k, $v);
+    function options_from_rows($items, $default, $k, $v) {
+        return $this->options($items, $default, $k, $v);
     }
 
     function options($items, $def=null, $ak=null, $av=null) {
         $html = '';
-        $items = uv($items);
         foreach ($items as $i) {
             $i = uv($i);
             $ip = ['value' => $i[$ak]];
@@ -196,29 +237,14 @@ class u_Form extends StdModule {
         return new HtmlLockString ($html);
     }
 
-    function u_select($name, $startLabel, $optionsHtml, $p=[]) {
-        $p = uv($p);
-        $p['name'] = $name;
-        $html = $this->openTag('select', $p, true);
-        if ($startLabel) {
-            $html .= $this->openTag('option', ['value' => ''], true) . htmlspecialchars($startLabel) . '</option>';
-        }
-        $html .= $optionsHtml->u_unlocked();
-        $html .= '</select>';
-        return new HtmlLockString ($html);
-    }
-
-    function honeypot() {
-        $secret = Owl::getPhpGlobal('server');
-
-
-    }
-    // function u_file($name, $p=[]) {
-    //     if (!$this->isFileUpload) {
-    //         Owl::error('Form needs to be opened with { files: true } to support file uploads.');
-    //     }
-    //     return $this->u_input('file', $name);
+    // function honeypot() {
+    //     $secret = Owl::getPhpGlobal('server');
+    //
+    //
     // }
+    //
+
+
 }
 
 

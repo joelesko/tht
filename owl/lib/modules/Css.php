@@ -88,8 +88,11 @@ EOS;
         if ($id === 'icons') {
             return $this->inc_icons();
         }
+        if ($id === 'grid') {
+            return $this->inc_grid();
+        }
 
-        Owl::error("Unknown CSS include: '$id'.  Allowed: 'base', 'reset', 'icons'");
+        Owl::error("Unknown CSS include: `$id`.  Allowed: `base`, `reset`, `grid`, `icons`");
     }
 
     function inc_reset () {

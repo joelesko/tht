@@ -24,7 +24,7 @@ class u_Db extends StdModule {
         if (isset($dbConfig['file'])) {
             $dbFilePath = Owl::path('db', $dbConfig['file']);
             if (! file_exists($dbFilePath)) {
-                Owl::error("Can't find database file '$dbFilePath'.");
+                Owl::error("Can not find database file `$dbFilePath`.");
             }
             $dbh = new \PDO('sqlite:' . $dbFilePath);
         } else {
@@ -96,7 +96,7 @@ class u_Db extends StdModule {
 
     function u_get_columns ($tableName){
         if (preg_match('/[^a-zA-Z0-9_-]/', $tableName)) {
-            Owl::error('Invalid character in table name: ' . $tableName);
+            Owl::error("Invalid character in table name: `$tableName`");
         }
         $lSql = new \o\SqlLockString ("PRAGMA table_info(" . $tableName . ")");
         return $this->u_select_rows($lSql);
@@ -126,7 +126,7 @@ class u_Db extends StdModule {
     function untaintName($n, $label) {
         $n = trim($n);
         if (!strlen($n) || preg_match('/[^a-zA-Z0-9_]/', $n)) {
-            Owl::error("Invalid $label name: '$n'");
+            Owl::error("Invalid $label name: `$n`");
         }
         return $n;
     }
@@ -134,7 +134,7 @@ class u_Db extends StdModule {
     function untaintArg($n, $label) {
         $n = trim($n);
         if (!strlen($n) || preg_match('/[^a-zA-Z0-9_() ]/', $n)) {
-            Owl::error("Invalid $label: '$n'");
+            Owl::error("Invalid $label: `$n`");
         }
         return $n;
     }
@@ -159,7 +159,7 @@ class u_Db extends StdModule {
     function u_select_row ($sql) {
         $rows = $this->u_select_rows($sql);
         if (count($rows) > 1) {
-            Owl::error('selectRow got ' . count($rows) . " rows.  Expected only one.\n\nTry adding a LIMIT 1 clause to your query.");
+            Owl::error('selectRow got ' . count($rows) . " rows.  Expected only one.\n\nTry adding a `LIMIT 1` clause to your query.");
         }
         $row = isset($rows[0]) ? $rows[0] : '';
 
@@ -206,7 +206,7 @@ class u_Db extends StdModule {
         $params = array_merge(uv($vals), $lWhere->getParams());
 
         if (strpos(strtolower($where), 'where') !== false) {
-            Owl::error('WHERE keyword is not needed in update() query', array('table' => $table, 'where' => $where));
+            Owl::error('`WHERE` keyword is not needed in `update()` query', array('table' => $table, 'where' => $where));
         }
 
         $sql = "UPDATE $table SET $sSets WHERE $where";
@@ -280,7 +280,7 @@ class u_Db extends StdModule {
                 $fparams = array();
                 foreach ($placeholders[1] as $ph) {
                     if (!isset($params[$ph])) {
-                        Owl::error("Missing placeholder value for '$ph'" , array('placeholders' => $placeholders[1], 'params' => $params));
+                        Owl::error("Missing placeholder value for `$ph`." , array('placeholders' => $placeholders[1], 'params' => $params));
                     }
                     $fparams[$ph] = $params[$ph];
                 }

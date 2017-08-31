@@ -71,10 +71,10 @@ class u_Php extends StdModule {
         if (isset($this->phpFunctionOk[$func])) {  return true;  }
 
         if (!function_exists($this->name($func))) {
-            Owl::error('PHP function does not exist: ' . $func);
+            Owl::error("PHP function does not exist: `$func`");
         }
         if (in_array($func, $this->blacklist)) {
-            Owl::error('PHP function is blacklisted: ' . $func);
+            Owl::error("PHP function is prohibited: `$func`");
         }
         $this->phpFunctionOk[$func] = true;
        // return;
@@ -136,7 +136,7 @@ class u_Php extends StdModule {
         if (! is_null($createFunction)) {
             $resource = $this->u_call($prefix . $createFunction, $args);
             if ($resource === false || is_null($resource)) {
-                Owl::error('Bad resource returned from $prefix' . $createFunction, [ 'resource' => $resource ]);
+                Owl::error('Bad resource returned from `$prefix' . $createFunction . '`', [ 'resource' => $resource ]);
             }
         }
         return new PhpObject ($prefix, $resource);

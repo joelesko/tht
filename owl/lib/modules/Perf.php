@@ -48,7 +48,7 @@ class u_Perf extends StdModule {
         if (!$this->isActive()) { return; }
 
         if (!count($this->tasks)) {
-            Owl::error('There are no benchmark tasks left to stop');
+            Owl::error('There are no benchmark tasks left to stop.');
         }
         $task = array_pop($this->tasks);
         $elapsedAll = (microtime(true) - $task['startTime']);
@@ -85,7 +85,7 @@ class u_Perf extends StdModule {
 
         $unstoppedTasks = array_keys($this->startTime);
         if (count($unstoppedTasks)) {
-           Owl::error('Unstopped Perf task: ' . $unstoppedTasks[0]);
+           Owl::error('Unstopped Perf task: `' . $unstoppedTasks[0] . '`');
         }
         usort($this->results, function ($a, $b) {
             $d = $b['durationMs'] > $a['durationMs'];
@@ -98,7 +98,7 @@ class u_Perf extends StdModule {
 
         $owlDocLink = Owl::getOwlSiteUrl('/reference/perf-score');
 
-        $formatted = Owl::module('Json')->u_format([ 'benchmark'=>$this->results ]);
+        $formatted = Owl::module('Json')->u_format([ 'benchmark' => $this->results ]);
         if (Owl::isMode('cli')) {
             print $formatted;
         } else {
@@ -138,7 +138,6 @@ class u_Perf extends StdModule {
                 </div>
 
                 <?= $table ?>
-
 
                 <div style='text-align:center; margin-top:48px;'>
                     <p style="font-size: 80%"> Sub-task time is not included in parent tasks.</p>

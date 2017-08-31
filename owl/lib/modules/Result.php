@@ -34,7 +34,7 @@ class OResult extends OVar {
             if ($default !== null) {
                 return $default;
             }
-            Owl::error("Result object is in a failure state. Check .ok() or .code() method first.");
+            Owl::error("Result object is in a failure state. Check `.ok()` or `.failCode()` method first.");
         }
         return $this->rvalue;
     }

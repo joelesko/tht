@@ -22,7 +22,7 @@ class u_Meta extends StdModule {
     function u_call_function ($fn, $params=[]) {
         $fullFn = $this->getCallerNamespace() . '\\' . u_($fn);
         if (! function_exists($fullFn)) {
-            Owl::error('function does not exist: ' . $fullFn);
+            Owl::error("Function does not exist: `$fullFn`");
         }
         return call_user_func_array($fullFn, uv($params));
     }
@@ -59,14 +59,14 @@ class u_Meta extends StdModule {
 
     function u_no_template_mode () {
         if (Runtime::inTemplate()) {
-            $this->callerError('can not be called in template mode.');
+            $this->callerError('can not be called in Template mode.');
         }
         return true;
     }
 
     function u_no_web_mode () {
         if (!Owl::isMode('cli')) {
-            $this->callerError('can not be called in web mode.');
+            $this->callerError('can not be called in Web mode.');
         }
     }
     //
@@ -97,6 +97,6 @@ class u_Meta extends StdModule {
 
         $caller = $callerFrame['function'];
         $class = $callerFrame['class'];
-        Owl::error("$class.$caller() " . $msg);
+        Owl::error("`$class.$caller()` " . $msg);
     }
 }

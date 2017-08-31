@@ -76,7 +76,7 @@ class u_Js extends StdModule {
             return $this->incLazyLoadImages();
         }
 
-        Owl::error("Unknown JS plugin: '$id'");
+        Owl::error("Unknown JS plugin: `$id`. Supported plugins: `colorCode`, `lazyLoadImages`");
     }
 
     function incLazyLoadImages () {

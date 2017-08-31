@@ -10,35 +10,75 @@ class u_Jcon extends StdModule {
     private $leaf = [];
     private $mlString = null;
     private $mlStringKey = '';
+    private $file = '';
+    private $line = '';
+    private $lineNum = 0;
 
     function u_parse_file($file) {
+
         $path = Owl::path('settings', $file);
         $text = Owl::module('File')->u_read($path, true);
 
-        return $this->u_parse($text);
+        return $this->start($text, $file);
     }
 
     function u_parse($text) {
+        return $this->start($text, '');
+    }
+
+    function start($text, $file) {
         $jc = new u_Jcon ();
+        $jc->file = $file;
         return $jc->parse($text);
+    }
+
+    function error($msg) {
+        if ($this->file) {
+            ErrorHandler::handleJconError($msg, $this->file, $this->lineNum, $this->line);
+        } else {
+            Owl::error($msg);
+        }
     }
 
     function parse($text) {
         Owl::module('Perf')->start('Jcon.parse', $text);
 
+        if (!trim($text)) {
+            $this->error('Empty JCON string.');
+        }
+
         $text = OLockString::getUnlocked($text, true);
 
         $lines = explode("\n", $text);
+        $this->lineNum = 0;
+        $this->line = '';
         foreach ($lines as $l) {
+            $this->line = $l;
+            $this->lineNum += 1;
             $this->parseLine($l);
         }
 
         Owl::module('Perf')->u_stop();
 
-        return array_pop($this->leaf);
+        if (count($this->leafs)) {
+            $brace = '}';
+            if ($this->mlString) {
+                $brace = "'''";
+            } else if ($this->context['type'] == 'list') {
+                $brace = ']';
+            }
+            $this->error("Reached end of file with unclosed `$brace`");
+        }
+
+        if (!count($this->leaf)) {
+            print $text; exit();
+        }
+       // print_r($this->leaf); exit();
+
+         return $this->leaf[0];
     }
 
-    function open($type, $parentIndex) {
+    function openChild($type, $parentIndex) {
         $this->leafs []= $this->leaf;
         $this->leaf = ($type == 'map') ? OMap::create([]) : [];
 
@@ -46,13 +86,11 @@ class u_Jcon extends StdModule {
         $this->context = [ 'type' => $type, 'parentIndex' => $parentIndex ];
     }
 
-    function close() {
+    function closeChild() {
         $parentLeaf = array_pop($this->leafs);
         $parentContext = array_pop($this->contexts);
         if ($parentContext['type'] == 'map') {
-            if (isset($parentLeaf[$this->context['parentIndex']])) {
-                Owl::error("Duplicate JCON key: '" . $this->context['parentIndex'] . "'"    );
-            }
+          //  $this->checkMapValue($parentLeaf, $this->context['parentIndex']);
             $parentLeaf[$this->context['parentIndex']] = $this->leaf;
         } else {
             $parentLeaf []= $this->leaf;
@@ -63,6 +101,7 @@ class u_Jcon extends StdModule {
     }
 
     function parseLine($al) {
+
         $l = trim($al);
 
         // in multi-line string
@@ -78,29 +117,37 @@ class u_Jcon extends StdModule {
             return;
         }
 
-        if (!strlen($l)) { return; } // blank;
+        // blank
+        if (!strlen($l)) { return; }
 
-        if ($l[0] == '/' && $l[1] == '/') {  return; } // comment
+        // comment
+        if ($l[0] == '/' && $l[1] == '/') { return; }
 
         // closing brace
         if ($l[0] === '}' || $l[0] === ']') {
             if (strlen($l) > 1) {
-                Owl::error("Closing brace should be on its own line:\n\n  " . $l);
+                $this->error("Missing newline after closing brace `" . $l[0] . "`.");
             }
-            $this->close();
+            $this->closeChild();
             return;
         }
 
-        // open brace
-        if (!$this->context) {
+        // top-level open brace
+        if (!$this->context['type']) {
+
             if ($l[0] === '{') {
-                $this->open('map', 0);
-                return;
+                $this->openChild('map', 0);
             }
             else if ($l[0] === '[') {
-                $this->open('list', 0);
-                return;
+                $this->openChild('list', 0);
             }
+            else {
+                $this->error("Missing top-level open brace `{` or `[`.");
+            }
+            if (strlen($l) > 1) {
+                $this->error("Missing newline after open brace `" . $l[0] . "`.");
+            }
+            return;
         }
 
 
@@ -109,35 +156,38 @@ class u_Jcon extends StdModule {
         $val = $l;
         if ($this->context['type'] == 'map') {
             $parts = explode(':', $l, 2);
-            // TODO: need a general parser error to report lines in content
-            if (count($parts) < 2) { Owl::error("Missing colon at line:\n\n  " . $l); }
+            if (count($parts) < 2) { $this->error("Missing colon `:`"); }
             $key = $parts[0];
 
+            if (isset($this->leaf[$key])) {
+                $this->error("Duplicate key: `$key`");
+            }
             if ($parts[1] && $parts[1][0] != ' ') {
-                Owl::error("Missing space after colon (:) at line:\n\n  " . $l);
+                $this->error("Missing space after colon `:`");
             }
             if ($parts[0] && $parts[0][strlen($parts[0]) - 1] == ' ') {
-                Owl::error("Extra space before colon (:) at line:\n\n  " . $l);
+                $this->error("Extra space before colon `:`");
             }
+
             $val = trim($parts[1]);
         }
 
         // handle value
         if ($val === '{') {
-            $this->open('map', $key);
+            $this->openChild('map', $key);
         }
         else if ($val === '[') {
-            $this->open('list', $key);
+            $this->openChild('list', $key);
         }
         else if ($val === "'''") {
             $this->mlStringKey = $key;
             $this->mlString = '';
         }
         else {
+            // literal value
             $this->assignVal($key, $val);
         }
     }
-
 
     function assignVal($key, $val) {
 
@@ -155,10 +205,6 @@ class u_Jcon extends StdModule {
             // key/value pair
             if ($isLitemark) {
                 $val = Owl::module('Litemark')->u_parse($val);
-            }
-
-            if (isset($this->leaf[$key])) {
-                Owl::error("Duplicate JCON key: '$key'");
             }
             $this->leaf[$key] = $val;
         }

@@ -50,14 +50,22 @@ class LibModules {
 
 // Lazy Load.  Saves ~250kb
 spl_autoload_register(function ($class) {
+
     $class = str_replace('o\\u_', '', $class);
     if (LibModules::isa($class)) {
+
         if ($class !== 'Perf') { Owl::module('Perf')->u_start('owl.loadModule', $class); }
 
         require_once($class . '.php');
 
         if ($class !== 'Perf') { Owl::module('Perf')->u_stop(); }
+
+    } else {
+
+        Owl::error("Can not autoload class: `$class`", LibModules::$files);
+
     }
+
 });
 
 

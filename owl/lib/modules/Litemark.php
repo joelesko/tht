@@ -445,7 +445,7 @@ class u_Litemark extends StdModule {
                     $cmd .= $c;
                     $i += 1;
                     if ($i >= $len) {
-                        Owl::error('Unclosed command tag: [' . substr($cmd, 0, 10) . "...");
+                        Owl::error('Unclosed command tag: `[' . substr($cmd, 0, 10) . "...`");
                     }
                 }
                 $str .= $cmdOut;

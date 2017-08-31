@@ -175,7 +175,7 @@ class u_Web extends StdModule {
             $url = $url->u_unlocked();
         } else {
             if (v($url)->u_is_url()) {
-                Owl::error("Redirect URL '$url' must be relative or a LockString.");
+                Owl::error("Redirect URL `$url` must be relative or a LockString.");
             }
         }
 
@@ -228,7 +228,7 @@ class u_Web extends StdModule {
 
     function u_send_json ($map) {
         if (!OMap::isa($map)) {
-            Owl::error('returnJson() needs to be passed a Map', $map);
+            Owl::error('First argument to `sendJson()` must be a Map.', $map);
         }
         $this->u_set_header('Content-Type', 'application/json');
         u_Web::sendGzip(new \o\OLockString (json_encode(uv($map))));
@@ -585,7 +585,7 @@ HTML;
 
         $icons = $this->icons();
 
-        if (!isset($icons[$id])) { Owl::error('Unknown icon: ' . $id); }
+        if (!isset($icons[$id])) { Owl::error("Unknown icon: `$id`"); }
 
         if (substr($icons[$id], 0, 4) == '<svg') {
             return new \o\HtmlLockString($icons[$id]);
@@ -636,7 +636,7 @@ HTML;
     function u_temp_get_input($method, $name, $type='token') {
 
         if (strpos('get|post|dangerDangerRemote', $method) === false) {
-            Owl::error("Invalid input method: '$method'");
+            Owl::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
         }
 
         // [security]  Require https for non-GET requests
@@ -724,7 +724,7 @@ HTML;
             // pass through as-is
 		}
         else {
-            Owl::error("Unknown input type: '$type'");
+            Owl::error("Unknown input type: `$type`");
         }
 
         return OMap::create([
@@ -769,7 +769,7 @@ HTML;
 
     function getRuleMap($vid) {
         if (!isset($this->validators[$vid])) {
-            Owl::error('Unknown form validator: ' . $vid);
+            Owl::error("Unknown form validator: `$vid`");
         }
         return $this->validators[$vid];
     }
@@ -803,7 +803,7 @@ HTML;
     function u_test_rule ($rule, $val) {
         $rules = u_Web::$VALIDATION_RULES;
         if (!isset($rules[$rule])) {
-            Owl::error('Unknown validation rule: ' . $rule);
+            Owl::error("Unknown validation rule: `$rule`");
         }
         $apply = $rules[$rule];
         if (!preg_match("#$apply#", $val)) {

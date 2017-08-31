@@ -16,7 +16,7 @@ class u_File extends StdModule {
             $this->validatePath($checkFileExists);
             if (!file_exists($checkFileExists)) {
                 $checkFileExists = $this->fixSeparator($checkFileExists);
-                Owl::error("File does not exist: " . Owl::getRelativePath('root', $checkFileExists));
+                Owl::error("File does not exist: `" . Owl::getRelativePath('root', $checkFileExists) . "`");
             }
         }
 
@@ -35,7 +35,7 @@ class u_File extends StdModule {
         if (!$checkReturn && $ret === FALSE) {
             $fileToCheck = $checkFileExists ?: '';
             if (!$fileToCheck && isset($fargs[0])) {  $fileToCheck = $fargs[0];  }
-            Owl::error("File Error: " . realpath($fileToCheck));
+            Owl::error("File Error: `" . realpath($fileToCheck) . "`");
         }
 
         Owl::module('Perf')->u_stop();
@@ -51,13 +51,13 @@ class u_File extends StdModule {
     function validatePath ($path) {
 
         if (!strlen($path)) {
-            Owl::error('File path cannot be empty: `' . $path . '`');
+            Owl::error("File path cannot be empty: `$path`");
         }
         if (v($path)->u_is_url()) {
-            Owl::error('Remote URL not allowed: ' . $path);
+            Owl::error("Remote URL not allowed: `$path`");
         }
         if (strpos($path, '..') !== false) {
-            Owl::error("Parent shortcut '..' not allowed: " . $path);
+            Owl::error("Parent shortcut `..` not allowed in path: `$path`");
         }
         return $path;
     }
@@ -99,7 +99,7 @@ class u_File extends StdModule {
         $mode = trim(strtolower($mode));
 
         if (!in_array($mode, ['replace', 'append', 'restore'])) {
-            Owl::error("Unknown write mode '$mode'.\n\nSupported modes: replace (default), append, restore");
+            Owl::error("Unknown write mode `$mode`. Supported modes: `replace` (default), `append`, `restore`");
         }
 
         if ($mode == 'restore') {
@@ -267,7 +267,7 @@ class u_File extends StdModule {
     function u_read_dir ($d, $filter = 'none') {
 
         if (!in_array($filter, ['none', 'files', 'dirs'])) {
-            Owl::error("Unknown filter '$filter'.\n\nSupported filters: none (default), files, dirs");
+            Owl::error("Unknown filter `$filter`. Supported filters: `none` (default), `files`, `dirs`");
         }
 
         $files = u_File::_call('scandir', [$d], $d);
