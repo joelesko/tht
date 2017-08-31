@@ -28,7 +28,7 @@ class ORegex extends OVar {
         if (!$flags) { return ''; }
         foreach (str_split($flags) as $f) {
             if (strpos('msix', $f) === false) {
-                Owl::error("Invalid ORegex flag '$f'.  Allowed flags: 'm s i x'");
+                Owl::error("Invalid ORegex flag `$f`.  Allowed flags: `m s i x`");
             }
         }
         return $flags;

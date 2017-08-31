@@ -14,6 +14,6 @@ class ONothing {
     }
 
     function __call ($a, $b) {
-        Owl::error("You have a Nothing value returned from: " . $this->fun);
+        Owl::error("You have a Nothing value returned from: `" . $this->fun . "`");
     }
 }

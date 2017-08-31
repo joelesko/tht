@@ -27,7 +27,7 @@ class OLockString extends OVar {
         if (!OLockString::isa($s)) {
             if ($skipError) { return $s; }
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Owl::error("$caller must be passed a LockString.  Ex: L'...'", $s);
+            Owl::error("`$caller` must be passed a LockString.  Ex: `L'...'`", $s);
         }
         return $s->getString();
     }

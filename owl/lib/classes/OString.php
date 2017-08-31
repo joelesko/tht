@@ -492,7 +492,7 @@ class OString extends OVar implements \ArrayAccess {
             OString::$fillArgNum += 1;
         }
         if (!array_key_exists($key, OString::$fillArg)) {
-            Owl::error("Key '$key' is not found in fill value.", [ 'fill' => OString::$fillArg ]);
+            Owl::error("Key `$key` is not found in fill value.", [ 'fill' => OString::$fillArg ]);
         }
         return OString::$fillArg[$key];
     }
@@ -612,7 +612,6 @@ class OString extends OVar implements \ArrayAccess {
         return $this->val;
     }
 
-    // TODO: rename toData?  parseData?
     function u_to_value () {
         $v = trim($this->val);
         if ($v === '') { return ''; }
@@ -701,7 +700,7 @@ class OString extends OVar implements \ArrayAccess {
 
         $s = $this->val;
 
-        //TODO: trim and squeeze spaces
+        // TODO: trim and squeeze spaces
 
         $s = $this->removeCaps($s);
 
@@ -715,19 +714,22 @@ class OString extends OVar implements \ArrayAccess {
             }
         }
 
-        // truncate special chars
+        // truncate repeated characters
         $s = preg_replace("/!{2,}/", "!", $s);
         $s = preg_replace("/\.\.\.\.+/", "...", $s);
         $s = preg_replace("/\?{2,}/", "?", $s);
         $s = preg_replace("/[?!]{2,}/", "?!", $s);
-        $s = preg_replace("/(.)\\1{4,}/", '\\1\\1\\1\\1\\1', $s);  // repeat characters
+        $s = preg_replace("/(.)\\1{4,}/", '\\1\\1\\1\\1\\1', $s);
 
         $com = preg_replace_callback("/([^\s]{30,})/", "truncateLongString" , $com);
 
 
-        // space after|no space before:   . , ? ! : ;
 
-        // Fix typos
+
+
+        // List of potential typos to fix:
+
+        // space after|no space before:   . , ? ! : ;
 
         // ect => etc
         // isnt, aint = isn't, ain't
@@ -766,8 +768,6 @@ class OString extends OVar implements \ArrayAccess {
         //
         // // Fix accidental / instead of ?
         // if (! text.match(/\/.*\/$/))  text = text.replace(/\/$/, '?');
-
-
 
     }
 }

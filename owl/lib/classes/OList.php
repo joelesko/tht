@@ -34,7 +34,7 @@ class OList extends OBag {
     function u_first ($n=1) {
         $len = count($this->val);
         if ($n > $len) {
-            Owl::error("first() numItems '$n' is greater than List length '$len'.");
+            Owl::error("Argument `numItems = $n` is greater than List length `$len`.");
         }
         if ($n === 1) {
             return $this->val[0];
@@ -47,7 +47,7 @@ class OList extends OBag {
     function u_last ($n=1) {
         $len = count($this->val);
         if ($n > $len) {
-            Owl::error("last() numItems '$n' is greater than List length '$len'.");
+            Owl::error("Argument `numItems = $n` is greater than List length `$len`.");
         }
         if ($n === 1) {
             return $this->val[$len - 1];
@@ -79,7 +79,7 @@ class OList extends OBag {
         }
         if ($pos + abs($len) > $vlen) {
             $alen = abs($len);
-            Owl::error("sublist() index '$pos' + length '$alen' is greater than List length '$vlen'.");
+            Owl::error("Argument `index = $pos` + `length = $alen` is greater than List length `$vlen`.");
         }
 
         if ($len < 0) {
@@ -121,7 +121,7 @@ class OList extends OBag {
     function u_remove ($pos=-1) {
         $len = count($this->val);
         if (!$len) {
-            Owl::error("Can't remove() from empty List.");
+            Owl::error("Can not `remove()` from an empty List.");
         }
         if ($pos === -1) {
             return array_pop($this->val);
@@ -129,7 +129,7 @@ class OList extends OBag {
         $removed = array_splice($this->val, $pos, 1);
         if (!count($removed)) {
             $vlen = count($this->val);
-            Owl::error("Can't remove() at index '$pos' from List of length '$vlen'.");
+            Owl::error("Can not `remove()` at `index=$pos` from List with length `$vlen`.");
         }
         return $removed[0];
     }
@@ -187,7 +187,7 @@ class OList extends OBag {
                     if (isset($map[$args['type']])) {
                         $flags |= $map[$args['type']];
                     } else {
-                        Owl::error("Unknown sort type: '" . $args['type'] . "'");
+                        Owl::error("Unknown sort type: `" . $args['type'] . "`");
                     }
                 }
             }

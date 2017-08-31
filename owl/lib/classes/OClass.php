@@ -31,9 +31,9 @@ class OClass {
                 'count'  => 'length()',
             ];
 
-            $suggest = isset($suggestions[$plainField]) ? "\n\nTry: " . $suggestions[$plainField] : '';
+            $suggest = isset($suggestions[$plainField]) ? " Try: `" . $suggestions[$plainField] . '`' : '';
 
-            Owl::error('Unknown field: ' . $field . " $suggest");
+            Owl::error("Unknown field: `$field` $suggest");
         }
     }
 
@@ -82,9 +82,9 @@ class OClass {
         ];
 
         $k = $c . '::' . $method;
-        $suggest = isset($suggestions[$k]) ? "\n\nTry: "  . $suggestions[$k] . "()" : '';
+        $suggest = isset($suggestions[$k]) ? " Try: `"  . $suggestions[$k] . "()`" : '';
 
-        Owl::error("Unknown method '$method' for class '$c'. $suggest");
+        Owl::error("Unknown method `$method` for class `$c`. $suggest");
     }
     //
     static function u_new () {

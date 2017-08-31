@@ -12,7 +12,7 @@ class OModule {
     function __call ($f, $args) {
         $qf = $this->ns . "\\" . $f;
         if (!function_exists($qf)) {
-            Owl::error('Unknown function: ' . $f);
+            Owl::error("Unknown function: `$f`");
         }
         return call_user_func_array($qf, $args);
     }

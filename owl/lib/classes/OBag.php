@@ -21,7 +21,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
             return $this->val[$plainField];
         } else {
             $tip = $plainField == 'length' ? "  Try: `length()`" : '';
-            Owl::error("Invalid field: '$plainField'" . $tip);
+            Owl::error("Invalid field: `$plainField`" . $tip);
         }
     }
 
@@ -33,7 +33,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         } else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField] = $val;
         } else {
-            Owl::error("Invalid field: '$plainField'");
+            Owl::error("Invalid field: `$plainField`");
         }
     }
 
@@ -62,7 +62,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
                 return;
             }
             if (!is_int($k)) {
-                Owl::error("List keys must be numeric.  Saw '$k' instead.");
+                Owl::error("List keys must be numeric.  Saw `$k` instead.");
             }
             // else if ($k > $this->iNumKeys - 1) {
             //     Owl::error("List index ($k) out of bounds.  Size is: " . $this->iNumKeys, $this->val);

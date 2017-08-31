@@ -35,7 +35,7 @@ class OMap extends OBag {
             if (isset($this->default)) {
                 return $this->default;
             } else {
-                Owl::error("Map key not found: '$k'");
+                Owl::error("Map key not found: `$k`");
             }
         }
         return $v;
@@ -53,7 +53,7 @@ class OMap extends OBag {
 		$found = array_search($value, $this->val, true);
         if ($found === false) {
             $v = v($value)->u_limit(20);
-            Owl::error("Map value not found: '$v'");
+            Owl::error("Map value not found: `$v`");
         }
     }
 
