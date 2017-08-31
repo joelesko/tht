@@ -95,7 +95,7 @@ class Emitter {
         if (!$func) {
            $func = isset($this->astToTarget[$node['type']]) ? $this->astToTarget[$node['type']] : null;
            if (!$func) {
-               $this->error("Emitter:  Unknown node. type=" . $node['type'] . " value='" . $node['value'] . "'", $node);
+               $this->error("Emitter:  Unknown node. type=`" . $node['type'] . "` value=`" . $node['value'] . "`", $node);
            }
         }
 

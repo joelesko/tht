@@ -21,12 +21,12 @@ class Source {
             return;
         }
         if (!file_exists($sourceFile)) {
-            Owl::error('Source file not found: ' . $sourceFile);
+            Owl::error("Source file not found: `$sourceFile`");
         }
 
         // Require .owl extension
         if (substr($sourceFile, -4, 4) !== '.' . Owl::getExt()) {
-            Owl::error("Source file '$sourceFile' must have '." . Owl::getExt() . "' extension.");
+            Owl::error("Source file `$sourceFile` must have `." . Owl::getExt() . "` extension.");
         }
 
         array_unshift(Source::$currentFile, $sourceFile);
@@ -69,16 +69,16 @@ class Source {
             }
         }
         if ($badFile === false) {
-            Owl::error("Unable to validate file name '$fileName' from directory listing.");
+            Owl::error("Unable to validate file name `$fileName` from directory listing.");
         }
 
         if ($badFile) {
             $baseBad = basename($badFile);
             if ($baseBad == strtolower($baseBad)) {
                 $case = $isEntry ? 'lowerCamelCase' : 'UpperCamelCase';
-                Owl::error("File name '$baseBad' must be $case.");
+                Owl::error("File name `$baseBad` must be $case.");
             } else {
-                Owl::errorLog("Url '$base' is missing hyphens. Ex: file-name = fileName.owl");
+                Owl::errorLog("Url `$base` is missing hyphens. Ex: file-name = fileName.owl");
                 Owl::module('Web')->u_send_error(404);
             }
         }
@@ -87,11 +87,11 @@ class Source {
         $dirParts = explode('/', $filePath);
         $inModules = in_array('modules', $dirParts);
         if ($inModules && $isEntry) {
-            Owl::errorLog("Entry route '$filePath' can not point to modules directory.");
+            Owl::errorLog("Entry route `$filePath` can not point to `modules` directory.");
             Owl::module('Web')->u_send_error(404);
         }
         if (!$isEntry && !$inModules) {
-            Owl::error("Module '$base' must be located under a 'modules' directory.");
+            Owl::error("Module `$base` must be located under a `modules` directory.");
         }
 
     }
@@ -169,7 +169,7 @@ class Source {
             Owl::error('Source file must be saved in UTF-8 format.', [ 'sourceFile' => $sourceFile ]);
         }
         if (strpos($rawSource, "\r" !== false)) {
-            Owl::error("Source file must be saved with Unix line endings (\\n). Found a Windows line feed (\\r).", [ 'sourceFile' => $sourceFile ]);
+            Owl::error("Source file must be saved with Unix line endings `\\n`. Found a Windows line feed (\\r).", [ 'sourceFile' => $sourceFile ]);
         }
 
         return $rawSource;

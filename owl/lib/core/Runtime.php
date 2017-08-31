@@ -17,7 +17,7 @@ function v ($v) {
        }
     }
     else if ($phpType === 'NULL') {
-        Owl::error("Leaked 'null' value found in transpiled PHP.");
+        Owl::error("Leaked `null` value found in transpiled PHP.");
     }
 
     $o = Runtime::$SINGLE[$phpType];
@@ -35,7 +35,7 @@ function uv ($v) {
 function vn ($v, $isAdd) {
     if (!is_numeric($v)) {
         $tag = $isAdd ? "Did you mean '~'?" : '';
-        Owl::error("Can't use math on non-number value.  $tag");
+        Owl::error("Can't use math on non-number value. $tag");
     }
     return $v;
 }
@@ -214,7 +214,7 @@ class Runtime {
     static function loadModule ($localNs, $path) {
         $relPath = Owl::getRelativePath('root', $path);
         if (!isset(Runtime::$moduleRegistry[$relPath])) {
-            Owl::error("Can't find module for '$relPath'", [ 'knownModules' => Runtime::$moduleRegistry ]);
+            Owl::error("Can't find module for `$relPath`", [ 'knownModules' => Runtime::$moduleRegistry ]);
         }
         $derivedAlias = basename($relPath, '.' . Owl::getExt());
         Runtime::$moduleRegistry[$localNs . '::' . $derivedAlias] = Runtime::$moduleRegistry[$relPath];

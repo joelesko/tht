@@ -291,7 +291,7 @@ class Parser {
                 break;
             }
             if ($s->type === SymbolType::END) {
-                $this->error("Reached end of file without a closing brace '}'.");
+                $this->error("Reached end of file without a closing brace `}`.");
             }
             $sStatement = $this->parseStatement();
             if ($sStatement) {
@@ -320,7 +320,7 @@ class Parser {
             // don't allow commas to separate top-level expressions
             // e.g. a = 1, b = 2;
             if ($this->prevToken[TOKEN_VALUE] === ',') {
-                $this->error("Unexpected comma ','");
+                $this->error("Unexpected comma `,`");
             }
         }
 
@@ -388,10 +388,10 @@ class Parser {
         if (!$expectValue) {  return $this;  }
         if (!$this->symbol->isValue($expectValue)) {
             if ($expectValue === ';') {
-                $msg = "Missing semicolon ';' at end of statement.";
+                $msg = "Missing semicolon `;` at end of statement.";
                 $this->error($msg, $this->prevToken);
             } else {
-                $msg = "Expected '" . $expectValue . "' here instead.";
+                $msg = "Expected `$expectValue` here instead.";
                 if ($context) { $msg .= "  ($context)"; }
                 $this->error($msg);
             }
@@ -409,7 +409,7 @@ class Parser {
         $tokenValue = $token[TOKEN_VALUE];
         if (isset(ParserData::$ALT_TOKENS[$tokenValue])) {
             $correct = ParserData::$ALT_TOKENS[$tokenValue];
-            $this->error("Unknown token: '" . $tokenValue ."'    Try: $correct", $token);
+            $this->error("Unknown token: `$tokenValue`  Try: `$correct`", $token);
         }
     }
 
@@ -458,7 +458,7 @@ class Parser {
         }
         else {
             $this->checkAltToken($tokenValue, $token);
-            $this->error("Unknown token: '$tokenValue'", $token);
+            $this->error("Unknown token: `$tokenValue`", $token);
         }
 
         Owl::devPrint($tokenValue . "  ==>  " . get_class($symbol));
@@ -614,7 +614,7 @@ class Symbol {
     }
 
     function symbolError ($context) {
-        $this->parser->error("Unexpected symbol '" . $this->getValue() . "' $context.", $this->token);
+        $this->parser->error("Unexpected symbol `" . $this->getValue() . "` $context.", $this->token);
     }
 
     function isValue ($val) {
@@ -710,10 +710,10 @@ class Symbol {
             if ($pos === 'R') {
                 $nextToken = $p->next()->token;
                 if ($nextToken[TOKEN_VALUE] === ';') {
-                    $p->error('Unexpected semicolon (;)', $nextToken);
+                    $p->error('Unexpected semicolon `;`', $nextToken);
                 }
                 else if ($nextToken[TOKEN_VALUE] === ',') {
-                    $p->error('Unexpected comma (,)', $nextToken);
+                    $p->error('Unexpected comma `,`', $nextToken);
                 }
             }
         }
@@ -878,12 +878,12 @@ class S_Dot extends S_Infix {
         $this->space('x.x', true);
         $sMember = $p->symbol;
         if ($sMember->token[TOKEN_TYPE] !== TokenType::WORD) {
-            $p->error('Expected a field name.  Ex: user.name');
+            $p->error('Expected a field name.  Ex: `user.name`');
         }
         $sMember->updateType(SymbolType::MEMBER_VAR);
         $name = $sMember->token[TOKEN_VALUE];
         if (!($name >= 'a' && $name <= 'z')) {
-            $p->error("Member '$name' must be lowerCamelCase.");
+            $p->error("Member `$name` must be lowerCamelCase.");
         }
         $this->setKids([ $objName, $sMember ]);
         $p->next();
@@ -906,7 +906,7 @@ class S_InfixRight extends Symbol {
     function asInner ($p, $left) {
         $p->next();
         if ($this->isAssignment && $p->expressionDepth >= 2) {
-            $tip = $this->token[TOKEN_VALUE] == '=' ? "Did you mean '=='?" : '';
+            $tip = $this->token[TOKEN_VALUE] == '=' ? "Did you mean `==`?" : '';
             $p->error("Assignment can not be used as an expression.  $tip", $this->token);
         }
         $this->space(' = ');
@@ -1025,7 +1025,7 @@ class S_OpenBrace extends Symbol {
             $key = $p->symbol;
             $sKey = $key->getValue();
             if (isset($hasKey[$sKey])) {
-                $p->error("Duplicate key '$sKey'.");
+                $p->error("Duplicate key: `$sKey`");
             }
             $key->updateType(SymbolType::MAP_KEY);
             $hasKey[$sKey] = true;
@@ -1065,7 +1065,7 @@ class S_Ternary extends Symbol {
         $p->next();
 
         if ($p->inTernary) {
-            $p->error("Nested ternary operator (a ? b : c). Try an if/else instead.");
+            $p->error("Nested ternary operator `a ? b : c`. Try an `if/else` instead.");
         }
         $p->inTernary = true;
 
@@ -1170,7 +1170,7 @@ class S_For extends S_Statement {
             $this->addKid($p->parseBlock());
             $hasBreak = array_pop($p->foreverBreaks);
             if (!$hasBreak) {
-                $p->error("Infinite 'for' loop needs a 'break' or 'return' statement.", $sFor->token);
+                $p->error("Infinite `for` loop needs a `break` or `return` statement.", $sFor->token);
             }
             return $this;
         }
@@ -1185,12 +1185,12 @@ class S_For extends S_Statement {
         //  }
 
         if ($p->symbol->isValue('let')) {
-            $p->error("Unexpected 'let'.  Try: for (item in items) { ... }");
+            $p->error("Unexpected `let`.  Try: `for (item in items) { ... }`");
         }
 
         // Temp variable. for (_temp_ in list) { ... }
         if ($p->symbol->type !== SymbolType::USER_VAR) {
-            $p->error('Expected a list variable.  Ex: for (item in items) { ... }');
+            $p->error('Expected a list variable.  Ex: `for (item in items) { ... }`');
         }
         $p->validator->define($p->symbol);
         $this->addKid($p->symbol);
@@ -1200,7 +1200,7 @@ class S_For extends S_Statement {
         if ($p->symbol->isValue(':')) {
             $p->space('x:x', true)->next();
             if ($p->symbol->type !== SymbolType::USER_VAR) {
-                $p->error('Expected a key:value pair.  Ex: for (userName:age in users) { ... }');
+                $p->error('Expected a key:value pair.  Ex: `for (userName:age in users) { ... }`');
             }
             $p->validator->define($p->symbol);
             $this->addKid($p->symbol);
@@ -1248,7 +1248,7 @@ class S_NewFunction extends S_Statement {
             $sFunName = $p->symbol;
             $sName = $sFunName->token[TOKEN_VALUE];
             if (strlen($sName) < 2) {
-                $p->error("Function name '$sName' should be longer than 1 letter.  Tip: Be more descriptive.");
+                $p->error("Function name `$sName` should be longer than 1 letter.  Tip: Be more descriptive.");
             }
             $p->validator->define($p->symbol);
             $sFunName->updateType(SymbolType::USER_FUN);
@@ -1282,7 +1282,7 @@ class S_NewFunction extends S_Statement {
                 }
 
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
-                    $p->error("Expected an argument name.  Ex: fun myFun (argument) { ... }");
+                    $p->error("Expected an argument name.  Ex: `fun myFun (argument) { ... }`");
                 }
 
                 $p->validator->define($p->symbol);
@@ -1333,7 +1333,7 @@ class S_NewFunction extends S_Statement {
             $p->now('(', 'keep')->next();
             while (true) {
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
-                    $p->error("Expected an outer variable inside 'keep'.  Ex: fun () keep (name) { ... }");
+                    $p->error("Expected an outer variable inside `keep`.  Ex: `fun () keep (name) { ... }`");
                 }
 
                 $sArg = $p->symbol;
@@ -1375,7 +1375,7 @@ class S_Class extends S_Statement {
 
         $sClassName = $p->symbol;
         if (! $sClassName->token[TOKEN_TYPE] === TokenType::WORD) {
-			$p->error("Expected a class name.  Ex: class User { ... }");
+			$p->error("Expected a class name.  Ex: `class User { ... }`");
 		}
 
         $sClassName->updateType(SymbolType::PACKAGE);
@@ -1474,7 +1474,7 @@ class S_Command extends S_Statement {
              return;
          }
          if (!$p->symbol->isValue("}")) {
-             $p->error("Unreachable statement after '" . $this->getValue() . "'.");
+             $p->error("Unreachable statement after `" . $this->getValue() . "`.");
          }
     }
 }

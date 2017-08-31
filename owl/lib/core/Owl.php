@@ -110,6 +110,7 @@ class Owl {
 
         Owl::initMode();
 
+        // Serve static file directly and exit
         if (Owl::isMode('testServer')) {
             // Need to construct path manually.
             // See: https://github.com/joelesko/owl/issues/2
@@ -349,22 +350,22 @@ class Owl {
         $iniPath = Owl::path('configFile');
 
         // TODO: cache as JSON
-        $setBody = file_get_contents(Owl::path('configFile'));
-        $appConfig = Owl::module('Jcon')->u_parse($setBody);
+        $appConfig = Owl::module('Jcon')->u_parse_file(Owl::$FILE['configFile']);
 
+        // make sure the required top-level keys exist
         $mainKey = Owl::$CONFIG_KEY['main'];
         $routeKey = Owl::$CONFIG_KEY['routes'];
-
         foreach ([$mainKey, $routeKey] as $key) {
             if (!isset($appConfig[$key])) {
-                Owl::error("Missing top-level '$key' key in '" . Owl::$FILE['configFile'] . "'.", $appConfig);
+                Owl::configError("Missing top-level key `$key` in `" . Owl::$paths['configFile'] . "`.", $appConfig);
             }
         }
 
+        // check for invalid keys in 'owl' section
         $def = Owl::getDefaultConfig();
-        foreach ($appConfig[$mainKey] as $k => $v) {
+        foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
-                Owl::error("Unknown config key '$k'.");
+                Owl::configError("Unknown settings key `$mainKey.$k` in `" . Owl::$paths['configFile'] . "`.");
             }
         }
 
@@ -406,15 +407,15 @@ class Owl {
         $phpFileUploads = ini_get('file_uploads');
 
         if ($owlMaxPostSize > $phpMaxFileSize) {
-            Owl::configError("Config 'maxPostSizeMb' ($owlMaxPostSize) is larger than php.ini 'upload_max_filesize' ($phpMaxFileSize).\n"
+            Owl::configError("Config `maxPostSizeMb` ($owlMaxPostSize) is larger than php.ini `upload_max_filesize` ($phpMaxFileSize).\n"
                 . "You will want to edit php.ini so they match.");
         }
         if ($owlMaxPostSize > $phpMaxPostSize) {
-            Owl::configError("Config 'maxPostSizeMb' ($owlMaxPostSize) is larger than php.ini 'post_max_size' ($phpMaxPostSize).\n"
+            Owl::configError("Config `maxPostSizeMb` ($owlMaxPostSize) is larger than php.ini `post_max_size` ($phpMaxPostSize).\n"
                 . "You will want to edit php.ini so they match.");
         }
         if ($owlFileUploads && !$phpFileUploads) {
-            Owl::configError("Config 'allowFileUploads' is true, but php.ini 'file_uploads' is false.\n"
+            Owl::configError("Config `allowFileUploads` is true, but php.ini `file_uploads` is false.\n"
                 . "You will want to edit php.ini so they match.");
         }
     }
@@ -825,7 +826,7 @@ class Owl {
         $pathSize = strlen($path);
         $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
         if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
-            Owl::errorLog("path '$path' is not valid");
+            Owl::errorLog("Path `$path` is not valid");
             Owl::module('Web')->u_send_error(404);
         }
 
@@ -871,7 +872,7 @@ class Owl {
                     if ($mPart[0] === '{' && $mPart[strlen($mPart)-1] === '}') {
                         $token = substr($mPart, 1, strlen($mPart)-2);
                         if (preg_match('/[^a-zA-Z0-9]/', $token)) {
-                            Owl::configError("Route placeholder '{" . $token . "}' should only"
+                            Owl::configError("Route placeholder `{$token}` should only"
                                 . " contain letters and numbers (no spaces).");
                         }
                         $val = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $pathParts[$i]); // [security]
@@ -892,7 +893,7 @@ class Owl {
 
         $camelPath = strtolower(v($path)->u_to_camel_case());
         if (isset($routeTargets[$camelPath]) || $camelPath == '/' . Owl::$HOME_ROUTE) {
-            Owl::errorLog('Direct access to route not allowed: ' . $path);
+            Owl::errorLog("Direct access to route not allowed: `$path`");
             Owl::module('Web')->u_send_error(404);
         }
 
@@ -919,7 +920,7 @@ class Owl {
         $owlPath = Owl::path('pages', Owl::getOwlFileName($apath));
 
         if (!file_exists($owlPath)) {
-            Owl::errorLog('Entry file not found for path: ' . $path);
+            Owl::errorLog("Entry file not found for path: `$path`");
             Owl::module('Web')->u_send_error(404);
         }
 
@@ -945,7 +946,7 @@ class Owl {
 
         $dotExt = '.' . Owl::$SRC_EXT;
         if (strpos($controllerName, $dotExt) === false) {
-            Owl::configError("Route file '$controllerName' requires '$dotExt' extension in '" . Owl::$FILE['configFile'] ."'.");
+            Owl::configError("Route file `$controllerName` requires `$dotExt` extension in `" . Owl::$FILE['configFile'] ."`.");
         }
 
         $userFunction = '';
@@ -981,7 +982,7 @@ class Owl {
         $callFunction = '';
         if ($userFunction) {
             if (!function_exists($fullUserFunction)) {
-                Owl::configError("Function '$userFunction' not found for route target '$controllerName'");
+                Owl::configError("Function `$userFunction` not found for route target `$controllerName`");
             }
             $callFunction = $fullUserFunction;
         }
@@ -1017,7 +1018,7 @@ class Owl {
             $nonce = "'nonce-" . Owl::data('cspNonce') . "'";
             $eval = Owl::getConfig('dangerDangerAllowJsEval') ? 'unsafe-eval' : '';
             $scriptSrc = "script-src $eval $nonce";
-            $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src *; media-src *; font-src *; " . $scriptSrc;
+            $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src *; font-src *; " . $scriptSrc;
         }
         header("Content-Security-Policy: $csp");
 
@@ -1098,7 +1099,7 @@ class Owl {
             return $d[$subKey];
         }
         if (is_array($d)) {
-            Owl::error('Need to specify a subKey for array data: ' . $k);
+            Owl::error("Need to specify a subKey for array data: `$k`");
         }
         return $d;
     }
@@ -1126,7 +1127,7 @@ class Owl {
         $parts = func_get_args();
         $base = $parts[0];
         if (!isset(Owl::$paths[$base])) {
-            Owl::error('Unknown base path key: ' . $base);
+            Owl::error("Unknown base path key: `$base`");
         }
         $parts[0] = Owl::$paths[$base];
         return Owl::makePath($parts);
