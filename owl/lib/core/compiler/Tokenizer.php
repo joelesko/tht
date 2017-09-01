@@ -303,7 +303,7 @@ class Tokenizer extends StringReader {
         $str = $this->slurpWord();
 
         if ($str === 'foreach') {
-            $this->error("Unknown keyword.  Try: `for`", false);
+            $this->error("Unknown keyword `foreach`. Try: `for`", false);
         }
 
         // Track function name in case we are going into a template.
@@ -330,10 +330,10 @@ class Tokenizer extends StringReader {
 
                     $prevPos = $this->prevToken[TOKEN_POS];
                     if ($prev === 'var') {
-                        $this->error("Unknown keyword.  Try: `let`", $prevPos);
+                        $this->error("Unknown keyword `var`. Try: `let`", $prevPos);
                     }
                     if ($current === 'as') {
-                        $this->error("Unknown keyword.  Try: `for (item in list) { ... }`", false);
+                        $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
                     }
 
                     $this->error("Unexpected $type.", false);

@@ -40,9 +40,7 @@ class ErrorHandler {
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
         if (strpos($message, 'Missing argument') !== false) {
-            array_shift($trace);
-            $phpFile = $trace[0]['file'];
-            $phpLine = $trace[0]['line'];
+            // TODO: have to dig out the right stack frame with the actual call
         }
 
         $message = str_replace('foreach()', 'for()', $message);
@@ -72,7 +70,7 @@ class ErrorHandler {
                 preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
                 if ($m) {
                     $max = Owl::getConfig('memoryLimitMb');
-                    $error['message'] = "Max memory limit exceeded ($max MB).  See 'memoryLimitMb' in `app.jcon`.";
+                    $error['message'] = "Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.";
                     $error['file'] = null;
                 }
 
@@ -80,12 +78,12 @@ class ErrorHandler {
                 if ($m) {
                     $max = Owl::getConfig('maxExecutionTimeSecs');
                     $secs = v('second')->u_plural($max);
-                    $error['message'] = "Max execution time exceeded ($max $secs).  See 'maxExecutionTimeSecs' in `app.jcon`.";
+                    $error['message'] = "Max execution time exceeded ($max $secs).  See `maxExecutionTimeSecs` in `app.jcon`.";
                     $error['file'] = null;
                 }
 
                 ErrorHandler::printError([
-                    'type'    => 'ShutdownError',
+                    'type'    => 'RuntimeError',
                     'message' => $error['message'],
                     'phpFile' => $error['file'],
                     'phpLine' => $error['line'],
@@ -202,12 +200,31 @@ class ErrorHandler {
         ];
 
         ErrorHandler::printError([
-            'type'    => 'OwlParserError',
+            'type'    => 'PhpParserError',
             'message' => $msg,
             'phpFile' => '',
             'phpLine' => '',
             'trace'   => null,
-            '_src'    => $src
+            'src'    => $src
+        ]);
+    }
+
+    static function handleJconError ($msg, $srcFile, $lineNum, $line) {
+
+        $src = [
+            'file' => $srcFile,
+            'line' => $lineNum,
+            'pos'  => null,
+            'srcLine' => trim($line),
+        ];
+
+        ErrorHandler::printError([
+            'type'    => 'JconParserError',
+            'message' => $msg,
+            'phpFile' => '',
+            'phpLine' => '',
+            'trace'   => null,
+            'src'     => $src,
         ]);
     }
 
@@ -249,19 +266,19 @@ class ErrorHandler {
 
         $error['message'] = $this->cleanMsg($error['message']);
 
-        $error['src'] = null;
-        if (isset($error['_src'])) {
-            $error['src'] = $error['_src'];
-        }
-        else if ($error['phpFile']) {
+        if (!isset($error['src']) && $error['phpFile']) {
             $error['src'] = $this->phpToSrc($error['phpFile'], $error['phpLine']);
         }
 
         $error['srcLine'] = '';
         if (isset($error['src'])) {
-            $error['srcLine'] = $this->getSourceLine($error['src']['file'], $error['src']['line'], $error['src']['pos']);
-            if ($error['src']['file']) {
-                $error['src']['file'] = $this->cleanPath($error['src']['file']);
+            if (isset($error['src']['srcLine'])) {
+                $error['srcLine'] = $error['src']['srcLine'];
+            } else {
+                $error['srcLine'] = $this->getSourceLine($error['src']['file'], $error['src']['line'], $error['src']['pos']);
+                if ($error['src']['file']) {
+                    $error['src']['file'] = $this->cleanPath($error['src']['file']);
+                }
             }
         }
 
@@ -331,7 +348,8 @@ class ErrorHandler {
 
         $logPath = Owl::getRelativePath('root', Owl::path('logFile') );
 
-        $heading = "I found a bug...";
+        $heading = v(v($error['type'])->u_to_token_case(' '))->u_to_title_case();
+        $heading = preg_replace('/php/i', 'PHP', $heading);
 
         $error['message'] = htmlspecialchars($error['message']);
         $error['srcLine'] = htmlspecialchars($error['srcLine']);
@@ -347,8 +365,8 @@ class ErrorHandler {
 
         // convert quoted substrings to code
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="owl-error-code">$1</span>', $error['message']);
-        $error['message'] = preg_replace("/'([a-zA-Z0-9\.]+)'/", '<span class="owl-error-code">$1</span>', $error['message']);
-        $error['message'] = preg_replace("/\((.+?)\)/", '<span class="owl-error-code">$1</span>', $error['message']);
+        // $error['message'] = preg_replace("/'([a-zA-Z0-9\.]+)'/", '<span class="owl-error-code">$1</span>', $error['message']);
+        // $error['message'] = preg_replace("/\((.+?)\)/", '<span class="owl-error-code">$1</span>', $error['message']);
 
         $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Suggestion: $1', $error['message']);
 
@@ -358,10 +376,11 @@ class ErrorHandler {
         // TODO: Clean this up.
         ?>
 
-        <div style='position: fixed; overflow: auto; z-index: 99999; background-color: #225; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
+
+
+        <div style='position: fixed; overflow: auto; z-index: 99999; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
             <style scoped>
-                .owl-error-logo { display: inline-block; position: relative; top: -2px; margin-right: 20px; }
-                .owl-error-header { opacity: 0.6; font-weight: bold; margin-bottom: 40px; font-size: 100%; border-bottom: solid 1px #fff; padding-bottom: 12px;  }
+                .owl-error-header { font-weight: bold; margin-bottom: 40px; font-size: 150%; border-bottom: solid 12px #ecc25f; padding-bottom: 12px;  }
                 .owl-error-message { margin-bottom: 40px; }
                 .owl-error-content { font: 22px <?= u_Css::u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
                 .owl-error-hint {   margin-top: 80px; line-height: 2; opacity: 0.5; font-size: 80%; }
@@ -377,10 +396,10 @@ class ErrorHandler {
 
             <div class='owl-error-content'>
 
-                <div class='owl-error-header'><span class='owl-error-logo'>{o,o}</span><?= $heading ?></div>
+                <div class='owl-error-header'><?= $heading ?></div>
                 <div class='owl-error-message'><?= $error['message'] ?></div>
 
-                <?php if ($error['src']) { ?>
+                <?php if (isset($error['src'])) { ?>
                 <div class='owl-error-file'>
                     File: <span><?= $error['src']['file'] ?></span>
                     Line: <span><?= $error['src']['line'] ?></span>
@@ -438,12 +457,9 @@ class ErrorHandler {
 
         $srcLineNum = $srcLineNum1 - 1;  // convert to zero-index
 
-   //     print $srcPath; exit();
-
         if (Owl::module('File')->u_is_relative_path($srcPath)) {
             $srcPath = Owl::path('root', $srcPath);
         }
-      //  print $srcPath; exit();
 
         $source = file_get_contents($srcPath);
         $lines = preg_split('/\n/', $source);
@@ -482,10 +498,11 @@ class ErrorHandler {
 
         $clean = $raw;
         $clean = $this->cleanVars($clean);
-        $clean = preg_replace('/Call to undefined function (.*)\(\)/', 'Unknown function: \'$1\'', $clean);
-        $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: \'$1\'', $clean);
+        $clean = preg_replace('/Call to undefined function (.*)\(\)/', 'Unknown function: `$1`', $clean);
+        $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: `$1`', $clean);
+        $clean = preg_replace('/Missing argument (\d+) for (.*)\(\)/', 'Missing argument $1 for `$2()`', $clean);
         $clean = preg_replace('/, called.*/', '', $clean);
-        $clean = preg_replace('/preg_\w+\(\)/', 'ORegex Pattern', $clean);
+        $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
 
 
@@ -536,7 +553,7 @@ class ErrorHandler {
             $fun = $this->cleanVars($phpFrame['function']);
 
             if (!Owl::getConfig('_showPhpInTrace') && !$showPhp) {
-                if ($cl === 'o\\Owl' || strpos($phpFrame['file'], '.owl') === false || substr($fun, 0, 2) === '__') {
+                if ($cl === 'o\\OTemplate' || $cl === 'o\\Owl' || strpos($phpFrame['file'], '.owl') === false || substr($fun, 0, 2) === '__') {
                     continue;
                 }
             }
