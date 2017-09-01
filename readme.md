@@ -1,8 +1,8 @@
-# OWL Web Language
+# THT Web Language
 
-**OWL is a new programming language for server-side web development.**
+**THT is a new programming language for server-side web development.**
 
-Please visit **[owl-lang.org](https://owl-lang.org)**.
+Please visit **[tht-lang.org](https://tht-lang.org)**.
 
 
 
@@ -17,7 +17,7 @@ Please visit **[owl-lang.org](https://owl-lang.org)**.
 ## Web Library
 
 - Router for clean URLs (e.g. “/blog/123/top-ten-things”)
-- Template system that supports embedded OWL code
+- Template system that supports embedded THT code
 - Base stylesheet with a flexbox grid system & SVG icons
 - Litemark parser for writing content
 - JCON for easy-to-edit configuration & data
@@ -26,7 +26,7 @@ Please visit **[owl-lang.org](https://owl-lang.org)**.
 
 ## Bugs & Feedback
 
-https://github.com/joelesko/owl/issues
+https://github.com/joelesko/tht/issues
 
 
 
