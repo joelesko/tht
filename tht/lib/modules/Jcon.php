@@ -62,10 +62,11 @@ class u_Jcon extends StdModule {
 
         if (count($this->leafs)) {
             $brace = '}';
-            if ($this->mlString) {
-                $brace = "'''";
-            } else if ($this->context['type'] == 'list') {
+            if ($this->context['type'] == 'list') {
                 $brace = ']';
+            }
+            else if ($this->mlString) {
+                $brace = "'''";
             }
             $this->error("Reached end of file with unclosed `$brace`");
         }
