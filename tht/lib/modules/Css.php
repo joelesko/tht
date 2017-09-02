@@ -489,6 +489,9 @@ EOCSS;
             border: solid 1px #d2dde6;
             background-color: #F8FCFF;
         }
+        .message b, .message strong, .message code {
+            color: inherit;
+        }
         .message strong:first-child {
             color: #4683c3;
             font-size: inherit;
