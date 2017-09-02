@@ -107,21 +107,18 @@ class EmitterPHP extends Emitter {
     }
 
     function pString ($value, $k) {
-        $value = str_replace('`', "'", $value);
         $value = str_replace('$', '\\$', $value);
         $value = str_replace('"', '\\"', $value);
         return $this->format('"###"', $value);
     }
 
     function pLString ($value, $k) {
-        $value = str_replace('`', "'", $value);
         $value = str_replace('$', '\\$', $value);
         $value = str_replace('"', '\\"', $value);
         return $this->format('new \o\OLockString ("###")', $value);
     }
 
     function pRString ($value, $k) {
-        $value = str_replace('`', "'", $value);
         $value = str_replace('$', '\\$', $value);
         $value = str_replace('"', '\\"', $value);
         return $this->format('new \o\ORegex ("###")', $value);

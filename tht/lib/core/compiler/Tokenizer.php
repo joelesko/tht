@@ -114,9 +114,9 @@ class Tokenizer extends StringReader {
 
         if ($spaceMask === null) {
             $spaceMask = 0;
-            if ($this->prevSpace) { $spaceMask  = 1; }
-            if ($c === ' ')       { $spaceMask += 2; }
-            if ($c === "\n")      { $spaceMask += 4; }
+            if ($this->prevSpace)          { $spaceMask  = 1; }
+            if ($c === ' ' || $c === "\t") { $spaceMask += 2; }
+            if ($c === "\n")               { $spaceMask += 4; }
         }
 
         $pos = $this->tokenPos[0] . ',' . $this->tokenPos[1];
@@ -190,7 +190,7 @@ class Tokenizer extends StringReader {
                     $this->handleString($c);
                 }
                 else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
-                    $this->handleComment($c);
+                    $this->handleLineComment($c);
                 }
                 else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
                     $this->handleBlockComment($c);
@@ -222,18 +222,22 @@ class Tokenizer extends StringReader {
 
     function escape ($c, $stringType) {
 
-        if ($c === "\t" && $stringType == TokenType::TSTRING) {
-            return '    ';
-        }
-        else if ($c === "\\" && $stringType !== TokenType::RSTRING) {
+        if ($c === "\\") {
+
             $next = $this->nextChar();
             $this->next();
+
             // preserve backslash for special characters
-            if (strpos("rnt\\", $next) !== false) {
+            if (strpos("rnt\\", $next) !== false || $stringType === TokenType::RSTRING) {
                 return "\\" . $next;
             }
             return $next;
+
+        } else if ($c === "`" && $stringType !== TokenType::TSTRING) {
+            // convert backticks ` to single quotes
+            return "'";
         }
+
         return $c;
     }
 
@@ -468,7 +472,7 @@ class Tokenizer extends StringReader {
         }
     }
 
-    function handleComment ($c) {
+    function handleLineComment ($c) {
 
         $this->updateTokenPos();
         $this->nextFor(Glyph::LINE_COMMENT);
