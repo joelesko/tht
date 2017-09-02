@@ -6,6 +6,10 @@ class ORegex extends OVar {
     private $pattern = '';
     private $flags = '';
 
+    function __toString() {
+        return $this->getPattern();
+    }
+
     function __construct ($pat, $flags='x') {
         $pat = str_replace('\\$', '$', $pat);  // unescape dollar from tokenizer
 
