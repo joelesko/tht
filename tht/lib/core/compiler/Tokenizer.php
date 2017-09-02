@@ -2,33 +2,6 @@
 
 namespace o;
 
-const MAX_LINE_LENGTH = 100;
-
-const TOKEN_TYPE  = 0;
-const TOKEN_POS   = 1;
-const TOKEN_SPACE = 2;
-const TOKEN_VALUE = 3;
-
-define('TOKEN_SEP', chr(254)); // 254 = ■
-
-
-abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~@';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:';
-    const COMMENT = '/';
-    const LINE_COMMENT = '//';
-    const BLOCK_COMMENT_START = '/*';
-    const BLOCK_COMMENT_END = '*/';
-    const TEMPLATE_EXPR_START = '{{';
-    const TEMPLATE_EXPR_END = '}}';
-    const TEMPLATE_CODE_LINE = '::';
-    const STRING_MODS = 'RL';
-    const LIST_MOD = 'Q';
-    const REGEX_MOD = 'R';
-    const LOCK_MOD = 'L';
-    const QUOTE = "'";
-}
-
 abstract class TemplateMode {
     const NONE        = 0;
     const PRE         = 1;

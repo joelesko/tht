@@ -3,8 +3,11 @@
 class ThtLib {
 
     static public $files = [
+        'Constants',
         'TemplateTransformers',
         'Tokenizer',
+        'SymbolTable',
+        'Symbols',
         'Parser',
         'Validator',
         'Emitter',
