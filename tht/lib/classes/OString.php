@@ -135,10 +135,6 @@ class OString extends OVar implements \ArrayAccess {
             }
             return $found === 1 ? $matches : [];
         }
-        // else {
-        //     $pos = mb_strpos($this->val, $match, $offset);
-        //     return $pos === false ? -1 : $pos;
-        // }
     }
 
     function u_match_all ($match) {
@@ -147,17 +143,6 @@ class OString extends OVar implements \ArrayAccess {
             // TODO: recursively wrap nested results
             return $matches;
         }
-        // else {
-        //     $positions = [];
-        //     $lastPos = 0;
-        //     while (true) {
-        //         $lastPos = strpos($this->val, $match, $lastPos);
-        //         if ($lastPos === false) { break; }
-        //         $positions []= $lastPos;
-        //         $lastPos = $lastPos + strlen($match);
-        //     }
-        //     return $positions;
-        // }
     }
 
     function u_replace ($find, $replace, $limit=-1) {
@@ -326,16 +311,6 @@ class OString extends OVar implements \ArrayAccess {
 
         return $isUpperCamel ? $camel : lcfirst($camel);
     }
-
-    // function u_to_camel_case ($isUpperCamel=false) {
-    //     $parts = preg_split('/[^a-zA-Z0-9]+/', strtolower(trim($this->val)));
-    //     $camel = '';
-    //     foreach ($parts as $p) {
-    //         $camel .= ucfirst($p);
-    //     }
-    //
-    //     return $isUpperCamel ? $camel : lcfirst($camel);
-    // }
 
     function u_to_token_case($delim = '-') {
         $v = $this->val;
