@@ -641,6 +641,10 @@ class S_For extends S_Statement {
     }
 }
 
+class S_NewTemplate extends S_NewFunction {
+    var $type = SymbolType::NEW_TEMPLATE;
+}
+
 class S_NewFunction extends S_Statement {
     var $type = SymbolType::NEW_FUN;
 

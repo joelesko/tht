@@ -39,6 +39,7 @@ class EmitterPHP extends Emitter {
 
         'NEW_VAR'         => 'pNewVar',
         'NEW_FUN'         => 'pFunction',
+        'NEW_TEMPLATE'    => 'pTemplate',
 		'NEW_CLASS'       => 'pClass',
 
         'OPERATOR|~'      => 'pConcat',
@@ -317,18 +318,26 @@ class EmitterPHP extends Emitter {
         if (isset($k[3])) {
             $closure = $this->format('use (###)', $k[3]);
         }
-        // TODO: need to define templates separately in AST
-        $isTemplate = preg_match('/(' . ParserData::$TEMPLATE_TYPES .')$/i', $k[0]['value'], $m);
-        if ($isTemplate) {
-            $mode = $m[1];
-            return $this->format('function ### (###) ### {' .
-                                  '$t = \o\Runtime::openTemplate("###");###' .
-                                  '\o\Runtime::closeTemplate();return $t->getString();}',
-                                   $k[0], $k[1], $closure, $mode, $this->out($k[2], true));
-        } else {
-            return $this->format('function ### (###) ### { ### return \o\Runtime::void(__METHOD__);}',
-              $k[0], $k[1], $closure, $this->out($k[2], true) );
+
+        return $this->format('function ### (###) ### { ### return \o\Runtime::void(__METHOD__);}',
+          $k[0], $k[1], $closure, $this->out($k[2], true) );
+    }
+
+    function pTemplate ($value, $k) {
+        $closure = '';
+        if (isset($k[3])) {
+            $closure = $this->format('use (###)', $k[3]);
         }
+
+        // get template type
+        // TODO: move this upstream and include it in AST
+        preg_match('/(' . ParserData::$TEMPLATE_TYPES .')$/i', $k[0]['value'], $m);
+        $templateType = $m[1];
+
+        return $this->format('function ### (###) ### {' .
+                              '$t = \o\Runtime::openTemplate("###");###' .
+                              '\o\Runtime::closeTemplate();return $t->getString();}',
+                               $k[0], $k[1], $closure, $templateType, $this->out($k[2], true));
     }
 
 

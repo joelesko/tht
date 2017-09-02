@@ -219,6 +219,26 @@ class Tokenizer extends StringReader {
         return $c;
     }
 
+    // Make sure atoms are not adjacent (e.g. 'foo bar' is not ok.  'function myFun' is ok.)
+    function checkAdjacentAtom ($type, $current) {
+        if ($this->prevToken && in_array($this->prevToken[TOKEN_TYPE], $this->ADJ_ATOMS)) {
+            $prev = $this->prevToken[TOKEN_VALUE];
+            if (!in_array($prev, $this->ALLOW_PREV_ADJ_ATOMS) &&
+                !in_array($current, $this->ALLOW_NEXT_ADJ_ATOMS)) {
+
+                    $prevPos = $this->prevToken[TOKEN_POS];
+                    if ($prev === 'var') {
+                        $this->error("Unknown keyword `var`. Try: `let`", $prevPos);
+                    }
+                    if ($current === 'as') {
+                        $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
+                    }
+
+                    $this->error("Unexpected $type.", false);
+            }
+        }
+    }
+
     function handleWhitespace ($c) {
 
         // Template. End of single-line code block '::'
@@ -301,26 +321,6 @@ class Tokenizer extends StringReader {
 
         $this->checkAdjacentAtom('word', $str);
         $this->makeToken(TokenType::WORD, $str);
-    }
-
-    // Make sure atoms are not adjacent (e.g. 'foo bar' is not ok.  'function myFun' is ok.)
-    function checkAdjacentAtom ($type, $current) {
-        if ($this->prevToken && in_array($this->prevToken[TOKEN_TYPE], $this->ADJ_ATOMS)) {
-            $prev = $this->prevToken[TOKEN_VALUE];
-            if (!in_array($prev, $this->ALLOW_PREV_ADJ_ATOMS) &&
-                !in_array($current, $this->ALLOW_NEXT_ADJ_ATOMS)) {
-
-                    $prevPos = $this->prevToken[TOKEN_POS];
-                    if ($prev === 'var') {
-                        $this->error("Unknown keyword `var`. Try: `let`", $prevPos);
-                    }
-                    if ($current === 'as') {
-                        $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
-                    }
-
-                    $this->error("Unexpected $type.", false);
-            }
-        }
     }
 
     // e.g. 1234

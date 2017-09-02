@@ -72,7 +72,7 @@ abstract class SymbolType {
     const NEW_FUN       =  'NEW_FUN';    // function foo () {}
     const NEW_CLASS     =  'NEW_CLASS';  // class Foo {}
     const BARE_FUN      =  'BARE_FUN';   // print
-    const TEMPLATE_FUN  =  'TEMPLATE_FUN';   // template fooHtml() {}
+    const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
     const FUN_ARG       =  'FUN_ARG';    // function foo (arg) {}
     const USER_FUN      =  'USER_FUN';   // myFunction
     const USER_VAR      =  'USER_VAR';   // myVar
@@ -143,8 +143,8 @@ class ParserData {
         '?'  => 'S_Ternary',
         '||' => 'S_Logic',
         '&&' => 'S_Logic',
-        '||:' => 'S_ValGate',  // new
-        '&&:' => 'S_ValGate',  // new
+        '||:' => 'S_ValGate',
+        '&&:' => 'S_ValGate',
 
         // assignment
         '='   => 'S_Assign',
@@ -154,34 +154,32 @@ class ParserData {
         '/='  => 'S_Assign',
         '%='  => 'S_Assign',
         '**=' => 'S_Assign',
-        '~='  => 'S_Assign',  // .=
-        '||=' => 'S_Assign',  // new
-        '&&=' => 'S_Assign',  // new
-        '@='  => 'S_Assign',  // []=
+        '~='  => 'S_Assign',
+        '||=' => 'S_Assign',
+        '&&=' => 'S_Assign',
+        '@='  => 'S_Assign',
 
         // delimiters / members
         '.'   => 'S_Dot',
         '['   => 'S_OpenBracket',
         '('   => 'S_OpenParen',
         '{'   => 'S_OpenBrace',
-        '{{'  => 'S_TemplateExpr',    // {{ ... }}
+        '{{'  => 'S_TemplateExpr',
 
         // keywords
-        'let'      => 'S_NewVar',       // var
+        'let'      => 'S_NewVar',
         'function' => 'S_NewFunction',
-        'template' => 'S_NewFunction',
+        'F'        => 'S_NewFunction',
+        'template' => 'S_NewTemplate',
+        'T'        => 'S_NewTemplate',
     	'class'    => 'S_Class',
         'if'       => 'S_If',
-        'for'      => 'S_For',         // foreach
+        'for'      => 'S_For',
         'try'      => 'S_TryCatch',
         'break'    => 'S_Command',
         'continue' => 'S_Command',
         'return'   => 'S_Return',
-
-        'F' => 'S_NewFunction',
-        'T' => 'S_NewFunction',
-        'R'   => 'S_Return',
-
+        'R'        => 'S_Return',
     ];
 
     static public $RESERVED_NAMES = [
