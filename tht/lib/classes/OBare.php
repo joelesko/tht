@@ -19,9 +19,9 @@ class OBare {
                 if ($a instanceof ONothing) {
                     $a = '(nothing)';
                 } else if ($a instanceof OLockString) {
-                    $a = $a->u_unlocked();
+                    $a = $a->__toString();
                 } else if ($a instanceof ORegex) {
-                    $a = $a->pattern;
+                    $a = $a->__toString();
                 } else {
                     $a = Tht::module('Json')->u_format($a);
                 }
