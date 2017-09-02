@@ -44,6 +44,10 @@ class TokenStream {
         $this->tokens []= implode(TOKEN_SEP, $t);
     }
     function done () {
+        // add a noop token to prevent error if there are no tokens (e.g. all comments)
+        if (count($this->tokens) <= 1) {
+            $this->add([TokenType::WORD, '1,1', 0, 'false']);
+        }
         $this->tokens = array_reverse($this->tokens);
         return $this;
     }
@@ -68,6 +72,7 @@ class Tokenizer extends StringReader {
 
     private $stringMod = '';
     private $inMultiLineString = false;
+    private $inComment = false;
 
     private $indentBlocks = [];
     private $currIndentBlock = [ 'indent' => 0, 'glyph' => '' ];
@@ -137,7 +142,7 @@ class Tokenizer extends StringReader {
 
     function onNewline() {
         if ($this->colNum > MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
-            && !$this->inMultiLineString) {
+            && !$this->inMultiLineString && !$this->inComment) {
             $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . MAX_LINE_LENGTH . '.');
         }
 
@@ -444,6 +449,7 @@ class Tokenizer extends StringReader {
         $this->updateTokenPos();
         $commentDepth = 0;
 
+        $this->inComment = true;
         while (true) {
             if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
                 if (!$this->atStartOfLine()) {
@@ -470,6 +476,7 @@ class Tokenizer extends StringReader {
             }
             $this->next();
         }
+        $this->inComment = false;
     }
 
     function handleLineComment ($c) {
@@ -477,6 +484,7 @@ class Tokenizer extends StringReader {
         $this->updateTokenPos();
         $this->nextFor(Glyph::LINE_COMMENT);
 
+        $this->inComment = true;
         while (true) {
             $c = $this->char();
             if ($c === "\n" || $this->atEndOfFile()) {
@@ -484,6 +492,7 @@ class Tokenizer extends StringReader {
             }
             $this->next();
         }
+        $this->inComment = false;
     }
 
     function handleGlyph ($c) {

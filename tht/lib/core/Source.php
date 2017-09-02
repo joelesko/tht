@@ -128,10 +128,10 @@ class Source {
 
         Tht::loadLib('compiler/_index.php');
 
-        $rawSource = Source::readSourceFile($sourceFile);
-        $tokenList = Source::tokenize($rawSource);
-        $ast       = Source::parse($tokenList);
-        $phpCode   = Source::emit($ast, $sourceFile);
+        $rawSource   = Source::readSourceFile($sourceFile);
+        $tokenStream = Source::tokenize($rawSource);
+        $ast         = Source::parse($tokenStream);
+        $phpCode     = Source::emit($ast, $sourceFile);
 
         Source::writePhpFile($phpSourceFile, $phpCode, $sourceFile);
 
@@ -181,9 +181,9 @@ class Source {
         return $tokens;
     }
 
-    static function parse ($tokens) {
+    static function parse ($tokenStream) {
         $parser = new Parser ();
-        $ast = $parser->parse($tokens);
+        $ast = $parser->parse($tokenStream);
         return $ast;
     }
 

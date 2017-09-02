@@ -131,7 +131,7 @@ class StringReader {
 
     // Advance N characters
     // WARNING: Super hot path!  Each operation & function argument should be measured.
-    function next ($num=1, $skipLineLen=false) {
+    function next ($num=1) {
 
         if ($this->i >= $this->len) { return; }
 
@@ -154,7 +154,6 @@ class StringReader {
         }
 
         $this->i += $num;
-        if (!$skipLineLen) { $this->colNum += $num; }
 
         $this->char1 = $this->i < $this->len ? $this->fullText[$this->i] : null;
     }
