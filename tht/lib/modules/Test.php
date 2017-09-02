@@ -50,7 +50,8 @@ class u_Test extends StdModule {
         return $this->u_ok($ex || $trapped, $msg);
     }
 
-    function parserDies ($code, $match) {
+    function parserDies ($code, $match, $isFuzzy = false) {
+
         $matchError = false;
         $this->lastParserError = '';
         try {
@@ -58,6 +59,11 @@ class u_Test extends StdModule {
         } catch (\Exception $e) {
             $this->lastParserError = $e->getMessage();
             $matchError = strpos(strtolower($e->getMessage()), strtolower($match));
+            if (!$matchError && !$isFuzzy) {
+                // allow for matching of backticks without needing to escape
+                $match = str_replace("'", "`", $match);
+                return $this->parserDies($code, $match, true);
+            }
         }
         return $matchError;
     }
@@ -68,9 +74,20 @@ class u_Test extends StdModule {
         return $this->u_ok($dies, $msg);
     }
 
-    function u_parser_ok ($code, $match, $msg=null) {
-        $dies = $this->parserDies($code, $match);
-        $msg = str_replace("\n", "\\n", $code) . ' | no error: ' . $match;
+    function u_parser_ok ($code, $msg) {
+        $dies = false;
+        $err = '';
+        try {
+            Tht::module('Meta')->u_parse($code);
+        } catch (\Exception $e) {
+            $dies = true;
+            $err = $e->getMessage();
+        }
+        $msg = str_replace("\n", "\\n", $code) . ' | ' . $msg;
+        if ($dies) {
+            $msg .= " | GOT: " . $err;
+        }
+
         return $this->u_ok(!$dies, $msg);
     }
 
