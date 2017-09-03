@@ -4,10 +4,10 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.1.2 - Beta';
+    static private $VERSION = '0.1.3 - Beta';
     static private $SRC_EXT = 'tht';
 
-    static private $THT_SITE = 'https://tht-lang.org';
+    static private $THT_SITE = 'https://tht.help';
 
     static private $CLI_OPTIONS = [
         'new'    => 'new',
@@ -627,7 +627,7 @@ class Tht {
 
                             <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite/test-page
 
-                            <p style=\"margin-top: 4rem\">> For more info, see <a href=\"https://tht-lang.org/tutorials/how-to-create-a-basic-web-app\">How to Create a Basic Web App</a>.
+                            <p style=\"margin-top: 4rem\">> For more info, see <a href=\"https://tht.help/tutorials/how-to-create-a-basic-web-app\">How to Create a Basic Web App</a>.
                         </>
                     </>
                 }
@@ -685,7 +685,7 @@ class Tht {
                     }
 
                     // Database settings
-                    // See: https://tht-lang.org/manual/module/db
+                    // See: https://tht.help/manual/module/db
                     databases: {
 
                         // Default sqlite file in 'data/db'
