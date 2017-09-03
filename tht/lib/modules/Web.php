@@ -747,8 +747,12 @@ HTML;
            $origin = preg_replace('/^https?:\/\//i', '', $origin);
            if (!$origin) {
                $referrer = $web->u_request_header('referrer');
-               //TODO: check referrer
-               $this->isCrossOrigin = true;
+               
+               if (strpos($referrer, $host)) {
+                   $this->isCrossOrigin = false;
+               } else {
+                   $this->isCrossOrigin = true;
+               }
            }
            else if ($origin !== $host) {
                $this->isCrossOrigin = true;
@@ -954,4 +958,3 @@ EOJS;
 
     }
 }
-
