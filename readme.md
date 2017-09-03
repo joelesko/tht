@@ -2,7 +2,7 @@
 
 **THT is a new programming language for server-side web development.**
 
-Please visit **[tht-lang.org](https://tht-lang.org)**.
+Please visit **[tht.help](https://tht.help)**.
 
 
 
