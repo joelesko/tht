@@ -32,5 +32,5 @@ https://github.com/joelesko/tht/issues
 
 ## License
 
-TBD
+THT is released under the [MIT License](https://opensource.org/licenses/MIT).
 
