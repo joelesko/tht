@@ -17,7 +17,8 @@ class u_Web extends StdModule {
     private $request;
     private $isCrossOrigin = null;
 
-
+    static private $CSP_NONCE = '';
+    static private $CSRF_TOKEN = '';
 
     // REQUEST
     // --------------------------------------------
@@ -74,7 +75,7 @@ class u_Web extends StdModule {
     }
 
     function isAjax () {
-        $requestedWith = Tht::getWebRequestHeader('x-requested-with');
+        $requestedWith = Web::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 
@@ -196,11 +197,20 @@ class u_Web extends StdModule {
     }
 
     function u_nonce () {
-        return Tht::data('cspNonce');
+
+        if (!u_Web::$CSP_NONCE) {
+            u_Web::$CSP_NONCE  = Tht::module('String')->u_random(40);
+        }
+
+        return u_Web::$CSP_NONCE;
     }
 
     function u_csrf_token() {
-        return Tht::data('csrfToken');
+        if (!u_Web::$CSRF_TOKEN) {
+            u_Web::$CSRF_TOKEN = Tht::module('String')->u_random(40);
+        }
+
+        return u_Web::$CSRF_TOKEN;
     }
 
     // SEND DOCUMENTS
@@ -403,6 +413,8 @@ HTML;
             $paths = [$paths];
         }
 
+        $nonce = Tht::module('Web')->u_nonce();
+
         $includes = [];
         $blocks = [];
         foreach ($paths as $path) {
@@ -410,7 +422,7 @@ HTML;
                 // Inline it in the HTML document
                 $str = OLockString::getUnlocked($path);
                 $tag = str_replace('{BODY}', $str, $blockTag);
-                $tag = str_replace('{NONCE}', Tht::data('cspNonce'), $tag);
+                $tag = str_replace('{NONCE}', $nonce, $tag);
                 $blocks []= $tag;
             }
             else {
@@ -422,7 +434,7 @@ HTML;
 
                 $path .= $cacheTag;
                 $tag = str_replace('{URL}', $path, $incTag);
-                $tag = str_replace('{NONCE}', Tht::data('cspNonce'), $tag);
+                $tag = str_replace('{NONCE}', $nonce, $tag);
                 $includes []= $tag;
             }
         }
@@ -747,7 +759,7 @@ HTML;
            $origin = preg_replace('/^https?:\/\//i', '', $origin);
            if (!$origin) {
                $referrer = $web->u_request_header('referrer');
-               
+
                if (strpos($referrer, $host)) {
                    $this->isCrossOrigin = false;
                } else {
@@ -817,7 +829,7 @@ HTML;
     }
 
     function u_route_param ($key) {
-        return Tht::getWebRouteParam($key);
+        return Web::getWebRouteParam($key);
     }
 
     function checkAjax ($isAjax) {
@@ -832,7 +844,7 @@ HTML;
 
     function u_data ($method, $key, $type='token') {
         if ($method === 'route') {
-            return Tht::getWebRouteParam($key);
+            return Web::getWebRouteParam($key);
         }
         else if ($method === 'get') {
             return $this->getValue('get', false, $key, $type);

@@ -81,7 +81,7 @@ class u_Js extends StdModule {
 
     function incLazyLoadImages () {
 
-        $nonce = Tht::data('cspNonce');
+        $nonce = Tht::module('Web')->u_nonce();
 
         $js = <<<EOLAZY
 
@@ -166,7 +166,7 @@ EOLAZY;
 
         $keyWords = $keyWords ?: 'let|var|const|template|function|for|foreach|while|do|array|new|if|else|this|break|continue|return|require|import|class|static|public|private|protected|int|double|boolean|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner|outer|cross|insert|delete|update';
 
-        $nonce = Tht::data('cspNonce');
+        $nonce = Tht::module('Web')->u_nonce();
 
 
         $themeCss = "
