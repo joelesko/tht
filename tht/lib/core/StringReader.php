@@ -154,6 +154,7 @@ class StringReader {
         }
 
         $this->i += $num;
+        $this->colNum += $num;
 
         $this->char1 = $this->i < $this->len ? $this->fullText[$this->i] : null;
     }
