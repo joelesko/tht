@@ -136,8 +136,12 @@ class StringReader {
         if ($this->i >= $this->len) { return; }
 
         $c = $this->fullText[$this->i];
-        if ($c === ' ' && $this->startOfLine) {
-            $this->indent += 1;
+        if ($this->startOfLine) {
+            if ($c === ' ') {
+                $this->indent += 1;
+            } else {
+                $this->startOfLine = false;
+            }    
         }
         if ($c === "\n") {
 
@@ -148,9 +152,6 @@ class StringReader {
             $this->lineStart = $this->i;
             $this->indent = 0;
             $this->colNum = 0;
-
-        } else if ($this->startOfLine && $c !== ' ') {
-            $this->startOfLine = false;
         }
 
         $this->i += $num;
