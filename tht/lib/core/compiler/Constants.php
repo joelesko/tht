@@ -9,7 +9,7 @@ const TOKEN_POS   = 1;
 const TOKEN_SPACE = 2;
 const TOKEN_VALUE = 3;
 
-define('TOKEN_SEP', chr(254)); // 254 = ■
+define('TOKEN_SEP', '┃');  // unicode vertical line
 
 abstract class TokenType {
     const NUMBER   = 'NUMBER';    // 123
