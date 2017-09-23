@@ -377,7 +377,7 @@ HTML;
 
         if ($code !== 500) {
             // User custom error page
-            Tht::runStaticRoute($code);
+            Web::runStaticRoute($code);
         }
 
         // User custom error page
