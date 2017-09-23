@@ -138,13 +138,7 @@ class ErrorHandler {
         preg_match("/with message '(.*)' in \//i", $message, $match);
         $msg = (isset($match[1]) ? $match[1] : $message);
 
-        ErrorHandler::printError([
-            'type'    => 'PhpStartupError',
-            'message' => $message,
-            'phpFile' => $phpFile,
-            'phpLine' => $phpLine,
-            'trace'   => $error->getTrace()
-        ]);
+        print '<h2>Startup Error</h2>' . $message; exit();
     }
 
     // PHP exception - in theory, this should never leak through to end users
@@ -158,7 +152,7 @@ class ErrorHandler {
         $msg = (isset($match[1]) ? $match[1] : $message);
 
         ErrorHandler::printError([
-            'type'    => 'PhpLeakedException',
+            'type'    => 'PhpException',
             'message' => $message,
             'phpFile' => $phpFile,
             'phpLine' => $phpLine,
@@ -189,7 +183,6 @@ class ErrorHandler {
         ]);
     }
 
-
     static function handleCompilerError ($msg, $srcToken, $srcFile) {
 
         $srcPos = explode(',', $srcToken[TOKEN_POS]);
@@ -200,7 +193,7 @@ class ErrorHandler {
         ];
 
         ErrorHandler::printError([
-            'type'    => 'PhpParserError',
+            'type'    => 'ThtParserError',
             'message' => $msg,
             'phpFile' => '',
             'phpLine' => '',
@@ -348,6 +341,7 @@ class ErrorHandler {
 
         $logPath = Tht::getRelativePath('root', Tht::path('logFile') );
 
+        // Format heading
         $heading = v(v($error['type'])->u_to_token_case(' '))->u_to_title_case();
         $heading = preg_replace('/php/i', 'PHP', $heading);
         $heading = preg_replace('/tht/i', 'THT', $heading);
@@ -364,15 +358,16 @@ class ErrorHandler {
             $heading = "Format Checker";
         }
 
-        // convert quoted substrings to code
+        // convert backticks to code
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="tht-error-code">$1</span>', $error['message']);
-        // $error['message'] = preg_replace("/'([a-zA-Z0-9\.]+)'/", '<span class="tht-error-code">$1</span>', $error['message']);
-        // $error['message'] = preg_replace("/\((.+?)\)/", '<span class="tht-error-code">$1</span>', $error['message']);
 
+        // Put hints on a separate line
         $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Suggestion: $1', $error['message']);
 
+        // format caret
         $isLongSrc = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
         $error['srcLine'] = preg_replace("/\^$/", '<span class="tht-caret">&uarr;</span>', $error['srcLine']);
+
 
         // TODO: Clean this up.
         ?>
@@ -499,6 +494,8 @@ class ErrorHandler {
 
         $clean = $raw;
         $clean = $this->cleanVars($clean);
+
+        // Make PHP error messages easier to read
         $clean = preg_replace('/Call to undefined function (.*)\(\)/', 'Unknown function: `$1`', $clean);
         $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: `$1`', $clean);
         $clean = preg_replace('/Missing argument (\d+) for (.*)\(\)/', 'Missing argument $1 for `$2()`', $clean);
@@ -506,11 +503,11 @@ class ErrorHandler {
         $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
 
-
         if (preg_match('/Syntax error, unexpected \'return\'/i', $clean)) {
             $clean = 'Invalid statement at end of function.';
         }
 
+        // Strip root directory from paths
         $clean = str_replace(Tht::path('root') . '/', '', $clean);
 
         $clean = ucfirst($clean);
@@ -520,17 +517,18 @@ class ErrorHandler {
 
     function cleanVars ($raw) {
 
-        $fn = function ($m) {
+        $fnCamel = function ($m) {
             return v($m[1])->u_to_camel_case();
         };
 
         $clean = $raw;
-        $clean = preg_replace('/o\\\\/', '',    $clean);
-        $clean = preg_replace('/tht.*?\\\\/', '', $clean);
-        $clean = preg_replace_callback('/u_([a-z_]+)/', $fn, $clean);
-        $clean = preg_replace('/(?<=\w)::/', '.',       $clean);
-        $clean = preg_replace('/\bO(?=[A-Z])/', '',       $clean);
-        $clean = preg_replace('/\bu_/', '', $clean);
+        $clean = preg_replace('/o\\\\/', '', $clean);  // o namespace
+        $clean = preg_replace('/tht.*?\\\\/', '', $clean); // tht namespage
+        $clean = preg_replace_callback('/u_([a-z_]+)/', $fnCamel, $clean);  // user methods
+        $clean = preg_replace('/(?<=\w)::/', '.', $clean);  // :: to dot .
+        $clean = preg_replace('/\bO(?=[A-Z])/', '', $clean);  // internal classes e.g. "OString"
+        $clean = preg_replace('/\bu_/', '', $clean);  // u_ prefix
+
         return $clean;
     }
 
