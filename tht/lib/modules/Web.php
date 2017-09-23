@@ -273,7 +273,7 @@ class u_Web extends StdModule {
         }
         print "(function(){\n";
         foreach ($chunks->val as $c) {
-            print Tht::module('Js')->u_minify(OLockString::getUnlocked($c));
+            print OLockString::getUnlocked($c);
         }
         print "\n})();";
         $this->endGzip();

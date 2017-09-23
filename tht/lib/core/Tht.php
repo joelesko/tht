@@ -32,6 +32,7 @@ class Tht {
         'modules'   =>   'modules',
         'settings'  =>   'settings',
         'scripts'   =>   'scripts',
+     //   'phpLib'    =>   'php',
 
         'data'      => 'data',
         'db'        =>   'db',
@@ -54,14 +55,6 @@ class Tht {
         'frontFile'          => 'thtApp.php',
         'homeFile'           => 'home.tht',
     ];
-
-    static private $CONFIG_KEY = [
-        'main'   => 'tht',
-        'routes' => 'routes',
-        'db'     => 'db'
-    ];
-
-
 
 
 
@@ -240,6 +233,7 @@ class Tht {
         Tht::$paths['modules']   = Tht::path('root', Tht::$DIR['modules']);
         Tht::$paths['settings']  = Tht::path('root', Tht::$DIR['settings']);
         Tht::$paths['scripts']   = Tht::path('root', Tht::$DIR['scripts']);
+     //   Tht::$paths['phpLib']    = Tht::path('root', Tht::$DIR['phpLib']);
 
         // data subdirs
         Tht::$paths['db']          = Tht::path('data', Tht::$DIR['db']);
@@ -270,15 +264,14 @@ class Tht {
         $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$FILE['configFile']);
 
         // make sure the required top-level keys exist
-        $mainKey = Tht::$CONFIG_KEY['main'];
-        $routeKey = Tht::$CONFIG_KEY['routes'];
-        foreach ([$mainKey, $routeKey] as $key) {
+        foreach (['tht', 'routes'] as $key) {
             if (!isset($appConfig[$key])) {
                 Tht::configError("Missing top-level key `$key` in `" . Tht::$paths['configFile'] . "`.", $appConfig);
             }
         }
 
         // check for invalid keys in 'tht' section
+        $mainKey = 'tht';
         $def = Tht::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
@@ -393,11 +386,11 @@ class Tht {
 
         $default = [];
 
-        $default[Tht::$CONFIG_KEY['routes']] = [
+        $default['routes'] = [
             '/' => '/home'
         ];
 
-        $default[Tht::$CONFIG_KEY['main']] = [
+        $default['tht'] = [
 
             // internal
             "_devPrint"        => false,
@@ -413,6 +406,8 @@ class Tht {
             "showPerfScore"        => false,
             "useSession"           => false,
             "disableFormatChecker" => false,
+            "minifyCss"            => true,
+            "minifyJs"             => true,
 
             // [security]
             "allowFileAccess"         => false,
@@ -510,6 +505,13 @@ class Tht {
         return Tht::makePath($parts);
     }
 
+    static function validatePath($path) {
+        if (strpos('..', $path) !== false) {
+            Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+        } 
+        return true;
+    }
+
     static function makePath () {
         $args = func_get_args();
         if (is_array($args[0])) { $args = $args[0]; }
@@ -517,12 +519,18 @@ class Tht {
         $path = implode($sep, $args);
         $path = str_replace($sep . $sep, $sep, $path); // prevent double slashes
         $path = rtrim($path, '/');
+
+        Tht::validatePath($path);
+
         return $path;
     }
 
     static function getRelativePath ($baseKey, $fullPath) {
         $basePath = Tht::path($baseKey);
         $rel = str_replace(realpath($basePath), '', $fullPath);
+
+        Tht::validatePath($fullPath);
+
         return ltrim($rel, '/');
     }
 
@@ -539,7 +547,7 @@ class Tht {
 
     static function getThtPathForPhp ($phpPath) {
         $f = basename($phpPath);
-        $f = rtrim($f, '.php');
+        $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
         return Tht::path('root', $f);
     }
@@ -564,7 +572,7 @@ class Tht {
         if ($val === null) {
             $val = Tht::searchConfig(Tht::getDefaultConfig(), $args);
             if ($val === null) {
-                throw new StartupException ('No config for key \'' . implode($args, '.') . '\'');
+                throw new StartupException ('No config for key: `' . implode($args, '.') . '`');
             }
         }
         return $val;
@@ -572,7 +580,7 @@ class Tht {
 
     static function getConfig () {
         $args = func_get_args();
-        array_unshift($args, Tht::$CONFIG_KEY['main']);
+        array_unshift($args, 'tht');
         return Tht::getTopConfig($args);
     }
 

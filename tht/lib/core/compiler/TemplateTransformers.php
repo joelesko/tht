@@ -44,19 +44,24 @@ class JconTemplateTransformer  extends TemplateTransformer {}
 
 class JsTemplateTransformer    extends TemplateTransformer {
     function onEndString($str) {
-        return Tht::module('Js')->u_minify($str);
+        if (Tht::getConfig('minifyJs')) {
+            $str = Tht::module('Js')->u_minify($str);
+        }
+        return $str;
     }
 }
 
 class CssTemplateTransformer extends TemplateTransformer {
     function onEndString($str) {
 
-        // return $str;
         if (Tht::getConfig('tempParseCss')) {
             $str = Tht::module('Css')->u_parse($str);
         }
+        if (Tht::getConfig('minifyCss')) {
+            $str = Tht::module('Css')->u_minify($str);
+        }
 
-        return Tht::module('Css')->u_minify($str);
+        return $str;
     }
 }
 
