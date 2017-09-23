@@ -83,11 +83,11 @@ class TemplateHtml extends OTemplate {
         $unlocked = OLockString::getUnlocked($s);
 
         if ($cls === 'o\\CssLockString') {
-            $nonce = Tht::data('cspNonce');
+            $nonce = Tht::module('Web')->u_nonce();
             return "<style nonce=\"$nonce\">" . $unlocked . "</style>\n";
         }
         if ($cls === 'o\\JsLockString') {
-            $nonce = Tht::data('cspNonce');
+            $nonce = Tht::module('Web')->u_nonce();
             return "<script nonce=\"$nonce\">\n(function(){\n" . $unlocked . "\n})();\n</script>\n";
         }
 
