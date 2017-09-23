@@ -11,6 +11,9 @@ class u_Css extends StdModule {
     // http://stackoverflow.com/questions/15195750/minify-compress-css-with-regex
     function u_minify ($str1) {
 
+        // remove '//' line comments
+        $str1 = preg_replace("#(\n|^)\s*//[^!]?[^\n]*#", '', $str1);
+
         $re1 = <<<'EOS'
     (?sx)
       # quotes
