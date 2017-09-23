@@ -22,6 +22,7 @@ class TokenStream {
             $this->add([TokenType::WORD, '1,1', 0, 'false']);
         }
         $this->tokens = array_reverse($this->tokens);
+
         return $this;
     }
     function count () {
@@ -104,8 +105,6 @@ class Tokenizer extends StringReader {
         $this->tokenStream->add($token);
 
         $this->prevSpace = false;
-
-        Tht::devPrint($this->tokenPos[0] . ',' . $this->tokenPos[1] . "\t$type\t$value");
     }
 
     function insertToken ($type, $value) {
@@ -117,30 +116,6 @@ class Tokenizer extends StringReader {
         if ($this->colNum > MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
             && !$this->inMultiLineString && !$this->inComment) {
             $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . MAX_LINE_LENGTH . '.');
-        }
-
-        //
-        if ($this->prevToken) {
-            $now = $this->prevToken[TOKEN_VALUE];
-            if ($this->indent() <= $this->currIndentBlock['indent'] && count($this->indentBlocks) > 1) {
-                if ($now !== '{') {
-                    if ($now !== '}') {
-                      //  print_r($this->prevToken); exit();
-                      //  $this->error('Multiline block must be indented.', $this->prevToken[TOKEN_POS]);
-                    }
-                    $this->currIndentBlock = array_pop($this->indentBlocks);
-                }
-            }
-            else if ($now === '{') {
-                // open brace
-               // print('OPEN');
-            //    print_r($this->prevToken);
-                $this->indentBlocks []= $this->currIndentBlock;
-                $this->currIndentBlock = [
-                    'glyph' => $this->prevToken[TOKEN_VALUE],
-                    'indent'=> $this->indent()
-                ];
-            }
         }
     }
 
