@@ -13,8 +13,10 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
     protected $hasNumericKeys = false;
 
     function __get ($field) {
-        $plainField = un_($field);  // remove 'u_'
+        
+        $plainField = unu_($field);
         $meth = 'u_get' . ucfirst($plainField);
+
         if (method_exists($this, $meth)) {
             return $this->$meth();
         } else if (isset($this->val[$plainField]) ) {
@@ -26,8 +28,10 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
     }
 
     function __set ($field, $val) {
-        $plainField = substr(v($field)->u_to_camel_case(), 2);  // remove 'u_'
+
+        $plainField = unu_($field);
         $meth = 'u_set' . ucfirst($plainField);
+
         if (method_exists($this, $meth)) {
             return $this->$meth($val);
         } else if (isset($this->val[$plainField]) ) {

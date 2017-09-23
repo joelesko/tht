@@ -40,17 +40,23 @@ function vn ($v, $isAdd) {
     return $v;
 }
 
-// Convert camelCase to user_underscore_case  (with u_ prefix)
+// Convert camelCase to user_underscore_case (with u_ prefix)
 function u_ ($s) {
     $out = preg_replace('/([^_])([A-Z])/', '$1_$2', $s);
     return 'u_' . strtolower($out);
 }
 
 // user_underscore_case back to camelCase (without u_ prefix)
-function un_ ($s) {
+function unu_ ($s) {
     $s = preg_replace('/^u_/', '', $s);
     return v($s)->u_to_camel_case();
 }
+
+function hasu_ ($v) {
+    return substr($v, 0, 2) === 'u_';
+}
+
+
 
 // NOOP for now
 function sig($sig, $arguments) {}

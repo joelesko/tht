@@ -84,7 +84,7 @@ class u_Meta extends StdModule {
         $frames = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
         $callerFrame = false;
         foreach ($frames as $f) {
-            if (substr($f['function'], 0, 2) == 'u_') {
+            if (hasu_($f['function'])) {
                 if ($f['class'] !== 'o\\u_Meta') {
                     $callerFrame = $f;
                     break;

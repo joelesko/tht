@@ -14,8 +14,10 @@ class OClass {
     }
 
     function __get ($field) {
-        $plainField = substr($field, 2);
+
+        $plainField = unu_($field);
         $meth = 'u_get' . ucfirst($plainField);
+
         if (method_exists($this, $meth)) {
             return $this->$meth();
         }
@@ -38,8 +40,10 @@ class OClass {
     }
 
     function __set ($field, $value) {
-        $plainField = substr($field, 2);
+        
+        $plainField = unu_($field);
         $meth = 'u_set' . ucfirst($plainField);
+
         if (method_exists($this, $meth)) {
             $this->$meth($value);
         } else {
@@ -49,7 +53,7 @@ class OClass {
     }
 
     function __call ($method, $args) {
-      //  $method = substr($method, 2);  // remove prefix
+
         $c = \get_called_class();
 
         if ($method === 'new') {
@@ -128,7 +132,7 @@ class OClass {
         $methods = get_class_methods(get_called_class());
         $userMethods = [];
         foreach ($methods as $m) {
-            if (substr($m, 0, 2) === 'u_') {
+            if (hasu_($m)) {
                 $userMethods []= substr($m, 2);
             }
         }
