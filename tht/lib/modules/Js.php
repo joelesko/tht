@@ -46,8 +46,8 @@ class u_Js extends StdModule {
 
         Tht::module('Perf')->u_start('js.minify', $str);
 
-        # comments
-        $str = preg_replace("#\n\s*//[^!]?[^\n]*#", '', $str);
+        // comments
+        $str = preg_replace("#(^|\n)\s*//[^!]?[^\n]*#", '', $str);
         $str = preg_replace("#/\*(.*?)\*/s#", '', $str);
 
         // consecutive newlines
