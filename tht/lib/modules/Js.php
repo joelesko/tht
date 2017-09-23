@@ -39,6 +39,7 @@ class u_Js extends StdModule {
     // }
 
 
+    // TODO: implement with StringReader, to preserve inner strings
     function u_minify ($str) {
 
         $str1 = $str;
@@ -46,13 +47,17 @@ class u_Js extends StdModule {
         Tht::module('Perf')->u_start('js.minify', $str);
 
         # comments
-        $str = preg_replace("#\n\s*//[^!]?.*?\n#", '', $str);
-        $str = preg_replace("#/\*(.*?)\*/#", '', $str);
+        $str = preg_replace("#\n\s*//[^!]?[^\n]*#", '', $str);
+        $str = preg_replace("#/\*(.*?)\*/s#", '', $str);
 
+        // consecutive newlines
         $str = preg_replace("#\n\s+#", "\n", $str);
-        $str = preg_replace("#\ *([;\{\}\[\]\(\)])\ *#", '$1', $str);
-        $str = preg_replace("#([;\{\}])\n#", '$1', $str);
-        $str = preg_replace("#,\n\s*#", ',', $str);
+
+        // whitespace surrounding separators
+        $str = preg_replace("#\s*([;\{\}\[\]\(\)=])\s*#", '$1', $str);
+
+        // newlines after commas
+        $str = preg_replace("#\s*(,)\n\s*#", ',', $str);
 
         Tht::module('Perf')->u_stop('js.minify');
 
