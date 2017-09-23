@@ -59,7 +59,7 @@ class Web {
     }
 
     static public function runStaticRoute($route) {
-        $routes = Tht::getTopConfig(Tht::$CONFIG_KEY['routes']);
+        $routes = Tht::getTopConfig('routes');
         if (!isset($routes[$route])) { return false; }
         $file = Tht::path('pages', $routes[$route]);
         Tht::executeWebController($file);
