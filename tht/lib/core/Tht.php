@@ -32,7 +32,7 @@ class Tht {
         'modules'   =>   'modules',
         'settings'  =>   'settings',
         'scripts'   =>   'scripts',
-     //   'phpLib'    =>   'php',
+        // 'phpLib'    =>   'php',
 
         'data'      => 'data',
         'db'        =>   'db',
@@ -100,13 +100,14 @@ class Tht {
         }
 
         if (Tht::isMode('cli')) {
-            Tht::loadLib('Cli.php');
-            Cli::main();
+            Tht::loadLib('modes/CliMode.php');
+            CliMode::main();
         }
         else {
-            Tht::loadLib('Web.php');
+            
+            Tht::loadLib('modes/WebMode.php');
             Tht::init();
-            Web::main();
+            WebMode::main();
         }
 
         Tht::endScript();
@@ -233,7 +234,7 @@ class Tht {
         Tht::$paths['modules']   = Tht::path('root', Tht::$DIR['modules']);
         Tht::$paths['settings']  = Tht::path('root', Tht::$DIR['settings']);
         Tht::$paths['scripts']   = Tht::path('root', Tht::$DIR['scripts']);
-     //   Tht::$paths['phpLib']    = Tht::path('root', Tht::$DIR['phpLib']);
+        // Tht::$paths['phpLib']    = Tht::path('root', Tht::$DIR['phpLib']);
 
         // data subdirs
         Tht::$paths['db']          = Tht::path('data', Tht::$DIR['db']);
@@ -352,7 +353,6 @@ class Tht {
         }
 
         Tht::initHttpRequestHeaders();
-
 
         // [security]  remove all php globals
         unset($_ENV);

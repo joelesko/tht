@@ -43,7 +43,7 @@ class OBare {
         $out = OBare::formatPrint(func_get_args());
 
         if (Tht::isMode('web')) {
-            Web::queuePrint($out);
+            WebMode::queuePrint($out);
         }
         else {
             echo $out, "\n";

@@ -33,6 +33,7 @@ class u_Web extends StdModule {
 
     function u_request () {
 
+        
         if (!$this->request) {
 
             $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
@@ -75,7 +76,7 @@ class u_Web extends StdModule {
     }
 
     function isAjax () {
-        $requestedWith = Web::getWebRequestHeader('x-requested-with');
+        $requestedWith = WebMode::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 
@@ -377,7 +378,7 @@ HTML;
 
         if ($code !== 500) {
             // User custom error page
-            Web::runStaticRoute($code);
+            WebMode::runStaticRoute($code);
         }
 
         // User custom error page
@@ -829,7 +830,7 @@ HTML;
     }
 
     function u_route_param ($key) {
-        return Web::getWebRouteParam($key);
+        return WebMode::getWebRouteParam($key);
     }
 
     function checkAjax ($isAjax) {
@@ -844,7 +845,7 @@ HTML;
 
     function u_data ($method, $key, $type='token') {
         if ($method === 'route') {
-            return Web::getWebRouteParam($key);
+            return WebMode::getWebRouteParam($key);
         }
         else if ($method === 'get') {
             return $this->getValue('get', false, $key, $type);

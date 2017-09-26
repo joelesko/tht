@@ -2,7 +2,7 @@
 
 namespace o;
 
-class Web {
+class WebMode {
 
     static private $SETTINGS_KEY_ROUTE = 'routes';
     static private $ROUTE_HOME = 'home';
@@ -18,18 +18,17 @@ class Web {
 
     static public function main() {
 
-        Web::initResponseHeaders();
+        WebMode::initResponseHeaders();
 
         if (Tht::getConfig('downtime')) {
-            Web::downtimePage(Tht::getConfig('downtime'));
+            WebMode::downtimePage(Tht::getConfig('downtime'));
         }
-
-        $controllerFile = Web::initRoute();
+        $controllerFile = WebMode::initRoute();
         if ($controllerFile) {
-            Web::executeWebController($controllerFile);
+            WebMode::executeWebController($controllerFile);
         }
 
-        Web::flushWebPrintBuffer();
+        WebMode::flushWebPrintBuffer();
     }
 
     static private function downtimePage($file) {
@@ -49,9 +48,9 @@ class Web {
 
         Tht::module('Perf')->u_start('tht.route');
 
-        $path = Web::getScriptPath();
+        $path = WebMode::getScriptPath();
 
-        $controllerFile = Web::getControllerForPath($path);
+        $controllerFile = WebMode::getControllerForPath($path);
 
         Tht::module('Perf')->u_stop();
 
@@ -73,6 +72,7 @@ class Web {
         // Validate route name
         // all lowercase, no special characters, hyphen separators, no trailing slash
         $pathSize = strlen($path);
+
         $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
         if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
             Tht::errorLog("Path `$path` is not valid");
@@ -84,15 +84,15 @@ class Web {
 
     static private function getControllerForPath($path) {
 
-        $routes = Tht::getTopConfig(Web::$SETTINGS_KEY_ROUTE);
+        $routes = Tht::getTopConfig(WebMode::$SETTINGS_KEY_ROUTE);
 
         if (isset($routes[$path])) {
             // static path
             return Tht::path('pages', $routes[$path]);
         }
         else {
-            $c = Web::getDynamicController($routes, $path);
-            return $c === false ? Web::getPublicController($path) : $c;
+            $c = WebMode::getDynamicController($routes, $path);
+            return $c === false ? WebMode::getPublicController($path) : $c;
         }
     }
 
@@ -134,14 +134,14 @@ class Web {
                     }
                 }
                 if ($isMatch) {
-                    Web::$routeParams = $params;
+                    WebMode::$routeParams = $params;
                     return Tht::path('pages', $controllerPath);
                 }
             }
         }
 
         $camelPath = strtolower(v($path)->u_to_camel_case());
-        if (isset($routeTargets[$camelPath]) || $camelPath == '/' . Web::$ROUTE_HOME) {
+        if (isset($routeTargets[$camelPath]) || $camelPath == '/' . WebMode::$ROUTE_HOME) {
             Tht::errorLog("Direct access to route not allowed: `$path`");
             Tht::module('Web')->u_send_error(404);
         }
@@ -153,7 +153,7 @@ class Web {
 
         $apath = '';
         if ($path === '/') {
-            $apath = Web::$ROUTE_HOME;
+            $apath = WebMode::$ROUTE_HOME;
         }
         else {
             // convert dash-case URL to camelCase file path
@@ -193,7 +193,7 @@ class Web {
 
         Source::process($controllerFile, true);
 
-        Web::callAutoFunction($controllerFile, $userFunction);
+        WebMode::callAutoFunction($controllerFile, $userFunction);
 
         Tht::module('Perf')->u_stop();
     }
@@ -264,30 +264,30 @@ class Web {
     }
 
     static function getWebRequestHeader ($key) {
-        if (!isset(Web::$requestHeaders[$key])) {
+        if (!isset(WebMode::$requestHeaders[$key])) {
             return '';
         }
-        return Web::$requestHeaders[$key];
+        return WebMode::$requestHeaders[$key];
     }
 
     static function getWebRequestHeaders () {
-        return Web::$requestHeaders;
+        return WebMode::$requestHeaders;
     }
 
     static function getWebRouteParam ($key) {
-        if (!isset(Web::$routeParams[$key])) {
+        if (!isset(WebMode::$routeParams[$key])) {
             throw new ThtException ("Route param '$key' does not exist.");
         }
-        return Web::$routeParams[$key];
+        return WebMode::$routeParams[$key];
     }
 
     static public function queuePrint($s) {
-        Web::$printBuffer []= $s;
+        WebMode::$printBuffer []= $s;
     }
 
     // Send the output of all print() statements
     static private function flushWebPrintBuffer() {
-        if (!count(Web::$printBuffer)) { return; }
+        if (!count(WebMode::$printBuffer)) { return; }
 
         $zIndex = 99998;  //  one less than error page
 
@@ -297,7 +297,7 @@ class Web {
         echo "</style>\n";
 
         echo "<div class='tht-print-panel'>\n";
-        foreach (Web::$printBuffer as $b) {
+        foreach (WebMode::$printBuffer as $b) {
             echo "<div class='tht-print'>" . $b . "</div>\n";
         }
         echo "</div>";

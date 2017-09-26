@@ -2,7 +2,7 @@
 
 namespace o;
 
-class Cli {
+class CliMode {
 
     static private $SERVER_PORT = 8888;
 
@@ -16,25 +16,25 @@ class Cli {
 
     static function main() {
 
-        Cli::initOptions();
+        CliMode::initOptions();
 
-        $firstOption = Cli::$options[0];
+        $firstOption = CliMode::$options[0];
 
-        if ($firstOption === Cli::$CLI_OPTIONS['new']) {
+        if ($firstOption === CliMode::$CLI_OPTIONS['new']) {
             Tht::initPaths(true);
-            Cli::installApp();
+            CliMode::installApp();
         }
-        else if ($firstOption === Cli::$CLI_OPTIONS['server']) {
+        else if ($firstOption === CliMode::$CLI_OPTIONS['server']) {
             Tht::initPaths(true);
-            Cli::startTestServer();  // TODO: support run from tht parent, port
+            CliMode::startTestServer();  // TODO: support run from tht parent, port
         }
-        else if ($firstOption === Cli::$CLI_OPTIONS['run']) {
+        else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
             // Tht::init();
-            // Source::process(Cli::$options[1]);
+            // Source::process(CliMode::$options[1]);
         }
         else {
             echo "\nUnknown argument.\n";
-            Cli::printUsage();
+            CliMode::printUsage();
         }
     }
 
@@ -51,9 +51,9 @@ class Cli {
     static private function initOptions () {
         global $argv;
         if (count($argv) === 1) {
-            Cli::printUsage();
+            CliMode::printUsage();
         }
-        Cli::$options = array_slice($argv, 1);
+        CliMode::$options = array_slice($argv, 1);
     }
 
     static function isAppInstalled () {
@@ -84,7 +84,7 @@ class Cli {
 
     static private function installApp () {
 
-        Cli::confirmInstall();
+        CliMode::confirmInstall();
 
         try {
 
@@ -102,7 +102,7 @@ class Cli {
             $appRoot = '../tht';
             $thtBinPath = realpath($_SERVER['SCRIPT_NAME']);
 
-            Cli::writeSetupFile(Tht::$FILE['frontFile'], "
+            CliMode::writeSetupFile(Tht::$FILE['frontFile'], "
 
             <?php
 
@@ -116,7 +116,7 @@ class Cli {
 
             // .htaccess
             // TODO: don't overwrite previous
-            Cli::writeSetupFile('.htaccess', "
+            CliMode::writeSetupFile('.htaccess', "
 
                 # THT App
 
@@ -142,7 +142,7 @@ class Cli {
             $publicPath = Tht::getRelativePath('appRoot', Tht::path('pages'));
             $exampleCssPath = Tht::path('pages', 'css.tht');
 
-            Cli::writeSetupFile($examplePath, "
+            CliMode::writeSetupFile($examplePath, "
                 Web.sendPage({
                     title: 'Hello World',
                     body: bodyHtml(),
@@ -169,7 +169,7 @@ class Cli {
                 }
             ");
 
-            Cli::writeSetupFile($exampleCssPath, "
+            CliMode::writeSetupFile($exampleCssPath, "
 
                 Web.sendCss(css());
 
@@ -197,7 +197,7 @@ class Cli {
             ");
 
             // Starting config file
-            Cli::writeSetupFile(Tht::path('configFile'), "
+            CliMode::writeSetupFile(Tht::path('configFile'), "
                 {
                     // Dynamic URL routes
                     routes: {
@@ -294,8 +294,8 @@ class Cli {
             isJson TINYINT DEFAULT 0,
             expireDate UNSIGNED INT
         )");
-        Cli::createDbIndex($dbh, 'cache', 'key');
-        Cli::createDbIndex($dbh, 'cache', 'expireDate');
+        CliMode::createDbIndex($dbh, 'cache', 'key');
+        CliMode::createDbIndex($dbh, 'cache', 'expireDate');
 
         // session
         // $dbh = $initDb('session');
@@ -316,13 +316,13 @@ class Cli {
     static function startTestServer ($hostName='localhost', $port=0, $docRoot='.') {
 
         if (!$port) {
-            $port = Cli::$SERVER_PORT;
+            $port = CliMode::$SERVER_PORT;
         }
         if ($port <= 1024) {
             Tht::error("Server port must be greater than 1024.");
         }
 
-        if (!Cli::isAppInstalled()) {
+        if (!CliMode::isAppInstalled()) {
             echo "\nCan't find app directory.  Please `cd` to your your document root and try again.\n\n";
             exit(1);
         }
