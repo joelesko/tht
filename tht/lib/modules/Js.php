@@ -48,7 +48,7 @@ class u_Js extends StdModule {
 
         // comments
         $str = preg_replace("#(^|\n)\s*//[^!]?[^\n]*#", '', $str);
-        $str = preg_replace("#/\*(.*?)\*/s#", '', $str);
+        $str = preg_replace("#/\*(.*?)\*/#s", '', $str);
 
         // consecutive newlines
         $str = preg_replace("#\n\s+#", "\n", $str);
@@ -58,6 +58,8 @@ class u_Js extends StdModule {
 
         // newlines after commas
         $str = preg_replace("#\s*(,)\n\s*#", ',', $str);
+
+        $str = trim($str);
 
         Tht::module('Perf')->u_stop('js.minify');
 
