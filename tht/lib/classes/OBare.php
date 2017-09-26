@@ -5,7 +5,7 @@ namespace o;
 // Functions without a module namespace
 class OBare {
 
-    static $FUNCTIONS = [ 'import', 'print', 'range', 'die', 'result' ];
+    static $FUNCTIONS = [ 'import', 'print', 'range', 'die' ];
 
     static function isa ($word) {
         return in_array($word, OBare::$FUNCTIONS);
@@ -82,10 +82,6 @@ class OBare {
 
     static function u_die ($msg, $data=null) {
         Tht::error($msg, $data);
-    }
-
-    static function u_result ($v=null) {
-        return new Result($v);
     }
 }
 
