@@ -12,8 +12,7 @@ class StringReader {
     public $i = 0;
 
     protected $lineNum = 1;
-    protected $colNum = 1;
-    protected $lineLen = 0;
+    protected $colNum = 0;
     protected $tokenPos = [1,1];
     protected $indent = 0;
 
@@ -93,6 +92,41 @@ class StringReader {
         $this->next(strlen($str));
     }
 
+    function indent() {
+        return $this->indent;
+    }
+
+
+    // Advance N characters
+    // WARNING: Super hot path!  Each change should be measured.
+    function next ($num=1) {
+
+        if ($this->i >= $this->len) { return; }
+
+        $c = $this->fullText[$this->i];
+        if ($this->startOfLine) {
+            if ($c === ' ') {
+                $this->indent += 1;
+            } else {
+                $this->startOfLine = false;
+            }    
+        }
+        if ($c === "\n") {
+
+            $this->onNewline();
+
+            $this->startOfLine = true;
+            $this->lineNum += 1;
+            $this->indent = 0;
+            $this->colNum = 0;
+        }
+
+        $this->i += $num;
+        $this->colNum += $num;
+
+        $this->char1 = $this->i < $this->len ? $this->fullText[$this->i] : null;
+    }
+
     function slurpLine () {
         $line = '';
         $isIndent = true;
@@ -125,43 +159,33 @@ class StringReader {
         return $l['fullText'];
     }
 
-    function indent() {
-        return $this->indent;
+    function atEndOfFile () {
+        return $this->char1 === null;
     }
 
-    // Advance N characters
-    // WARNING: Super hot path!  Each operation & function argument should be measured.
-    function next ($num=1) {
-
-        if ($this->i >= $this->len) { return; }
-
-        $c = $this->fullText[$this->i];
-        if ($this->startOfLine) {
-            if ($c === ' ') {
-                $this->indent += 1;
-            } else {
-                $this->startOfLine = false;
-            }    
-        }
-        if ($c === "\n") {
-
-            $this->onNewline();
-
-            $this->startOfLine = true;
-            $this->lineNum += 1;
-            $this->lineStart = $this->i;
-            $this->indent = 0;
-            $this->colNum = 0;
-        }
-
-        $this->i += $num;
-        $this->colNum += $num;
-
-        $this->char1 = $this->i < $this->len ? $this->fullText[$this->i] : null;
+    function atStartOfLine () {
+        return $this->startOfLine;
     }
 
-    function getCol() {
-        return $this->i - $this->lineStart;
+    function atNewLine () {
+        return $this->char1 === "\n";
+    }
+
+    // TODO: rename - isNow()?
+    function isGlyph ($str) {
+        return substr($this->fullText, $this->i, strlen($str)) === $str;
+    }
+
+    function isDigit ($c) {
+        return isset($this->isDigit[$c]);
+    }
+
+    function isAlpha ($c) {
+       return isset($this->isAlpha[$c]);
+    }
+
+    function isWhitespace($c) {
+        return $c === " " || $c === "\n";
     }
 
     function slurpNumber() {
@@ -229,35 +253,6 @@ class StringReader {
             $s .= $c;
         }
         return $s;
-    }
-
-    function atEndOfFile () {
-        return $this->char1 === null;
-    }
-
-    function atStartOfLine () {
-        return $this->startOfLine;
-    }
-
-    function atNewLine () {
-        return $this->char1 === "\n";
-    }
-
-    // TODO: rename - isNow()?
-    function isGlyph ($str) {
-        return substr($this->fullText, $this->i, strlen($str)) === $str;
-    }
-
-    function isDigit ($c) {
-        return isset($this->isDigit[$c]);
-    }
-
-    function isAlpha ($c) {
-       return isset($this->isAlpha[$c]);
-    }
-
-    function isWhitespace($c) {
-        return $c === " " || $c === "\n";
     }
 }
 
