@@ -415,7 +415,9 @@ class Tokenizer extends StringReader {
                     $this->error("Missing newline after block comment `" . Glyph::BLOCK_COMMENT_END . "`.");
                 }
                 $commentDepth -= 1;
-                if (!$commentDepth) { break; }
+                if (!$commentDepth) { 
+                    break; 
+                }
 
             } else {
                 if ($this->atEndOfFile()) {
@@ -430,16 +432,9 @@ class Tokenizer extends StringReader {
     function handleLineComment ($c) {
 
         $this->updateTokenPos();
-        $this->nextFor(Glyph::LINE_COMMENT);
 
         $this->inComment = true;
-        while (true) {
-            $c = $this->char();
-            if ($c === "\n" || $this->atEndOfFile()) {
-                break;
-            }
-            $this->next();
-        }
+        $this->slurpLine();
         $this->inComment = false;
     }
 
