@@ -10,9 +10,13 @@ class u_Jcon extends StdModule {
     private $leaf = [];
     private $mlString = null;
     private $mlStringKey = '';
+
     private $file = '';
     private $line = '';
     private $lineNum = 0;
+    private $pos = 0;
+    private $len = 0;
+    private $text = '';
 
     function u_parse_file($file) {
 
@@ -43,19 +47,23 @@ class u_Jcon extends StdModule {
     function parse($text) {
         Tht::module('Perf')->start('Jcon.parse', $text);
 
-        if (!trim($text)) {
+        $text = OLockString::getUnlocked($text, true);
+
+        $text = trim($text);
+
+        if (!strlen($text)) {
             $this->error('Empty JCON string.');
         }
 
-        $text = OLockString::getUnlocked($text, true);
+        $this->len = strlen($text);
+        $this->text = $text;
 
-        $lines = explode("\n", $text);
+        $this->pos = 0;
         $this->lineNum = 0;
-        $this->line = '';
-        foreach ($lines as $l) {
-            $this->line = $l;
-            $this->lineNum += 1;
-            $this->parseLine($l);
+        
+        while (true) {
+            $isLastLine = $this->readLine();
+            if ($isLastLine) { break; }
         }
 
         Tht::module('Perf')->u_stop();
@@ -74,31 +82,32 @@ class u_Jcon extends StdModule {
         if (!count($this->leaf)) {
             print $text; exit();
         }
-       // print_r($this->leaf); exit();
 
          return $this->leaf[0];
     }
 
-    function openChild($type, $parentIndex) {
-        $this->leafs []= $this->leaf;
-        $this->leaf = ($type == 'map') ? OMap::create([]) : [];
-
-        $this->contexts []= $this->context;
-        $this->context = [ 'type' => $type, 'parentIndex' => $parentIndex ];
-    }
-
-    function closeChild() {
-        $parentLeaf = array_pop($this->leafs);
-        $parentContext = array_pop($this->contexts);
-        if ($parentContext['type'] == 'map') {
-          //  $this->checkMapValue($parentLeaf, $this->context['parentIndex']);
-            $parentLeaf[$this->context['parentIndex']] = $this->leaf;
-        } else {
-            $parentLeaf []= $this->leaf;
+    function readLine() {
+        $line = '';
+        $isLastLine = false;
+        while (true) {
+            $c = $this->text[$this->pos];
+            $this->pos += 1;
+            if ($c === "\n") {
+                break;
+            }
+            $line .= $c;
+            if ($this->pos >= $this->len) {
+                $isLastLine = true;
+                break;
+            }
         }
 
-        $this->leaf = $parentLeaf;
-        $this->context = $parentContext;
+        $this->line = $line;
+        $this->lineNum += 1;
+
+        $this->parseLine($line);
+
+        return $isLastLine;
     }
 
     function parseLine($al) {
@@ -121,74 +130,100 @@ class u_Jcon extends StdModule {
         // blank
         if (!strlen($l)) { return; }
 
+        $c0 = $l[0];
+        $c1 = strlen($l) > 1 ? $l[1] : '';
+
         // comment
-        if ($l[0] == '/' && $l[1] == '/') { return; }
+        if ($c0 == '/' && $c1 == '/') { return; }
 
         // closing brace
-        if ($l[0] === '}' || $l[0] === ']') {
-            if (strlen($l) > 1) {
-                $this->error("Missing newline after closing brace `" . $l[0] . "`.");
+        if ($c0 === '}' || $c0 === ']') {
+            // must be on its own line
+            if ($c1 !== '') {
+                $this->error("Missing newline after closing brace `" . $c0 . "`.");
             }
             $this->closeChild();
-            return;
         }
 
         // top-level open brace
-        if (!$this->context['type']) {
+        else if (!$this->context['type']) {
 
-            if ($l[0] === '{') {
+            if ($c0 === '{') {
                 $this->openChild('map', 0);
             }
-            else if ($l[0] === '[') {
+            else if ($c0 === '[') {
                 $this->openChild('list', 0);
             }
             else {
                 $this->error("Missing top-level open brace `{` or `[`.");
             }
-            if (strlen($l) > 1) {
-                $this->error("Missing newline after open brace `" . $l[0] . "`.");
+            if ($c1 !== '') {
+                $this->error("Missing newline after open brace `" . $c0 . "`.");
             }
-            return;
-        }
-
-
-        // key / value pair
-        $key = '';
-        $val = $l;
-        if ($this->context['type'] == 'map') {
-            $parts = explode(':', $l, 2);
-            if (count($parts) < 2) { $this->error("Missing colon `:`"); }
-            $key = $parts[0];
-
-            if (isset($this->leaf[$key])) {
-                $this->error("Duplicate key: `$key`");
-            }
-            if ($parts[1] && $parts[1][0] != ' ') {
-                $this->error("Missing space after colon `:`");
-            }
-            if ($parts[0] && $parts[0][strlen($parts[0]) - 1] == ' ') {
-                $this->error("Extra space before colon `:`");
-            }
-
-            $val = trim($parts[1]);
-        }
-
-        // handle value
-        if ($val === '{') {
-            $this->openChild('map', $key);
-        }
-        else if ($val === '[') {
-            $this->openChild('list', $key);
-        }
-        else if ($val === "'''") {
-            $this->mlStringKey = $key;
-            $this->mlString = '';
         }
         else {
-            // literal value
-            $this->assignVal($key, $val);
+            // key / value pair
+            $key = '';
+            $val = $l;
+            if ($this->context['type'] == 'map') {
+                $parts = explode(':', $l, 2);
+                if (count($parts) < 2) { 
+                    $this->error("Missing colon `:`"); 
+                }
+                $key = $parts[0];
+
+                if (isset($this->leaf[$key])) {
+                    $this->error("Duplicate key: `$key`");
+                }
+                if ($parts[1] && $parts[1][0] != ' ') {
+                    $this->error("Missing space after colon `:`");
+                }
+                if ($parts[0] && $parts[0][strlen($parts[0]) - 1] == ' ') {
+                    $this->error("Extra space before colon `:`");
+                }
+
+                $val = trim($parts[1]);
+            }
+
+            // handle value
+            if ($val === '{') {
+                $this->openChild('map', $key);
+            }
+            else if ($val === '[') {
+                $this->openChild('list', $key);
+            }
+            else if ($val === "'''") {
+                $this->mlStringKey = $key;
+                $this->mlString = '';
+            }
+            else {
+                // literal value
+                $this->assignVal($key, $val);
+            }
         }
     }
+
+    function openChild($type, $parentIndex) {
+        $this->leafs []= $this->leaf;
+        $this->leaf = ($type == 'map') ? OMap::create([]) : [];
+
+        $this->contexts []= $this->context;
+        $this->context = [ 'type' => $type, 'parentIndex' => $parentIndex ];
+    }
+
+    function closeChild() {
+        $parentLeaf = array_pop($this->leafs);
+        $parentContext = array_pop($this->contexts);
+        if ($parentContext['type'] == 'map') {
+            $parentLeaf[$this->context['parentIndex']] = $this->leaf;
+        } else {
+            $parentLeaf []= $this->leaf;
+        }
+
+        $this->leaf = $parentLeaf;
+        $this->context = $parentContext;
+    }
+
 
     function assignVal($key, $val) {
 
