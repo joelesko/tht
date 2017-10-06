@@ -378,13 +378,16 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $t = $this->reader;
         $name = $tag['name'];
 
+        if (!strlen($name)) {
+            $t->error("Missing tag name", $tag['pos']);
+        }
         if (preg_match('/class\s*=.*class\s*=/i', $tag['html'])) {
             $t->error("Can't have both class name and class attribute for tag.", $tag['pos']);
         }
         if (preg_match('/#/', $name)) {
-            $t->error("ID of `$name` should be in an `id` attribute, not in the tag name.", $tag['pos']);
+            $t->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
         }
-        if (!preg_match('/[a-z]/', $name)) {
+        if (!preg_match('/[a-z]/', $name) && preg_match('/[A-Z]/', $name)) {
             $t->error("Tag `$name` should not be all uppercase.", $tag['pos']);
         }
         if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
