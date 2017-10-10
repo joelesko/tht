@@ -341,8 +341,14 @@ class u_Web extends StdModule {
 
         $this->startGzip();
 
+        $comment = '';
+        if (isset($doc['comment'])) {
+            $comment = "<!--\n\n" . v(v(v($doc['comment'])->u_unlocked())->u_indent(4))->u_trim_right() . "\n\n-->";
+        }
+
         $out = <<<HTML
 <!doctype html>
+$comment
 <html>
     <head>
         <title>$title</title>
