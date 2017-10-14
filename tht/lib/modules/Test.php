@@ -96,12 +96,14 @@ class u_Test extends StdModule {
     }
 
     function u_results_html () {
+
         $this->u_section('Results');
 
         $str = '<style> .test-result { font-family:' . u_Css::u_monospace_font() . "}\n\n </style>\n\n";
         foreach ($this->out as $l) {
             if (isset($l['section'])) {
                 if (Tht::isMode('web')) {
+                    $str .= '<a name="test-' . v($l['section'])->u_to_token_case() . '"></a>';
                     $str .= "<h2>" . $l['section'] . "</h2>\n";
                 } else {
                     $str .= "\n# " . $l['section'] . "\n\n";
