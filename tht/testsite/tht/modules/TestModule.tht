@@ -1,0 +1,22 @@
+
+
+F bareFun(name) {
+    return 'bare:' ~ name;
+}
+
+F testGlobal() {
+    return 'global:' ~ Global.foo;
+}
+
+
+class TestModule {
+
+    F setup(name) {
+        this.name = name;
+    }
+
+    F test() {
+        return 'class:' ~ this.name;
+    }
+}
+

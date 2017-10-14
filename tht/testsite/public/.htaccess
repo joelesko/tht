@@ -1,0 +1,14 @@
+# THT App
+
+DirectoryIndex index.html index.php thtApp.php
+Options -Indexes
+
+# Redirect all non-static URLs to THT app
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule  ^(.*)$ /thtApp.php [QSA,NC,L]
+
+# Uncomment to redirect to HTTPS
+# RewriteCond %{HTTPS} off
+# RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
