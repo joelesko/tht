@@ -171,7 +171,7 @@ EOLAZY;
         $sel      = $this->getArg($args, 1, 'pre');
         $keyWords = $this->getArg($args, 2, null);
 
-        $keyWords = $keyWords ?: 'let|var|const|template|function|for|foreach|while|do|array|new|if|else|this|break|continue|return|require|import|class|static|public|private|protected|int|double|boolean|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner|outer|cross|insert|delete|update';
+        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|while|do|array|new|if|else|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner|outer|cross|insert|delete|update';
 
         $nonce = Tht::module('Web')->u_nonce();
 
@@ -235,10 +235,7 @@ EOLAZY;
 }
 .syntax-highlighted .sh-prompt {
     opacity: 0.5;
-    -webkit-user-select: none;
-       -moz-user-select: none;
-        -ms-user-select: none;
-            user-select: none;
+    user-select: none;
 }
 
 $themeCss
