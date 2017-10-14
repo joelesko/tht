@@ -288,17 +288,18 @@ class ErrorHandler {
         $out = "--- " . $error['type'] . " ---\n\n";
         $out .= $error['message'];
         if (isset($error['srcLine'])) {
-            $out .= $error['srcLine'];
+            $out .= "\n\n" . $error['srcLine'];
         }
 
         $src = isset($error['src']) ? $error['src'] : null;
         if ($error['trace']) {
             $out .= $error['trace'];
         } else if ($src['file']) {
-            $out .= "File: " . $src['file'] . "  Line: " . $src['line'];
+            $out .= "\n\nFile: " . $src['file'] . "  Line: " . $src['line'];
             if (isset($src['pos'])) {
                 $out .= "  Pos: " . $src['pos'];
             }
+            $out .= "\n\n";
         }
 
         return $out;
