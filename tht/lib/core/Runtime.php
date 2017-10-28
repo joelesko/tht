@@ -26,7 +26,8 @@ function v ($v) {
     return $o;
 }
 
-// Tht to PHP type
+// THT to PHP type
+// TODO: recursive unwrap for list and map values
 function uv ($v) {
     return OMap::isa($v) || OList::isa($v) ? $v->val : $v;
 }
