@@ -507,8 +507,9 @@ class ErrorHandler {
         if (preg_match('/Syntax error, unexpected \'return\'/i', $clean)) {
             $clean = 'Invalid statement at end of function.';
         }
-
+        
         // Strip root directory from paths
+        $clean = str_replace(Tht::path('files') . '/', '', $clean);
         $clean = str_replace(Tht::path('root') . '/', '', $clean);
 
         $clean = ucfirst($clean);
