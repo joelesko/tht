@@ -32,6 +32,7 @@ template html(results) {
 }
 
 
+
 function run(t) {
 
     testMathAndLogic(t);
@@ -1304,8 +1305,7 @@ function testTemplates(t) {
 }
 
 
-
-
+    
 function libFile(t) {
 
     t.section('Module: File');
@@ -1320,9 +1320,13 @@ function libFile(t) {
     let f = 'testFile.txt';
     let d = 'testDir';    
 
+    if (File.exists(d)) {
+        File.deleteDir(d);    
+    }
     File.makeDir(d);
     t.ok(File.isDir(d), 'make dir');
-    let p = File.path([d, f]);
+    
+    let p = File.joinPath([d, f]);
 
     File.write(p, '12345');
     t.ok(File.getSize(p) == 5, 'File size');

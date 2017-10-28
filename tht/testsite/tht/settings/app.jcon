@@ -32,7 +32,11 @@
         // Print performance timing info
         showPerfScore: false
 
-          memoryLimitMb: 32
+        memoryLimitMb: 32
+
+        _disablePhpCache: true
+        _phpErrors: true
+        _showPhpInTrace: true
     }
 
     // Database settings

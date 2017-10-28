@@ -1,0 +1,141 @@
+[2017-10-16 10:05:36]  --- ThtException ---
+
+    Argument 1 for `deleteDir` is not a directory: `testDir`
+
+    1340:  File.deleteDir(d);
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1340 - File.deleteDir()
+     1 |  pages/home.tht, line 50 - libFile()
+     2 |  pages/home.tht, line 7 - run()
+
+[2017-10-21 00:44:43]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 00:45:25]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 00:45:57]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 00:59:31]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 00:59:54]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 01:00:01]  --- PhpException ---
+
+    Path must be relative to `data/files`: `/Users/jlesko/src/sandbox/tht/project/tht/testsite/tht`
+
+    174:  throw new ThtException ($msg);
+    --- Trace ---
+
+     0 |  File, line 104 - Tht.error()
+     1 |  File, line 89 - File.getSandboxedPath()
+     2 |  File, line 215 - File.validatePath()
+     3 |  Tht, line 560 - File.relativePath()
+     4 |  Source, line 36 - Tht.getPhpPathForTht()
+     5 |  WebMode, line 194 - Source.process()
+     6 |  WebMode, line 28 - WebMode.executeWebController()
+     7 |  Tht, line 113 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 28 - Tht.start()
+    10 |  thtApp, line 6 - require_once()
+
+[2017-10-21 11:02:36]  --- RuntimeError ---
+
+    Unknown method: `File.hasBasePath`
+
+    218:  if (!$this->u_has_base_path($fullPath, $rootPath)) {
+
+    File: File  Line: 218
+
+[2017-10-28 07:43:54]  --- RuntimeError ---
+
+    Unknown method: `File.readFile`
+
+    24:  $text = Tht::module('*File')->u_read_file($path, true);
+
+    File: Jcon  Line: 24
+
