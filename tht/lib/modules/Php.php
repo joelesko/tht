@@ -2,110 +2,60 @@
 
 namespace o;
 
-class PhpObject {
-
-    var $prefix = '';
-    var $resource = null;
-
-    function __construct ($pre, $resource) {
-        $this->prefix = $pre;
-        $this->resource = $resource;
-    }
-
-    // call function using resource as first argument
-    function __call ($func, $args) {
-        $f = substr($func, 2);
-        array_unshift($args, $this->resource);
-        Tht::module('Php')->u_call($this->prefix . $f, $args);
-    }
-}
-
 class u_Php extends StdModule {
 
-    // TODO: match prefixes
+    private $isRequired = [];
+
     private $blacklist = [
-        'eval',
         'assert',
-        'phpinfo',
-        'extract',
-        'ini_set',
-        'parse_str',
-        'exec',
-        'passthru',
-        'system',
-        'shell_exec',
-        'popen',
-        'proc_open',
-        'pcntl_exec',
-        'create_function',
-        'include',
-        'include_once',
-        'require',
-        'require_once',
-        'call_user_func_array',
         'call_user_func',
+        'call_user_func_array',
+        'create_function',
+        'eval',
+        'exec',
+        'extract',
+        'file',
         'file_get_contents',
         'file_put_contents',
-        'file',
         'fopen',
-        'unlink',
-        'pcntl_',
-        'posix_',
-        'proc_',
+        'include',
+        'include_once',
+        'parse_str',
+        'passthru',
+        'phpinfo',
+        'popen',
+        'require',
+        'require_once',
         'rmdir',
-        'ini_',
-        'url_exec',
         'serialize',
-        'unserialize'
+        'shell_exec',
+        'system',
+        'unlink',
+        'unserialize',
+        'url_exec',
     ];
+
+    private $blacklistMatch = '/pcntl_|posix_|proc_|ini_/i';
 
     private $phpFunctionOk = [];
 
-    // function __call ($func, $args) {
-    //     $f = substr($func, 2);
-    //     $ret = $this->u_call(new OLockString ($f), $args);
-    //     return is_null($ret) ? false : $ret;
-    // }
-
     function checkPhpFunction ($func) {
+
+        $func = strtolower($func);
+
         if (isset($this->phpFunctionOk[$func])) {  return true;  }
 
         if (!function_exists($this->name($func))) {
             Tht::error("PHP function does not exist: `$func`");
         }
         if (in_array($func, $this->blacklist)) {
-            Tht::error("PHP function is prohibited: `$func`");
+            Tht::error("PHP function is blacklisted: `$func`");
         }
-        $this->phpFunctionOk[$func] = true;
-       // return;
+        if (preg_match($this->blacklistMatch, $func)) {
+            Tht::error("PHP function is blacklisted: `$func`");
+        }
 
-        // $allowed = preg_split('/\s*,\s*/', Tht::getConfig('allowedPhpFunctions'));
-        // foreach ($allowed as $fn) {
-        //     $match = false;
-        //     if (substr($fn, strlen($fn)-1, 1) === '*') {
-        //         if (strlen($fn) < 3) {
-        //             Tht::error("Wildcard '$fn' in 'allowedPhpFunctions' must be 2+ characters long.");
-        //         }
-        //         $leftMatch = substr($fn, 0, strlen($fn)-1);
-        //         if (substr($func, 0, strlen($leftMatch)) === $leftMatch) {
-        //             $match = true;
-        //         }
-        //     } else if ($func === $fn) {
-        //         $match = true;
-        //     }
-        //
-        //     if ($match) {
-        //         if (!function_exists($this->name($func))) {
-        //             Tht::error('PHP function does not exist: ' . $func);
-        //         }
-        //         if (in_array($func, $this->blacklist)) {
-        //             Tht::error('PHP function is blacklisted: ' . $func);
-        //         }
-        //         $this->phpFunctionOk[$func] = true;
-        //         return;
-        //     }
-        // }
-        // Tht::error("PHP function '$func' not listed in 'allowedPhpFunctions' config.", $allowed);
+        $this->phpFunctionOk[$func] = true;
     }
 
     function name ($n) {
@@ -115,10 +65,17 @@ class u_Php extends StdModule {
     }
 
     function u_call ($func, $args=[]) {
+        Tht::module('Meta')->u_no_template_mode();
         $func = OLockString::getUnlocked($func);
+
+        // TODO: recursive unwrap
         $args = uv($args);
+        
         $this->checkPhpFunction($func);
-        $ret = call_user_func_array($this->name($func), uv($args));
+
+        $ret = call_user_func_array($this->name($func), $args);
+
+        // TODO: wrap args
         return is_null($ret) ? false : $ret;
     }
 
@@ -130,16 +87,109 @@ class u_Php extends StdModule {
         return $n;
     }
 
-    function u_wrap ($prefix, $createFunction=null, $args=null) {
-        $createFunction = OLockString::getUnlocked($createFunction);
-        $resource = null;
-        if (! is_null($createFunction)) {
-            $resource = $this->u_call($prefix . $createFunction, $args);
-            if ($resource === false || is_null($resource)) {
-                Tht::error('Bad resource returned from `$prefix' . $createFunction . '`', [ 'resource' => $resource ]);
-            }
-        }
-        return new PhpObject ($prefix, $resource);
-    }
+    // function u_require($phpFile) {
+    //     Tht::module('Meta')->u_no_template_mode();
+    //     if (!isset($this->isRequired[$phpFile])) {
+    //         try {
+    //             require_once(Tht::path('phpLib', $phpFile));
+    //         } catch (Exception $e) {
+    //             Tht::error("Can not require PHP file: `$phpFile`");
+    //         }
+    //         $this->isRequired[$phpFile] = true;
+    //     }
+    // }
+
+    // function u_new($cls, $args=null) {
+
+    //     Tht::module('Meta')->u_no_template_mode();
+
+    //     if (!class_exists($cls, false) && !isset($this->isRequired[$cls])) {
+    //         try {
+    //             $fileClass = str_replace('\\', '/', $cls);
+    //             require_once(Tht::path('phpLib', $fileClass . ".php"));
+
+    //         } catch (Exception $e) {
+    //             Tht::error("Can not autoload PHP class: `$cls`");
+    //         }
+    //         $this->isRequired[$cls] = true;
+    //     }
+
+    //     $obj = new $cls (uv($args));
+    //     return new PhpObject ($obj);
+    // }
+
+    // function u_object($obj) {
+    //     return new PhpObject ($obj); 
+    // }
+
+    // function u_auto($cls, $args=null) {
+    //     $obj = new $cls (uv($args));
+    //     return new PhpObject ($obj);
+    // }
+
+    // function u_array($v) {
+    //     return uv($v);
+    // }
 }
+
+
+// class PhpObject {
+
+//     private $obj = null;
+
+//     function __construct ($obj) {
+//         $this->obj = $obj;
+//     }
+
+//     // call function using object as 1st argument
+//     function __call ($rawFuncName, $args) {
+//         $funcName = unu_($rawFuncName); 
+
+//         // if (!method_exists($this->obj, $funcName)) {
+//         //     Tht::error("Method does not exist: `$funcName`");
+//         // }
+//         $ret = call_user_func_array([$this->obj, $funcName], uv($args));
+
+//         return is_null($ret) ? false : v($ret);
+//     }
+
+//     function __get ($field) {
+//         $plainField = unu_($field); 
+//         return $this->u_get($plainField);
+//     }
+    
+//     function __set ($field, $value) {
+//         $plainField = unu_($field); 
+//         return $this->u_set($plainField, $value);
+//     }
+
+//     // TODO: fix this
+//     function u_getX($field) {
+//         $props = get_object_vars($this->obj);
+//         if (!isset($props[$field])) {
+//             Tht::error("Unknown field: `$field`");
+//         }
+//         return is_null($props[$field]) ? false : $props[$field];
+//     }
+
+//     function u_set($field, $val) {
+//         $props = get_object_vars($this->obj);
+//         if (!isset($props[$field])) {
+//             Tht::error("Unknown field: `$field`");
+//         }
+//         $this->obj->$field = $val;
+//     }
+
+//     function u_call() {
+//         Tht::module('Meta')->u_no_template_mode();
+//         $args = func_get_args();
+//         $funcName = array_shift($args);
+//         if (!method_exists($this->obj, $funcName)) {
+//             Tht::error("Method does not exist: `$funcName`");
+//         }
+//         $ret = call_user_func_array([$this->obj, $funcName], uv($args));
+
+//         return is_null($ret) ? false : v($ret);
+//     }
+// }
 
