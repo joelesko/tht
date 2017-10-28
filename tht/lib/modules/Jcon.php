@@ -21,7 +21,7 @@ class u_Jcon extends StdModule {
     function u_parse_file($file) {
 
         $path = Tht::path('settings', $file);
-        $text = Tht::module('*File')->u_read_file($path, true);
+        $text = Tht::module('*File')->u_read($path, true);
 
         return $this->start($text, $file);
     }
