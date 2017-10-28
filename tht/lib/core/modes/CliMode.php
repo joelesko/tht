@@ -9,7 +9,7 @@ class CliMode {
     static private $CLI_OPTIONS = [
         'new'    => 'new',
         'server' => 'server',
-        'run'    => 'run',
+    //  'run'    => 'run',
     ];
 
     static private $options = [];
@@ -28,22 +28,28 @@ class CliMode {
             Tht::initPaths(true);
             CliMode::startTestServer();  // TODO: support run from tht parent, port
         }
-        else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
-            // Tht::init();
-            // Source::process(CliMode::$options[1]);
-        }
+        // else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
+        //     // Tht::init();
+        //     // Source::process(CliMode::$options[1]);
+        // }
         else {
-            echo "\nUnknown argument.\n";
             CliMode::printUsage();
         }
     }
 
     static private function printUsage() {
-        echo "\nTHT - v" . Tht::$VERSION . "\n";
-        echo "\nUsage:\n\n";
-        echo "tht new              (create a new app)\n";
-        echo "tht server           (start local test server)\n";
-     //   echo "tht run <filename>   (run script in scripts directory)\n";
+ 
+        echo "\n";
+        echo "+---------------+\n";
+        echo "|      THT      |\n";
+        echo "+---------------+\n\n";
+
+        echo "Version: " . Tht::getThtVersion() . "\n\n";
+        echo "Usage: tht [command]\n\n";
+        echo "Commands:\n\n";
+        echo "  new       create an app in the current dir\n";
+        echo "  server    start the local test server\n";
+     // echo "tht run <filename>   (run script in scripts directory)\n";
         echo "\n";
         exit(0);
     }
@@ -68,13 +74,13 @@ class CliMode {
         echo "|      NEW APP      |\n";
         echo "+-------------------+\n";
 
-        if (file_exists(Tht::$paths['root'])) {
-            echo "\nAn THT directory already exists:\n  " .  Tht::$paths['root'] . "\n\n";
+        if (file_exists(Tht::path('root'))) {
+            echo "\nA THT app directory already exists:\n  " .  Tht::path('root') . "\n\n";
             echo "To start over, just delete or move that directory. Then rerun this command.\n\n";
             exit(1);
         }
 
-        if (!Tht::module('System')->u_confirm("\nYour Document Root is:\n  " . Tht::$paths['docRoot'] . "\n\nInstall THT app for this directory?")) {
+        if (!Tht::module('System')->u_confirm("\nYour Document Root is:\n  " . Tht::path('docRoot') . "\n\nInstall THT app for this directory?")) {
             echo "\nPlease 'cd' to your public Document Root directory.  Then rerun this command.\n\n";
             exit(0);
         }
@@ -89,27 +95,30 @@ class CliMode {
         try {
 
             // create directory tree
-            foreach (Tht::$paths as $id => $p) {
+            foreach (Tht::getAllPaths() as $id => $p) {
                 if (substr($id, -4, 4) === 'File') {
                     touch($p);
                 } else {
-                    Tht::module('File')->u_make_dir($p, 0755);
+                    Tht::module('*File')->u_make_dir($p, 0755);
                 }
             }
 
-            // Front controller
-            // TODO: move paths to constants
+            $thtBinPath = realpath(dirname($_SERVER['SCRIPT_NAME']) . '/..');
             $appRoot = '../tht';
-            $thtBinPath = realpath($_SERVER['SCRIPT_NAME']);
+            $thtMain = '../tht/.tht/bin/tht.php';
 
-            CliMode::writeSetupFile(Tht::$FILE['frontFile'], "
+            // Make a local copy of the THT bin to app tree
+            Tht::module('*File')->u_copy_dir($thtBinPath, Tht::path('localTht'));
+
+            // Front controller
+            CliMode::writeSetupFile(Tht::getAppFileName('frontFile'), "
 
             <?php
 
-                 define('APP_ROOT', '$appRoot');
-                 define('THT_MAIN', '$thtBinPath');
-
-                 return require_once(THT_MAIN);
+            define('APP_ROOT', '$appRoot');
+            define('THT_MAIN', '$thtMain');
+            
+            return require_once(THT_MAIN);
 
             ");
 
@@ -159,9 +168,9 @@ class CliMode {
 
                             <p>> Add new pages to:<br /> <code>> tht/pages
 
-                            <p>> For example, when you add this file...<br /> <code>> pages/testPage.tht
+                            <p>> For example, when you add this file...<br /> <code>> tht/pages/testPage.tht
 
-                            <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite/test-page
+                            <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite.com/test-page
 
                             <p style=\"margin-top: 4rem\">> For more info, see <a href=\"https://tht.help/tutorials/how-to-create-a-basic-web-app\">How to Create a Basic Web App</a>.
                         </>
@@ -246,8 +255,8 @@ class CliMode {
         } catch (\Exception $e) {
             echo "Sorry, something went wrong.\n\n";
             echo "  " . $e->getMessage() . "\n\n";
-            if (file_exists(Tht::$paths['root'])) {
-                echo "Move or delete your app directory before trying again:\n\n  " . Tht::$paths['root'];
+            if (file_exists(Tht::path('root'))) {
+                echo "Move or delete your app directory before trying again:\n\n  " . Tht::path('root');
                 echo "\n\n";
             }
             exit(1);
@@ -258,7 +267,7 @@ class CliMode {
         echo "|      SUCCESS!     |\n";
         echo "+-------------------+\n\n";
 
-        echo "Your new THT app directory is here:\n  " . Tht::$paths['root'] . "\n\n";
+        echo "Your new THT app directory is here:\n  " . Tht::path('root') . "\n\n";
         echo "*  Load 'http://yoursite.com' to see if it's working.\n";
         echo "*  Or run 'tht server' to start a local web server.";
         echo "\n\n";
@@ -311,7 +320,6 @@ class CliMode {
 
         echo " [OK]\n";
     }
-
 
     static function startTestServer ($hostName='localhost', $port=0, $docRoot='.') {
 

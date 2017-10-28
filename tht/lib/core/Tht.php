@@ -4,7 +4,7 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.1.3 - Beta';
+    static private $VERSION = '0.1.4 - Beta';
     static private $SRC_EXT = 'tht';
 
     static private $THT_SITE = 'https://tht.help';
@@ -16,15 +16,16 @@ class Tht {
     ];
 
     static private $mode = [
-        'cli'        => false,
-        'testServer' => false,
-        'web'        => false
+        'cli'         => false,
+        'testServer'  => false,
+        'web'         => false,
+        'fileSandbox' => false,
     ];
 
     static private $paths = [];
     static private $files = [];
 
-    static private $DIR = [
+    static private $APP_DIR = [
 
         'root'      => 'tht',
 
@@ -32,6 +33,7 @@ class Tht {
         'modules'   =>   'modules',
         'settings'  =>   'settings',
         'scripts'   =>   'scripts',
+        'localTht'  =>   '.tht', 
         // 'phpLib'    =>   'php',
 
         'data'      => 'data',
@@ -48,7 +50,7 @@ class Tht {
         'counterDate' =>    'date',
     ];
 
-    static private $FILE = [
+    static private $APP_FILE = [
         'configFile'         => 'app.jcon',
         'appCompileTimeFile' => '_appCompileTime',
         'logFile'            => 'app.log',
@@ -101,13 +103,20 @@ class Tht {
 
         if (Tht::isMode('cli')) {
             Tht::loadLib('modes/CliMode.php');
+            Tht::initErrorHandler();
+
+            Tht::$mode['fileSandbox'] = true;
             CliMode::main();
+            Tht::$mode['fileSandbox'] = false;
         }
         else {
             
             Tht::loadLib('modes/WebMode.php');
             Tht::init();
+
+            Tht::$mode['fileSandbox'] = true;
             WebMode::main();
+            Tht::$mode['fileSandbox'] = false;
         }
 
         Tht::endScript();
@@ -124,6 +133,7 @@ class Tht {
     }
 
     static private function init () {
+
         Tht::initScalarData();
         Tht::initErrorHandler();
         Tht::initPhpGlobals();
@@ -173,7 +183,7 @@ class Tht {
 
     static private function errorVars($msg, $vars=null) {
         if (!is_null($vars)) {
-            $msg .= "\n\nGot: "  . Tht::module('Json')->u_format(json_encode($vars));
+            $msg .= "\n\nGot: " . Tht::module('Json')->u_format(json_encode($vars));
         }
         return $msg;
     }
@@ -219,7 +229,7 @@ class Tht {
         // TODO: clarify app root constant name (appRoot vs docRootParent etc)
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
         $thtAppRoot = defined('APP_ROOT') ? constant('APP_ROOT') : $docRootParent;
-        Tht::$paths['root'] = Tht::makePath(realpath($docRootParent), Tht::$DIR['root']);
+        Tht::$paths['root'] = Tht::makePath(realpath($docRootParent), Tht::$APP_DIR['root']);
 
         if (!Tht::$paths['root']) {
             Tht::startupError("App has not been setup yet.\n\n"
@@ -229,28 +239,29 @@ class Tht {
         // main dirs
         Tht::$paths['appRoot']   = realpath($docRootParent);
 
-        Tht::$paths['data']      = Tht::path('root', Tht::$DIR['data']);
-        Tht::$paths['pages']     = Tht::path('root', Tht::$DIR['pages']);
-        Tht::$paths['modules']   = Tht::path('root', Tht::$DIR['modules']);
-        Tht::$paths['settings']  = Tht::path('root', Tht::$DIR['settings']);
-        Tht::$paths['scripts']   = Tht::path('root', Tht::$DIR['scripts']);
-        // Tht::$paths['phpLib']    = Tht::path('root', Tht::$DIR['phpLib']);
+        Tht::$paths['data']      = Tht::path('root', Tht::$APP_DIR['data']);
+        Tht::$paths['pages']     = Tht::path('root', Tht::$APP_DIR['pages']);
+        Tht::$paths['modules']   = Tht::path('root', Tht::$APP_DIR['modules']);
+        Tht::$paths['settings']  = Tht::path('root', Tht::$APP_DIR['settings']);
+        Tht::$paths['scripts']   = Tht::path('root', Tht::$APP_DIR['scripts']);
+        Tht::$paths['localTht']  = Tht::path('root', Tht::$APP_DIR['localTht']);
+        // Tht::$paths['phpLib']    = Tht::path('root', Tht::$APP_DIR['phpLib']);
 
         // data subdirs
-        Tht::$paths['db']          = Tht::path('data', Tht::$DIR['db']);
-        Tht::$paths['logs']        = Tht::path('data', Tht::$DIR['logs']);
-        Tht::$paths['cache']       = Tht::path('data', Tht::$DIR['cache']);
-        Tht::$paths['phpCache']    = Tht::path('cache', Tht::$DIR['phpCache']);
-        Tht::$paths['kvCache']     = Tht::path('cache', Tht::$DIR['kvCache']);
-        Tht::$paths['files']       = Tht::path('data', Tht::$DIR['files']);
-        Tht::$paths['counter']     = Tht::path('data', Tht::$DIR['counter']);
-        Tht::$paths['counterPage'] = Tht::path('counter', Tht::$DIR['counterPage']);
-        Tht::$paths['counterDate'] = Tht::path('counter', Tht::$DIR['counterDate']);
+        Tht::$paths['db']          = Tht::path('data', Tht::$APP_DIR['db']);
+        Tht::$paths['logs']        = Tht::path('data', Tht::$APP_DIR['logs']);
+        Tht::$paths['cache']       = Tht::path('data', Tht::$APP_DIR['cache']);
+        Tht::$paths['phpCache']    = Tht::path('cache', Tht::$APP_DIR['phpCache']);
+        Tht::$paths['kvCache']     = Tht::path('cache', Tht::$APP_DIR['kvCache']);
+        Tht::$paths['files']       = Tht::path('data', Tht::$APP_DIR['files']);
+        Tht::$paths['counter']     = Tht::path('data', Tht::$APP_DIR['counter']);
+        Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
+        Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
 
         // files
-        Tht::$paths['configFile']         = Tht::path('settings', Tht::$FILE['configFile']);
-        Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$FILE['appCompileTimeFile']);
-        Tht::$paths['logFile']            = Tht::path('files',    Tht::$FILE['logFile']);
+        Tht::$paths['configFile']         = Tht::path('settings', Tht::$APP_FILE['configFile']);
+        Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$APP_FILE['appCompileTimeFile']);
+        Tht::$paths['logFile']            = Tht::path('files',    Tht::$APP_FILE['logFile']);
     }
 
     static private function initConfig () {
@@ -262,7 +273,7 @@ class Tht {
         $iniPath = Tht::path('configFile');
 
         // TODO: cache as JSON
-        $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$FILE['configFile']);
+        $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$APP_FILE['configFile']);
 
         // make sure the required top-level keys exist
         foreach (['tht', 'routes'] as $key) {
@@ -406,8 +417,8 @@ class Tht {
             "showPerfScore"        => false,
             "useSession"           => false,
             "disableFormatChecker" => false,
-            "minifyCss"            => true,
-            "minifyJs"             => true,
+            "minifyCssTemplates"   => true,
+            "minifyJsTemplates"    => true,
 
             // [security]
             "allowFileAccess"         => false,
@@ -503,6 +514,14 @@ class Tht {
         }
         $parts[0] = Tht::$paths[$base];
         return Tht::makePath($parts);
+    }
+
+    static function getAppFileName($key) {
+        return Tht::$APP_FILE[$key];
+    }
+
+    static function getAllPaths() {
+        return Tht::$paths;
     }
 
     static function validatePath($path) {

@@ -10,7 +10,13 @@ namespace o;
 
 class u_File extends StdModule {
 
-    function _call ($fn, $args=[], $validationList, $checkReturn=true) {
+    private $skipSandbox = false; 
+
+    function __construct($isInternal = false) {
+        $this->skipSandbox = $isInternal;
+    }
+
+    function _call ($fn, $args=[], $validationList='', $checkReturn=true) {
 
         Tht::module('Perf')->u_start('File.' . $fn, $args[0]);
 
@@ -67,17 +73,11 @@ class u_File extends StdModule {
         return $a;
     }
 
-    function fixSeparator ($rawPath) {
-        return str_replace('\\', '/', $rawPath);
-    }
-
     // [security]
-    function validatePath ($path) {
+    function validatePath ($path, $checkSandbox=true) {
 
-        // TODO: must not start with '/'
-        // TODO: force relative to data/files
-
-        $path = $this->fixSeparator($path);
+        $path = str_replace('\\', '/', $path);
+        if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
         if (!strlen($path)) {
             Tht::error("File path cannot be empty: `$path`");
@@ -85,10 +85,30 @@ class u_File extends StdModule {
         if (v('' . $path)->u_is_url()) {
             Tht::error("Remote URL not allowed: `$path`");
         }
-        if (strpos($path, '..') !== false) {
-            Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+
+        if ($checkSandbox && !$this->skipSandbox && Tht::isMode('fileSandbox')) {
+            if (strpos($path, '..') !== false) {
+                Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+            }
+            $path = $this->getSandboxedPath($path);
         }
+
         return $path;
+    }
+
+    // [security]
+    function getSandboxedPath($path) {
+
+        if ($path[0] !== '/') {
+            return Tht::path('files', $path);
+        } 
+        else {
+            $sandboxDir = Tht::path('files');
+            if (strpos($path, $sandboxDir) !== 0) {
+                Tht::error("Path must be relative to `data/files`: `$path`");
+            }
+            return $path;
+        }
     }
 
 
@@ -96,14 +116,14 @@ class u_File extends StdModule {
 
     function u_read ($fileName, $single=false) {
         if ($single) {
-            return u_File::_call('file_get_contents', [$fileName], 'file,exists');
+            return $this->_call('file_get_contents', [$fileName], 'file,exists');
         } else {
-            return u_File::_call('file', [$fileName, FILE_IGNORE_NEW_LINES], 'file,exists|*');
+            return $this->_call('file', [$fileName, FILE_IGNORE_NEW_LINES], 'file,exists|*');
         }
     }
 
     function u_for_lines ($fileName, $fn) {
-        $handle = u_File::_call('fopen', [$fileName, ['r']], $fileName, true);
+        $handle = $this->_call('fopen', [$fileName, ['r']], $fileName, true);
         $accum = [];
         while (true) {
             $line = fgets($handle);
@@ -120,7 +140,7 @@ class u_File extends StdModule {
 
     // WRITES
 
-    function u_write ($fileName, $data, $mode='replace') {
+    function u_write ($filePath, $data, $mode='replace') {
         $data = uv($data);
         if (is_array($data)) {
             $data = implode($data, "\n");
@@ -131,14 +151,19 @@ class u_File extends StdModule {
             Tht::error("Unknown write mode `$mode`. Supported modes: `replace` (default), `append`, `restore`");
         }
 
-        // only write if the file foes not exist
-        if ($mode == 'restore') {
-            if (u_File::u_file_exists($fileName)) {
-                return false;
-            }
+        // Only write if the file does not exist
+        if ($mode == 'restore' && $this->u_exists($filePath)) {
+            return false;
         }
+
+        // Make sure parent dir exists
+        $parentPath = $this->u_parent_dir($filePath);
+        if (!$this->u_is_dir($parentPath)) {
+            Tht::error("Parent dir does not exist: `$parentPath`");
+        }
+    
         $arg = $mode == 'append' ? LOCK_EX|FILE_APPEND : LOCK_EX;
-        return u_File::_call('file_put_contents', [$fileName, $data, $arg], 'file|*|*');
+        return $this->_call('file_put_contents', [$filePath, $data, $arg], 'file|*|*');
     }
 
     function u_log ($data, $fileName='app.log') {
@@ -157,14 +182,15 @@ class u_File extends StdModule {
             $data = str_replace("\n", '\\n', $data);
         }
         $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $data . "\n";
-        return u_File::_call('file_put_contents', [Tht::path('logs', $fileName), $line, LOCK_EX|FILE_APPEND], 'file|string|*');
+        return $this->_call('file_put_contents', [Tht::path('logs', $fileName), $line, LOCK_EX|FILE_APPEND], 'file|string|*');
     }
 
 
-    // INFO
+    // PATHS
+    // TODO: clean up and document
 
     function u_path_info ($path) {
-        $info = u_File::_call('pathinfo', [$path], 'path,exists');
+        $info = $this->_call('pathinfo', [$path], 'path,exists');
         $realPath = realpath($info['dirname']);
         return [
             'dirList'       => explode(DIRECTORY_SEPARATOR, ltrim($realPath, DIRECTORY_SEPARATOR)),
@@ -175,50 +201,90 @@ class u_File extends StdModule {
         ];
     }
 
-    function u_path ($parts) {
+    function u_join_path ($parts) {
         $path = implode('/', uv($parts));
-        $path = u_File::u_clean_path($path);
+        $path = $this->validatePath($path, false);
         return $path;
     }
 
     function u_clean_path ($path) {
-        $path = preg_replace('![/\\\\]+!', '/', $path);
-        $path = rtrim($path, '/');
-        return $path;
+        return $this->validatePath($path, false);
     }
-
-
-    // PATHS
-
 
     function u_full_path ($relPath) {
-        return u_File::_call('realpath', [$relPath], 'path');
+        if (Tht::isMode('fileSandbox')) {
+            // TODO: relPath must be relative
+            return Tht::path('files', $relPath);
+        }
+        return $this->_call('realpath', [$relPath], 'path');
     }
 
-    function u_relative_path ($fullPath, $basePath) {
+    function u_relative_path ($fullPath, $rootPath) {
 
-        $basePath = u_File::u_clean_path($basePath);
-        $fullPath = u_File::u_clean_path($fullPath);
+        $rootPath = $this->validatePath($rootPath, false);
+        $fullPath = $this->validatePath($fullPath, false);
 
-        $fullBase = substr($fullPath, 0, strlen($basePath));
-        if (strtolower($fullBase) !== strtolower($basePath)) {
-            Tht::error('Base path not found in full path.', [ 'fullPath' => $fullPath, 'basePath' => $basePath ]);
+        // TODO: both must be absolute
+
+        if (!$this->u_has_root_path($fullPath, $rootPath)) {
+            Tht::error('Root path not found in full path.', [ 'fullPath' => $fullPath, 'rootPath' => $rootPath ]);
         }
 
-        $relPath = substr($fullPath, strlen($basePath));
+        $relPath = substr($fullPath, strlen($rootPath));
         $relPath = ltrim($relPath, '/');
 
         return $relPath;
     }
 
+    function u_root_path ($fullPath, $relPath) {
+
+        $relPath  = $this->validatePath($relPath, false);
+        $fullPath = $this->validatePath($fullPath, false);
+
+        // TODO: asset rel and absolute
+
+        if (!$this->u_has_root_path($fullPath, $rootPath)) {
+            Tht::error('Root path not found in full path.', [ 'fullPath' => $fullPath, 'rootPath' => $rootPath ]);
+        }
+
+        $relPath = substr($fullPath, strlen($rootPath));
+        $relPath = ltrim($relPath, '/');
+
+        return $relPath;
+    }
+
+    // TODO: don't work in substrings.  Work in path segments.
+    // TODO: LockStrings?
+
+    function u_has_root_path($fullPath, $rootPath) {
+        $fullPath = $this->validatePath($fullPath, false);
+        $rootPath = $this->validatePath($rootPath, false);
+        return strpos($fullPath, $rootPath) === 0;
+    }
+
+    function u_has_relative_path($fullPath, $relPath) {
+        $fullPath = $this->validatePath($fullPath, false);
+        $relPath  = $this->validatePath($relPath, false);
+        $offset = strlen($fullPath) - strlen($relPath);
+        return strpos($fullPath, $relPath) === $offset;
+    }
+
     function u_is_relative_path($p) {
-        $this->validatePath($p);
+        $p = $this->validatePath($p, false);
         return $p[0] !== '/';
     }
 
     function u_is_absolute_path($p) {
-        $this->validatePath($p);
+        $p = $this->validatePath($p, false);
         return $p[0] === '/';
+    }
+
+    // TODO: different for abs and rel paths
+    // TODO: bounds check
+    function u_parent_dir($p) {
+        $p = $this->validatePath($p, false);
+        $parentPath = preg_replace('~/.*?$~', '', $p);
+        return strlen($parentPath) ? $parentPath : '/';
     }
 
 
@@ -229,13 +295,14 @@ class u_File extends StdModule {
         if (is_dir($filePath)) {
             Tht::error("Argument 1 for `delete` must not be a directory: `$filePath`.  Suggestion: `File.deleteDir()`");
         } 
-        return u_File::_call('unlink', [$filePath], 'file');
+        return $this->_call('unlink', [$filePath], 'file');
     }
 
     function u_delete_dir ($dirPath) {
 
-        if (is_dir($dirPath)) {
-            u_File::deleteDirRecursive($dirPath);
+        $checkPath = $this->validatePath($dirPath);
+        if (is_dir($checkPath)) {
+            $this->deleteDirRecursive($dirPath);
         } 
         else {
             Tht::error("Argument 1 for `deleteDir` is not a directory: `$dirPath`");
@@ -243,6 +310,8 @@ class u_File extends StdModule {
     }
 
     function deleteDirRecursive ($dirPath) {
+
+        $dirPath = $this->validatePath($dirPath);
 
         // recursively delete dir contents
         $dirHandle = opendir($dirPath);
@@ -255,27 +324,27 @@ class u_File extends StdModule {
             $subPath = $dirPath . "/" . $file;
 
             if (is_dir($subPath)) {
-                u_File::deleteDirRecursive($subPath);
+                $this->deleteDirRecursive($subPath);
             } else {
                 // delete file
-                u_File::_call('unlink', [$subPath], 'file');
+                $this->_call('unlink', [$subPath], 'file');
             }
         }
         closedir($dirHandle);
 
-        u_File::_call('rmdir', [$dirPath], 'dir');
+        $this->_call('rmdir', [$dirPath], 'dir');
     }
 
     function u_copy ($source, $dest) {
         if (is_dir($source)) {
             Tht::error("Argument 1 for `copy` must not be a directory: `$source`.  Suggestion: `File.copyDir()`");
         } 
-        return u_File::_call('copy', [$source, $dest], 'file,exists|path');
+        return $this->_call('copy', [$source, $dest], 'file,exists|path');
     }
 
     function u_copy_dir ($source, $dest) {
         if (is_dir($source)) {
-            u_File::copyDirRecursive($source, $dest);
+            $this->copyDirRecursive($source, $dest);
         } 
         else {
             Tht::error("Argument 1 for `copyDir` is not a directory: `$source`");
@@ -285,7 +354,7 @@ class u_File extends StdModule {
     function copyDirRecursive($source, $dest) {
         
         if (!is_dir($dest)) {
-            u_File::_call('mkdir', [$dest, 0755]);
+            $this->_call('mkdir', [$dest, 0755]);
         }
 
         // recursively copy dir contents
@@ -300,10 +369,10 @@ class u_File extends StdModule {
             $subDest = $dest . "/" . $file;
 
             if (is_dir($subSource)) {
-                u_File::copyDirRecursive($subSource, $subDest);
+                $this->copyDirRecursive($subSource, $subDest);
             } else {
                 // copy file
-                u_File::_call('copy', [$subSource, $subDest]);
+                $this->_call('copy', [$subSource, $subDest], '');
             }
         }
 
@@ -311,36 +380,36 @@ class u_File extends StdModule {
     }
 
     function u_move ($oldName, $newName) {
-        return u_File::_call('rename', [$oldName, $newName], 'path,exists|path');
+        return $this->_call('rename', [$oldName, $newName], 'path,exists|path');
     }
 
     function u_exists ($path) {
-        return u_File::_call('file_exists', [$path], 'path', false);
+        return $this->_call('file_exists', [$path], 'path', false);
     }
 
     function u_find ($pattern, $dirOnly=false) {
         $flags = $dirOnly ? GLOB_BRACE|GLOB_ONLYDIR : GLOB_BRACE;
-        return u_File::_call('glob', [$pattern, $flags], 'string|*');
+        return $this->_call('glob', [$pattern, $flags], 'string|*');
     }
 
     function u_touch ($file, $time=null, $atime=null) {
         if (!$time) { $time = time(); }
         if (!$atime) { $atime = time(); }
-        return u_File::_call('touch', [$file, $time, $atime], 'file|num|num');
+        return $this->_call('touch', [$file, $time, $atime], 'file|num|num');
     }
 
 
     // DIRS
 
     function u_make_dir ($dir, $perms=0775) {
-        if (file_exists($dir)) {
+        if ($this->u_exists($dir)) {
             return false;
         }
-        return u_File::_call('mkdir', [$dir, $perms, true], 'dir|num|*', null);
+        return $this->_call('mkdir', [$dir, $perms, true], 'dir|num|*', null);
     }
 
     function u_open_dir ($d) {
-        $dh = u_File::_call('opendir', [$d], 'dir,exists');
+        $dh = $this->_call('opendir', [$d], 'dir,exists');
         return new \FileDir ($dh);
     }
 
@@ -353,7 +422,7 @@ class u_File extends StdModule {
             Tht::error("Unknown filter `$filter`. Supported filters: `none` (default), `files`, `dirs`");
         }
 
-        $files = u_File::_call('scandir', [$d], 'dir,exists');
+        $files = $this->_call('scandir', [$d], 'dir,exists');
         if ($filter && $filter !== 'none') {
             $filteredFiles = [];
             foreach ($files as $f) {
@@ -374,27 +443,27 @@ class u_File extends StdModule {
     // FILE ATTRIBUTES
 
     function u_get_size ($f) {
-        return u_File::_call('filesize', [$f], 'file,exists');
+        return $this->_call('filesize', [$f], 'file,exists');
     }
 
     function u_get_modify_time ($f) {
-        return u_File::_call('filemtime', [$f], 'path,exists');
+        return $this->_call('filemtime', [$f], 'path,exists');
     }
 
     function u_get_create_time ($f) {
-        return u_File::_call('filectime', [$f], 'path,exists');
+        return $this->_call('filectime', [$f], 'path,exists');
     }
 
     function u_get_access_time ($f) {
-        return u_File::_call('fileatime', [$f], 'path,exists');
+        return $this->_call('fileatime', [$f], 'path,exists');
     }
 
     function u_is_dir ($f) {
-        return u_File::_call('is_dir', [$f], 'path', false);
+        return $this->_call('is_dir', [$f], 'path', false);
     }
 
     function u_is_file ($f) {
-        return u_File::_call('is_file', [$f], 'path', false);
+        return $this->_call('is_file', [$f], 'path', false);
     }
 
 }

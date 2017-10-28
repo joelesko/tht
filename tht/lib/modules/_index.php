@@ -39,6 +39,10 @@ class LibModules {
         Runtime::registerStdModule('Perf', new u_Perf ());
         Runtime::registerStdModule('Regex', new u_Regex ());
         Runtime::registerStdModule('Result', new u_Result ());
+
+        // [security]
+        // for internal use
+        Runtime::registerStdModule('*File', new u_File (true));  
     }
 
     public static function isa ($lib) {
@@ -49,9 +53,9 @@ class LibModules {
 
 
 // Lazy Load.  Saves ~250kb
-spl_autoload_register(function ($class) {
+spl_autoload_register(function ($aclass) {
 
-    $class = str_replace('o\\u_', '', $class);
+    $class = str_replace('o\\u_', '', $aclass);
     if (LibModules::isa($class)) {
 
         if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
@@ -60,10 +64,13 @@ spl_autoload_register(function ($class) {
 
         if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
 
+    } else if (hasu_($aclass)) {
+
+        Tht::error("Can not autoload THT class: `$class`", LibModules::$files);
+
     } else {
 
-        Tht::error("Can not autoload class: `$class`", LibModules::$files);
-
+        Tht::error("Can not autoload PHP class: `$aclass`");
     }
 
 });
