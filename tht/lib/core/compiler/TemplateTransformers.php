@@ -44,7 +44,7 @@ class JconTemplateTransformer  extends TemplateTransformer {}
 
 class JsTemplateTransformer    extends TemplateTransformer {
     function onEndString($str) {
-        if (Tht::getConfig('minifyJs')) {
+        if (Tht::getConfig('minifyJsTemplates')) {
             $str = Tht::module('Js')->u_minify($str);
         }
         return $str;
@@ -57,7 +57,7 @@ class CssTemplateTransformer extends TemplateTransformer {
         if (Tht::getConfig('tempParseCss')) {
             $str = Tht::module('Css')->u_parse($str);
         }
-        if (Tht::getConfig('minifyCss')) {
+        if (Tht::getConfig('minifyCssTemplates')) {
             $str = Tht::module('Css')->u_minify($str);
         }
 
@@ -120,15 +120,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $c = $t->char();
 
         if ($c === "\n" && $this->numLineTags) {
-            $str = '';
-            while (true) {
-                $str .= $this->getClosingTag();
-                $this->numLineTags -= 1;
-                if (!$this->numLineTags) {
-                    break;
-                }
-            }
-            return $str;
+            $this->indent = 0;
+            return $this->closeLineEndTags();
         }
         else if ($c === '<') {
             return $this->readTagStart($t);
@@ -137,9 +130,27 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             return $this->readTagMiddle($t);
         }
         else {
+            if ($c === "\n") {
+                $this->indent = 0;
+            } else if ($c === " ") {
+                $this->indent += 1;
+            }
+            
             // plaintext
             return false;
         }
+    }
+
+    function closeLineEndTags() {
+        $str = '';
+        while (true) {
+            $str .= $this->getClosingTag();
+            $this->numLineTags -= 1;
+            if (!$this->numLineTags) {
+                break;
+            }
+        }
+        return $str;
     }
 
     // eg '<blah'
