@@ -1,0 +1,137 @@
+
+/*
+
+    validation fail:
+        route: 404
+        get: 400
+        post: 
+
+*/
+
+
+F main() {
+
+    Web.validator('testForm', {
+        userName: '',
+        num: 'digits',
+        accept: '',
+        email: 'email',
+        digits: 'optional|digits'
+    });
+
+    let html = '';
+    if (Web.request().method == 'post') {
+        html = processForm2();
+
+    } else {
+        html = formHtml();
+    }
+
+    Web.sendPage({
+        body: html,
+        title: 'Test Form',
+        css: Css.include('base')
+    });
+}
+
+F processForm2() {
+    let num = Web.tempGetInput('post', 'userName', 'text');
+    print(num);
+}
+
+F processForm() {
+    let fdata = Web.getData('testForm', 'post');
+    if (fdata.ok()) {
+        return thanksHtml(fdata.get());
+    } else {
+        return 'Error!';
+    }
+}
+
+T thanksHtml(d) {
+
+    <p>> Thanks, <b>> {{ d.userName }}!
+
+}
+
+F getOptions() {
+    return {
+        '1': 'Option 1',
+        '2': 'Option 2',
+        '3': 'Option 3',
+    };
+}
+
+T formHtml() {
+
+    <.row><.col>
+
+    <h1>> Test Form
+
+    {{ Form.open() }}
+
+        {{ Form.text('userName', 'User Name', 'Joe', { placeholder: 'User Name' }) }}
+        {{ Form.email('email', 'Email', '') }}
+        {{ Form.text('digits', 'Digits', '', { placeholder: 'Zip Code' }) }}
+
+        {{ Form.select('num', 'Select a Number', getOptions()) }}
+        {{ Form.select('year', 'Select a Year', range(1950, Date.format('%Y').toNumber())) }}
+
+        <fieldset>
+        {{ Form.checkbox('accept', '1', 'I accept this form.') }}
+        </>
+
+        <fieldset>
+        {{ Form.radio('hey', '1', 'Option 1', { on: true }) }}
+        {{ Form.radio('hey', '2', 'Option 2') }}
+        {{ Form.radio('hey', '3', 'Option 3') }}
+        </>
+
+        <div>> {{ Form.submit('Submit!', { class: 'button-primary button-large' }) }}
+
+    {{ Form.close() }}
+
+    </></>
+
+
+    <style>
+    /* todo: make easy to override */
+    form .field-invalid {
+        x-border: solid 1px #f33;
+        outline: 1px solid #f33;
+    }
+    </style>
+
+
+    {{ Web.validateJs('testForm') }}
+}
+
+
+
+/*
+
+    email (__@__.__)
+    url (https?://)
+
+    num (length) - negative | decimal | range
+
+    token ([a-zA-Z0-9_-])
+    id (numeric, non-negative)
+    alphanumeric (e.g. hash)
+
+    digits_between (min, max)
+    accepted
+    filled/required
+
+    sameAs
+    minsize - string length
+    maxsize - string length
+
+    text
+
+    multiline
+
+    (regex)
+
+*/
+

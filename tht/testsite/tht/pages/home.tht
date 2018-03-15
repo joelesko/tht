@@ -61,7 +61,7 @@ function run(t) {
     libPhp(t);
     libWeb(t);
     libGlobal(t);
-    libSettings(t);
+    libSettings(t);    
 }
 
 
@@ -885,6 +885,7 @@ function testStrings(t) {
 
     t.ok('123'.toNumber() == 123, 'toNumber');
     t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
+
 
     t.section('String Methods - Unicode');
 

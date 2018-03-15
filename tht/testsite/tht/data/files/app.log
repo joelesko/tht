@@ -139,3 +139,8 @@
 
     File: Jcon  Line: 24
 
+[2017-11-03 19:27:58]  Entry file not found for path: `/form`
+[2017-11-03 19:28:01]  Entry file not found for path: `/dev/form`
+[2017-12-24 22:12:29]  Entry file not found for path: `/dev/form`
+[2017-12-25 18:49:50]  Entry file not found for path: `/games/dnd/spells`
+[2018-03-15 10:31:11]  Entry file not found for path: `/manual`
