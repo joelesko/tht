@@ -572,7 +572,10 @@ class OString extends OVar implements \ArrayAccess {
     // Casting
 
     function u_to_number () {
-        return 0 + $this->val;
+        $f = floatval($this->val);
+        $i = intval($this->val);
+
+        return $f == $i ? $i : $f;
     }
 
     function u_to_flag () {
