@@ -218,7 +218,7 @@ class WebMode {
         $callFunction = '';
         if ($userFunction) {
             if (!function_exists($fullUserFunction)) {
-                Tht::configError("Function `$userFunction` not found for route target `$controllerName`");
+                Tht::configError("Function `$userFunction` not found for route target `$fullController`");
             }
             $callFunction = $fullUserFunction;
         }
