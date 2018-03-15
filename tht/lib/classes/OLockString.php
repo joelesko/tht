@@ -16,7 +16,8 @@ class OLockString extends OVar {
     }
 
     function __toString() {
-        return "[LockString | $str]";
+        $s = $this->str;
+        return "[LockString | $s]";
     }
 
     static function create ($className, $s) {
