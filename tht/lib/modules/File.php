@@ -168,13 +168,6 @@ class u_File extends StdModule {
 
     function u_log ($data, $fileName='app.log') {
 
-        // TODO: clean this up
-        // if (!$fileName) {
-        //     $out = OBare::formatPrint([$data]);
-        //     Tht::errorLog($out);
-        //     return;
-        // }
-
         if (is_array($data) || is_object($data)) {
             $data = Tht::module('Json')->u_format($data);
         } else {
@@ -182,7 +175,8 @@ class u_File extends StdModule {
             $data = str_replace("\n", '\\n', $data);
         }
         $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $data . "\n";
-        return $this->_call('file_put_contents', [Tht::path('logs', $fileName), $line, LOCK_EX|FILE_APPEND], 'file|string|*');
+
+        return $this->_call('file_put_contents', [Tht::path('files', $fileName), $line, LOCK_EX|FILE_APPEND], 'file|string|*');
     }
 
 

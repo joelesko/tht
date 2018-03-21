@@ -39,7 +39,6 @@ class Tht {
         'data'      => 'data',
         'db'        =>   'db',
         'uploads'   =>   'uploads',
-        'logs'      =>   'logs',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
         'kvCache'   =>     'keyValue',
@@ -248,13 +247,12 @@ class Tht {
         // Tht::$paths['phpLib']    = Tht::path('root', Tht::$APP_DIR['phpLib']);
 
         // data subdirs
-        Tht::$paths['db']          = Tht::path('data', Tht::$APP_DIR['db']);
-        Tht::$paths['logs']        = Tht::path('data', Tht::$APP_DIR['logs']);
-        Tht::$paths['cache']       = Tht::path('data', Tht::$APP_DIR['cache']);
+        Tht::$paths['db']          = Tht::path('data',  Tht::$APP_DIR['db']);
+        Tht::$paths['cache']       = Tht::path('data',  Tht::$APP_DIR['cache']);
         Tht::$paths['phpCache']    = Tht::path('cache', Tht::$APP_DIR['phpCache']);
         Tht::$paths['kvCache']     = Tht::path('cache', Tht::$APP_DIR['kvCache']);
-        Tht::$paths['files']       = Tht::path('data', Tht::$APP_DIR['files']);
-        Tht::$paths['counter']     = Tht::path('data', Tht::$APP_DIR['counter']);
+        Tht::$paths['files']       = Tht::path('data',  Tht::$APP_DIR['files']);
+        Tht::$paths['counter']     = Tht::path('data',  Tht::$APP_DIR['counter']);
         Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
         Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
 
