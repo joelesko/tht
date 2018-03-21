@@ -5,7 +5,7 @@ namespace o;
 
 class OClass {
 
-	protected $u_field = [];
+//	protected $ufield = [];
 //    protected $plugins = [];
 
     function __toString () {
@@ -16,15 +16,17 @@ class OClass {
     function __get ($field) {
 
         $plainField = unu_($field);
-        $meth = 'u_get' . ucfirst($plainField);
+        $getterMethod = 'u_get_' . v($plainField)->u_to_token_case();
 
-        if (method_exists($this, $meth)) {
-            return $this->$meth();
+        if (method_exists($this, $getterMethod)) {
+            return $this->$getterMethod();
         }
-        else if (isset($this->u_field[$plainField]) ) {
-            return $this->u_field[$plainField];
+        else if (property_exists($this, $field)) {
+            return $this->$field;
         }
         else {
+
+            // TODO: allow user fallback method? 
 
             $suggestions = [
                 'len'    => 'length()',
@@ -42,13 +44,20 @@ class OClass {
     function __set ($field, $value) {
         
         $plainField = unu_($field);
-        $meth = 'u_set' . ucfirst($plainField);
+        $setterMethod = 'u_set' . v($plainField)->u_to_token_case();
 
-        if (method_exists($this, $meth)) {
-            $this->$meth($value);
-        } else {
-            $this->u_field[$plainField] = $value;
+        if (method_exists($this, $setterMethod)) {
+            $this->$setterMethod($value);
+     //   } else if (property_exists($this, $field)) {
+       } else {
+            // $this->ufield[$plainField] = $value;
+            $this->$field = $value;
         }
+        // else {
+        //     // TODO: allow user fallback method? 
+        //   //  Tht::error("Unknown field: `$field`");
+        // }
+
         return $this;
     }
 
