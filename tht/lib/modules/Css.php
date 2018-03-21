@@ -371,7 +371,7 @@ EOCSS;
         {
             display: block;
             width: 100%;
-            padding: 0.5rem 1.5rem;
+            padding: 0.5rem 1rem;
             font-size: 2rem;
             background-color: #fff;
             background-image: none;
@@ -462,6 +462,9 @@ EOCSS;
         label > input { margin-right: 1rem; }
         input + small, select + small {
             margin-top: -1rem;
+            display: block;
+        }
+        label.checkable-option {
             display: block;
         }
 
@@ -676,7 +679,7 @@ EOCSS;
     /* Icons
     ---------------------------------------------------------- */
 
-    .oicon, .oiconx {
+    .ticon, .ticonx {
         display: inline-block;
         position: relative;
         height: 1em;
@@ -684,12 +687,12 @@ EOCSS;
         top: 0.2em;
         fill: currentColor;
     }
-    .oicon * {
+    .ticon * {
         stroke: currentColor;
         stroke-width: 15;
         fill: none;
     }
-    .oicon .fill {
+    .ticon .fill {
         stroke: none;
         fill: currentColor;
     }
