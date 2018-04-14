@@ -2,6 +2,9 @@
 
 namespace o;
 
+// Note: there is a silent error when calling require() on any file called 'System.php'.  
+// Hence, the extra 'X'.
+
 class u_System extends StdModule {
 
     function _call ($fn, $args=[], $checkReturn=true) {
