@@ -59,7 +59,7 @@ class u_Perf extends StdModule {
             $result['value'] = $this->cleanValue($task['value']);
         }
         $result['durationMs'] = round($elapsed * 1000, 2);
-        $result['peakMemoryMb'] = Tht::module('System')->u_peak_memory_usage();
+        $result['peakMemoryMb'] = round(Tht::module('System')->u_peak_memory_usage(), 1);
         $this->results []= $result;
 
         foreach ($this->tasks as &$t) {
