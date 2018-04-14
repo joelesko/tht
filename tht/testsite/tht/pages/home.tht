@@ -62,7 +62,7 @@ function run(t) {
     libWeb(t);
     libGlobal(t);
     libSettings(t);  
-    libMapDb(t);  
+   // libMapDb(t);  
     libSession(t);
 }
 
@@ -465,6 +465,11 @@ function testFunctions(t) {
         v.reverse();
     };
     t.dies(fnNoReturn, 'returned Nothing');
+
+
+    function missingArgs(arg1, arg2) { }
+    t.dies(function () { missingArgs(1); }, 'Missing argument - user function');
+    t.dies(function () { Perf.start(); }, 'Missing argument - module');
 }
 
 
@@ -1682,11 +1687,22 @@ function libSession(t) {
     Session.deleteAll();
     t.ok(Session.getAll().keys().length() == 0, 'deleteAll');
 
-    t.ok(Session.counter('num') == 1, 'counter 1');
-    t.ok(Session.counter('num') == 2, 'counter 2');
+    t.ok(Session.addCounter('num') == 1, 'counter 1');
+    t.ok(Session.addCounter('num') == 2, 'counter 2');
 
     Session.setFlash('fkey', 'fvalue');
     t.ok(Session.getFlash('fkey') == 'fvalue', 'flash set/get');
+
+    t.ok(Session.hasFlash('fkey'), 'hasFlash - true');
+    t.ok(Session.hasFlash('missing'), 'hasFlash - false');
+
+    Session.addToList('list', 123);
+    t.ok(Session.get('list')[0] == 123, 'addToList 1');
+
+    Session.addToList('list', 456);
+    t.ok(Session.get('list')[1] == 456, 'addToList 2');
+
+    t.dies(function () { Session.get('missing'); }, 'get bad key');
 
 }
 

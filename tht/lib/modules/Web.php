@@ -2,7 +2,10 @@
 
 namespace o;
 
+
 class u_Web extends StdModule {
+
+    static private $CSRF_TOKEN_LENGTH = 64;
 
     // TODO: complete list
     static private $VALIDATION_RULES = [
@@ -16,9 +19,10 @@ class u_Web extends StdModule {
     private $validators = [];
     private $request;
     private $isCrossOrigin = null;
+    private $includedValidatorJs = false;
 
     static private $CSP_NONCE = '';
-    static private $CSRF_TOKEN = '';
+
 
     // REQUEST
     // --------------------------------------------
@@ -60,6 +64,9 @@ class u_Web extends StdModule {
             $fullUrl = rtrim($fullUrl, '/');
             $r['url']['full'] = $fullUrl;
             $r['url']['relative'] = $relativeUrl;
+
+            $urlParts = explode('/', $r['url']['path']);
+            $r['url']['page'] = end($urlParts);
 
             $this->request = OMap::create($r);
         }
@@ -200,18 +207,20 @@ class u_Web extends StdModule {
     function u_nonce () {
 
         if (!u_Web::$CSP_NONCE) {
-            u_Web::$CSP_NONCE  = Tht::module('String')->u_random(40);
+            u_Web::$CSP_NONCE = Tht::module('String')->u_random(40);
         }
 
         return u_Web::$CSP_NONCE;
     }
 
     function u_csrf_token() {
-        if (!u_Web::$CSRF_TOKEN) {
-            u_Web::$CSRF_TOKEN = Tht::module('String')->u_random(40);
+        $token = Tht::module('Session')->u_get('csrfToken');
+        if (empty($token)) {
+            $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
+            Tht::module('Session')->u_set('csrfToken', $token); 
         }
 
-        return u_Web::$CSRF_TOKEN;
+        return $token;
     }
 
     // SEND DOCUMENTS
@@ -465,18 +474,22 @@ HTML;
 
     function sendGzip ($xOut) {
         $out = OLockString::getUnlocked($xOut);
-        $this->startGzip();
+        $this->startGzip(true);
         print $out;
-        $this->endGzip();
+        $this->endGzip(true);
         flush();
     }
 
-    function startGzip () {
-        ob_start("ob_gzhandler");
+    function startGzip ($forceGzip=false) {
+        if ($forceGzip || Tht::getConfig('compressOutput')) {
+            ob_start("ob_gzhandler");
+        }
     }
 
-    function endGzip () {
-        ob_end_flush();
+    function endGzip ($forceGzip=false) {
+        if ($forceGzip || Tht::getConfig('compressOutput')) {
+            ob_end_flush();
+        }
     }
 
 
@@ -788,23 +801,34 @@ HTML;
 
 
 
+    // NEW FORM
+
+    function u_form ($schema, $formId='defaultForm') {
+        return new u_Form ($schema, $formId);
+    }
+
+
+
+
+
+
 
     // Future Methods
 
-    function u_validator($vid, $schema) {
-        $this->validators[$vid] = uv($schema);
+    function u_reader($schema, $formId="defaultForm") {
+        $this->validators[$formId] = uv($schema);
     }
 
-    function getRuleMap($vid) {
-        if (!isset($this->validators[$vid])) {
-            Tht::error("Unknown form validator: `$vid`");
+    function getRuleMap($formId='defaultForm') {
+        if (!isset($this->validators[$formId])) {
+            Tht::error("Unknown form ID: `$formId`");
         }
-        return $this->validators[$vid];
+        return $this->validators[$formId];
     }
 
-    function u_get_data($vid, $method) {
+    function u_get_data($method, $formId="defaultForm") {
 
-        $ruleset = $this->getRuleMap($vid);
+        $ruleset = $this->getRuleMap($formId);
 
         $p = [];
 
@@ -885,100 +909,251 @@ HTML;
 
     ***/
 
-    function u_validate_js($valid) {
+    function u_validate_js($formId="defaultForm") {
 
-        $v = json_encode($this->getRuleMap($valid));
-        $rules = json_encode(u_Web::$VALIDATION_RULES);
+        $JSON_FIELD_RULES = json_encode($this->getRuleMap($formId));
+        $JSON_RULE_PATTERNS = json_encode(u_Web::$VALIDATION_RULES);
+        $CSRF_TOKEN = self::u_csrf_token();
+        $FORM_ID = $formId;
 
-        $js = <<<EOJS
+        // TODO: validate/sanitize formId
+
+        $formJs = "FormValidator.registerForm('$FORM_ID', $JSON_FIELD_RULES);\n";
+
+        // About 2kb gzipped
+        $validatorJs = $this->includedValidatorJs ? '' : <<<EOJS
 
             (function(){
 
-                var val = $v;
-                var rules = $rules;
+                addFormStyles();
+                listen();
 
-                var markInvalid = function (el, v) {
-                    el.classList.add('form-invalid');
-                    el.addEventListener('keyup', function(){
-                        validateEl(el, v);
+
+                function listen() {
+                    document.addEventListener('submit', function(e){ 
+                        e.preventDefault(); 
+                        FormValidator.submitFormIfOk(e.target);
+                        return false; 
                     });
-                    el.addEventListener('change', function(){
-                        validateEl(el, v);
-                    });
-                };
+                }
 
-                var validateEl = function (el, v) {
+                function addFormStyles() {
+                    
+                    var css = '@keyframes submit-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(359deg); } }\\n';
+                    css += '.form-spinner { display: inline-block; vertical-align: text-top; height: 1.2em; width: 1.2em; border-radius: 50%; border: solid 0.2em rgba(0,0,0,0.2); border-right-color: rgba(0,0,0,0.4); animation: submit-spin 600ms linear 0s infinite }\\n';
+                    css += '.button-primary .form-spinner { border-color: rgba(255,255,255,0.5); border-right-color: rgba(255,255,255,0.8); }\\n';
+                    css += 'form .form-field-invalid, form .form-field-invalid:focus { outline: 2px solid #e33; }\\n';
+                    css += '.form-error-message { margin-top: 1em; color: #e33; }\\n';
 
-                    var isOk = true;
-                    var isRequired = true;
+                    var style = document.createElement('style');
+                    style.innerHTML = css;
+                    document.getElementsByTagName('head')[0].appendChild(style);
+                }
 
-                    var vs = v.split(/\\s*\\|\\s*/);
-                    for (var i=0; i < vs.length; i++) {
-                        var flag = vs[i];
-                        if (rules[flag] && el.value !== '') {
-                            var re = new RegExp(rules[flag]);
-                            if (!el.value.match(re)) {
+                window.FormValidator = (function() {
+
+                    var STATE = {};
+                    var FORMS = {};
+
+                    var RULE_PATTERNS = $JSON_RULE_PATTERNS;
+                    var CSRF_TOKEN = '$CSRF_TOKEN';
+
+                    return {
+
+                        registerForm: function(formId, fieldRules) {
+                            if (!FORMS[formId]) {
+                                FORMS[formId] = fieldRules;
+                            } 
+                        },
+
+                        submitFormIfOk: function(form) {
+                            if (STATE.isSubmitting) {
+                                return false;
+                            }
+
+                            if (this.validateForm(form)) {
+                                this.submitForm(form);
+                            }
+                        },
+
+                        validateForm: function(form) {
+
+                            var formId = form.id;
+                            var fields = form.querySelectorAll('*[name]');
+                            for (var i=0; i < fields.length; i++) {
+                                var field = fields[i];
+                                if (!this.validateField(form, formId, field)) {
+                                    return false;
+                                }
+                            }
+
+                            return true;
+                        },
+
+                        submitForm: function(form) {
+                            STATE.isSubmitting = true;
+                            var hasSpinner = this.addSpinner(form);
+                            this.setCsrfToken(form);
+
+                            setTimeout(function(){
+                                form.submit();
+                            }, hasSpinner ? 600 : 1);
+                        },
+
+                        setCsrfToken: function(form) {
+                            var csrfField = document.createElement('input'); 
+                            csrfField.type = 'hidden';
+                            csrfField.name = 'csrfToken';
+                            csrfField.value = CSRF_TOKEN;
+                            form.appendChild(csrfField);
+                        },
+
+                        validateRequiredField: function(elField){
+                            if (elField.type == 'checkbox') {
+                                if (!elField.checked) {
+                                    return false;
+                                }
+                            }
+                            else if (elField.value.trim() == '') {
+                                return false;
+                            }
+                            return true;
+                        },
+
+                        validateFieldRule: function(elField, rule) {
+
+                            var value = elField.value.trim();
+
+                            if (RULE_PATTERNS[rule] && value !== '') {
+                                var re = new RegExp(RULE_PATTERNS[rule]);
+                                if (!value.match(re)) {
+                                    return false;
+                                }
+                            }
+                            else if (rule.indexOf(':') !== -1) {
+                                var pair = rule.split(':');
+                                if (pair[0] == 'min' && value.length < 0 + pair[1]) {
+                                    return false;
+                                } 
+                                else if (pair[0] == 'max' && value.length > 0 + pair[1]) {
+                                    return false;
+                                } 
+                            }
+                            return true;
+                        },
+
+                        validateField: function(form, formId, elField) {
+
+                            if (elField.type == 'hidden') {
+                                return true;
+                            }
+
+                            var isOk = true;
+                            var isRequired = true;
+                            var errorMessage = '';
+
+                            var fieldRules = FORMS[formId][elField.name];
+
+                            var rules = fieldRules.split(/\\s*\\|\\s*/);
+                            for (var i=0; i < rules.length; i++) {
+                                var rule = rules[i];
+                                if (rule === 'optional') {
+                                    isRequired = false;
+                                }
+                                else if (!this.validateFieldRule(elField, rule)) {
+                                    isOk = false;
+                                }
+                            }
+
+                            if (elField.type == 'password') {
+                                if (!this.passwordStrengthOk(elField.value)) {
+                                    errorMessage = 'Please use a stronger password.';
+                                    isOk = false;
+                                }
+                                if (!this.validateFieldRule(elField, 'min:8')) {
+                                    errorMessage = 'Please use a longer password. (8+ letters)';
+                                    isOk = false;
+                                }
+                            }
+
+                            if (isRequired && !this.validateRequiredField(elField)) {
+                                errorMessage = 'Please fill the required field.'; 
                                 isOk = false;
                             }
-                        }
-                        if (flag === 'optional') {
-                            isRequired = false;
-                        }
-                    }
 
-                    if (isRequired) {
-                        if (el.type == 'checkbox') {
-                            if (!el.checked) {
-                                isOk = false;
+                            if (!isOk) {
+
+                                if (!elField.instantValidate) {
+                                    elField.instantValidate = true;
+                                    var self = this;
+                                    elField.addEventListener('keyup', function(){
+                                        self.validateField(form, formId, elField);
+                                    });
+                                    elField.addEventListener('change', function(){
+                                        self.validateField(form, formId, elField);
+                                    });
+                                }
+                                elField.focus();
                             }
-                        }
-                        else if (el.value == '') {
-                            isOk = false;
-                        }
-                    }
 
-                    el.classList.toggle('field-invalid', !isOk);
+                            elField.classList.toggle('form-field-invalid', !isOk);
+                            if (!isOk && !errorMessage) { errorMessage = 'Please check the highlighted field.'; }
+                            form.querySelector('.form-error-message').innerText = errorMessage;
 
-                    return isOk;
-                };
+                            return isOk;
+                        },
 
-                document.addEventListener('submit', function(e){
+                        passwordStrengthOk: function(v) {
 
-                    var isOk = true;
+                            v = v.trim();
 
-                    if (e.target.dataset.isSubmitting) {
-                        e.preventDefault();
-                        return false;
-                    }
-
-                    var ins = e.target.querySelectorAll('*[name]');
-                    for (var i=0; i < ins.length; i++) {
-                        var el = ins[i];
-                        var v = val[el.name];
-                        if (typeof v !== 'undefined') {
-                            if (!validateEl(el, v)) {
-                                markInvalid(el, v);
-                                isOk = false;
+                            // all same character
+                            if (v.match(/^(.)\\1{1,}$/)) {
+                                return false;
                             }
+                            // all digits
+                            if (v.match(/^\d+$/)) {
+                                return false;
+                            }
+                            // most common patterns
+                            if (v.match(/^(abcd|abc1|qwer|asdf|1qaz|passw|admin|login|welcome|access)/i)) {
+                                return false;
+                            }
+                            // most common passwords
+                            if (v.match(/^(football|baseball|princess|starwars|trustno1|superman|iloveyou)$/i)) {
+                                return false;
+                            }
+                            
+                            return true;
+                        },
+
+                        addSpinner: function(form) {
+                            var submit = form.querySelector('*[type="submit"]');
+                            if (!submit) { return false; }
+                                    
+                            var rect = submit.getBoundingClientRect();
+                            submit.innerHTML = '';
+                            submit.style.width = (Math.floor((rect.right - rect.left) / 2) * 2) + 'px';
+
+                            var spinner = document.createElement('div');
+                            spinner.classList.add('form-spinner');
+                            submit.appendChild(spinner);
+
+                            return true;
                         }
-                    }
-
-                    if (isOk) {
-                        e.target.dataset.isSubmitting = true;
-                        return true;
-                    }
-                    else {
-                        e.preventDefault();
-                        return false;
-                    }
-
-                });
+                    };
+                })();
 
             })();
 
 EOJS;
 
-        return new JsLockString($js);
+        $this->includedValidatorJs = true;
+
+        return new JsLockString($validatorJs . $formJs);
 
     }
 }
+
+
+

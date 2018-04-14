@@ -173,7 +173,7 @@ class WebMode {
             Tht::module('Web')->u_send_error(404);
         }
 
-        return $thtPath; // Tht::path('pages', $thtPath)
+        return $thtPath; 
     }
 
     static private function executeWebController ($controllerName) {
@@ -257,10 +257,6 @@ class WebMode {
             $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src *; font-src *; " . $scriptSrc;
         }
         header("Content-Security-Policy: $csp");
-
-        if (Tht::getConfig('useSession')) {
-            Tht::module('Session')->u_init();
-        }
     }
 
     static function getWebRequestHeader ($key) {

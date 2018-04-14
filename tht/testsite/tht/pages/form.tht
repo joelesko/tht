@@ -28,7 +28,36 @@ F main() {
         secret: {
             type: 'hidden',
             value: '12345',
-        }
+        },
+        color: {
+            label: 'Color',
+            type: 'select',
+            options: Q[ red blue green ],
+        },
+        states: {
+            label: 'State',
+            type: 'select',
+            options: {
+                'wi': 'Wisconsin',
+                'fl': 'Florida',
+                'ca': 'California'
+            }
+        },
+        toppings: {
+            label: 'Toppings',
+            type: 'radio',
+            options: Q[ Pepperoni Pineapple Anchovies ]
+        },
+        // TODO
+        // users: {
+        //     label: 'User',
+        //     type: 'select',
+        //     options: [
+        //         { userId: 1, name: 'Bob' },
+        //         { userId: 2, name: 'Alice' },
+        //         { userId: 3, name: 'Charlie' }
+        //     ]
+        // }
     });
 
     // let loginForm = Web.form({
@@ -59,7 +88,7 @@ F main() {
 }
 
 F processForm(form) {
-    //print(form.data());
+    print(form.data());
     return thanksHtml(form.data());
 }
 
@@ -102,6 +131,12 @@ T formHtml(form) {
             {{ f.tag('comment') }}
 
             {{ f.tag('secret') }}
+
+            {{ f.tag('color') }}
+
+            {{ f.tag('states') }}
+
+            {{ f.tag('toppings') }}
 
             {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
 

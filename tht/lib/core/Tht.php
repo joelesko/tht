@@ -38,6 +38,7 @@ class Tht {
 
         'data'      => 'data',
         'db'        =>   'db',
+        'sessions'  =>   'sessions',
         'uploads'   =>   'uploads',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
@@ -249,6 +250,7 @@ class Tht {
         // data subdirs
         Tht::$paths['db']          = Tht::path('data',  Tht::$APP_DIR['db']);
         Tht::$paths['cache']       = Tht::path('data',  Tht::$APP_DIR['cache']);
+        Tht::$paths['sessions']    = Tht::path('data',  Tht::$APP_DIR['sessions']);
         Tht::$paths['phpCache']    = Tht::path('cache', Tht::$APP_DIR['phpCache']);
         Tht::$paths['kvCache']     = Tht::path('cache', Tht::$APP_DIR['kvCache']);
         Tht::$paths['files']       = Tht::path('data',  Tht::$APP_DIR['files']);
@@ -368,7 +370,7 @@ class Tht {
         unset($_REQUEST);
         unset($_GET);
         unset($_POST);
-        unset($_COOKIE);
+     //   unset($_COOKIE);  // this kills session...
         unset($_FILES);
         unset($_SERVER);
 
@@ -413,10 +415,11 @@ class Tht {
 
             // features
             "showPerfScore"        => false,
-            "useSession"           => false,
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
+            "compressOutput"       => true,
+            "sessionDurationMins"  => 120,
 
             // [security]
             "allowFileAccess"         => false,

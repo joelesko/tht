@@ -8,6 +8,7 @@ class StdModule {
     }
 }
 
+
 class LibModules {
     static public $files = [
         'File',
@@ -30,6 +31,7 @@ class LibModules {
         'Litemark',
         'Jcon',
         'Form',
+        'Session'
     ];
 
     public static function load () {
@@ -60,6 +62,9 @@ spl_autoload_register(function ($aclass) {
 
         if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
 
+        if ($class == 'System') {
+            $class = 'SystemX';
+        }
         require_once($class . '.php');
 
         if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
