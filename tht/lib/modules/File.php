@@ -18,8 +18,6 @@ class u_File extends StdModule {
 
     function _call ($fn, $args=[], $validationList='', $checkReturn=true) {
 
-        Tht::module('Perf')->u_start('File.' . $fn, $args[0]);
-
         Tht::module('Meta')->u_no_template_mode();
 
         // validate each argument against a validation pattern
@@ -29,7 +27,9 @@ class u_File extends StdModule {
             $fargs []= $this->checkArg($a, array_shift($validationPatterns));
         }
 
+        Tht::module('Perf')->u_start('File.' . $fn, $args[0]);
         $returnVal = \call_user_func_array($fn, $fargs);
+        Tht::module('Perf')->u_stop();
 
         // Die on a false return value
         if ($checkReturn && $returnVal === false) {
@@ -37,8 +37,6 @@ class u_File extends StdModule {
             if (isset($fargs[0])) { $relevantFile = $fargs[0]; }
             Tht::error("File function failed on `" . $relevantFile . "`");
         }
-
-        Tht::module('Perf')->u_stop();
 
         return $returnVal;
     }
