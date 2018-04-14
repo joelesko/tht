@@ -124,9 +124,9 @@ class Validator {
         else if (strlen($name) > ParserData::$MAX_WORD_LENGTH) {
             $this->parser->error("Words must be " . ParserData::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
-        else if ($name == 'data') {
-            $this->parser->error("Word `$name` is meaningless. Try renaming it to describe what kind of data it is.", $token);
-        }
+        // else if ($name == 'data') {
+        //     $this->parser->error("Word `$name` is meaningless. Try renaming it to describe what kind of data it is.", $token);
+        // }
     }
 
     function setPaused ($isPaused) {
