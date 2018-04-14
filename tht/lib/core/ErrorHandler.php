@@ -39,12 +39,15 @@ class ErrorHandler {
 
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
-        if (strpos($message, 'Missing argument') !== false) {
-            // TODO: have to dig out the right stack frame with the actual call
-        }
-
         $message = str_replace('foreach()', 'for()', $message);
         $message = str_replace('supplied for', 'in', $message);
+
+        // PHP 5.6 - missing argument
+        if (preg_match('/missing argument/i', $message)) {
+            array_shift($trace);
+            $phpFile = $trace[0]['file'];
+            $phpLine = $trace[0]['line'];
+        }
 
         ErrorHandler::printError([
             'type'    => 'RuntimeError',
@@ -80,6 +83,19 @@ class ErrorHandler {
                     $secs = v('second')->u_plural($max);
                     $error['message'] = "Max execution time exceeded ($max $secs).  See `maxExecutionTimeSecs` in `app.jcon`.";
                     $error['file'] = null;
+                }
+
+                // PHP5: strpos($error['message'], 'Missing argument') !== false 
+                // PHP 7
+                if (strpos($error['message'], 'ArgumentCountError') !== false) {
+
+                    // parse stack trace inside of message
+                    preg_match('/Too few arguments to function (.*?),/i', $error['message'], $callee);
+                    preg_match('/#0\s+(.*?)\((\d+)\):/i', $error['message'], $caller);
+
+                    $error['message'] = 'Not enough arguments to function: `' . $callee[1] . '`';
+                    $error['file'] = $caller[1];
+                    $error['line'] = $caller[2];
                 }
 
                 ErrorHandler::printError([
