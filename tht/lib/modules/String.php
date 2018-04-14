@@ -12,13 +12,20 @@ class u_String extends StdModule {
         return str_repeat($str, $num);
     }
 
+    // Length = final string length, not byte length
     function u_random ($len) {  // [security]
         $bytes = '';
+        
         if (function_exists('random_bytes')) {
             $bytes = random_bytes($len);
+        } else if (function_exists('mcrypt_create_iv')) {
+            $bytes = mcrypt_create_iv($len, MCRYPT_DEV_URANDOM);
         } else {
             $bytes = openssl_random_pseudo_bytes($len);
         }
-        return substr(base64_encode($bytes), 0, $len);
+        
+        $b64 = base64_encode($bytes);
+
+        return substr($b64, 0, $len);
     }
 }
