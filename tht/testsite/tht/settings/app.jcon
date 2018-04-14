@@ -48,6 +48,10 @@
             file: app.db
         }
 
+        mapDb: {
+            file: mapDb.db
+        }
+
         // Other database accessible via 'Db.use'
         // example: {
         //     driver: 'mysql', // or 'pgsql'

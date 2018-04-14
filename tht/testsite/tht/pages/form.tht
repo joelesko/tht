@@ -1,30 +1,54 @@
 
-/*
-
-    validation fail:
-        route: 404
-        get: 400
-        post: 
-
-*/
-
 
 F main() {
 
-    Web.validator('testForm', {
-        userName: '',
-        num: 'digits',
-        accept: '',
-        email: 'email',
-        digits: 'optional|digits'
+    let form = Web.form({
+        userName: {
+            label: 'User Name',
+            rule: 'min:4'
+        },
+        email: {
+            label: 'Email',
+            rule: 'email',
+            value: 'a@b.com',
+            help: 'Make sure it is valid!'
+        },
+        zip: {
+            label: 'Zip Code',
+            rule: 'optional|digits'
+        },
+        password: {
+            label: 'Password',
+            type: 'password',
+        },
+        comment: {
+            label: 'Comment',
+            type: 'textarea'
+        },
+        secret: {
+            type: 'hidden',
+            value: '12345',
+        }
     });
 
-    let html = '';
-    if (Web.request().method == 'post') {
-        html = processForm2();
+    // let loginForm = Web.form({
+    //     userName: {
+    //         label: 'User Name',
+    //         rule: 'min:4'
+    //     },
+    //     password: {
+    //         label: 'Password',
+    //         type: 'password',
+    //     }
+    // }, 'loginForm');
 
+
+
+    let html = '';
+    if (form.ok()) {
+        html = processForm(form);
     } else {
-        html = formHtml();
+        html = formHtml(form);
     }
 
     Web.sendPage({
@@ -34,24 +58,20 @@ F main() {
     });
 }
 
-F processForm2() {
-    let num = Web.tempGetInput('post', 'userName', 'text');
-    print(num);
-}
-
-F processForm() {
-    let fdata = Web.getData('testForm', 'post');
-    if (fdata.ok()) {
-        return thanksHtml(fdata.get());
-    } else {
-        return 'Error!';
-    }
+F processForm(form) {
+    //print(form.data());
+    return thanksHtml(form.data());
 }
 
 T thanksHtml(d) {
 
-    <p>> Thanks, <b>> {{ d.userName }}!
+    <.row><.col>
 
+        <h1>> Success
+
+        <p>> Thanks <b>> {{ d.userName }}!
+
+        </></>
 }
 
 F getOptions() {
@@ -62,17 +82,55 @@ F getOptions() {
     };
 }
 
-T formHtml() {
+
+T formHtml(form) {
 
     <.row><.col>
 
-    <h1>> Test Form
+        <h1>> Test Form
 
-    {{ Form.open() }}
+        :: let f = form;
 
-        {{ Form.text('userName', 'User Name', 'Joe', { placeholder: 'User Name' }) }}
-        {{ Form.email('email', 'Email', '') }}
-        {{ Form.text('digits', 'Digits', '', { placeholder: 'Zip Code' }) }}
+        {{ f.open() }}
+
+            {{ f.tag('userName') }}
+            {{ f.tag('email') }}
+            {{ f.tag('password') }}
+          
+            {{ f.tag('zip') }}
+
+            {{ f.tag('comment') }}
+
+            {{ f.tag('secret') }}
+
+            {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
+
+        {{ f.close() }}
+
+
+    </></>
+
+
+}
+
+
+
+/*
+
+
+        {{ loginForm.open('/login', { id: 'loginForm' }) }}
+
+            {{ loginForm.tag('userName') }}
+            {{ loginForm.tag('password') }}
+          
+            {{ loginForm.submit('Login', { class: 'button-large button-primary' }) }}
+
+        {{ loginForm.close() }}
+
+
+    {{ Web.validateJs() }}
+
+  
 
         {{ Form.select('num', 'Select a Number', getOptions()) }}
         {{ Form.select('year', 'Select a Year', range(1950, Date.format('%Y').toNumber())) }}
@@ -87,28 +145,6 @@ T formHtml() {
         {{ Form.radio('hey', '3', 'Option 3') }}
         </>
 
-        <div>> {{ Form.submit('Submit!', { class: 'button-primary button-large' }) }}
-
-    {{ Form.close() }}
-
-    </></>
-
-
-    <style>
-    /* todo: make easy to override */
-    form .field-invalid {
-        x-border: solid 1px #f33;
-        outline: 1px solid #f33;
-    }
-    </style>
-
-
-    {{ Web.validateJs('testForm') }}
-}
-
-
-
-/*
 
     email (__@__.__)
     url (https?://)

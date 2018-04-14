@@ -61,7 +61,9 @@ function run(t) {
     libPhp(t);
     libWeb(t);
     libGlobal(t);
-    libSettings(t);    
+    libSettings(t);  
+    libMapDb(t);  
+    libSession(t);
 }
 
 
@@ -308,17 +310,18 @@ function testMisc(t) {
 
     // make sure autoboxed array access doesn't drastically hit performance
     // TODO: check string access
+    Perf.start('Large Array');
     let now = Date.now(true);
-    let nums = range(1, 100_000);
+    let nums = range(1, 10_000);
     let ii = 0;
     for (nn in nums) {
         let b = nums[ii];
         ii += 1;
     }
-    t.ok(ii == 100000, 'large loop done');
+    t.ok(ii == 10_000, 'large loop done');
     let elapsed = Date.now(true) - now;
-    t.ok(elapsed < 1000, 'ArrayAccess loop (100,000) took {0} ms'.fill(elapsed));
-
+    t.ok(elapsed < 100, 'ArrayAccess loop (10,000) took {0} ms'.fill(elapsed));
+    Perf.stop();
 
 
     t.section('Functional Methods');
@@ -1313,7 +1316,7 @@ function libFile(t) {
 
     t.dies(function () { File.exists('../bad.txt'); }, 'parent shortcut (..)');
     t.dies(function () { File.read('http://yahoo.com'); }, 'stop remote file read');
-
+    
     t.ok(!File.exists('sdf/sdf'), 'Missing file does not exist');
     t.ok(!File.isFile('sdf/sdf'), 'Missing path is not a file');
     t.ok(!File.isDir('sdf/sdf'), 'Missing path is not a dir');
@@ -1365,7 +1368,7 @@ function libDate(t) {
 
 function libDb(t) {
 
-    t.section('Module: Database');
+    t.section('Module: Db');
 
     Db.query(L'delete from test');
 
@@ -1380,13 +1383,29 @@ function libDb(t) {
     rows = dbh.selectRows(L'select * from test');
     t.ok(rows[0].key == key, 'Db.use');
 
-    Db.updateRows('test', { key: key, value: 'new!' }, L' key = {0}'.fill(key));
-    let row = Db.selectRow(L'select * from test where key = {0}'.fill(key));
+    Db.updateRows('test', { key: key, value: 'new!' }, L' key = {}'.fill(key));
+    let row = Db.selectRow(L'select * from test where key = {}'.fill(key));
     t.ok(row.value == 'new!', 'Update row');
 
-    Db.deleteRows('test', L'key = {0}'.fill(key));
+    Db.deleteRows('test', L'key = {}'.fill(key));
     rows = Db.selectRows(L'select * from test');
     t.ok(rows.length() == 0, 'Delete row');
+
+    t.dies(function {
+        Db.updateRows('"bad', { key: key }, L' key = {}'.fill(key));
+    }, 'invalid table name - updateRows');
+
+    t.dies(function {
+        Db.deleteRows('"bad', L' key = {}'.fill(key));
+    }, 'invalid table name - deleteRows');
+
+    t.dies(function {
+        Db.query('delete from test');
+    }, 'reject unlocked query - query');
+
+    t.dies(function {
+        Db.selectRows('select * from test');
+    }, 'reject unlocked query - selectRows');
 }
 
 function libJconTest(t) {
@@ -1621,6 +1640,54 @@ function libSettings(t) {
     t.ok(Global.setting('list')[1] == 'value 1', 'get list');
 
     t.dies(F { Global.setting('MISSING'); }, 'missing key');
+}
+
+function libMapDb(t) {
+    
+    t.section('Module: MapDb');
+
+    t.ok(MapDb.deleteBucket('test'), 'delete bucket');
+    
+    t.ok(MapDb.insertMap('test', 'hello', { hello: 'World!' }), 'insert');
+    t.ok(MapDb.insertMap('test', 'hello', { hello: 'There!' }), 'insert');
+
+
+    t.ok(MapDb.selectMap('test', 1).hello == 'World!', 'selectMap');
+    t.ok(MapDb.selectMaps('test', 'hello').length() == 2, 'selectMaps');
+    t.ok(MapDb.buckets()[0].numMaps == 2, 'buckets()');
+
+
+}
+
+function libSession(t) {
+    
+    t.section('Module: Session');
+
+    Session.deleteAll();
+    
+    Session.set('key1', 'value');
+    Session.set('key2', { a: 'b' });
+    t.ok(Session.get('key1') == 'value', 'set/get');
+    t.ok(Session.get('key2').a == 'b', 'get map');
+
+    t.ok(Session.getAll().keys().join('|') == 'key1|key2', 'getAll');
+
+    t.ok(Session.get('missing', '') == '', 'get with blank default');
+    t.ok(Session.get('missing', 'default') == 'default', 'get with default');
+
+    t.ok(Session.hasKey('key1'), 'hasKey true');
+    t.ok(Session.delete('key1') == 'value', 'delete');
+    t.ok(!Session.hasKey('key1'), 'hasKey false');
+
+    Session.deleteAll();
+    t.ok(Session.getAll().keys().length() == 0, 'deleteAll');
+
+    t.ok(Session.counter('num') == 1, 'counter 1');
+    t.ok(Session.counter('num') == 2, 'counter 2');
+
+    Session.setFlash('fkey', 'fvalue');
+    t.ok(Session.getFlash('fkey') == 'fvalue', 'flash set/get');
+
 }
 
 
