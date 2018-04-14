@@ -284,8 +284,7 @@ EOCSS;
         }
         blockquote footer, q footer {
             width: 100%;
-            x-margin-top: 2rem;
-            font-size: 1.5rem;
+            font-size: 90%;
         }
         blockquote footer::before, q footer::before {
             margin-right: 0.5em;
@@ -310,7 +309,7 @@ EOCSS;
         /* Buttons
         ---------------------------------------------------------- */
 
-        .button, input[type=button], input[type=submit] {
+        button, .button, input[type=button], input[type=submit] {
             color: #000;
             background-color: #f3f3f3;
             display: inline-block;
@@ -330,10 +329,12 @@ EOCSS;
             border-radius: 0.3rem;
             user-select: none;
         }
+        button:hover, button:focus,
         .button:hover, .button:focus,
         input[type=button]:hover, input[type=submit]:hover,
         input[type=button]:focus, input[type=submit]:focus {
             background-color: #f9f9f9;
+            outline: none;
         }
     	.button-primary, input.button-primary {
             color: #fff;
@@ -349,7 +350,7 @@ EOCSS;
             line-height: 5rem;
             border-radius: 3px;
     	}
-    	.button-small,input.button-small {
+    	.button-small, input.button-small {
             padding: 1rem 1.8rem;
             font-size: 1.4rem;
             line-height: 1rem;
@@ -398,7 +399,8 @@ EOCSS;
         input[type="file"]:focus,
         input[type="url"]:focus,
         input[type="button"]:focus,
-        input[type="password"]:focus
+        input[type="password"]:focus,
+        button:focus
         {
             border-color: #66afe9;
             outline: 0;
@@ -459,11 +461,24 @@ EOCSS;
             margin-bottom: .5rem;
             user-select: none;
         }
-        label > input { margin-right: 1rem; }
+        label > input { 
+            margin-right: 1rem; 
+        }
+
+        /* optional text */
+        label + small { 
+            margin-left: 1rem; 
+            color: #999;
+        }
+
+        /* help text */
         input + small, select + small {
             margin-top: -1rem;
+            margin-bottom: 1rem;
             display: block;
+            color: #999;
         }
+
         label.checkable-option {
             display: block;
         }
