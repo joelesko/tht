@@ -626,7 +626,7 @@ class OString extends OVar implements \ArrayAccess {
             $v = ltrim($this->val);
             return preg_match('~^(https?:)?//~i', $v);
         } else {
-            return preg_match('~(:|//)~i', $this->val);
+            return preg_match('~(:|//)~', $this->val);
         }
 
     }
