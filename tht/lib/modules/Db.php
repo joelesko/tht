@@ -82,11 +82,13 @@ class u_Db extends StdModule {
         return $dbs;
     }
 
+    // TODO: support more than just sqlite
     function u_get_tables() {
         $lSql = new \o\SqlLockString ("SELECT name FROM sqlite_master WHERE type='table'");
         return v($this->u_select_rows($lSql))->u_column('name');
     }
 
+    // TODO: support more than just sqlite
     function u_table_exists($tableName) {
         $lSql = new \o\SqlLockString ("SELECT name FROM sqlite_master WHERE type='table' AND name = {0} LIMIT 1");
         $lSql->u_fill($tableName);
@@ -94,6 +96,7 @@ class u_Db extends StdModule {
         return count($rows) == 1;
     }
 
+    // TODO: support more than just sqlite
     function u_get_columns ($tableName){
         if (preg_match('/[^a-zA-Z0-9_-]/', $tableName)) {
             Tht::error("Invalid character in table name: `$tableName`");
@@ -102,6 +105,7 @@ class u_Db extends StdModule {
         return $this->u_select_rows($lSql);
     }
 
+    // TODO: support more than just sqlite
     function u_create_table($table, $cols)  {
         $table = $this->untaintName($table, 'table');
         $sql = "CREATE TABLE IF NOT EXISTS $table (\n";
@@ -116,6 +120,7 @@ class u_Db extends StdModule {
         return $this->u_query(new \o\SqlLockString ($sql));
     }
 
+    // TODO: support more than just sqlite
     function u_create_index($table, $col)  {
         $table = $this->untaintName($table, 'table');
         $col = $this->untaintName($col, 'column');
@@ -152,7 +157,6 @@ class u_Db extends StdModule {
             if (!$row) { break; }
             $rows []= OMap::create($row);
         }
-
         return $rows;
     }
 
@@ -175,6 +179,7 @@ class u_Db extends StdModule {
         $cols = [];
         $vals = [];
         foreach ($fields as $col => $value) {
+            $col = $this->untaintName($col, 'column');
             $cols []= $col;
             $vals []= ':' . $col;
         }
@@ -198,6 +203,7 @@ class u_Db extends StdModule {
         $cols = [];
         $sets = [];
         foreach (uv($vals) as $col => $value) {
+            $col = $this->untaintName($col, 'column');
             $set = "$col = :$col";
             $sets []= $set;
         }
@@ -206,7 +212,7 @@ class u_Db extends StdModule {
         $params = array_merge(uv($vals), $lWhere->getParams());
 
         if (strpos(strtolower($where), 'where') !== false) {
-            Tht::error('`WHERE` keyword is not needed in `update()` query', array('table' => $table, 'where' => $where));
+            Tht::error('Please remove `WHERE` keyword from `where` argument', array('table' => $table, 'where' => $where));
         }
 
         $sql = "UPDATE $table SET $sSets WHERE $where";
@@ -246,6 +252,15 @@ class u_Db extends StdModule {
         $sql = preg_replace('/\{([0-9]+)\}/', ':param_$1', $sql);
         $sql = preg_replace('/\{([a-zA-Z0-9]+)\}/', ':$1', $sql);
 
+        // Replace {} with :param_0, etc.
+        $numSlots = 0;
+        $countSlots = function($matches) use ($numSlots) {
+            $s = ':param_' . $numSlots;
+            $numSlots += 1;
+            return $s;
+        };
+        $sql = preg_replace_callback('/\{\}/', $countSlots, $sql);
+
 
         Tht::module('Perf')->u_start('Db.query', $sql);
 
@@ -263,6 +278,7 @@ class u_Db extends StdModule {
             }
             else {
 
+                // unwrap param values
                 $params = uv($params);
                 $aParams = [];
                 foreach ($params as $k => $v) {
