@@ -492,6 +492,7 @@ HTML;
 
     function u_table ($rows, $keys, $headings=[], $class='') {
         $class = preg_replace('/[^a-zA-Z0-9_-]/', '', $class);  // [security]
+
         $str = "<table class='$class'>\n";
         $rows = uv($rows);
         $keys = uv($keys);
@@ -665,14 +666,14 @@ HTML;
             Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
         }
 
-        // [security]  Require https for non-GET requests
+        // Require https for non-GET requests
         // if ($method !== 'get' && !Tht::module('Web')->u_request()['isHttps'] && !Tht::isMode('testServer')) {
         //     Tht::error("Page must be run under 'https' to accept non-GET requests.\n\nCheck your web host's admin panel, or visit 'letsencrypt.org' for a free SSL cert.");
         // }
 
-        // [security]  Disallow cross-origin request
+        // Disallow cross-origin request
         if ($method === 'post') {
-            if ($this->isCrossOrigin()) {
+            if (Security::isCrossOrigin()) {
                 Tht::module('Web')->u_send_error(403, 'Remote Origin Not Allowed');
             }
         }
@@ -759,34 +760,7 @@ HTML;
         ]);
     }
 
-    function isCrossOrigin () {   // [security]
 
-        if (!is_null($this->isCrossOrigin)) {
-            return $this->isCrossOrigin;
-        }
-
-        $web = Tht::module('Web');
-
-        if ($web->u_request()['method'] !== 'get') {
-           $host  = $web->u_request_header('host');
-           $origin = $web->u_request_header('origin');
-           $origin = preg_replace('/^https?:\/\//i', '', $origin);
-           if (!$origin) {
-               $referrer = $web->u_request_header('referrer');
-
-               if (strpos($referrer, $host)) {
-                   $this->isCrossOrigin = false;
-               } else {
-                   $this->isCrossOrigin = true;
-               }
-           }
-           else if ($origin !== $host) {
-               $this->isCrossOrigin = true;
-           }
-        }
-
-        return $this->isCrossOrigin;
-    }
 
 
 

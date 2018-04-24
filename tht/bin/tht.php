@@ -15,7 +15,7 @@ if (!ini_get('date.timezone')) {
 
 // Doing this right away to include hits from static cache
 if (isset($_SERVER['HTTP_USER_AGENT'])) {
-  //  startupHitCounter();
+    startupHitCounter();
     startupStaticCache();
 }
 

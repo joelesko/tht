@@ -42,9 +42,7 @@ class LibModules {
         Runtime::registerStdModule('Regex', new u_Regex ());
         Runtime::registerStdModule('Result', new u_Result ());
 
-        // [security]
-        // for internal use
-        Runtime::registerStdModule('*File', new u_File (true));  
+        Security::registerInternalFileModule();
     }
 
     public static function isa ($lib) {

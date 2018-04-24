@@ -139,7 +139,8 @@ class Tht {
         Tht::initPhpGlobals();
         Tht::initPaths();
         Tht::initConfig();
-        Tht::initPhpIni();
+
+        Security::initPhpIni();
     }
 
     static function executePhp ($phpPath) {
@@ -316,52 +317,6 @@ class Tht {
         Tht::module('Perf')->u_stop();
     }
 
-    // [security] set ini
-    static private function initPhpIni () {
-
-        // locale
-        date_default_timezone_set(Tht::getConfig('timezone'));
-        ini_set('default_charset', 'utf-8');
-        mb_internal_encoding('utf-8');
-
-        // logging
-        error_reporting(E_ALL);
-        ini_set('display_errors', Tht::isMode('cli') ? '1' : (Tht::getConfig('_phpErrors') ? '1' : '0'));
-        ini_set('display_startup_errors', '1');
-        ini_set('log_errors', '0');  // assume we are logging all errors manually
-
-        // file security
-        ini_set('allow_url_fopen', '0');
-        ini_set('allow_url_include', '0');
-
-        // limits
-        ini_set('max_execution_time', Tht::isMode('cli') ? 0 : intval(Tht::getConfig('maxExecutionTimeSecs')));
-        ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
-        ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
-
-
-        // Configs that are only set in .ini or .htaccess
-        // Trigger an error if PHP is more strict than Tht.
-        $thtMaxPostSize = intval(Tht::getConfig('maxPostSizeMb'));
-        $phpMaxFileSize = intval(ini_get('upload_max_filesize'));
-        $phpMaxPostSize = intval(ini_get('post_max_size'));
-        $thtFileUploads = Tht::getConfig('allowFileUploads');
-        $phpFileUploads = ini_get('file_uploads');
-
-        if ($thtMaxPostSize > $phpMaxFileSize) {
-            Tht::configError("Config `maxPostSizeMb` ($thtMaxPostSize) is larger than php.ini `upload_max_filesize` ($phpMaxFileSize).\n"
-                . "You will want to edit php.ini so they match.");
-        }
-        if ($thtMaxPostSize > $phpMaxPostSize) {
-            Tht::configError("Config `maxPostSizeMb` ($thtMaxPostSize) is larger than php.ini `post_max_size` ($phpMaxPostSize).\n"
-                . "You will want to edit php.ini so they match.");
-        }
-        if ($thtFileUploads && !$phpFileUploads) {
-            Tht::configError("Config `allowFileUploads` is true, but php.ini `file_uploads` is false.\n"
-                . "You will want to edit php.ini so they match.");
-        }
-    }
-
     // [security] clear out super globals
     static private function initPhpGlobals () {
 
@@ -445,7 +400,7 @@ class Tht {
             "compressOutput"       => true,
             "sessionDurationMins"  => 120,
 
-            // [security]
+            // security
             "allowFileAccess"         => false,
             "allowFileUploads"        => false,
             "contentSecurityPolicy"   => '',

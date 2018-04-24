@@ -7,6 +7,8 @@ class WebMode {
     static private $SETTINGS_KEY_ROUTE = 'routes';
     static private $ROUTE_HOME = 'home';
 
+    static private $DISALLOWED_PATH_CHARS_REGEX = '/[^a-z0-9\-\/\.]/';
+
     static private $requestHeaders = [];
     static private $routeParams = [];
     static private $printBuffer = [];
@@ -18,7 +20,7 @@ class WebMode {
 
     static public function main() {
 
-        WebMode::initResponseHeaders();
+        Security::initResponseHeaders();
 
         if (Tht::getConfig('downtime')) {
             WebMode::downtimePage(Tht::getConfig('downtime'));
@@ -74,7 +76,7 @@ class WebMode {
         $pathSize = strlen($path);
 
         $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
-        if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
+        if (preg_match(self::$DISALLOWED_PATH_CHARS_REGEX, $path) || $isTrailingSlash)  {
             Tht::errorLog("Path `$path` is not valid");
             Tht::module('Web')->u_send_error(404);
         }
@@ -118,21 +120,25 @@ class WebMode {
                 $isMatch = true;
                 foreach (range(0, $numMatchParts - 1) as $i) {
                     $mPart = $matchParts[$i];
+
                     if ($mPart[0] === '{' && $mPart[strlen($mPart)-1] === '}') {
+                        // route placeholder
                         $token = substr($mPart, 1, strlen($mPart)-2);
                         if (preg_match('/[^a-zA-Z0-9]/', $token)) {
                             Tht::configError("Route placeholder `{$token}` should only"
                                 . " contain letters and numbers (no spaces).");
                         }
-                        $val = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $pathParts[$i]); // [security]
+                        $val = preg_replace(self::$DISALLOWED_PATH_CHARS_REGEX, '', $pathParts[$i]); 
                         $params[$token] = $val;
-                    } else {
+                    } 
+                    else {
                         if ($mPart !== $pathParts[$i]) {
                             $isMatch = false;
                             break;
                         }
                     }
                 }
+
                 if ($isMatch) {
                     WebMode::$routeParams = $params;
                     return Tht::path('pages', $controllerPath);
@@ -237,26 +243,6 @@ class WebMode {
                 ErrorHandler::handleThtException($e, Tht::getPhpPathForTht($controllerFile));
             }
         }
-    }
-
-    static function initResponseHeaders () {
-
-        // [security]  Set response headers
-        header_remove('Server');
-        header_remove("X-Powered-By");
-        header('X-Frame-Options: deny');
-        header('X-Content-Type-Options: nosniff');
-        header("X-UA-Compatible: IE=Edge");
-
-        // [security]  Content Security Policy (CSP)
-        $csp = Tht::getConfig('contentSecurityPolicy');
-        if (!$csp) {
-            $nonce = "'nonce-" . Tht::module('Web')->u_nonce() . "'";
-            $eval = Tht::getConfig('dangerDangerAllowJsEval') ? 'unsafe-eval' : '';
-            $scriptSrc = "script-src $eval $nonce";
-            $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src *; font-src *; " . $scriptSrc;
-        }
-        header("Content-Security-Policy: $csp");
     }
 
     static function getWebRequestHeader ($key) {
