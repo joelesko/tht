@@ -5,13 +5,12 @@ namespace o;
 class u_Session extends StdModule {
 
     private $sessionStarted = false;
-    private $sessionIdLength = 48;
     private $checksumKey = '**checksum';
     private $flashKey = '**flash';
     private $flashData = [];
     private $sessionIdName = 'sid';
-    private $cookieDuration = 0;  // until browser is closed
-    private $sessionFileExpiry = 2 * 60 * 60;
+
+
 
     public function startSession() {
         if ($this->sessionStarted) {
@@ -19,29 +18,22 @@ class u_Session extends StdModule {
         }
         $this->sessionStarted = true;
 
-        $this->sessionFileExpiry = Tht::getConfig('sessionDurationMins') * 60; 
-
         if (headers_sent()) {
             Tht::error('Session can not be started after page content is sent.');
         }
 
         Tht::module('Perf')->u_start('Session.start');
 
-        ini_set('session.use_only_cookies', 1);
-        ini_set('session.use_strict_mode', 0);
-        ini_set('session.cookie_httponly', 1);
-        ini_set('session.use_trans_sid', 1);
-        ini_set('session.gc_maxlifetime', $this->sessionFileExpiry);
-        ini_set('session.cookie_lifetime', $this->cookieDuration);
-        ini_set('session.sid_length', $this->sessionIdLength);
-        
+        Security::initSessionParams();
+
         session_save_path(Tht::path('sessions'));
 
         session_name($this->sessionIdName);
         session_start();
 
-        // [security] verify checksum (IP + User Agent)
-        $checksum = md5(Tht::getPhpGlobal('server', 'REMOTE_ADDR') . '::' . Tht::getPhpGlobal('server', 'HTTP_USER_AGENT'));
+
+        $checksum = Security::getSessionChecksum();
+
         if (isset($_SESSION[$this->checksumKey])) {
             if ($checksum !== $_SESSION[$this->checksumKey]) {
 

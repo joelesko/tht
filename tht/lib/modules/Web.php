@@ -5,7 +5,7 @@ namespace o;
 
 class u_Web extends StdModule {
 
-    static private $CSRF_TOKEN_LENGTH = 64;
+    
 
     // TODO: complete list
     static private $VALIDATION_RULES = [
@@ -20,8 +20,6 @@ class u_Web extends StdModule {
     private $request;
     private $isCrossOrigin = null;
     private $includedValidatorJs = false;
-
-    static private $CSP_NONCE = '';
 
 
     // REQUEST
@@ -205,22 +203,11 @@ class u_Web extends StdModule {
     }
 
     function u_nonce () {
-
-        if (!u_Web::$CSP_NONCE) {
-            u_Web::$CSP_NONCE = Tht::module('String')->u_random(40);
-        }
-
-        return u_Web::$CSP_NONCE;
+        return Security::getNonce();
     }
 
     function u_csrf_token() {
-        $token = Tht::module('Session')->u_get('csrfToken');
-        if (empty($token)) {
-            $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
-            Tht::module('Session')->u_set('csrfToken', $token); 
-        }
-
-        return $token;
+        return Security::getCsrfToken();
     }
 
     // SEND DOCUMENTS
@@ -660,7 +647,9 @@ HTML;
     }
 
 
-
+    function u_route_param ($key) {
+        return WebMode::getWebRouteParam($key);
+    }
 
 
 
@@ -811,10 +800,6 @@ HTML;
 
 
 
-
-
-    // Future Methods
-
     function u_reader($schema, $formId="defaultForm") {
         $this->validators[$formId] = uv($schema);
     }
@@ -864,9 +849,7 @@ HTML;
         return true;
     }
 
-    function u_route_param ($key) {
-        return WebMode::getWebRouteParam($key);
-    }
+
 
     function checkAjax ($isAjax) {
         if ($isAjax !== $this->u_request()['isAjax']) {
@@ -908,6 +891,7 @@ HTML;
     }
 
     ***/
+
 
     function u_validate_js($formId="defaultForm") {
 
@@ -1153,6 +1137,7 @@ EOJS;
         return new JsLockString($validatorJs . $formJs);
 
     }
+
 }
 
 

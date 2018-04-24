@@ -12,9 +12,9 @@ class u_Json extends StdModule {
         return u_Json::convertToMaps(json_decode($v, false));
     }
 
-    // TODO: try to make more memory-efficient?
     static function convertToMaps ($obj) {
         if (!is_object($obj)) { return $obj; }
+        $map = [];
         foreach (get_object_vars($obj) as $key => $val) {
             $map[$key] = u_Json::convertToMaps($val);
         }

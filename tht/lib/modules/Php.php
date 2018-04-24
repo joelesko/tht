@@ -6,37 +6,6 @@ class u_Php extends StdModule {
 
     private $isRequired = [];
 
-    private $blacklist = [
-        'assert',
-        'call_user_func',
-        'call_user_func_array',
-        'create_function',
-        'eval',
-        'exec',
-        'extract',
-        'file',
-        'file_get_contents',
-        'file_put_contents',
-        'fopen',
-        'include',
-        'include_once',
-        'parse_str',
-        'passthru',
-        'phpinfo',
-        'popen',
-        'require',
-        'require_once',
-        'rmdir',
-        'serialize',
-        'shell_exec',
-        'system',
-        'unlink',
-        'unserialize',
-        'url_exec',
-    ];
-
-    private $blacklistMatch = '/pcntl_|posix_|proc_|ini_/i';
-
     private $phpFunctionOk = [];
 
     function checkPhpFunction ($func) {
@@ -45,14 +14,10 @@ class u_Php extends StdModule {
 
         if (isset($this->phpFunctionOk[$func])) {  return true;  }
 
+        Security::validatePhpFunction($func);
+
         if (!function_exists($this->name($func))) {
             Tht::error("PHP function does not exist: `$func`");
-        }
-        if (in_array($func, $this->blacklist)) {
-            Tht::error("PHP function is blacklisted: `$func`");
-        }
-        if (preg_match($this->blacklistMatch, $func)) {
-            Tht::error("PHP function is blacklisted: `$func`");
         }
 
         $this->phpFunctionOk[$func] = true;

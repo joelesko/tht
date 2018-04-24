@@ -27,8 +27,7 @@ class Tht {
 
     static private $APP_DIR = [
 
-        'root'      => 'tht',
-
+        'app'       => 'app',
         'pages'     =>   'pages',
         'modules'   =>   'modules',
         'settings'  =>   'settings',
@@ -80,6 +79,7 @@ class Tht {
         Tht::loadLib('Source.php');
         Tht::loadLib('StringReader.php');
         Tht::loadLib('Runtime.php');
+        Tht::loadLib('Security.php');
 
         Tht::loadLib('../classes/_index.php');
         Tht::loadLib('../modules/_index.php');
@@ -229,22 +229,23 @@ class Tht {
         // TODO: clarify app root constant name (appRoot vs docRootParent etc)
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
         $thtAppRoot = defined('APP_ROOT') ? constant('APP_ROOT') : $docRootParent;
-        Tht::$paths['root'] = Tht::makePath(realpath($docRootParent), Tht::$APP_DIR['root']);
 
-        if (!Tht::$paths['root']) {
+        Tht::$paths['app']  = Tht::makePath(realpath($thtAppRoot), Tht::$APP_DIR['app']);
+        Tht::$paths['data'] = Tht::makePath(realpath($thtAppRoot), Tht::$APP_DIR['data']);
+
+        if (!Tht::$paths['app']) {
             Tht::startupError("App has not been setup yet.\n\n"
                 . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory.");
         }
 
         // main dirs
-        Tht::$paths['appRoot']   = realpath($docRootParent);
+        Tht::$paths['root']   = realpath($thtAppRoot);
 
-        Tht::$paths['data']      = Tht::path('root', Tht::$APP_DIR['data']);
-        Tht::$paths['pages']     = Tht::path('root', Tht::$APP_DIR['pages']);
-        Tht::$paths['modules']   = Tht::path('root', Tht::$APP_DIR['modules']);
-        Tht::$paths['settings']  = Tht::path('root', Tht::$APP_DIR['settings']);
-        Tht::$paths['scripts']   = Tht::path('root', Tht::$APP_DIR['scripts']);
-        Tht::$paths['localTht']  = Tht::path('root', Tht::$APP_DIR['localTht']);
+        Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
+        Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
+        Tht::$paths['settings']  = Tht::path('app', Tht::$APP_DIR['settings']);
+        Tht::$paths['scripts']   = Tht::path('app', Tht::$APP_DIR['scripts']);
+        Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
         // Tht::$paths['phpLib']    = Tht::path('root', Tht::$APP_DIR['phpLib']);
 
         // data subdirs
@@ -365,7 +366,7 @@ class Tht {
 
         Tht::initHttpRequestHeaders();
 
-        // [security]  remove all php globals
+        // remove all php globals
         unset($_ENV);
         unset($_REQUEST);
         unset($_GET);
@@ -454,18 +455,6 @@ class Tht {
     static function loadLib ($file) {
         $libDir = dirname(__FILE__);
         require_once(Tht::makePath($libDir, $file));
-    }
-
-    static function sanitizeString ($str) { // [security]
-        if (is_array($str)) {
-            foreach ($str as $k => $v) {
-                $str[$k] = Tht::sanitizeString($v);
-            }
-        } else if (is_string($str)) {
-            $str = str_replace(chr(0), '', $str);  // remove null bytes
-            $str = trim($str);
-        }
-        return $str;
     }
 
     static function parseTemplateString ($type, $lRawText) {
@@ -560,7 +549,7 @@ class Tht {
     }
 
     static function getPhpPathForTht ($thtFile) {
-        $relPath = Tht::module('File')->u_relative_path($thtFile, Tht::$paths['root']);
+        $relPath = Tht::module('File')->u_relative_path($thtFile, Tht::$paths['app']);
         $cacheFile = preg_replace('/[\\/]/', '_', $relPath);
         return Tht::path('phpCache', $cacheFile . '.php');
     }
@@ -569,7 +558,7 @@ class Tht {
         $f = basename($phpPath);
         $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
-        return Tht::path('root', $f);
+        return Tht::path('app', $f);
     }
 
     static function getThtFileName ($fileBaseName) {
@@ -626,7 +615,7 @@ class Tht {
             return $def;
         }
         $val = Tht::$data['phpGlobals'][$g][$key];
-        $val = Tht::sanitizeString($val);
+        $val = Security::sanitizeString($val);
 
         return $val;
     }

@@ -59,7 +59,7 @@ class u_File extends StdModule {
         if (preg_match('/path|dir|file/', $pattern)) {
             // a path
             // TODO: check is_dir or is_file
-            $a = $this->validatePath($a);
+            $a = Security::validatePath($a, !$this->skipSandbox);
         }
         if (strpos($pattern, 'exists') !== false) {
             // path must exist
@@ -71,43 +71,6 @@ class u_File extends StdModule {
         return $a;
     }
 
-    // [security]
-    function validatePath ($path, $checkSandbox=true) {
-
-        $path = str_replace('\\', '/', $path);
-        if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
-
-        if (!strlen($path)) {
-            Tht::error("File path cannot be empty: `$path`");
-        }
-        if (v('' . $path)->u_is_url()) {
-            Tht::error("Remote URL not allowed: `$path`");
-        }
-
-        if ($checkSandbox && !$this->skipSandbox && Tht::isMode('fileSandbox')) {
-            if (strpos($path, '..') !== false) {
-                Tht::error("Parent shortcut `..` not allowed in path: `$path`");
-            }
-            $path = $this->getSandboxedPath($path);
-        }
-
-        return $path;
-    }
-
-    // [security]
-    function getSandboxedPath($path) {
-
-        if ($path[0] !== '/') {
-            return Tht::path('files', $path);
-        } 
-        else {
-            $sandboxDir = Tht::path('files');
-            if (strpos($path, $sandboxDir) !== 0) {
-                Tht::error("Path must be relative to `data/files`: `$path`");
-            }
-            return $path;
-        }
-    }
 
 
     // READS
@@ -195,12 +158,12 @@ class u_File extends StdModule {
 
     function u_join_path ($parts) {
         $path = implode('/', uv($parts));
-        $path = $this->validatePath($path, false);
+        $path = Security::validatePath($path, false);
         return $path;
     }
 
     function u_clean_path ($path) {
-        return $this->validatePath($path, false);
+        return Security::validatePath($path, false);
     }
 
     function u_full_path ($relPath) {
@@ -213,8 +176,8 @@ class u_File extends StdModule {
 
     function u_relative_path ($fullPath, $rootPath) {
 
-        $rootPath = $this->validatePath($rootPath, false);
-        $fullPath = $this->validatePath($fullPath, false);
+        $rootPath = Security::validatePath($rootPath, false);
+        $fullPath = Security::validatePath($fullPath, false);
 
         // TODO: both must be absolute
 
@@ -230,8 +193,8 @@ class u_File extends StdModule {
 
     function u_root_path ($fullPath, $relPath) {
 
-        $relPath  = $this->validatePath($relPath, false);
-        $fullPath = $this->validatePath($fullPath, false);
+        $relPath  = Security::validatePath($relPath, false);
+        $fullPath = Security::validatePath($fullPath, false);
 
         // TODO: asset rel and absolute
 
@@ -249,32 +212,32 @@ class u_File extends StdModule {
     // TODO: LockStrings?
 
     function u_has_root_path($fullPath, $rootPath) {
-        $fullPath = $this->validatePath($fullPath, false);
-        $rootPath = $this->validatePath($rootPath, false);
+        $fullPath = Security::validatePath($fullPath, false);
+        $rootPath = Security::validatePath($rootPath, false);
         return strpos($fullPath, $rootPath) === 0;
     }
 
     function u_has_relative_path($fullPath, $relPath) {
-        $fullPath = $this->validatePath($fullPath, false);
-        $relPath  = $this->validatePath($relPath, false);
+        $fullPath = Security::validatePath($fullPath, false);
+        $relPath  = Security::validatePath($relPath, false);
         $offset = strlen($fullPath) - strlen($relPath);
         return strpos($fullPath, $relPath) === $offset;
     }
 
     function u_is_relative_path($p) {
-        $p = $this->validatePath($p, false);
+        $p = Security::validatePath($p, false);
         return $p[0] !== '/';
     }
 
     function u_is_absolute_path($p) {
-        $p = $this->validatePath($p, false);
+        $p = Security::validatePath($p, false);
         return $p[0] === '/';
     }
 
     // TODO: different for abs and rel paths
     // TODO: bounds check
     function u_parent_dir($p) {
-        $p = $this->validatePath($p, false);
+        $p = Security::validatePath($p, false);
         $parentPath = preg_replace('~/.*?$~', '', $p);
         return strlen($parentPath) ? $parentPath : '/';
     }
@@ -292,7 +255,7 @@ class u_File extends StdModule {
 
     function u_delete_dir ($dirPath) {
 
-        $checkPath = $this->validatePath($dirPath);
+        $checkPath = Security::validatePath($dirPath, !$this->skipSandbox);
         if (is_dir($checkPath)) {
             $this->deleteDirRecursive($dirPath);
         } 
@@ -303,7 +266,7 @@ class u_File extends StdModule {
 
     function deleteDirRecursive ($dirPath) {
 
-        $dirPath = $this->validatePath($dirPath);
+        $dirPath = Security::validatePath($dirPath, !$this->skipSandbox);
 
         // recursively delete dir contents
         $dirHandle = opendir($dirPath);

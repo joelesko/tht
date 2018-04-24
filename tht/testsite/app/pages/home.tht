@@ -1,0 +1,1781 @@
+
+// Test Suite
+
+function main() {
+
+    let test = Test.new();
+    run(test);
+
+    Web.sendHtml(html(test.resultsHtml()));
+}
+
+template html(results) {
+
+    <!-- this is a comment -->
+    <html>
+        <head>
+          <title>> THT Unit Tests
+          {{ Css.include('base') }}
+        </>
+        <body>
+            <main>
+                <h1>> THT Unit Tests
+
+                    <a href="#test-results">> Skip to Results
+
+                    {{ results }}
+
+            </main>
+        </body>
+    </html>
+
+}
+
+
+
+function run(t) {
+
+    testMathAndLogic(t);
+    testStrings(t);
+    testControlFlow(t);
+    testLists(t);
+    testMaps(t);
+    testFunctions(t);
+    testTypes(t);
+    testMisc(t);
+    testTemplates(t);
+
+    runtimeErrors(t);
+    compileErrors(t);
+
+    libFile(t);
+    libDate(t);
+    libDb(t);
+    libJconTest(t);
+    libJs(t);
+    libJson(t);
+    libLitemark(t);
+    libMath(t);
+  //  libMeta(t);
+    libPerf(t);
+    libPhp(t);
+    libWeb(t);
+    libGlobal(t);
+    libSettings(t);  
+   // libMapDb(t);  
+    libSession(t);
+}
+
+
+function runtimeErrors(t) {
+
+    t.section('Runtime Errors');
+
+    t.dies(function () { 'abc'.sdf() }, 'non-existent method');
+    t.dies(function () { 'abc {1}'.fill(['foo']) }, 'bad fill value');
+
+    t.dies(function () {
+        { a: 1 }.sdfsdf();
+    }, 'invalid method');
+
+    t.dies(function () {
+         let a = 'sdf'.reverse;
+    }, 'missing parens in method call');
+
+    let funFor = function () {
+        for (foo in 2) { }
+    };
+
+    t.dies(funFor, 'Invalid argument');
+
+    t.dies(function () { return 'abc'.length; }, 'length()');
+
+}
+
+function compileErrors(t) {
+
+    t.section('Parser');
+
+    let code = '''
+
+        // test comments
+
+        /*
+            this is a block comment
+        */
+
+        let commented = 2; // line-end comment
+
+    ''';
+    t.parserOk(code, 'comments');
+    let longComment = '// ' ~ String.repeat('a', 102) ~ '\n';
+    t.parserOk(longComment, 'line comment over 100 chars');
+    let longBlockComment = '/*\n' ~ String.repeat('a', 102) ~ '\n*/';
+    t.parserOk(longBlockComment, 'block comment over 100 chars');
+
+
+    t.section('Parser Errors - Names');
+
+    t.parserError('let FOO = 3;',        'camelCase');
+    t.parserError('let fOO = 3;',        'camelCase');
+    t.parserError('let XMLreader = {};', 'camelCase');
+    t.parserError('let a_b = 3;',        'camelCase');
+    t.parserError('function FOO() {}',   'camelCase');
+    t.parserError('function a () {}',    'longer than 1');
+    let longName = String.repeat('a', 41);
+    t.parserError('let ' ~ longName ~ ' = 1;', '40 characters or less');
+    t.parserError('function ' ~ longName ~ ' () {}', '40 characters or less');
+
+
+    t.section('Parser Errors - Aliases');
+
+    t.parserError('var a = 3;', 'try: \`let\`');
+    t.parserError('foreach (ary as a) { }', 'try: \`for\`');
+    t.parserError('let ary = [];\nfor (ary as a) { }', 'item in list');
+    t.parserError('$foo = 123',  'remove $ from name');
+
+
+    t.section('Parser Errors - Misc');
+
+    t.parserError('asdasd', 'unknown variable', '');
+    t.parserError('if (a = 3) { }', 'assignment', 'if, missing paren');
+    t.parserError('break;\nlet a = 3;', 'unreachable');
+    t.parserOk('return;\nlet a = 3;', 'may return early');
+    t.parserOk('if (true) { break; }', 'newline not needed for one-line if');
+    t.parserOk('function foo() { return 1; }', 'newline not needed for one-line fun');
+    t.parserError('let a = `hello', 'unexpected newline');
+    t.parserError('for (a) {}', 'expected `in`');
+    t.parserOk('\t let a\t=\t1;', 'tabs');
+    t.parserError('for (let i = 0; i < 10; i++) {}', 'unexpected `let`');
+    t.parserError('1 ? 2 ? 3 : 4 : 5', 'nested ternary');
+    t.parserError('let a = E`foo`;', 'string modifier');
+    t.parserError('let a = l`foo`;', 'uppercase');
+    t.parserError('let a == 123;', 'expected `=`');
+    t.parserError('let a;', 'expected `=`');
+    t.parserError('if (2 => 1) { }', '>=');
+    t.parserError('if (1 =< 2) { }', '<=');
+    t.parserError('let a = 1 <> 2;', '!=');
+    t.parserError('function foo();', 'Unexpected semicolon');
+    t.parserError('if (a == 3) .', 'Expected `{`');
+    t.parserError('function foo(),', 'Unexpected comma');
+    t.parserError('let a = { FOO: `bar` };', 'camelCase');
+    t.parserError('let a = { foo: `bar`, foo: 1 };', 'duplicate key');
+    t.parserError('if (true) return;',   'Expected `{`');
+    t.parserError('print(`a`), print(`b`);', 'comma');
+    t.parserError('let a = 1, b = 2;', 'Missing semicolon', '');
+    t.parserError('let a = (1 + );', 'incomplete');
+    t.parserError('let a = 2 + (1 * ) + 1;', 'incomplete');
+    t.parserError('<?', 'Unexpected symbol `<`');
+    t.parserError('?>', 'Unexpected symbol `?`');
+    t.parserError('`hello`[] = `a`;', 'Assignment can not');
+
+
+
+    // t.dies(function () {
+    //      let a = true;
+    //      print(a[1]);
+    //  },
+    //  'Flag as array');
+
+
+    t.section('Parser Errors - Adjacent Tokens');
+
+    t.parserError('let a = foo foo;',   'unexpected word');
+    t.parserError('let a = `foo` foo;', 'unexpected word');
+    t.parserError('let a = 123 foo;',   'unexpected word');
+    t.parserError('let a = foo `foo`;', 'unexpected string');
+    t.parserError('let a = 123 `foo`;', 'unexpected string');
+    t.parserError('let a = foo 123;',   'unexpected number');
+    t.parserError('let a = `foo` 123;', 'unexpected number');
+    t.parserError('let a = [1, 2 3]',   'unexpected number');
+    t.parserError('let a = { k: a, b c }', 'unexpected word');
+
+
+    t.section('Parser Errors - Newlines');
+
+    t.parserError('let a = ``` sdf', 'newline');
+    t.parserError('let a = ```\ndfg ```;', 'triple-quote');
+    t.parserError('let a = 1; /*\n', 'separate line');
+    t.parserError('/*\nsdf\n*/ d', 'missing newline');
+    t.parserError('/*\nsdf', 'unclosed comment');
+    t.parserError('template fooText() {\n};', 'missing newline'); // after }
+
+
+
+    t.section('Parser Errors - Spaces');
+
+    t.parserError('function(){}',         'space after `function`');
+    t.parserError('function foo () {}',   'space before `(`');
+    t.parserError('function foo(){}',     'space after `)`');
+    t.parserError('function foo{}',       'space before `{`');
+    t.parserError('function (){}',        'space after `)`');
+    t.parserError('a = function() {};',   'space after `function`');
+    t.parserError('F foo() {a = 1 }',     'space after `{`');
+    t.parserError('( a + 1)',             'space after `(`');
+    t.parserOk('let a = (\n1 +\n2\n);',    'space after `(`');
+    t.parserError('foo( );',              'space after `(`');
+    t.parserError('let a = [ ]',          'space after `[`');
+    t.parserError('let a = { }',          'space after `{`');
+    t.parserOk('let a = [\n];',            'space after `[`');
+    t.parserOk('let a = {\n};',            'space after `{`');
+    t.parserError('let a = b[ 0]',        'space after `[`');
+    t.parserError('let a = b[0 ]',        'space before `]`');
+    t.parserError('let a= 1+2;',          'space before `=`');
+    t.parserError('let a =1+2;',          'space after `=`');
+    t.parserError('let a = 1+ 2;',        'space before `+`');
+    t.parserError('let a = 1 +2;',        'space after `+`');
+    t.parserError('let a = {a:`b`}',      'space after `{`');
+    t.parserError('let a = { a:`b`}',     'space after `:`');
+    t.parserError('let a = { a : `b`}',   'space before `:`');
+    t.parserError('let a = [a,b,c]',      'space after `,`');
+    t.parserError('if(true) {}',          'space after `if`');
+    t.parserError('if ( true) {}',        'space after `(`');
+    t.parserError('if (true){}',          'space after `)`');
+    t.parserError('return(a);',           'space after `return`');
+    t.parserError('a,b,c',                'space after `,`');
+    t.parserError('return a ;',           'space before `;`');
+    t.parserError('a? 1 : 2;',            'space before `?`');
+    t.parserError('a ?1 : 2;',            'space after `?`');
+    t.parserError('a ? 1: 2;',            'space before `:`');
+    t.parserError('a ? 1 :2;',            'space after `:`');
+    t.parserError('let a = 1;let a = 2;', 'space after `;`');
+
+    t.parserOk('if (true)\n{ }',            'newline after `)`');
+    t.parserOk('else if (true)\n{ }',       'newline after `)`');
+    t.parserOk('if (true) {\n}\nelse\n{ }', 'newline after `else`');
+    t.parserOk('for (a in [`a`])\n{ }',     'newline after `)`');
+    t.parserOk('function fn()\n{ }',        'newline after `)`');
+
+
+    t.section('Parser Errors - Templates');
+
+    t.parserError('template fHtml() {<',                'newline');
+    t.parserError('template fHtml() {\n  ::for',        'space after `::`');
+    t.parserError('template fHtml() {\n  :: for',       'must end');
+    t.parserError('template fHtml() {\n  {{5 }}\n}\n',  'space after `{{`');
+    t.parserError('template fHtml() {\n  {{ 5}}\n}\n',  'space before `}}`');
+    t.parserError('template fHtml() {\n  {{ \n5 }}',    'unexpected newline');
+
+    t.parserError('template fHtml() {\n  <hr>',           'self-closing');
+    t.parserError('template fHtml() {\n  <b>Hi</div>',    'expected `</b>`');
+    t.parserError('template fHtml() {\n  <b>Hi</b></b>',  'extra closing tag');
+    t.parserError('function fHtml() {\n  <',              'unexpected `<`', '');
+    t.parserError('template foo() {\n',                   'missing type');
+
+
+    t.section('Parser Errors - Assignment as Expression');
+
+    t.parserError('let b = 1;\nlet a = b = 3;',       'assignment can not');
+    t.parserError('let b = 1;\nlet a = b += 3;',      'assignment can not');
+    t.parserError('let a = { b: c = 1 }',             'assignment can not');
+    t.parserError('print(a = 3);',                    'assignment can not');
+    t.parserError('a[b = 3]',                         'assignment can not');
+    t.parserError('for (b in a = 3) {}',              'assignment can not');
+    t.parserError('if (a = 3) {}',                    'assignment can not');
+    t.parserError('F foo() { return a = 3;\n }',      'assignment can not');
+
+
+    t.section('Parser Errors - Scope');
+
+    t.parserError('a = 3;', 'unknown variable');
+    t.parserError('let a = 1;\nlet a = 2;', 'already defined');
+    t.parserError('let fOo = 1;\nlet foO = 2;', 'already defined');
+    t.parserError('let a = 1;\nif (a == 1) {\n let a = 2;\n}', 'already defined');
+    t.parserError('if (true) {\n let a = 1;\n let a = 2;\n}', 'already defined');
+    t.parserOk('if (true) {\n let a = 1; }\nif (true) { let a = 2;\n }', 'already defined');
+    t.parserError('let a = 1;\nfunction foo(a) {}', 'already defined');
+    t.parserError('function foo(a, a) {}', 'already defined');
+    t.parserError('function foo(a = 1, a) {}', 'already defined');
+    t.parserError('function foo() { }\nfunction foo() { }', 'already defined');
+    t.parserError('function foo() { }\nfunction fOo() { }', 'already defined');
+    t.parserError('let a = 1;\nfor (a in ary) {}', 'already defined');
+    t.parserError('let print = 123;', 'core function');
+    t.parserError('let finally = 123;', 'reserved');
+    t.parserError('function foo() keep (a) { }', 'unknown variable');
+    t.parserError('b = 4;', 'unknown variable');
+    t.parserError('let fOo = 1;\nfoO = 2;', 'unknown variable');
+    t.parserError('let a = a + 1;', 'unknown variable');
+
+    t.parserError('function foo() { }\nfOo();', 'case mismatch', '');
+
+     // TODO: this is a runtime error.  capture this at compileTime
+     // code = 'let outer = 1;\nfn();\nfunction fn() {\nprint(outer);\n}';
+     // t.parserError(code, 'unknown variable', '');
+
+}
+
+function testMisc(t) {
+
+    t.section('Performance');
+
+    // make sure autoboxed array access doesn't drastically hit performance
+    // TODO: check string access
+    Perf.start('Large Array');
+    let now = Date.now(true);
+    let nums = range(1, 10_000);
+    let ii = 0;
+    for (nn in nums) {
+        let b = nums[ii];
+        ii += 1;
+    }
+    t.ok(ii == 10_000, 'large loop done');
+    let elapsed = Date.now(true) - now;
+    t.ok(elapsed < 100, 'ArrayAccess loop (10,000) took {0} ms'.fill(elapsed));
+    Perf.stop();
+
+
+    t.section('Functional Methods');
+
+
+
+    t.section('Result Objects');
+
+    let st = Result.ok(123);
+    t.ok(st.ok(), 'not ok');
+    t.ok(st.get() == 123, 'ok value');
+
+    st = Result.fail(66);
+    t.ok(!st.ok(), 'not ok');
+    t.ok(st.failCode() == 66, 'failCode');
+
+
+
+
+    t.section('Modules');
+
+    import('TestModule');
+    t.ok(TestModule.bareFun('Joe') == 'bare:Joe', 'module call');
+
+    // let modObj = TestModule.new('Joe');
+    // t.ok(modObj.test() == 'class:Joe', 'module class');
+
+    Global.foo = 'BAR';
+    t.ok(TestModule.testGlobal() == 'global:BAR', 'module global');
+
+
+}
+
+function testTypes(t) {
+
+    t.section('Types');
+
+    t.ok([].isList(), 'list');
+    t.ok({}.isMap(), 'map');
+    t.ok('foo'.isString(), 'string');
+    let n = 123;
+    t.ok(n.isNumber(), 'number');
+    let f = true;
+    t.ok(f.isFlag(), 'flag');
+    let fn = function () { };
+    t.ok(fn.isFunction(), 'function');
+
+
+
+    t.section('Empty Values');
+
+    t.ok([].isEmpty(), 'empty list');
+    t.ok({}.isEmpty(), 'empty map');
+    t.ok(''.isEmpty(), 'empty string');
+    n = 0;
+    t.ok(n.isEmpty(), 'empty num');
+    f = false;
+    t.ok(f.isEmpty(), 'empty flag');
+
+    t.ok(![1, 2, 3].isEmpty(), 'non-empty list');
+    t.ok(!{ foo: 0 }.isEmpty(), 'non-empty map');
+    t.ok(!'abc'.isEmpty(), 'non-empty string');
+    n = 0.1;
+    t.ok(!n.isEmpty(), 'non-empty num');
+    f = true;
+    t.ok(!f.isEmpty(), 'non-empty flag');
+
+}
+
+
+function testFunctions(t) {
+
+    t.section('Functions');
+
+    function test() {
+        return 'yay';
+    }
+    t.ok(test() == 'yay', 'no args');
+
+    function testA(arg) {
+        return arg ~ '!';
+    }
+    t.ok(testA('hey') == 'hey!', 'with arg');
+
+    function testB(arg = 'default') {
+        return arg ~ '!';
+    }
+    t.ok(testB() == 'default!', 'default');
+
+    function testSum() {
+        let asum = 0;
+        for (arg in Meta.arguments()) {
+            asum += arg;
+        }
+        return asum;
+    }
+    let sum = testSum(1, 2, 3, 4);
+    t.ok(sum == 10, 'variable args');
+
+    // sum = testSum(5, [10, 15].toArgs());
+    // t.ok(sum == 30, 'splat');
+
+    function withOp(foo, bar = 'default') {
+        return bar;
+    }
+    let r = withOp('hello', 'world');
+    t.ok(r == 'world', 'default, supplied');
+
+    r = withOp('hello');
+    t.ok(r == 'default', 'default, fallback');
+
+    let outer = 'OUT';
+    let funClosure = function (a) keep (outer) {
+        return a ~ '/' ~ outer;
+    };
+    t.ok(funClosure('IN') == 'IN/OUT', 'closure');
+
+
+    function addToList(l) {
+        l @= 4;
+    }
+    let refList = [1, 2, 3];
+    addToList(refList);
+    t.ok(refList.length() == 4, 'list (object) - pass by ref - changed');
+
+    refList.reverse();
+    t.ok(refList[0] == 1, 'list.reverse - not changed in place');
+
+
+
+    function addToString(s) {
+        s ~= '4';
+    }
+    let refStr = '123';
+    addToString(refStr);
+    t.ok(refStr.length() == 3, 'string - pass by ref - unchanged');
+
+
+    let fnNoReturn = function () {
+        let v = noReturn();
+        v.reverse();
+    };
+    t.dies(fnNoReturn, 'returned Nothing');
+
+
+    function missingArgs(arg1, arg2) { }
+    t.dies(function () { missingArgs(1); }, 'Missing argument - user function');
+    t.dies(function () { Perf.start(); }, 'Missing argument - module');
+}
+
+
+function testMaps(t) {
+
+    t.section('Maps');
+
+    let user = { name: 'Drac', age: 500, friends: [{ name: 'Igor' }] };
+    t.ok(user['name'] == 'Drac', 'bracket');
+    t.ok(user.get('name') == 'Drac', 'get');
+    t.ok(user.length() == 3, 'length');
+    t.ok(user.get('foo', 'bar') == 'bar', 'default');
+    t.ok(user.get(['friends', 0, 'name']) == 'Igor', 'chained');
+    t.ok(user['friends'][0]['name'] == 'Igor', 'chained brackets');
+    t.ok(user.get(['friends', 1, 'name'], false) == false, 'chained fail');
+    user['height'] = '6ft';
+    t.ok(user.get('height') == '6ft', 'put');
+    let mapNum = { name: 'Frank', age: 8 };
+    t.ok(mapNum.get('age') == 8, 'numeric val');
+    let mlmap = {
+        name: 'Joe',
+        id: 12345,
+    };
+    t.ok(mlmap.id == 12345, 'multiline map');
+
+    mlmap['foo'] ||= 33;
+    t.ok(mlmap.foo == 33, 'default assign');
+
+
+
+
+    t.section('Maps - dot access');
+
+    t.ok(user.name == 'Drac', 'dot access');
+    t.dies(function () keep (user) { print(user.nameX) }, 'dot access - missing field dies');
+
+
+    t.section('Maps - Missing values');
+
+    let empty = { foo: 1 };
+    t.ok(empty['missing'] ~ 'yo' == 'yo', 'empty concat');
+    t.ok(empty['missing'] == '', 'empty string');
+    t.ok(!empty['missing'] == true, 'empty bool');
+    empty['def'] ||= 'default';
+    t.ok(empty['def'] == 'default', 'empty or assign');
+
+
+    t.section('Maps - Explicit default');
+
+    let dmap = { foo: 1 }.default('HAY');
+    t.ok(dmap['missing'] == 'HAY', 'Map default - not found');
+    t.ok(dmap['foo'] == 1, 'Map default - found');
+
+    let countMap = {}.default(0);
+    countMap['a'] += 100;
+    t.ok(countMap.a == 100, 'numeric default');
+
+
+    t.section('Maps - Methods');
+
+    let map = { a: 1, b: 2 };
+
+    t.ok(map.hasKey('b'), 'hasKey true');
+    t.ok(!map.hasKey('z'), 'hasKey false');
+
+    t.ok(map.hasValue(2), 'hasValue true');
+    t.ok(!map.hasValue(99), 'hasValue false');
+
+    t.ok(map.keys().join('|') == 'a|b', 'keys');
+    t.ok(map.values().join('|') == '1|2', 'values');
+
+    // copy / isempty
+    let map2 = map.copy();
+    map2['b'] = 3;
+    t.ok(map.b == 2, 'copy');
+    t.ok(map2.b == 3, 'copy');
+    t.ok(!map2.isEmpty(), 'not isEmpty');
+    map2.clear();
+    t.ok(map2.isEmpty(), 'clear / isEmpty');
+
+    // remove
+    t.ok(map.remove('b') == 2, 'delete - key exists');
+    t.dies(function () keep(map) { map.remove('Z'); }, 'delete - key nonexistent');
+    t.ok(map.keys().length() == 1, 'delete - modified map');
+
+    // reverse
+    map = { a: 1, b: 2, c: 1 };
+    let flipped = map.reverse();
+    t.ok(flipped['1'] == 'c', 'reverse');
+    t.ok(flipped['2'] == 'b', 'reverse');
+    t.ok(flipped.length() == 2, 'reverse length');
+
+
+    t.section('Maps - Size Errors');
+
+    t.dies(F { {}.remove('Z'); }, 'Map key not found');
+    t.dies(F { {}.getKey('VAL'); }, 'Map value not found');
+
+
+}
+
+function testMathAndLogic(t) {
+
+
+    t.section('Math operators');
+
+    let a = 2;
+    let b = a + 1 + 2;
+    let c = a * 3 + 1;
+    let d = a / 2;
+    let e = 5 % 2;
+    let f = 3 + -1;
+    let g = -1 + -1;
+    let h = 2 ** 4;
+
+    t.ok(a ==  2, 'assign');
+    t.ok(b ==  5, 'add');
+    t.ok(c ==  7, 'mult, add');
+    t.ok(d ==  1, 'divide');
+    t.ok(e ==  1, 'modulo');
+    t.ok(f ==  2, 'plus negative');
+    t.ok(h == 16, 'exponent');
+
+    let fp = 1.1 + 2.2;
+    t.ok(fp > 3.2 && fp < 3.4, 'floating point');
+
+    t.ok(1_000_000 + 2_000 == 1_002_000, '_ separator');
+
+
+    t.section('Strict Math');
+
+    t.dies(F { R 'a' + 2; }, 'Add string to number');
+    t.dies(F { R 2 + 'b'; }, 'Add number to string');
+    t.dies(F { R 'a' * 2; }, 'Multiply string');
+    t.dies(F { R 'a' % 2; }, 'Modulo string');
+    t.dies(F { R true + 2; }, 'Add flag to number');
+    t.dies(F { R {} + 2; }, 'Add Map to number');
+    t.dies(F { let aa = 1; aa += 'v'; }, '+= string');
+    t.dies(F { R 1 > 'a'; }, 'number > string');
+    t.dies(F { R 1 >= 'a'; }, 'number >= string');
+    t.dies(F { R 1 < 'a'; }, 'number < string');
+    t.dies(F { R 1 <= 'a'; }, 'number <= string');
+    t.dies(F { R 2 ** 'a'; }, 'number ** string');
+    t.dies(F { R 2 / 0; }, 'divide by zero');
+
+
+    t.section('Truth');
+
+    t.ok(!false, '! false');
+    t.ok(true, 'true');
+    t.ok(true || false, '||');
+    t.ok(true && true, '&&');
+    t.ok(!(true && false), '! &&');
+    t.ok(!(false || false), '! ||');
+
+
+    t.section('Positive/Negative');
+
+    t.ok(-1 < 1, '< negative');
+    t.ok(1 > -1, '> negative');
+    t.ok(2 * -1 == -2, 'times negative');
+    t.ok(+2 + +2 == 4, 'unary plus');
+
+
+    t.section('Comparison');
+
+    t.ok(1 == 1, '==');
+    t.ok(1 != 2, '!=');
+    t.ok(1 < 2, '<');
+    t.ok(2 > 1, '>');
+    t.ok(4 >= 3, '>= gt');
+    t.ok(2 <= 3, '<= lt');
+    t.ok(3 >= 3, '>= eq');
+    t.ok(3 <= 3, '<= eq');
+
+    let num = 5;
+    t.ok(num.compareTo(10) == -1, 'compare num -');
+    t.ok(num.compareTo(-5) ==  1, 'compare num +');
+    t.ok(num.compareTo(5)  ==  0, 'compare num =');
+
+    let str = 'moo';
+    t.ok(str.compareTo('zoo')    == -1, 'compare string -');
+    t.ok(str.compareTo('abcdef') ==  1, 'compare string +');
+    t.ok(str.compareTo('moo')    ==  0, 'compare string =');
+
+
+    t.section('Math Assignment');
+
+    let aa = 10;
+    aa += 10;
+    t.ok(aa == 20, '+=');
+    aa *= 2;
+    t.ok(aa == 40, '*=');
+    aa -= 30;
+    t.ok(aa == 10, '-=');
+    aa /= 2;
+    t.ok(aa == 5, '/=');
+    aa **= 2;
+    t.ok(aa == 25, '**=');
+
+
+    t.section('Number Methods');
+
+    num = 1234.56;
+    t.ok(num.format() == '1,235', 'format');
+    t.ok(num.format(1) == '1,234.6', 'format - numDecimals');
+    t.ok(num.format(2, '') == '1234.56', 'format - blank sep');
+    t.ok(num.format(2, ' ', ',') == '1 234,56', 'format - sep & dec');
+
+    t.ok(num.toString() == '1234.56', 'toString');
+
+    t.ok(num.toFlag() == true, 'toFlag');
+    t.ok((0).toFlag() == false, 'toFlag - false');
+    t.ok((-1).toFlag() == true, 'toFlag - negative');
+    t.ok((0.1).toFlag() == true, 'toFlag - float');
+}
+
+
+function testControlFlow(t) {
+
+
+    t.section('Loops');
+
+    let s = '';
+    for (i in range(1, 3)) {
+        s ~= i;
+    }
+    t.ok(s == '123', 'for, range');
+
+    let nums = [4, 5, 6];
+    for (n in nums) {
+        s ~= n;
+    }
+    t.ok(s == '123456', 'for, list');
+
+    let pairs = { a: 1, b: 2, c: 3 };
+    s = '';
+    for (letter:number in pairs) {
+        s ~= number ~ letter;
+    }
+    t.ok(s == '1a2b3c', 'for, map');
+
+
+    let i = 0;
+    s = '';
+    for {
+        i += 1;
+        s ~= i;
+        if (i == 3) { break; }
+    }
+    t.ok(s == '123', 'break');
+
+    i = 0;
+    s = '';
+    for {
+        i += 1;
+        if (i == 4) {
+            continue;
+        }
+        s ~= i;
+        if (i == 5) {
+            break;
+        }
+    }
+    t.ok(s == '1235', 'continue');
+
+    t.parserError('for {\nlet a = 1;\n}\n', 'needs a \'break\'');
+    t.parserError('for {\nlet a = 1;\nreturn;\n}\n', 'needs a \'break\'');
+
+
+    t.section('Logic Assignment');
+    let a = 0 ||: 5;
+    t.ok(a == 5, '||: false');
+    a = 2 ||: 5;
+    t.ok(a == 2, '||: true');
+    a = 0 &&: 5;
+    t.ok(a == 0, '&&: false');
+    a = 2 &&: 5;
+    t.ok(a == 5, '&&: true');
+    a = 0 ||: 2 &&: 4;
+    t.ok(a == 4, '||: &&:');
+    a = 1 &&: 0 ||: 5;
+    t.ok(a == 5, '&&: ||:');
+    a = 0 ||: '' ||: 6;
+    t.ok(a == 6, '||: ||:');
+    a = 1 &&: 2 &&: 3;
+    t.ok(a == 3, '&&: &&:');
+    a = 1;
+    a &&= 5;
+    t.ok(a == 5, '&&= true');
+    a = 0;
+    a &&= 3;
+    t.ok(a == 0, '&&= false')
+    a = 0;
+    a ||= 2;
+    t.ok(a == 2, '||= true');
+    a ||= 3;
+    t.ok(a == 2, '||= false');
+
+
+    t.section('if/else');
+
+    a = 1;
+
+    if (true) { a = 2 }
+    t.ok(a == 2, 'if true');
+
+    if (false) { a = 3 }
+    t.ok(a == 2, 'if false');
+
+    if (false) {
+        a = 3;
+    }
+    else {
+        a = 4;
+    }
+    t.ok(a == 4, 'else');
+
+    if (false) {
+        a = 3;
+    }
+    else if (true) {
+        a = 5;
+    }
+    t.ok(a == 5, 'else if');
+
+    if (false) {
+        a = 3;
+    }
+    else if (false) {
+        a = 5;
+    }
+    else if (false) {
+        a = 9;
+    }
+    else {
+        a = 6;
+    }
+    t.ok(a == 6, 'if, else if, else');
+
+
+
+    t.section('Misc');
+
+    let ex = false;
+    let fin = false;
+    try {
+        die('ERROR!');
+    }
+    catch (err) {
+        ex = err;
+    }
+    finally {
+        fin = true;
+    }
+
+    t.ok(err.message() == 'ERROR!', 'try/catch thrown');
+    t.ok(fin, 'try/catch - finally');
+
+    let fileEx = false;
+    try {
+        File.read('sdfsdfsdf');
+    } catch (e) {
+        fileEx = e.message();
+    }
+    t.ok(fileEx.contains('File does not exist'), 'catch File exception');
+
+
+    t.section('Ternary');
+
+    t.ok(2 > 1 ? true : false, 'true');
+    t.ok(1 > 2 ? false : true, 'false');
+
+}
+
+function testStrings(t) {
+
+    t.section('Strings');
+
+    let stra = '456789';
+    t.ok(stra[-1] == '9', 'substring index');
+    let ml = '''
+        this is a
+        multiline
+        string.
+    ''';
+    t.ok(ml.contains('multiline\nstring'), 'multiline with indent');
+
+
+    t.section('String Concatenation');
+
+    t.ok('a' ~ 'b' == 'ab', 'a ~ b');
+    t.ok('a' ~  1  == 'a1', 'a ~ 1');
+    t.ok(1.2  ~ 'b' == '1.2b', '1.2 ~ b');
+    t.ok(true ~ '!' == 'true!', 'true ~ !');
+    t.ok(false ~ '!' == 'false!', 'false ~ !');
+
+    let s = 'a';
+    s ~= 'bc';
+    t.ok(s == 'abc', '~=');
+
+
+    t.section('String Methods');
+
+    let hi = 'Hello World!';
+    t.ok('abcdef'.reverse() == 'fedcba', 'direct string method');
+    t.ok(hi.length() == 12, 'length()');
+    t.ok(hi.charAt(1) == 'e', 'get()');
+    t.ok(hi.charAt(-1) == '!', 'get() negative');
+    t.ok(hi.contains('Hello'), 'has()');
+    t.ok(!hi.contains('missing'), '! has()');
+    t.ok(hi.split('o').length() == 3, 'split()');
+    t.ok(hi.split('o')[0] == 'Hell', 'split()');
+    t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode');
+
+
+    t.ok('false'.toFlag() == false, 'toFlag - false');
+    t.ok('true'.toFlag() == true, 'toFlag - true');
+    t.ok('0'.toFlag() == false, 'toFlag - 0');
+    t.ok('null'.toFlag() == false, 'toFlag - null');
+
+    t.ok('123'.toNumber() == 123, 'toNumber');
+    t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
+
+
+    t.section('String Methods - Unicode');
+
+    let uni = 'ⒶⒷⒸ①②③ abc123';
+    t.ok(uni.length() == 13, 'length');
+
+    t.ok(uni.charAt(2) == 'Ⓒ', 'charAt');
+    t.ok(uni.charAt(-1) == '3', 'charAt negative');
+
+    t.ok(uni.charCodeAt(2) == 9400, 'codeAt');
+    t.ok(String.charFromCode(9400) == 'Ⓒ', 'charFromCode');
+    t.ok(String.charFromCode(65) == 'A', 'charFromCode, ascii');
+
+    t.ok(uni.left(3) == 'ⒶⒷⒸ', 'left');
+    t.ok(uni.right(3) == '123', 'right');
+
+    t.ok(uni.substring(4, 5) == '②③ ab', 'substring');
+    t.ok(uni.substring(3) == '①②③ abc123', 'substring - remainder');
+
+    t.ok(uni.startsWith('ⒶⒷⒸ'), 'startsWith');
+    t.ok('ab ⒶⒷ'.endsWith('ⒶⒷ'), 'endsWith');
+    t.ok('abc ⒶⒷ'.startsWith('AbC', true), 'startsWith ignoreCase');
+    t.ok(uni.endsWith('ABc123', true), 'endsWith ignoreCase');
+
+    t.ok(' ⒶⒷ ⒶⒷ'.indexOf('ⒶⒷ') == 1, 'indexOf');
+    t.ok(' ⒶⒷ ⒶⒷ'.indexOf('ⒶⒷ', 2) == 4, 'indexOf - offset');
+    t.ok('abc'.indexOf('BC', 0, true) == 1, 'indexOf - ignoreCase');
+
+    t.ok(' ⒶⒷ ⒶⒷ'.lastIndexOf('ⒶⒷ') == 4, 'lastIndexOf');
+    t.ok(' ⒶⒷ ⒶⒷ'.lastIndexOf('ⒶⒷ', 3) == 1, 'lastIndexOf - offset');
+    t.ok('abab'.lastIndexOf('AB', 0, true) == 2, 'lastIndexOf - ignoreCase');
+
+    t.ok('ⒶⒸ'.insert('Ⓑ', 1) == 'ⒶⒷⒸ', 'insert');
+    t.ok('ⒶⒷⒸ'.insert('①', -2) == 'Ⓐ①ⒷⒸ', 'insert negative index');
+
+    t.ok(uni.contains('③ a'), 'contains');
+    t.ok(uni.contains('③ ABc', true), 'contains ignoreCase');
+
+    t.ok('aⒷⒸ'.padLeft(5, ' ') == '  aⒷⒸ', 'pad left');
+    t.ok('aⒷⒸ'.padLeft(5) == '  aⒷⒸ', 'pad left - no char');
+    t.ok('aⒷⒸ'.padRight(5, '①') == 'aⒷⒸ①①', 'pad right char');
+    t.ok('aⒷⒸ'.pad(5, ' ') == ' aⒷⒸ ', 'pad both');
+    t.ok('aⒷⒸ'.pad(6, ' ') == ' aⒷⒸ  ', 'pad both uneven');
+
+    t.ok('  ⒶⒷ ①②  '.trim() == 'ⒶⒷ ①②', 'trim');
+    t.ok('③③  ⒶⒷ ①②  ③'.trim('③') == 'ⒶⒷ ①②', 'trim mask');
+    t.ok('  ⒶⒷ ①②'.trimLeft() == 'ⒶⒷ ①②', 'leftTrim');
+    t.ok('ⒶⒷ ①②  '.trimRight() == 'ⒶⒷ ①②', 'rightTrim');
+    t.ok('ⒶⒷ ①②  ③'.trimRight('③') == 'ⒶⒷ ①②', 'rightTrim mask');
+    t.ok('③ ⒶⒷ ①②'.trimLeft('③') == 'ⒶⒷ ①②', 'leftTrim mask');
+
+    t.ok('Abc DEF ⒶⒷⒸ'.toUpperCase() == 'ABC DEF ⒶⒷⒸ', 'upperCase');
+    t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⒶⒷⒸ', 'lowerCase');
+
+    t.ok('fòôbàř'.toUpperCase() == 'FÒÔBÀŘ', 'upperCase - extended');
+    t.ok('FÒÔBÀŘ'.toLowerCase() == 'fòôbàř', 'lowerCase - extended');
+
+    t.ok('ABC'.toLowerCaseFirst() == 'aBC', 'lowerCaseFirst');
+    t.ok('abc'.toUpperCaseFirst() == 'Abc', 'upperCaseFirst');
+
+    t.ok('ŘÔÀŘ'.toLowerCaseFirst() == 'řÔÀŘ', 'lowerCaseFirst - extended');
+    t.ok('řôàř'.toUpperCaseFirst() == 'Řôàř', 'upperCaseFirst - extended');
+
+    t.ok('this is a title'.toTitleCase() == 'This is a Title', 'titleCase');
+    t.ok('a title'.toTitleCase() == 'A Title', 'titleCase - starting ignoreWord');
+    t.ok('a:title'.toTitleCase() == 'A:title', 'titleCase - close punctuation');
+
+    t.ok('horse'.toPlural(1) == 'horse', 'plural no');
+    t.ok('horse'.toPlural(2) == 'horses', 'plural yes');
+    t.ok('boss'.toPlural(2) == 'bosses', 'plural s yes');
+    t.ok('stimulus'.toPlural(3, 'stimuli') == 'stimuli', 'plural custom');
+
+    t.ok('ⒶⒷⒸ123'.limit(3) == 'ⒶⒷⒸ...', 'limit');
+    t.ok('ⒶⒷⒸ123'.limit(3, '!') == 'ⒶⒷⒸ!', 'limit');
+
+    t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join');
+    t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',', 2).join('|') == 'Ⓐ|Ⓑ,Ⓒ', 'split/join limit');
+    t.ok('Ⓐ, Ⓑ, Ⓒ'.split(R',\s+').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join regex');
+    t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',', 0).length() == 3, 'split limit 0');
+    t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',', -1).length() == 3, 'split limit -1');
+    t.ok('ⒶⒷⒸ'.split('').length() == 3, 'split on empty delimiter');
+
+    t.ok(uni.splitChars()[2] == 'Ⓒ', 'chars');
+
+    let uniml = '''
+
+        ① item 1
+        ② item 2
+
+        ③ item 3
+
+    ''';
+    t.ok(uniml.splitLines().length() == 3, 'lines - count');
+    t.ok(uniml.splitLines()[1].charAt(0) == '②', 'lines - trimmed indent');
+    t.ok(uniml.splitLines(true).length() == 4, 'lines with whitespace');
+
+    t.ok('ⒶⒷⒸ ①②③ abc 123'.splitWords()[1] == '①②③', 'words');
+    let words = 'abc,123? ok.'.splitWords(true);
+
+    t.ok(words.length() == 3, 'words - bare');
+    t.ok(words[2] == 'ok', 'words - bare');
+
+    t.ok(uni.reverse() == '321cba ③②①ⒸⒷⒶ', 'reverse');
+
+    t.ok('<a&b>'.encodeHtml() == '&lt;a&amp;b&gt;', 'encodeHtml');
+    t.ok('&lt;a&amp;b&gt;'.decodeHtml() == '<a&b>', 'decodeHtml');
+    let esc = '&#97;&#98;&#99;&#9312;&#9313;&#9314;';
+    t.ok('abc①②③'.encodeHtml(true) == esc, 'encodeHtml all');
+
+    let enc = 'a%20%E2%92%B7%2F%E2%92%B8%3Ad';
+    t.ok('a Ⓑ/Ⓒ:d'.encodeUrl() == enc, 'encodeUrl');
+    t.ok(enc.decodeUrl() == 'a Ⓑ/Ⓒ:d', 'decodeUrl');
+
+    t.ok('ⒶⒷⒸ①②③'.removeLeft('ⒶⒷ') == 'Ⓒ①②③', 'removeLeft');
+    t.ok('ⒶⒷⒸ①②③'.removeLeft('①') == 'ⒶⒷⒸ①②③', 'removeLeft - no');
+    t.ok('Abcdef'.removeLeft('abc', true) == 'def', 'removeLeft - ignoreCase');
+
+    t.ok('ⒶⒷⒸ①②③'.removeRight('②③') == 'ⒶⒷⒸ①', 'removeRight');
+    t.ok('ⒶⒷⒸ①②③'.removeRight('①') == 'ⒶⒷⒸ①②③', 'removeRight - no');
+    t.ok('abcDef'.removeRight('def', true) == 'abc', 'removeLeft - ignoreCase');
+
+
+
+
+    //--------
+
+    t.ok('Ⓐ    Ⓑ'.squeeze() == 'Ⓐ Ⓑ', 'squeeze');
+    t.ok('Ⓐ①①①①Ⓑ①①'.squeeze('①') == 'Ⓐ①Ⓑ①', 'squeeze char');
+
+    t.ok('ⒶⒷⒸ {var}'.fill({ var: '①②③' }) == 'ⒶⒷⒸ ①②③', 'fill');
+    t.ok('abc {0}'.fill('123') == 'abc 123', 'fill 1 arg');
+    t.ok('abc {0} {1}'.fill('123', '456') == 'abc 123 456', 'fill 2 arg');
+    t.ok('abc {} {}'.fill(['123', '456']) == 'abc 123 456', 'fill blanks & array');
+
+
+    t.section('Strings - Checks');
+
+    t.ok(' \n  '.isSpace(), 'isSpace true');
+    t.ok(!'  .  '.isSpace(), 'isSpace false');
+    t.ok(!''.isSpace(), 'isSpace empty');
+
+    t.ok('abc def'.hasSpace(), 'hasSpace space');
+    t.ok('abc\ndef'.hasSpace(), 'hasSpace newline');
+    t.ok(!'abcdef'.hasSpace(), 'hasSpace empty');
+
+    t.ok(!'abc 123'.isUpperCase(), 'isUpperCase - none');
+    t.ok(!'aBc 123'.isUpperCase(), 'isUpperCase - some');
+    t.ok('ABC 123'.isUpperCase(), 'isUpperCase - all');
+    t.ok(!''.isUpperCase(), 'isUpperCase - empty');
+
+    t.ok(!'abc 123'.hasUpperCase(), 'hasUpperCase - none');
+    t.ok('aBc 123'.hasUpperCase(), 'hasUpperCase - some');
+    t.ok('ABC 123'.hasUpperCase(), 'hasUpperCase - all');
+    t.ok(!''.hasUpperCase(), 'hasUpperCase - empty');
+
+    t.ok(!'ABC 123'.isLowerCase(), 'isLowerCase - none');
+    t.ok(!'AbC 123'.isLowerCase(), 'isLowerCase - some');
+    t.ok('abc 123'.isLowerCase(), 'isLowerCase - all');
+    t.ok(!''.isLowerCase(), 'isLowerCase - empty');
+
+    t.ok(!'ABC 123'.hasLowerCase(), 'hasLowerCase - none');
+    t.ok('AbC 123'.hasLowerCase(), 'hasLowerCase - some');
+    t.ok('abc 123'.hasLowerCase(), 'hasLowerCase - all');
+    t.ok(!''.hasLowerCase(), 'hasLowerCase - empty');
+
+    t.ok('a b c'.toTokenCase() == 'a-b-c', 'tokenCase');
+    t.ok('aaBbCc'.toTokenCase() == 'aa-bb-cc', 'tokenCase - from camel');
+    t.ok('AaBbCc'.toTokenCase() == 'aa-bb-cc', 'tokenCase - from uppercamel');
+    t.ok('AA BB CC'.toTokenCase() == 'aa-bb-cc', 'tokenCase - from uppercamel');
+    t.ok('a b c'.toTokenCase('__') == 'a__b__c', 'tokenCase - delimiter');
+
+    t.ok('aa bb cc'.toCamelCase() == 'aaBbCc', 'camelCase');
+    t.ok('-aa-bb--cc!'.toCamelCase() == 'aaBbCc', 'camelCase - delim');
+    t.ok('aa-bb-cc'.toCamelCase(true) == 'AaBbCc', 'upperCamelCase');
+    t.ok('a b c'.toCamelCase() == 'aBC', 'camelCase - single chars');
+
+    t.ok('abc'.isAlpha(), 'isAlpha');
+    t.ok('abcDEF'.isAlpha(), 'isAlpha');
+    t.ok(!'abc123'.isAlpha(), 'isAlpha - w numbers');
+    t.ok(!'abc def'.isAlpha(), 'isAlpha - spaces');
+    t.ok(!''.isAlpha(), 'isAlpha - empty');
+
+    t.ok('abc'.isAlphaNumeric(), 'isAlphaNumeric');
+    t.ok('abcDEF'.isAlphaNumeric(), 'isAlphaNumeric');
+    t.ok('abc123'.isAlphaNumeric(), 'isAlphaNumeric - w numbers');
+    t.ok(!'abc 123'.isAlphaNumeric(), 'isAlphaNumeric - spaces');
+    t.ok(!''.isAlphaNumeric(), 'isAlphaNumeric - empty');
+
+    t.ok('123'.isNumber(), 'isNumber');
+    t.ok('-123'.isNumber(), 'isNumber - negative');
+    t.ok('123.45'.isNumber(), 'isNumber - float');
+    t.ok(!'123 '.isNumber(), 'isNumber - space');
+    t.ok(!'123a'.isNumber(), 'isNumber - alphanum');
+    t.ok(!'abc'.isNumber(), 'isNumber - all alpha');
+    t.ok(!''.isNumber(), 'isNumber - empty');
+
+    t.ok('abc 123'.isAscii(), 'isAscii');
+    t.ok(''.isAscii(), 'isAscii - empty');
+    t.ok(!'ⒶⒷⒸ'.isAscii(), 'isAscii - unicode');
+    t.ok(!'abⒸ'.isAscii(), 'isAscii - mixed');
+
+
+    t.section('Strings - Escapes');
+
+    t.ok('ab\cd' == 'abcd', 'string - escape normal char');
+    t.ok('ab\ncd'.match(R'ab\scd'), 'string - newline');
+    esc = '$_SERVER["REMOTE_ADDR"]';
+    t.ok(!'lot\'s\t \{\} "double $quote"'.contains('\\'), 'no leaked backslashes');
+    t.ok('Here\'s an escaped quote'.contains('\''), 'escaped quote (\\\')');
+  //  t.ok('Here`s a backtick' == 'Here\'s a backtick', 'alt apostrophe (\`)');
+
+    t.ok(esc.startsWith('$_SERVER'), 'prevent php vars - $_SERVER');
+    t.ok('\$abc'[0] == '$', 'prevent php vars - \\$abc');
+    t.ok('${abc}'[0] == '$', 'prevent php vars - ${abc}');
+
+
+    t.section('Regular Expressions');
+
+    t.ok(hi.split(R'\s')[1] == 'World!', 'split regex');
+    t.ok(hi.match(R'(\w+)!$')[1] == 'World', 'regex with dollar');
+    t.dies(F { 'longstringlongstring'.find(R'(?:\D+|<\d+>)*[!?]') }, 'regex error');
+
+    let multi = 'one\ntwo\nthree';
+    t.ok(multi.split(R'\s').length() == 3, 'Newline regex');
+
+    let cased = 'hello WORLD';
+    t.ok(cased.match(R'world'.flags('i'))[0] == 'WORLD', 'regex object');
+
+    let ticks = 'hello `WORLD`';
+    t.ok(ticks.match(R'`(\w+)`')[1] == 'WORLD', 'regex with backticks');
+
+    let escTicks = 'hello \`WORLD\`';
+    t.ok(escTicks.replace(R'\`(\w+)\`', 'THERE') == 'hello THERE', 'escaped backticks');
+
+    t.ok('ab  cd e'.replace(R'\s+', '-') == 'ab-cd-e', 'replace');
+
+    let rx = Regex.new('`{0}`'.fill('world'), 'i');
+    t.ok(ticks.replace(rx, 'VAR') == 'hello VAR', 'replace with variable');
+
+
+    t.section('LockStrings');
+
+    t.ok(L'abc'.isLockString(), 'isLockString = true');
+    t.ok(!'abc'.isLockString(), 'isLockString = false');
+
+    t.dies(F { return L'a' ~ 'b'; }, 'Can`t combine');
+    t.dies(F { return 'a' ~ L'b'; }, 'Can`t combine');
+
+    let lock1 = L'1={},';
+    let lock2 = L'2={}';
+    let combined = lock1 ~ lock2;
+    combined.fill(['a', 'b']);
+    t.ok(combined.unlocked() == '1=a,2=b', 'combined lockstrings');
+
+    t.ok(lockHtml('a').getStringType() == 'html', 'getStringType');
+    t.ok(L'x'.getStringType() == 'text', 'getStringType');
+
+}
+
+function testLists(t) {
+
+    t.section('Lists');
+
+    let ary = [1, 2, 3, 4, 5];
+    t.ok([4, 5, 6].reverse()[2] == 4, 'direct list method');
+    t.ok(ary.length() == 5, 'size');
+    t.ok(ary.get(2) == 3, 'at');
+    t.ok(ary.get(10, 9) == 9, 'default');
+    t.ok(ary[1] == 2, 'direct');
+    t.ok(ary.join(':') == '1:2:3:4:5', 'join');
+    t.ok(ary.reverse().join(':') == '5:4:3:2:1', 'reverse');
+    let aryExtraComma = [6, 7, 8, 9, ];
+    t.ok(aryExtraComma.join(':') == '6:7:8:9', 'trailing comma');
+    t.ok(ary[-2] == 4, 'negative index');
+
+    ary[0] = 99;
+    t.ok(ary[0] == 99, 'direct set');
+
+    let mlary = [
+        'hello',
+        { name: 'world' },
+        'yay',
+    ];
+
+    t.ok(mlary[1]['name'] == 'world', 'multiline array');
+
+
+
+    // copy
+    let copyAryA = [1, 2];
+    let copyAryB = copyAryA.copy();
+    copyAryA[0] = 11;
+    copyAryB[0] = 22;
+
+    t.ok(copyAryA[0] == 11 && copyAryB[0] == 22, 'copy');
+
+    // add / remove
+    ary = [1, 2, 3];
+    t.ok(ary.add(40)[3] == 40, 'add');
+    t.ok(ary.remove() == 40, 'remove');
+    t.ok(ary.add(-10, 0)[0] == -10, 'add index 0');
+    t.ok(ary.remove(0) == -10, 'remove index 0');
+
+    ary = [1, 2, 3];
+    t.ok(ary.add(40, -1)[3] == 40, 'add index -1');
+    ary.remove();
+    t.ok(ary.add(40, -2)[2] == 40, 'add index -2');
+
+    t.ok([0, 1, 2].remove(-1) == 2, 'remove index -1');
+    t.ok([0, 1, 2].remove(-2) == 1, 'remove index -2');
+
+    ary = [1, 2, 3];
+    ary.remove();
+    t.ok(ary.length() == 2, 'length after remove');
+
+
+    // sublist
+    t.ok([0, 1, 2, 3].sublist(1).join('|') == '1|2|3', 'sublist');
+    t.ok([0, 1, 2, 3].sublist(-2).join('|') == '2|3', 'sublist -2');
+    t.ok([0, 1, 2, 3].sublist(1, 2).join('|') == '1|2', 'sublist w length');
+
+
+    // Quoted Lists
+    t.ok(Q[ aa bb  'cc' ][1] == 'bb', 'quoted list');
+    t.ok(Q[ aa bb  'cc' ][2] == '`cc`', 'quoted list + quotes');
+    let ml = Q[
+        aa bb
+        'cc'
+    ];
+    t.ok(ml[1] == 'bb', 'multiline quoted list');
+    t.ok(ml[2] == '`cc`', 'multiline quoted list + quotes');
+
+
+
+    t.section('Lists - Sorting');
+
+    // sort
+    t.ok(['a', 'b', 'c'].sort().join('|') == 'a|b|c', 'sort');
+    t.ok(['1', '2', '10'].sort().join('|') == '1|2|10', 'sort numeric strings');
+
+    let list = ['a', 'b', 'c'].sort(F (a, b) { R b.compareTo(a); });
+    t.ok(list.join('|') == 'c|b|a', 'sort function');
+
+    list = [1, 3, 2].sort({ reverse: true });
+    t.ok(list.join('|') == '3|2|1', 'reverse sort');
+
+    list = [1, 3, 2].sort({ reverse: false });
+    t.ok(list.join('|') == '1|2|3', 'non-reverse sort');
+
+    list = ['a1', 'a10', 'a2'].sort({ type: 'natural' });
+    t.ok(list.join('|') == 'a1|a2|a10', 'natural sort');
+
+    list = ['a1', 'a10', 'a2'].sort({ type: 'regular' });
+    t.ok(list.join('|') == 'a1|a10|a2', 'regular sort');
+
+    t.dies(F { ['a'].sort({ type: 'nope' }) }, 'unknown sort type');
+
+    list = ['a1', 'A2', 'a3', 'A4'].sort({ type: 'stringCase' });
+    t.ok(list.join('|') == 'A2|A4|a1|a3', 'case sensitive');
+
+
+    t.section('Lists - Size Errors');
+
+    t.dies(F { [1, 2].remove(3); }, 'remove()');
+    t.dies(F { [].remove(); }, 'empty');
+    t.dies(F { [1].sublist(2); }, 'sublist');
+    t.dies(F { [1].first(2); }, 'last');
+    t.dies(F { [1].last(2); }, 'first');
+
+
+}
+
+function testTemplates(t) {
+
+    t.section('Templates');
+
+    let htmlUsers = templateHtml(['Frodo', 'Sam', 'Gandalf']).unlocked();
+    t.ok(htmlUsers.match(R'<li>Frodo.*?<li>Sam.*?<li>Gandalf'), 'template - loop & variables');
+    htmlUsers = templateHtml(['Frodo', '<b>Sam</b>', 'Gandalf']);
+    t.ok(htmlUsers.unlocked().contains('&lt;b&gt;Sam'), 'template with html escapes');
+
+    let p = Web.parseHtml(L'''
+        <h1>> Hello
+        <.abc>> 123
+    ''');
+    p = p.unlocked();
+    t.ok(p.contains('<h1>Hello</h1>'), 'parse html string - double arrow');
+    t.ok(p.contains('<div class=\'abc\'>123</div>'), 'parse html string - dotted');
+
+
+
+    t.section('Template Escaping');
+
+    t.ok(entHtml().unlocked().contains('&gt;'), 'html - entity');
+    t.ok(formatBlockHtml().unlocked().contains('&lt;foo&gt;'), 'html - format block');
+  //  t.ok(bsHtml().unlock().contains('a\nb\nc'), 'html - newlines');
+    let h = expHtml('"\'', 'a&b"').unlocked();
+    t.ok(h.contains('<p &quot;&#039;>'), 'html - tag attribute');
+    t.ok(h.contains('a&amp;b'), 'html - outer');
+
+    t.ok(tagsHtml(inCss()).unlocked().contains('<style'), 'html - css style block');
+    t.ok(tagsHtml(inJs()).unlocked().contains('<script'), 'html - js block');
+    t.ok(tagsHtml(entHtml()).unlocked().contains('<p>2 &gt; 1</p>'), 'html - embed html');
+
+    let ls = L'<p>a &gt; c</p>';
+    t.ok(tagsHtml(ls).unlocked().contains('<p>a &gt; c</p>'), 'html - LockString');
+
+
+    t.ok(dataJs('string').unlocked().contains('"string";'), 'js - string');
+    t.ok(dataJs('a\nb').unlocked().contains('"a\\nb";'), 'js - string newline');
+    t.ok(dataJs('a"b').unlocked().contains('"a\\"b";'), 'js - string quote');
+    t.ok(dataJs(1234).unlocked().contains('1234;'), 'js - num');
+    t.ok(dataJs(true).unlocked().contains('true;'), 'js - bool');
+    t.ok(dataJs({ a: 1 }).unlocked().contains('{"a":1};'), 'js - object');
+
+
+   // print(tagsHtml(entHtml()).unlock());
+}
+
+
+    
+function libFile(t) {
+
+    t.section('Module: File');
+
+    t.dies(function () { File.exists('../bad.txt'); }, 'parent shortcut (..)');
+    t.dies(function () { File.read('http://yahoo.com'); }, 'stop remote file read');
+    
+    t.ok(!File.exists('sdf/sdf'), 'Missing file does not exist');
+    t.ok(!File.isFile('sdf/sdf'), 'Missing path is not a file');
+    t.ok(!File.isDir('sdf/sdf'), 'Missing path is not a dir');
+
+    let f = 'testFile.txt';
+    let d = 'testDir';    
+
+    if (File.exists(d)) {
+        File.deleteDir(d);    
+    }
+    File.makeDir(d);
+    t.ok(File.isDir(d), 'make dir');
+    
+    let p = File.joinPath([d, f]);
+
+    File.write(p, '12345');
+    t.ok(File.getSize(p) == 5, 'File size');
+    t.ok(File.exists(p), 'File exists');
+    t.ok(File.isFile(p), 'File is file');
+
+    let info = File.pathInfo(p);
+    t.ok(info.dirList.last() == d, 'Path info dirList has parent dir');
+    t.ok(info.fileExt == 'txt', 'Path info extension');
+    t.ok(info.fileName == 'testFile.txt', 'Path info fileName');
+    t.ok(info.fileNameShort == 'testFile', 'Path info shortFileName');
+    File.delete(p);
+    t.ok(!File.exists(p), 'File deleted');
+
+    File.deleteDir(d);
+    t.ok(!File.exists(d), 'Dir deleted');
+
+}
+
+
+function libDate(t) {
+
+    t.section('Module: Date');
+
+    t.ok(Date.now() > 1490000000, 'Date.now');
+    t.ok(Date.minutes(3) == 180, 'minutes');
+    t.ok(Date.hours(2) == 7200, 'hours');
+    t.ok(Date.days(3) == 259200, 'days');
+    t.ok(Date.toMinutes(90) == 1.5, 'inMinutes');
+    t.ok(Date.toHours(7200) == 2, 'inHours');
+    t.ok(Date.toDays(259200) == 3, 'inDays');
+    t.ok(Date.format('%Y-%m-%d %H:%M:%S', 1400000000) == '2014-05-13 09:53:20', 'Date.format');
+    t.ok(Date.difference(100, 280) == '3 minutes', 'Date.difference');
+}
+
+function libDb(t) {
+
+    t.section('Module: Db');
+
+    Db.query(L'delete from test');
+
+    let key = 'test' ~ Math.random(0, 1000);
+    Db.insertRow('test', { key: key, value: Date.now() });
+
+    let rows = Db.selectRows(L'select * from test');
+    t.ok(rows.length() == 1, 'Insert & select row');
+    t.ok(rows[0].key == key, 'Check inserted row');
+
+    let dbh = Db.use('default');
+    rows = dbh.selectRows(L'select * from test');
+    t.ok(rows[0].key == key, 'Db.use');
+
+    Db.updateRows('test', { key: key, value: 'new!' }, L' key = {}'.fill(key));
+    let row = Db.selectRow(L'select * from test where key = {}'.fill(key));
+    t.ok(row.value == 'new!', 'Update row');
+
+    Db.deleteRows('test', L'key = {}'.fill(key));
+    rows = Db.selectRows(L'select * from test');
+    t.ok(rows.length() == 0, 'Delete row');
+
+    t.dies(function {
+        Db.updateRows('"bad', { key: key }, L' key = {}'.fill(key));
+    }, 'invalid table name - updateRows');
+
+    t.dies(function {
+        Db.deleteRows('"bad', L' key = {}'.fill(key));
+    }, 'invalid table name - deleteRows');
+
+    t.dies(function {
+        Db.query('delete from test');
+    }, 'reject unlocked query - query');
+
+    t.dies(function {
+        Db.selectRows('select * from test');
+    }, 'reject unlocked query - selectRows');
+}
+
+function libJconTest(t) {
+
+    t.section('Module: Jcon');
+
+    let d = Jcon.parse('{\nkey: value\n}\n');
+    t.ok(d.key == 'value', 'string value');
+
+    d = Jcon.parse('{\nkey: true\n}\n');
+    t.ok(d.key == true, 'true value');
+
+    d = Jcon.parse('{\nkeyA: valA\nkeyB: valB\n}\n');
+    t.ok(d.keyB == 'valB', '2nd key');
+
+    d = Jcon.parse('{\nkey: false\n}\n');
+    t.ok(d.key == false, 'false value');
+
+    d = Jcon.parse('{\nkey: 1234.5\n}\n');
+    t.ok(d.key == 1234.5, 'num value');
+
+    d = Jcon.parse('{\nkey: [\nv1\nv2\nv3\n]\n}\n');
+    t.ok(d.key.length() == 3, 'list value');
+    t.ok(d.key[2] == 'v3', 'list value');
+
+    d = Jcon.parse('{\nkey: \'\'\'\nThis is\nmultiline\n\'\'\'\n}\n');
+    t.ok(d.key.contains('\nmultiline'), 'multiline value');
+
+    d = Jcon.parse('{\nkeyLite: \'\'\'\n## Heading!\n\'\'\'\n}\n');
+    t.ok(d.keyLite.unlocked().contains('<h2>'), 'Litemark value');
+}
+
+function libJs(t) {
+
+    t.section('Module: Js');
+
+    t.ok(Js.plugin('colorCode').unlocked().contains('highlight'), 'colorCode');
+    t.ok(Js.plugin('lazyLoadImages').unlocked().contains('img'), 'lazyLoadImages');
+    t.ok(Js.minify('/* comment */\n\nhello\n    \n') == 'hello', 'minify');
+}
+
+function libJson(t) {
+
+    t.section('Module: Json');
+
+    t.ok(Json.decode('{"k1":[123,"hello"]}')['k1'][1] == 'hello', 'decode sub-list');
+    t.ok(Json.decode('{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map');
+    t.ok(Json.decode('[1,2,3]')[1] == 2, 'decode list');
+    t.ok(Json.decode('true') == true, 'decode boolean');
+    t.ok(Json.decode('123.45') == 123.45, 'decode number');
+
+    let st = Json.encode({ a: 'hi', b: [1, 2, 3] });
+    t.ok(st.contains('"hi"'), 'encode string');
+    t.ok(st.contains('[1,2,3]'), 'encode list');
+    t.ok(st.contains('"b":'), 'encode key');
+
+    let obj = Json.decode(st);
+    t.ok(obj.b[1] == 2, 'decode after encode');
+}
+
+function libLitemark(t) {
+
+    t.section('Module: Litemark');
+
+}
+
+function libMath(t) {
+
+    t.section('Module: Math');
+
+    let rand = Math.random(6, 8);
+    t.ok(rand >= 6 && rand <= 8, 'random');
+
+    let rnd = Math.random();
+    t.ok(rnd >= 0.0 && rnd < 1.0, 'random float');
+
+    t.ok(Math.round(Math.pi(), 2) == 3.14, 'rounded pi');
+
+    t.ok(Math.clamp(5, 1, 10) == 5, 'clamp in boundary');
+    t.ok(Math.clamp(20, 1, 10) == 10, 'clamp max');
+    t.ok(Math.clamp(-20, 1, 10) == 1, 'clamp min');
+
+    t.ok(Math.min(1, 3, 5) == 1, 'min');
+    t.ok(Math.min([1, 3, 5]) == 1, 'min list');
+
+    t.ok(Math.max(1, 3, 5) == 5, 'max');
+    t.ok(Math.max([1, 3, 5]) == 5, 'max list');
+
+    t.ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin');
+    t.ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec');
+
+}
+
+function libMeta(t) {
+      t.section('Module: Meta');
+
+      t.ok(Meta.functionExists('libMeta'), 'functionExists');
+      t.ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments');
+      t.ok(Meta.noTemplateMode(), 'noTemplateMode ok');
+      t.dies(function () { failModeHtml(); }, 'noTemplateMode fail');
+
+      t.ok(Meta.functionExists('dynamicFunction'), 'dynamic function exists');
+      t.ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
+}
+
+function metaCallMe() {
+    let args = Meta.arguments();
+    return args.join('|');
+}
+
+function failTemplateMode() {
+    Meta.noTemplateMode();
+}
+
+template failModeHtml() {
+    :: failTemplateMode();
+}
+
+
+function libPerf(t) {
+      t.section('Module: Perf');
+
+      Perf.forceActive(true);
+      Perf.start('testPerf');
+      System.sleep(1);
+      Perf.stop(true);
+
+      let res = Perf.results(true);
+      let found = false;
+      for (r in res) {
+          if (r.task == 'testPerf') {
+              found = true;
+              break;
+          }
+      }
+      t.ok(found, 'Perf task & results');
+
+      Perf.forceActive(false);
+}
+
+function libPhp(t) {
+
+    t.section('Module: Php');
+
+    let fl = Php.options(['PATHINFO_FILENAME', 'PATHINFO_BASENAME']);
+    t.ok(fl == 10, 'PHP - constant flags');
+
+    t.ok(Php.call(L'strrev', ['abcdef']) == 'fedcba', 'call');
+    t.dies(F () { Php.call(L'nonexistent', [1, 2]) }, 'Non-existent PHP call');
+    t.dies(F () { Php.call(L'eval', ['print("hi");']); }, 'stop blacklisted function - by name');
+    t.dies(F () { Php.call(L'ini_set', ['x', 'y']); }, 'stop blacklisted function - by match');
+
+
+    // TODO: add test
+    // let img = Php.wrap('image', 'createtruecolor', [200, 200]);
+    // let red = img.colorallocate(255, 0, 0);
+    // img.arc(100, 200, 200, 200, 0, 360, red);
+    // img.destroy();
+}
+
+function libTest(t) {
+    t.section('Module: Test');
+}
+
+function libGlobal(t) {
+    t.section('Module: Global');
+
+    setGlobals();
+
+    t.ok(Global.hello == 'world', 'global set');
+}
+
+function setGlobals() {
+    Global.hello = 'world';
+}
+
+
+function libWeb(t) {
+
+    t.section('Module: Web');
+
+    t.dies(function () {  Web.redirect('http://google.com'); }, 'redirect - normal');
+    t.dies(function () {  Web.redirect('mailto:google.com'); }, 'redirect - mailto');
+    t.dies(function () {  Web.redirect('//google.com'); }, 'redirect - no protocol');
+    t.dies(function () {  Web.redirect('bob@ftp://google.com'); }, 'redirect - ftp & username');
+
+    t.section('Module: Web - Form Input');
+
+    t.ok(formValidate('123') == '123', 'default token ok');
+    t.ok(formValidate('$foo') == '', 'token not ok');
+
+    t.ok(formValidate('123', 'id') == 123, 'id ok');
+    t.ok(formValidate('$foo', 'id') == '', 'id not ok');
+
+    t.ok(formValidate('-123.45', 'number') == -123.45, 'number ok');
+    t.ok(formValidate('$1', 'number') == '', 'number not ok');
+
+    t.ok(formValidate('true', 'flag') == true, 'flag ok');
+    t.ok(formValidate('false', 'flag') == false, 'flag ok');
+    t.ok(formValidate('1', 'flag') == true, 'flag ok');
+    t.ok(formValidate('0', 'flag') == false, 'flag ok');
+    t.ok(formValidate('$1', 'flag') == '', 'flag not ok');
+
+    t.ok(formValidate('me@mail.com', 'email') == 'me@mail.com', 'email ok');
+    t.ok(formValidate('me.com', 'email') == '', 'email not ok');
+    t.ok(formValidate('me@mailcom', 'email') == '', 'email not ok');
+    t.ok(formValidate('skip', 'email') == '', 'email not ok');
+
+    t.ok(formValidate('abc  123!', 'text') == 'abc 123!', 'text ok');
+    t.ok(formValidate('abc<b>tag', 'text') == 'abctag', 'text no tag');
+    t.ok(formValidate('abc\nline2', 'text') == 'abc line2', 'text newline');
+
+    t.ok(formValidate('abc  123!', 'textarea') == 'abc 123!', 'textarea spaces');
+    t.ok(formValidate('abc<b>tag', 'textarea') == 'abctag', 'textarea no tag');
+    t.ok(formValidate('abc\n\n\nline2', 'textarea') == 'abc\n\nline2', 'textarea newline');
+
+}
+
+function formValidate(v, type = 'token') {
+    return Web.tempValidateInput(v, type)['value'];
+}
+
+function libSettings(t) {
+
+    t.section('Module: Settings');
+
+    t.ok(Global.setting('num') == -123.45, 'get num');
+    t.ok(Global.setting('flagFalse') == false, 'get flag');
+    t.ok(Global.setting('flagTrue') == true, 'get flag');
+    t.ok(Global.setting('string') == 'value with spaces, etc.', 'get string');
+    t.ok(Global.setting('map').key == 'value', 'get map');
+    t.ok(Global.setting('list')[1] == 'value 1', 'get list');
+
+    t.dies(F { Global.setting('MISSING'); }, 'missing key');
+}
+
+function libMapDb(t) {
+    
+    t.section('Module: MapDb');
+
+    t.ok(MapDb.deleteBucket('test'), 'delete bucket');
+    
+    t.ok(MapDb.insertMap('test', 'hello', { hello: 'World!' }), 'insert');
+    t.ok(MapDb.insertMap('test', 'hello', { hello: 'There!' }), 'insert');
+
+
+    t.ok(MapDb.selectMap('test', 1).hello == 'World!', 'selectMap');
+    t.ok(MapDb.selectMaps('test', 'hello').length() == 2, 'selectMaps');
+    t.ok(MapDb.buckets()[0].numMaps == 2, 'buckets()');
+
+
+}
+
+function libSession(t) {
+    
+    t.section('Module: Session');
+
+    Session.deleteAll();
+    
+    Session.set('key1', 'value');
+    Session.set('key2', { a: 'b' });
+    t.ok(Session.get('key1') == 'value', 'set/get');
+    t.ok(Session.get('key2').a == 'b', 'get map');
+
+    t.ok(Session.getAll().keys().join('|') == 'key1|key2', 'getAll');
+
+    t.ok(Session.get('missing', '') == '', 'get with blank default');
+    t.ok(Session.get('missing', 'default') == 'default', 'get with default');
+
+    t.ok(Session.hasKey('key1'), 'hasKey true');
+    t.ok(Session.delete('key1') == 'value', 'delete');
+    t.ok(!Session.hasKey('key1'), 'hasKey false');
+
+    Session.deleteAll();
+    t.ok(Session.getAll().keys().length() == 0, 'deleteAll');
+
+    t.ok(Session.addCounter('num') == 1, 'counter 1');
+    t.ok(Session.addCounter('num') == 2, 'counter 2');
+
+    Session.setFlash('fkey', 'fvalue');
+    t.ok(Session.getFlash('fkey') == 'fvalue', 'flash set/get');
+
+    t.ok(Session.hasFlash('fkey'), 'hasFlash - true');
+    t.ok(Session.hasFlash('missing'), 'hasFlash - false');
+
+    Session.addToList('list', 123);
+    t.ok(Session.get('list')[0] == 123, 'addToList 1');
+
+    Session.addToList('list', 456);
+    t.ok(Session.get('list')[1] == 456, 'addToList 2');
+
+    t.dies(function () { Session.get('missing'); }, 'get bad key');
+
+}
+
+
+
+//========
+
+template templateHtml(users) {
+
+    <b>> Hello
+    :: for (u in users) {
+        <li>> {{ u }}
+    :: }
+
+}
+
+template dataJs(d) {
+    let d =  {{ d }};
+}
+
+template entHtml() {
+    <p>> 2 &gt; 1
+}
+
+template formatBlockHtml() {
+    <p>>>
+        <foo>
+    </>
+}
+
+template bsHtml() {
+    a\nb\nc
+}
+
+template jsHtml() {
+    <script nonce="{{ Web.nonce() }}">
+    var a = '&lt;a\nb\nc';
+    </>
+}
+
+template expHtml(inner, outer) {
+    <p {{ inner }}>> {{ outer }}
+}
+
+template tagsHtml(exp) {
+    {{ exp }}
+}
+
+template inCss() {
+    font-weight: bold;
+}
+
+template inJs() {
+    var a = 1;
+}
+
+template lockHtml(lock) {
+    <p>> {{ lock }}
+}
+
+template expCss(inp) {
+    font-weight: {{ inp }};
+}
+
+
+//======
+
+
+function dynamicFunction(a) {
+    return a ~ '!!!';
+}
+
+function noReturn() {
+
+}
+

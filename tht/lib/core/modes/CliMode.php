@@ -63,7 +63,7 @@ class CliMode {
     }
 
     static function isAppInstalled () {
-        $appRoot = Tht::path('root');
+        $appRoot = Tht::path('app');
         return $appRoot && file_exists($appRoot);
     }
 
@@ -147,8 +147,8 @@ class CliMode {
             // Starter App
             $exampleFile = 'home.tht';
             $examplePath = Tht::path('pages', $exampleFile);
-            $exampleRelPath =  Tht::getRelativePath('appRoot', $examplePath);
-            $publicPath = Tht::getRelativePath('appRoot', Tht::path('pages'));
+            $exampleRelPath =  Tht::getRelativePath('root', $examplePath);
+            $publicPath = Tht::getRelativePath('root', Tht::path('pages'));
             $exampleCssPath = Tht::path('pages', 'css.tht');
 
             CliMode::writeSetupFile($examplePath, "
@@ -340,7 +340,7 @@ class CliMode {
         echo "|    TEST SERVER    |\n";
         echo "+-------------------+\n\n";
 
-        echo "App directory:\n  " . Tht::path('appRoot') . "\n\n";
+        echo "App directory:\n  " . Tht::path('root') . "\n\n";
         echo "Serving app at:\n  http://$hostName:$port\n\n";
         echo "Press [Ctrl-C] to stop.\n\n";
 

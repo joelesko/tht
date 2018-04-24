@@ -356,7 +356,7 @@ class ErrorHandler {
         //     return;
         // }
 
-        $logPath = Tht::getRelativePath('root', Tht::path('logFile') );
+        $logPath = Tht::getRelativePath('data', Tht::path('logFile') );
 
         // Format heading
         $heading = v(v($error['type'])->u_to_token_case(' '))->u_to_title_case();
@@ -471,7 +471,7 @@ class ErrorHandler {
         $srcLineNum = $srcLineNum1 - 1;  // convert to zero-index
 
         if (Tht::module('File')->u_is_relative_path($srcPath)) {
-            $srcPath = Tht::path('root', $srcPath);
+            $srcPath = Tht::path('app', $srcPath);
         }
 
         $source = file_get_contents($srcPath);

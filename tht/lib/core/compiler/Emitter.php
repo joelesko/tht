@@ -39,7 +39,7 @@ class Emitter {
 
     function appendSourceMap ($targetSrc, $sourceFile) {
         $lines = explode("\n", $targetSrc);
-        $relPath = Tht::getRelativePath('root', $sourceFile);
+        $relPath = Tht::getRelativePath('app', $sourceFile);
         $sourceMap = new SourceMap ($relPath);
         $fnFind = function ($m) use ($sourceMap) {
             $sourceMap->set(\floor($m[1]));

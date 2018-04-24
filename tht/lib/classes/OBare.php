@@ -22,6 +22,8 @@ class OBare {
                     $a = $a->__toString();
                 } else if ($a instanceof ORegex) {
                     $a = $a->__toString();
+                } else if ($a instanceof OPassword) {
+                    $a = $a->__toString();
                 } else {
                     $a = Tht::module('Json')->u_format($a);
                 }
@@ -53,11 +55,7 @@ class OBare {
     }
 
     static function u_import ($localNs, $relPath) {
-        $fullPath = Tht::path('modules', $relPath . '.' . Tht::getExt());
-        Source::process($fullPath);
-
-        $relPath = Tht::getRelativePath('root', $fullPath);
-        Runtime::loadModule($localNs, $relPath);
+        Runtime::loadUserModule($localNs, $relPath);
     }
 
     static function u_range ($start, $end, $step=1) {

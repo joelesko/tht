@@ -218,13 +218,15 @@ class Runtime {
         Runtime::$moduleRegistry[$path] = new OModule ($ns, $path);
     }
 
-    static function loadModule ($localNs, $path) {
-        $relPath = Tht::getRelativePath('root', $path);
+    static function loadModule ($localNs, $fullPath) {
+        $relPath = Tht::getRelativePath('root', $fullPath);
         if (!isset(Runtime::$moduleRegistry[$relPath])) {
             Tht::error("Can't find module for `$relPath`", [ 'knownModules' => Runtime::$moduleRegistry ]);
         }
         $derivedAlias = basename($relPath, '.' . Tht::getExt());
         Runtime::$moduleRegistry[$localNs . '::' . $derivedAlias] = Runtime::$moduleRegistry[$relPath];
+
+        return Runtime::$moduleRegistry[$relPath];
     }
 
     static function getModule ($localNs, $alias) {
@@ -240,12 +242,14 @@ class Runtime {
             }
             return Runtime::$moduleRegistry[$alias];
         } else {
-            // TODO: duplicate of Bare.import
-            $fullPath = Tht::path('modules', $alias . '.' . Tht::getExt());
-            Source::process($fullPath);
-            Runtime::loadModule($localNs, $fullPath);
-            return Runtime::$moduleRegistry[$key];
+            return Runtime::loadUserModule($localNs, $alias);
         }
+    }
+
+    static function loadUserModule($localNs, $relPath) {
+        $fullPath = Tht::path('modules', $relPath . '.' . Tht::getExt());
+        Source::process($fullPath);
+        return Runtime::loadModule($localNs, $fullPath);
     }
 
     static function void ($fnName) {
