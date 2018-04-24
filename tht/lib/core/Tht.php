@@ -246,7 +246,7 @@ class Tht {
                 }
             } else {
                 // Assume it is adjacent to Document Root
-                Tht::$paths[$topDir] = realpath(Tht::makePath($docRootParent, Tht::$APP_DIR[$topDir]));
+                Tht::$paths[$topDir] = Tht::makePath(realpath($docRootParent), Tht::$APP_DIR[$topDir]);
             }
 
             if (!Tht::$paths[$topDir]) {
