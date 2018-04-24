@@ -12,6 +12,11 @@ class CliMode {
     //  'run'    => 'run',
     ];
 
+    static private $FRONT_PATH_APP     = '../app';
+    static private $FRONT_PATH_DATA    = '../data';
+    static private $FRONT_PATH_RUNTIME = '../app/.tht/bin/tht.php';
+
+
     static private $options = [];
 
     static function main() {
@@ -74,8 +79,8 @@ class CliMode {
         echo "|      NEW APP      |\n";
         echo "+-------------------+\n";
 
-        if (file_exists(Tht::path('root'))) {
-            echo "\nA THT app directory already exists:\n  " .  Tht::path('root') . "\n\n";
+        if (file_exists(Tht::path('app'))) {
+            echo "\nA THT app directory already exists:\n  " .  Tht::path('app') . "\n\n";
             echo "To start over, just delete or move that directory. Then rerun this command.\n\n";
             exit(1);
         }
@@ -103,11 +108,12 @@ class CliMode {
                 }
             }
 
-            $thtBinPath = realpath(dirname($_SERVER['SCRIPT_NAME']) . '/..');
-            $appRoot = '../tht';
-            $thtMain = '../tht/.tht/bin/tht.php';
+            $appRoot  = self::$FRONT_PATH_APP;
+            $dataRoot = self::$FRONT_PATH_DATA;
+            $thtMain  = self::$FRONT_PATH_RUNTIME;
 
-            // Make a local copy of the THT bin to app tree
+            // Make a local copy of the THT runtime to app tree
+            $thtBinPath = realpath(dirname($_SERVER['SCRIPT_NAME']) . '/..');
             Tht::module('*File')->u_copy_dir($thtBinPath, Tht::path('localTht'));
 
             // Front controller
@@ -116,9 +122,10 @@ class CliMode {
             <?php
 
             define('APP_ROOT', '$appRoot');
-            define('THT_MAIN', '$thtMain');
+            define('DATA_ROOT', '$dataRoot');
+            define('THT_RUNTIME', '$thtMain');
             
-            return require_once(THT_MAIN);
+            return require_once(THT_RUNTIME);
 
             ");
 
@@ -147,8 +154,8 @@ class CliMode {
             // Starter App
             $exampleFile = 'home.tht';
             $examplePath = Tht::path('pages', $exampleFile);
-            $exampleRelPath =  Tht::getRelativePath('root', $examplePath);
-            $publicPath = Tht::getRelativePath('root', Tht::path('pages'));
+            $exampleRelPath =  Tht::getRelativePath('app', $examplePath);
+            $publicPath = Tht::getRelativePath('app', Tht::path('pages'));
             $exampleCssPath = Tht::path('pages', 'css.tht');
 
             CliMode::writeSetupFile($examplePath, "
@@ -255,8 +262,8 @@ class CliMode {
         } catch (\Exception $e) {
             echo "Sorry, something went wrong.\n\n";
             echo "  " . $e->getMessage() . "\n\n";
-            if (file_exists(Tht::path('root'))) {
-                echo "Move or delete your app directory before trying again:\n\n  " . Tht::path('root');
+            if (file_exists(Tht::path('app'))) {
+                echo "Move or delete your app directories before trying again:\n\n  " . Tht::path('app');
                 echo "\n\n";
             }
             exit(1);
@@ -267,7 +274,7 @@ class CliMode {
         echo "|      SUCCESS!     |\n";
         echo "+-------------------+\n\n";
 
-        echo "Your new THT app directory is here:\n  " . Tht::path('root') . "\n\n";
+        echo "Your new THT app directory is here:\n  " . Tht::path('app') . "\n\n";
         echo "*  Load 'http://yoursite.com' to see if it's working.\n";
         echo "*  Or run 'tht server' to start a local web server.";
         echo "\n\n";
@@ -340,7 +347,7 @@ class CliMode {
         echo "|    TEST SERVER    |\n";
         echo "+-------------------+\n\n";
 
-        echo "App directory:\n  " . Tht::path('root') . "\n\n";
+        echo "App directory:\n  " . Tht::path('app') . "\n\n";
         echo "Serving app at:\n  http://$hostName:$port\n\n";
         echo "Press [Ctrl-C] to stop.\n\n";
 

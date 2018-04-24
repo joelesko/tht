@@ -214,6 +214,7 @@ class Tht {
     // TODO: public to allow Cli access.  Revisit this.
     static public function initPaths($isSetup=false) {
 
+        // Find the Document Root
         if (Tht::isMode('cli')) {
             if ($isSetup) {
                 // TODO: take as argument
@@ -226,43 +227,61 @@ class Tht {
             Tht::$paths['docRoot'] = Tht::getPhpGlobal('server', 'DOCUMENT_ROOT');
         }
 
-        // TODO: clarify app root constant name (appRoot vs docRootParent etc)
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
-        $thtAppRoot = defined('APP_ROOT') ? constant('APP_ROOT') : $docRootParent;
 
-        Tht::$paths['app']  = Tht::makePath(realpath($thtAppRoot), Tht::$APP_DIR['app']);
-        Tht::$paths['data'] = Tht::makePath(realpath($thtAppRoot), Tht::$APP_DIR['data']);
+        // Set paths for 'app' and 'data'
+        foreach (['app', 'data'] as $topDir) {
 
-        if (!Tht::$paths['app']) {
-            Tht::startupError("App has not been setup yet.\n\n"
-                . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory.");
+            $globalConstant = strtoupper($topDir . '_root'); 
+
+            if (defined($globalConstant)) {
+                $constantPath = constant($globalConstant);
+                if ($constantPath[0] === '/') {
+                    // absolute path
+                    Tht::$paths[$topDir] = realpath($constantPath);
+                }
+                else {
+                    // relative to Document Root
+                    Tht::$paths[$topDir] = realpath(Tht::makePath(Tht::$paths['docRoot'], $constantPath));
+                }
+            } else {
+                // Assume it is adjacent to Document Root
+                Tht::$paths[$topDir] = realpath(Tht::makePath($docRootParent, Tht::$APP_DIR[$topDir]));
+            }
+
+            if (!Tht::$paths[$topDir]) {
+                Tht::startupError("Can't find app directory `$topDir`.\n\n"
+                    . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory\nto create a new app.\n\n");
+            }
         }
 
-        // main dirs
-        Tht::$paths['root']   = realpath($thtAppRoot);
-
+        
+        // app subdirs
         Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
         Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
         Tht::$paths['settings']  = Tht::path('app', Tht::$APP_DIR['settings']);
         Tht::$paths['scripts']   = Tht::path('app', Tht::$APP_DIR['scripts']);
         Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
-        // Tht::$paths['phpLib']    = Tht::path('root', Tht::$APP_DIR['phpLib']);
+        // Tht::$paths['phpLib']    = Tht::path('app', Tht::$APP_DIR['phpLib']);
+
 
         // data subdirs
-        Tht::$paths['db']          = Tht::path('data',  Tht::$APP_DIR['db']);
-        Tht::$paths['cache']       = Tht::path('data',  Tht::$APP_DIR['cache']);
-        Tht::$paths['sessions']    = Tht::path('data',  Tht::$APP_DIR['sessions']);
-        Tht::$paths['phpCache']    = Tht::path('cache', Tht::$APP_DIR['phpCache']);
-        Tht::$paths['kvCache']     = Tht::path('cache', Tht::$APP_DIR['kvCache']);
-        Tht::$paths['files']       = Tht::path('data',  Tht::$APP_DIR['files']);
-        Tht::$paths['counter']     = Tht::path('data',  Tht::$APP_DIR['counter']);
+        Tht::$paths['db']          = Tht::path('data',    Tht::$APP_DIR['db']);
+        Tht::$paths['cache']       = Tht::path('data',    Tht::$APP_DIR['cache']);
+        Tht::$paths['sessions']    = Tht::path('data',    Tht::$APP_DIR['sessions']);
+        Tht::$paths['phpCache']    = Tht::path('cache',   Tht::$APP_DIR['phpCache']);
+        Tht::$paths['kvCache']     = Tht::path('cache',   Tht::$APP_DIR['kvCache']);
+        Tht::$paths['files']       = Tht::path('data',    Tht::$APP_DIR['files']);
+        Tht::$paths['counter']     = Tht::path('data',    Tht::$APP_DIR['counter']);
         Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
         Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
 
-        // files
+
+        // file paths
         Tht::$paths['configFile']         = Tht::path('settings', Tht::$APP_FILE['configFile']);
         Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$APP_FILE['appCompileTimeFile']);
         Tht::$paths['logFile']            = Tht::path('files',    Tht::$APP_FILE['logFile']);
+
     }
 
     static private function initConfig () {
@@ -273,7 +292,7 @@ class Tht {
 
         $iniPath = Tht::path('configFile');
 
-        // TODO: cache as JSON
+        // TODO: cache as JSON?
         $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$APP_FILE['configFile']);
 
         // make sure the required top-level keys exist
@@ -380,6 +399,8 @@ class Tht {
 
     static private function initHttpRequestHeaders () {
         $headers = [];
+
+        // Convert http headers to standard kebab-case
         foreach ($_SERVER as $k => $v) {
             if (substr($k, 0, 5) === 'HTTP_') {
                 $base = substr($k, 5);
@@ -387,6 +408,8 @@ class Tht {
                 $headers[$base] = $v;
             }
         }
+
+        // Correct spelling of "referrer"
         if (isset($headers['referer'])) {
             $headers['referrer'] = $headers['referer'];
             unset($headers['referer']);

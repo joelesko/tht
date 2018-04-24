@@ -15,7 +15,7 @@ if (!ini_get('date.timezone')) {
 
 // Doing this right away to include hits from static cache
 if (isset($_SERVER['HTTP_USER_AGENT'])) {
-    startupHitCounter();
+  //  startupHitCounter();
     startupStaticCache();
 }
 
@@ -82,7 +82,7 @@ function startupHitCounter() {
     $botRx = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
     if (preg_match($botRx, $_SERVER['HTTP_USER_AGENT'])) { return; }
 
-    $counterDir = APP_ROOT . '/data/counter';
+    $counterDir = DATA_ROOT . '/counter';
 
     // date counter
     $date = strftime('%Y%m%d');

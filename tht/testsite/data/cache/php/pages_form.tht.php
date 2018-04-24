@@ -1,7 +1,7 @@
 <?php
 
-namespace tht5add17336a49f;
-\o\Runtime::setNameSpace('app/pages/form.tht','tht5add17336a49f');
+namespace tht5adf6a31d8b57;
+\o\Runtime::setNameSpace('app/pages/form.tht','tht5adf6a31d8b57');
 
 function u_main ()  {
  $u_form = \o\Runtime::getModule(__NAMESPACE__, 'Web')->u_form(\o\OMap::create([ 'userName' => \o\OMap::create([ 'label' => "User Name", 'rule' => "min:4" ]), 'email' => \o\OMap::create([ 'label' => "Email", 'rule' => "email", 'value' => "a@b.com", 'help' => "Make sure it is valid!" ]), 'zip' => \o\OMap::create([ 'label' => "Zip Code", 'rule' => "optional|digits" ]), 'password' => \o\OMap::create([ 'label' => "Password", 'type' => "password" ]), 'comment' => \o\OMap::create([ 'label' => "Comment", 'type' => "textarea" ]), 'secret' => \o\OMap::create([ 'type' => "hidden", 'value' => "12345" ]), 'state' => \o\OMap::create([ 'label' => "State", 'type' => "select", 'options' => \o\OMap::create([ 'wi' => "Wisconsin", 'fl' => "Florida", 'ca' => "California" ]) ]), 'color' => \o\OMap::create([ 'label' => "Color", 'type' => "radio", 'options' => \o\OList::create([ "Red", "Blue", "Green" ]) ]), 'toppings' => \o\OMap::create([ 'label' => "Toppings", 'type' => "checkbox", 'options' => \o\OList::create([ "Pepperoni", "Pineapple", "Anchovies" ]) ]) ]));

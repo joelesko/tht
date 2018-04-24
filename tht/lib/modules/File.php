@@ -64,7 +64,7 @@ class u_File extends StdModule {
         if (strpos($pattern, 'exists') !== false) {
             // path must exist
             if (!file_exists($a)) {
-                Tht::error("File does not exist: `" . Tht::getRelativePath('root', $a) . "`");
+                Tht::error("File does not exist: `" . Tht::getRelativePath('data', $a) . "`");
             }
         }
 

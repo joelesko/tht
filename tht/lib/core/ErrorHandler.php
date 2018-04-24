@@ -526,7 +526,7 @@ class ErrorHandler {
         
         // Strip root directory from paths
         $clean = str_replace(Tht::path('files') . '/', '', $clean);
-        $clean = str_replace(Tht::path('root') . '/', '', $clean);
+        $clean = str_replace(Tht::path('app') . '/', '', $clean);
 
         $clean = ucfirst($clean);
 
@@ -553,7 +553,7 @@ class ErrorHandler {
     function cleanPath ($path) {
 
         $path = Tht::getThtPathForPhp($path);
-        $path = Tht::getRelativePath('root', $path);
+        $path = Tht::getRelativePath('app', $path);
 
         return $path;
     }

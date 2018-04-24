@@ -167,13 +167,13 @@ class Runtime {
     }
 
     static function setNameSpace ($file, $nameSpace) {
-        $relPath = Tht::getRelativePath('root', $file);
+        $relPath = Tht::getRelativePath('app', $file);
         Runtime::$fileToNameSpace[$relPath] = $nameSpace;
         Runtime::registerModule($nameSpace, $relPath);
     }
 
     static function getNameSpace ($file) {
-        $relPath = Tht::getRelativePath('root', $file);
+        $relPath = Tht::getRelativePath('app', $file);
         return Runtime::$fileToNameSpace[$relPath];
     }
 
@@ -219,7 +219,7 @@ class Runtime {
     }
 
     static function loadModule ($localNs, $fullPath) {
-        $relPath = Tht::getRelativePath('root', $fullPath);
+        $relPath = Tht::getRelativePath('app', $fullPath);
         if (!isset(Runtime::$moduleRegistry[$relPath])) {
             Tht::error("Can't find module for `$relPath`", [ 'knownModules' => Runtime::$moduleRegistry ]);
         }

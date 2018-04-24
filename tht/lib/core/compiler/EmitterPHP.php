@@ -66,7 +66,7 @@ class EmitterPHP extends Emitter {
         $php = $this->out($symbolTable->getFirst());
 
         $nameSpace = uniqid('tht');
-        $relPath = Tht::getRelativePath('root', $filePath);
+        $relPath = Tht::getRelativePath('app', $filePath);
         $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\Runtime::setNameSpace('$relPath','$nameSpace');\n";
 
         $finalCode = "<?php\n\n$nameSpacePhp\n$php\n\n";
