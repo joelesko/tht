@@ -31,7 +31,8 @@ class LibModules {
         'Litemark',
         'Jcon',
         'Form',
-        'Session'
+        'Session',
+        'Cache'
     ];
 
     public static function load () {
