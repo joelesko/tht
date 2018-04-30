@@ -48,6 +48,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
     }
 
     function u_lock_keys ($isLocked) {
+        ARGS('f', func_get_args());
         $this->hasLockedKeys = $isLocked;
         return $this;
     }

@@ -59,6 +59,7 @@ class OBare {
     }
 
     static function u_range ($start, $end, $step=1) {
+        ARGS('nnn', func_get_args());
         return range($start, $end, $step);
     }
 
@@ -79,6 +80,7 @@ class OBare {
     // }
 
     static function u_die ($msg, $data=null) {
+        ARGS('s*', func_get_args());
         Tht::error($msg, $data);
     }
 }

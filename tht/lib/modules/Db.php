@@ -53,6 +53,7 @@ class u_Db extends StdModule {
     }
 
     function u_get_database_config ($dbId) {
+        ARGS('s', func_get_args());
         return Tht::getTopConfig('databases', $dbId);
     }
 
@@ -90,6 +91,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_table_exists($tableName) {
+        ARGS('s', func_get_args());
         $lSql = new \o\SqlLockString ("SELECT name FROM sqlite_master WHERE type='table' AND name = {0} LIMIT 1");
         $lSql->u_fill($tableName);
         $rows = $this->u_select_rows($lSql);
@@ -98,6 +100,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_get_columns ($tableName){
+        ARGS('s', func_get_args());
         if (preg_match('/[^a-zA-Z0-9_-]/', $tableName)) {
             Tht::error("Invalid character in table name: `$tableName`");
         }
@@ -107,6 +110,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_create_table($table, $cols)  {
+        ARGS('sm', func_get_args());
         $table = $this->untaintName($table, 'table');
         $sql = "CREATE TABLE IF NOT EXISTS $table (\n";
         $aCols = [];
@@ -122,6 +126,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_create_index($table, $col)  {
+        ARGS('ss', func_get_args());
         $table = $this->untaintName($table, 'table');
         $col = $this->untaintName($col, 'column');
         $sql = "CREATE INDEX i_{$table}_{$col} ON $table ($col)";
@@ -171,6 +176,8 @@ class u_Db extends StdModule {
     }
 
     function u_insert_row ($tTable, $fields){
+
+        ARGS('sm', func_get_args());
 
         $table = $this->untaintName($tTable, 'table');
 

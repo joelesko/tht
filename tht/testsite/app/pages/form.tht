@@ -127,25 +127,15 @@ T formHtml(form) {
 
         {{ f.open() }}
 
-            {{ f.tag('userName') }}
-            {{ f.tag('email') }}
-            {{ f.tag('password') }}
-          
-            {{ f.tag('zip') }}
-
-            {{ f.tag('comment') }}
-
-            {{ f.tag('secret') }}
-
-            {{ f.tag('color') }}
-
-            {{ f.tag('state') }}
-
-            {{ f.tag('toppings') }}
+            {{ f.tags() }}
 
             {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
 
         {{ f.close() }}
+
+
+
+        
 
 
     </></>

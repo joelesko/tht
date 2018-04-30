@@ -96,7 +96,6 @@ class u_Form extends StdModule {
         $this->strings = $map;
     }
 
-
     function getDefaultValue($fieldName) {
 
         $schema = $this->schema[$fieldName];
@@ -161,7 +160,25 @@ class u_Form extends StdModule {
         }
     }
 
+    function u_tags($tags=null) { 
+
+        if (is_null($tags)) {
+            $tags = array_keys($this->schema);
+        }
+
+        ARGS('l', func_get_args());
+
+        $html = '';
+        foreach ($tags as $tag) {
+            $html .= $this->u_tag($tag)->u_unlocked();
+        }
+
+        return new HtmlLockString ($html);
+    }
+
     function u_open ($actionUrl='', $atts=[]) {
+
+        ARGS('sl', func_get_args());
 
         if ($this->isOpen) { Tht::error("A form is already open."); }
         $this->isOpen = true;

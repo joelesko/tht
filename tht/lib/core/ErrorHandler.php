@@ -265,6 +265,7 @@ class ErrorHandler {
             } else {
                 if (!$logOut) { $logOut = $plainOut; }
                 $eh->printToLog($logOut);
+                file_put_contents('php://stderr', $plainOut);
                 Tht::module('Web')->u_send_error(500);
             }
         }

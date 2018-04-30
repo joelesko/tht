@@ -1,7 +1,7 @@
 <?php
 
-namespace tht5adf6a31d8b57;
-\o\Runtime::setNameSpace('app/pages/form.tht','tht5adf6a31d8b57');
+namespace tht5ae4d4b68cf26;
+\o\Runtime::setNameSpace('pages/form.tht','tht5ae4d4b68cf26');
 
 function u_main ()  {
  $u_form = \o\Runtime::getModule(__NAMESPACE__, 'Web')->u_form(\o\OMap::create([ 'userName' => \o\OMap::create([ 'label' => "User Name", 'rule' => "min:4" ]), 'email' => \o\OMap::create([ 'label' => "Email", 'rule' => "email", 'value' => "a@b.com", 'help' => "Make sure it is valid!" ]), 'zip' => \o\OMap::create([ 'label' => "Zip Code", 'rule' => "optional|digits" ]), 'password' => \o\OMap::create([ 'label' => "Password", 'type' => "password" ]), 'comment' => \o\OMap::create([ 'label' => "Comment", 'type' => "textarea" ]), 'secret' => \o\OMap::create([ 'type' => "hidden", 'value' => "12345" ]), 'state' => \o\OMap::create([ 'label' => "State", 'type' => "select", 'options' => \o\OMap::create([ 'wi' => "Wisconsin", 'fl' => "Florida", 'ca' => "California" ]) ]), 'color' => \o\OMap::create([ 'label' => "Color", 'type' => "radio", 'options' => \o\OList::create([ "Red", "Blue", "Green" ]) ]), 'toppings' => \o\OMap::create([ 'label' => "Toppings", 'type' => "checkbox", 'options' => \o\OList::create([ "Pepperoni", "Pineapple", "Anchovies" ]) ]) ]));
@@ -46,37 +46,7 @@ $t->addDynamic(\o\v($u_f)->u_open());
 $t->addStatic("
 
             ");
-$t->addDynamic(\o\v($u_f)->u_tag("userName"));
-$t->addStatic("
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("email"));
-$t->addStatic("
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("password"));
-$t->addStatic("
-          
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("zip"));
-$t->addStatic("
-
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("comment"));
-$t->addStatic("
-
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("secret"));
-$t->addStatic("
-
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("color"));
-$t->addStatic("
-
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("state"));
-$t->addStatic("
-
-            ");
-$t->addDynamic(\o\v($u_f)->u_tag("toppings"));
+$t->addDynamic(\o\v($u_f)->u_tags());
 $t->addStatic("
 
             ");
@@ -92,6 +62,6 @@ return $t->getString();
 
 
 
-/* SOURCE={"file":"pages\/form.tht","6":3,"7":49,"8":77,"9":81,"10":82,"11":83,"15":85,"19":91,"22":95,"23":96,"24":97,"27":100,"29":106,"30":106,"31":109,"35":111,"36":115,"39":120,"41":126,"42":126,"43":128,"45":128,"46":130,"49":130,"50":131,"52":131,"53":132,"55":132,"56":134,"59":134,"60":136,"63":136,"64":138,"67":138,"68":140,"71":140,"72":142,"75":142,"76":144,"79":144,"80":146,"83":146,"84":148,"87":148,"88":154} */
+/* SOURCE={"file":"pages\/form.tht","6":3,"7":49,"8":77,"9":81,"10":82,"11":83,"15":85,"19":91,"22":95,"23":96,"24":97,"27":100,"29":106,"30":106,"31":109,"35":111,"36":115,"39":120,"41":126,"42":126,"43":128,"45":128,"46":130,"49":130,"50":132,"53":132,"54":134,"57":134,"58":144} */
 
 ?>

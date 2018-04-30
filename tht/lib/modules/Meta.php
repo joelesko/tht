@@ -15,11 +15,13 @@ class u_Meta extends StdModule {
     }
 
     function u_function_exists ($fn) {
+        ARGS('s', func_get_args());
         $fullFn = $this->getCallerNamespace() . '\\' . u_($fn);
         return function_exists($fullFn);
     }
 
     function u_call_function ($fn, $params=[]) {
+        ARGS('sl', func_get_args());
         $fullFn = $this->getCallerNamespace() . '\\' . u_($fn);
         if (! function_exists($fullFn)) {
             Tht::error("Function does not exist: `$fullFn`");
@@ -28,6 +30,7 @@ class u_Meta extends StdModule {
     }
 
     function u_parse ($source) {
+        ARGS('s', func_get_args());
         return Source::safeParseString($source);
     }
 
@@ -81,6 +84,7 @@ class u_Meta extends StdModule {
     }
 
     function callerError ($msg) {
+        ARGS('s', func_get_args());
         $frames = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
         $callerFrame = false;
         foreach ($frames as $f) {

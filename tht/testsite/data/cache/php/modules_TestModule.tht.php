@@ -1,7 +1,7 @@
 <?php
 
-namespace tht5adf6b0942561;
-\o\Runtime::setNameSpace('app/modules/TestModule.tht','tht5adf6b0942561');
+namespace tht5ae4d4addb839;
+\o\Runtime::setNameSpace('modules/TestModule.tht','tht5ae4d4addb839');
 
 function u_bare_fun ($u_name)  {
  return \o\Runtime::concat("bare:", $u_name);

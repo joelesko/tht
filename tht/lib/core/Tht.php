@@ -39,14 +39,15 @@ class Tht {
         'db'        =>   'db',
         'sessions'  =>   'sessions',
         'uploads'   =>   'uploads',
+        'files'     =>   'files',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
         'kvCache'   =>     'keyValue',
         'fileCache' =>     'fileCache',
-        'files'     =>   'files',
         'counter'   =>   'counter',
-        'counterPage' =>    'page',
-        'counterDate' =>    'date',
+        'counterPage' =>   'page',
+        'counterDate' =>   'date',
+        'counterRef'  =>   'referrer',
     ];
 
     static private $APP_FILE = [

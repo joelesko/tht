@@ -20,13 +20,30 @@ class u_Jcon extends StdModule {
 
     function u_parse_file($file) {
 
+        ARGS('s', func_get_args());
+
+        $cacheKey = 'jcon:' . $file;
+
         $path = Tht::path('settings', $file);
+
+        $cached = Tht::module('Cache')->u_get_sync($cacheKey, filemtime($path));
+        if ($cached) {
+            return $cached;
+        }
+
         $text = Tht::module('*File')->u_read($path, true);
 
-        return $this->start($text, $file);
+        $data = $this->start($text, $file);
+
+        Tht::module('Cache')->u_set($cacheKey, $data, 0);
+
+//        print_r($data);  exit();
+
+        return $data;
     }
 
     function u_parse($text) {
+        ARGS('s', func_get_args());
         return $this->start($text, '');
     }
 
@@ -51,16 +68,15 @@ class u_Jcon extends StdModule {
 
         $text = trim($text);
 
-        if (!strlen($text)) {
+        $this->len = strlen($text);
+        $this->text = $text;
+        $this->pos = 0;
+        $this->lineNum = 0;
+
+        if (!$this->len) {
             $this->error('Empty JCON string.');
         }
 
-        $this->len = strlen($text);
-        $this->text = $text;
-
-        $this->pos = 0;
-        $this->lineNum = 0;
-        
         while (true) {
             $isLastLine = $this->readLine();
             if ($isLastLine) { break; }

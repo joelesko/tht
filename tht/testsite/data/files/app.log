@@ -148,3 +148,41 @@
 [2018-04-07 15:22:33]  Entry file not found for path: `/manual`
 [2018-04-08 01:43:47]  Entry file not found for path: `/tests`
 [2018-04-17 20:16:46]  Entry file not found for path: `/favicon.ico`
+[2018-04-29 03:58:19]  --- RuntimeError ---
+
+    Unknown method: `FileCacheDriver.getSync`
+
+    32:  $v = $this->driver->getSync($k, false, $syncFileTime);
+
+    File: Cache  Line: 32
+
+[2018-04-29 20:00:55]  --- RuntimeError ---
+
+    Unserialize(): Error at offset 0 of 430 bytes
+
+    108:  $r = unserialize($json);
+
+    File: Cache  Line: 108
+
+[2018-04-29 13:10:49]  --- RuntimeError ---
+
+    Missing argument 2 for `CacheDriver.get()`
+
+    97:  return $this->get($k) !== '';
+    --- Trace ---
+
+     0 |  Cache, line 97 - CacheDriver.get()
+     1 |  Cache, line 42 - CacheDriver.has()
+     2 |  Css, line 18 - Cache.has()
+     3 |  Css, line 642 - Css.minify()
+     4 |  Css, line 100 - Css.inc_base()
+     5 |  pages/home.tht, line 18 - Css.include()
+     6 |  pages/home.tht, line 9 - html()
+     7 |  WebMode, line 237 - call_user_func()
+     8 |  WebMode, line 202 - WebMode.callAutoFunction()
+     9 |  WebMode, line 30 - WebMode.executeWebController()
+    10 |  Tht, line 118 - WebMode.main()
+    11 |  Tht, line 67 - Tht.main()
+    12 |  tht, line 32 - Tht.start()
+    13 |  thtApp, line 7 - require_once()
+

@@ -11,6 +11,15 @@ class u_Css extends StdModule {
     // http://stackoverflow.com/questions/15195750/minify-compress-css-with-regex
     function u_minify ($str1) {
 
+        ARGS('s', func_get_args());
+
+        $cacheKey = 'css:' . md5($str1);
+        $cache = Tht::module('Cache');
+        if ($cache->u_has($cacheKey)) {
+            return $cache->u_get($cacheKey);
+        }
+
+
         // remove '//' line comments
         $str1 = preg_replace("#(\n|^)\s*//[^!]?[^\n]*#", '', $str1);
 
@@ -58,6 +67,9 @@ EOS;
         Tht::module('Perf')->u_start('Css.minify', $str1);
         $str2 = preg_replace("%$re1%", '$1', $str1);
         $str2 = preg_replace("%$re2%", '$1$2$3$4$5$6$7', $str2);
+
+        $cache->u_set($cacheKey, $str2, 60 * 60 * 24 * 30);
+
         Tht::module('Perf')->u_stop();
 
         return $str2;
@@ -77,13 +89,15 @@ EOS;
 
     function u_include($id, $arg1=null, $arg2=null) {
 
+        ARGS('sn*', func_get_args());
+
         if (isset($this->included[$id])) {
             return '';
         }
         $this->included[$id] = true;
 
         if ($id === 'base') {
-            return $this->inc_base($arg1, $arg2);
+            return $this->inc_base($arg1, $arg2); 
         }
         if ($id === 'reset') {
             return $this->inc_reset();
@@ -112,7 +126,11 @@ EOCSS;
         return new \o\CssLockString ($css);
     }
 
+
+    // TODO: pre-minify this.  Takes 3-4 ms to process. 
     function inc_base ($nSizeX=0, $breakCss=null) {
+
+        ARGS('n*', func_get_args());
 
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
@@ -630,6 +648,8 @@ EOCSS;
     // TODO: widths in rems?
     function inc_grid($nSizeX = 760, $breakCss = null) {
 
+        ARGS('n*', func_get_args());
+
         $breakX = ($nSizeX + 20) . 'px';
         $sizeX = $nSizeX . 'px';
 
@@ -718,6 +738,8 @@ EOCSS;
     }
 
     function u_parse($str) {
+
+        ARGS('s', func_get_args());
 
         $s = trim($str);
         if ($s === '') { return $str; }

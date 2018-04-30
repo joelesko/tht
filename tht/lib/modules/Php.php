@@ -45,6 +45,7 @@ class u_Php extends StdModule {
     }
 
     function u_options($options) {
+        ARGS('l', func_get_args());
         $n = 0;
         foreach ($options as $o) {
             $n |= constant($o);

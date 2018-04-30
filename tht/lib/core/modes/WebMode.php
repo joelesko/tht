@@ -184,7 +184,7 @@ class WebMode {
 
     static private function executeWebController ($controllerName) {
 
-        Tht::module('Perf')->u_start('tht.executeWebRoute', $controllerName);
+        Tht::module('Perf')->u_start('tht.executeMain', $controllerName);
 
         $dotExt = '.' . Tht::getExt();
         if (strpos($controllerName, $dotExt) === false) {
@@ -198,7 +198,7 @@ class WebMode {
         }
 
         Source::process($controllerFile, true);
-
+        
         WebMode::callAutoFunction($controllerFile, $userFunction);
 
         Tht::module('Perf')->u_stop();

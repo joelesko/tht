@@ -124,10 +124,13 @@ class u_Web extends StdModule {
     // --------------------------------------------
 
     function u_parse_url ($url) {
+        ARGS('s', func_get_args());
         return OMap::create(parse_url($url));
     }
 
     function u_unparse_url($u) {
+        ARGS('s', func_get_args());
+
         $u = uv($u);
         $parts = [
             $this->unparseVal($u, 'scheme',   '__://'),
@@ -147,6 +150,8 @@ class u_Web extends StdModule {
 
 
     function u_parse_query ($s, $multiKeys=[]) {
+
+        ARGS('sl', func_get_args());
 
         $ary = [];
         $pairs = explode('&', $s);
@@ -178,6 +183,8 @@ class u_Web extends StdModule {
     // --------------------------------------------
 
     function u_redirect ($url, $code=303) {
+        ARGS('*n', func_get_args());
+
         if (OLockString::isa($url)) {
             $url = $url->u_unlocked();
         } else {
@@ -191,14 +198,19 @@ class u_Web extends StdModule {
     }
 
     function u_set_response_code ($code) {
+        ARGS('n', func_get_args());
         http_response_code($code);
     }
 
     function u_set_header ($name, $value, $multiple=false) {
+        ARGS('ssf', func_get_args());
+
         header($name . ': ' . $value, !$multiple);
     }
 
     function u_set_cache_header ($expiry='+1 year') {
+        ARGS('s', func_get_args());
+
         $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime($expiry)));
     }
 
@@ -234,19 +246,23 @@ class u_Web extends StdModule {
     }
 
     function u_send_json ($map) {
-        if (!OMap::isa($map)) {
-            Tht::error('First argument to `sendJson()` must be a Map.', $map);
-        }
+        ARGS('m', func_get_args());
+
         $this->u_set_header('Content-Type', 'application/json');
         u_Web::sendGzip(new \o\OLockString (json_encode(uv($map))));
     }
 
     function u_send_text ($text) {
+        ARGS('s', func_get_args());
+
         $this->u_set_header('Content-Type', 'text/plain');
         u_Web::sendGzip(new \o\OLockString ($text));
     }
 
     function u_send_css ($chunks) {
+
+        ARGS('*', func_get_args());
+
         $this->u_set_header('Content-Type', 'text/css');
         $this->u_set_cache_header();
         $this->startGzip();
@@ -260,6 +276,8 @@ class u_Web extends StdModule {
     }
 
     function u_send_js ($chunks) {
+
+        ARGS('*', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/javascript');
         $this->u_set_cache_header();
@@ -282,11 +300,14 @@ class u_Web extends StdModule {
     }
 
     function u_danger_danger_send ($s) {
+        ARGS('s', func_get_args());
         print $s;
     }
 
     // Print a well-formed HTML document with sensible defaults
     function u_send_page ($doc) {
+
+        ARGS('m', func_get_args());
 
         $body = '';
 
@@ -366,15 +387,18 @@ HTML;
        $this->endGzip();
        flush();
 
-       $cacheSecs = defined('STATIC_CACHE_SECONDS') ? constant('STATIC_CACHE_SECONDS') : 0;
-       if ($cacheSecs !== 0 && isset($doc['staticCache']) && $doc['staticCache']) {
+       $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
+
+       if ($cacheTag && isset($doc['staticCache']) && $doc['staticCache']) {
            $cacheFile = md5(Tht::module('Web')->u_request()['url']['relative']);
-           $cachePath = Tht::path('cache', 'html/' . $cacheFile . '.html');
+           $cachePath = Tht::path('cache', 'html/' . $cacheTag . '_' . $cacheFile . '.html');
            file_put_contents($cachePath, $out);
        }
     }
 
     function u_send_error ($code, $title='') {
+
+        ARGS('ns', func_get_args());
 
         http_response_code($code);
 

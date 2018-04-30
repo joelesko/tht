@@ -24,10 +24,12 @@ class u_Perf extends StdModule {
     }
 
     function u_force_active($onOff) {
+        ARGS('f', func_get_args());
         $this->forceActive = $onOff;
     }
 
     function u_start ($baseTaskId, $value='') {
+        ARGS('ss', func_get_args());
         if ($this->isActive()) {
             $this->start($baseTaskId, $value);
         }

@@ -32,6 +32,7 @@ class OList extends OBag {
     }
 
     function u_first ($n=1) {
+        ARGS('n', func_get_args());
         $len = count($this->val);
         if ($n > $len) {
             Tht::error("Argument `numItems = $n` is greater than List length `$len`.");
@@ -45,6 +46,7 @@ class OList extends OBag {
     }
 
     function u_last ($n=1) {
+        ARGS('n', func_get_args());
         $len = count($this->val);
         if ($n > $len) {
             Tht::error("Argument `numItems = $n` is greater than List length `$len`.");
@@ -73,6 +75,7 @@ class OList extends OBag {
     }
 
     function u_sublist($pos, $len=-1) {
+        ARGS('nn', func_get_args());
         $vlen = count($this->val);
         if ($pos < 0) {
             $pos = $vlen + $pos;
@@ -93,11 +96,13 @@ class OList extends OBag {
     // ADD
 
     function u_addAll ($a2) {
+        ARGS('l', func_get_args());
         return array_merge($this->val, $a2);
     }
 
 
     function u_add ($v, $pos=-1) {
+        ARGS('*n', func_get_args());
         if ($pos < 0) {
             // insert AFTER index
             if ($pos === -1) {
@@ -119,6 +124,7 @@ class OList extends OBag {
     // REMOVES
 
     function u_remove ($pos=-1) {
+        ARGS('n', func_get_args());
         $len = count($this->val);
         if (!$len) {
             Tht::error("Can not `remove()` from an empty List.");
@@ -206,6 +212,9 @@ class OList extends OBag {
     }
 
     function u_sort_by_key ($key, $isDesc=false) {
+
+        ARGS('sf', func_get_args());
+
         usort($this->val, function($a, $b) use ($key, $isDesc) {
             $sort = $isDesc ? -1 : +1;
            if (is_string($a[$key])) {
@@ -218,6 +227,7 @@ class OList extends OBag {
     }
 
     function u_join ($delim='') {
+        ARGS('s', func_get_args());
         return implode($this->val, $delim);
     }
 

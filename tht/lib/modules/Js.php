@@ -42,6 +42,8 @@ class u_Js extends StdModule {
     // TODO: implement with StringReader, to preserve inner strings
     function u_minify ($str) {
 
+        ARGS('s', func_get_args());
+
         $str1 = $str;
 
         Tht::module('Perf')->u_start('js.minify', $str);
@@ -68,6 +70,8 @@ class u_Js extends StdModule {
 
     function u_plugin($id) {
 
+        // ARGS('s', func_get_args());
+        
         if (isset($this->included[$id])) {
             return '';
         }

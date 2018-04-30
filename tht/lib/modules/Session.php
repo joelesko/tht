@@ -61,7 +61,7 @@ class u_Session extends StdModule {
     }
 
     function u_set($keyOrMap, $value=null) {
-        
+
         $this->startSession();
 
         if (is_string($keyOrMap)) {
@@ -78,6 +78,9 @@ class u_Session extends StdModule {
     }
 
     function u_get($key, $default=null) {
+
+        ARGS('s*', func_get_args());
+
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             if (is_null($default)) {
@@ -99,6 +102,7 @@ class u_Session extends StdModule {
     }
 
     function u_delete($key) {
+        ARGS('s', func_get_args());
         $this->startSession();
         if (isset($_SESSION[$key])) {
             $val = $_SESSION[$key];
@@ -116,11 +120,13 @@ class u_Session extends StdModule {
     }
 
     function u_has_key($key) {
+        ARGS('s', func_get_args());
         $this->startSession();
         return isset($_SESSION[$key]);
     }
 
     function u_add_counter($key) {
+        ARGS('s', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = 0;
@@ -131,6 +137,7 @@ class u_Session extends StdModule {
     }
 
     function u_add_to_list($key, $value) {
+        ARGS('s*', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = [];
@@ -139,6 +146,7 @@ class u_Session extends StdModule {
     }
 
     function u_get_flash($key, $default='') {
+        ARGS('s*', func_get_args());
         $this->startSession();
         if (isset($this->flashData[$key])) {
             return $this->flashData[$key];
@@ -147,6 +155,7 @@ class u_Session extends StdModule {
     }
 
     function u_set_flash($key, $value) {
+        ARGS('s*', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$this->flashKey])) {
             $_SESSION[$this->flashKey] = [];
@@ -155,6 +164,7 @@ class u_Session extends StdModule {
     }
 
     function u_has_flash($key) {
+        ARGS('s', func_get_args());
         $this->startSession();
         return isset($_SESSION[$this->flashKey]);
     }

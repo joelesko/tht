@@ -3,7 +3,10 @@
 namespace o;
 
 
-// PHP to Tht type
+//// Global internal utility functions
+
+
+// PHP to THT type
 function v ($v) {
 
     $phpType = gettype($v);
@@ -32,7 +35,7 @@ function uv ($v) {
     return OMap::isa($v) || OList::isa($v) ? $v->val : $v;
 }
 
-// numeric value (assertion)
+// Assert Number type value
 function vn ($v, $isAdd) {
     if (!is_numeric($v)) {
         $tag = $isAdd ? "Did you mean '~'?" : '';
@@ -53,53 +56,82 @@ function unu_ ($s) {
     return v($s)->u_to_camel_case();
 }
 
+// var has a u_ prefix
 function hasu_ ($v) {
     return substr($v, 0, 2) === 'u_';
 }
 
 
 
-// NOOP for now
-function sig($sig, $arguments) {}
+// Validate function arguments
 
-// TODO: function argument checking
-// function sig($sig, $arguments) {
-//     $err = '';
-//     // TODO: fewer args (handle optionals)
-//     if (count($arguments) > count($sig)) {
-//         $err = 'expects ' . count($sig) . ' arguments.  Got ' . count($arguments) . ' instead.';
-//     } else {
-//         $i = 0;
-//         foreach ($arguments as $arg) {
-//             $t = gettype($arg);
-//             $s = $sig[$i];
-//
-//             if ($s === 'n') { $s = 'number'; }
-//             else if ($s === 's') { $s = 'string'; }
-//             else if ($s === 'b') { $s = 'boolean'; }
-//
-//             if ($s === 'number') {
-//                 if ($t === 'integer' || $t === 'double' || $t === 'float') { $t = 'number'; }
-//             }
-//
-//             if ($t !== $s && $s !== 'any') {
-//                 $name = gettype($arg);
-//                 // if ($name == 'object') {
-//                 //     $name = get_class($arg);
-//                 // }
-//                 $err = "expects argument $i to be type '" . $s . "'.  Got '" . $name . "' instead.";
-//                 break;
-//             }
-//             $i += 1;
-//         }
-//     }
-//
-//     if ($err) {
-//         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
-//         Tht::error($caller . '() ' . $err);
-//     }
-// }
-//
+// sig:
+//   n = number
+//   s = string
+//   f = flag
+//   l = list
+//.  m = map
+//   * = any
+
+// NOTE: Fewer args are already handled by PHP, but we could possibly trap it here too.
+// PERF: ~ 0.3 ms - not significant
+function ARGS($sig, $arguments) {
+
+    $err = '';
+    
+    if (count($arguments) > strlen($sig)) {
+        $err = 'expects ' . strlen($sig) . ' arguments.  Got ' . count($arguments) . ' instead.';
+    } 
+    else {
+        $i = 0;
+        foreach ($arguments as $arg) {
+            
+            $s = $sig[$i];
+
+            if ($s === '*') { continue; }
+            if (is_null($arg)) { continue; }
+
+            $t = gettype($arg);
+
+            if ($t === 'integer' || $t === 'double' || $t === 'float') {
+                $t = 'number';  
+                if ($s === 's') {
+                    // allow numbers to be cast as strings
+                    continue;
+                }
+            }
+            else if ($t === 'boolean') {
+                $t = 'flag';
+            }
+            else if ($t === 'object') {
+                $varg = v($arg);
+                if ($varg->u_is_map()) {
+                    $t = 'map';
+                }
+                else if ($varg->u_is_list()) {
+                    $t = 'list';
+                }
+            }
+ 
+            // Type mismatch
+            if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
+                $name = gettype($arg);
+                // if ($name == 'object') {
+                //     $name = get_class($arg);
+                // }
+                $err = "expects argument $i to be type `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got a `" . $name . "` instead.";
+                break;
+            }
+            $i += 1;
+        }
+    }
+
+    if ($err) {
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
+        Tht::error("`$caller()`" . $err);
+    }
+}
+
 
 class Runtime {
 
@@ -123,6 +155,14 @@ class Runtime {
         'lite'     => 'TemplateLite',
         'jcon'     => 'TemplateJcon',
         'text'     => 'TemplateText'
+    ];
+
+    static $SIG_TYPE_KEY_TO_LABEL = [
+        'n' => 'number',
+        's' => 'string',
+        'f' => 'flag',
+        'l' => 'list',
+        'm' => 'map'
     ];
 
     static $SINGLE = [];

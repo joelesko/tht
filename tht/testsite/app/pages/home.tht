@@ -311,15 +311,16 @@ function testMisc(t) {
     // make sure autoboxed array access doesn't drastically hit performance
     Perf.start('Large Array');
     let now = Date.now(true);
-    let nums = range(1, 10_000);
+    let numEls = 1000;
+    let nums = range(1, numEls);
     let ii = 0;
     for (nn in nums) {
         let b = nums[ii];
         ii += 1;
     }
-    t.ok(ii == 10_000, 'large loop done');
+    t.ok(ii == numEls, 'large loop done');
     let elapsed = Date.now(true) - now;
-    t.ok(elapsed < 100, 'ArrayAccess loop (10,000) took {0} ms'.fill(elapsed));
+    t.ok(elapsed < 3, 'ArrayAccess loop ({0} elements) took {1} ms'.fill(numEls, elapsed));
     Perf.stop();
 
 
@@ -471,8 +472,39 @@ function testFunctions(t) {
 
 
     function missingArgs(arg1, arg2) { }
-    t.dies(function () { missingArgs(1); }, 'Missing argument - user function');
-    t.dies(function () { Perf.start(); }, 'Missing argument - module');
+    t.dies(F () { missingArgs(1); }, 'Missing argument - user function');
+    t.dies(F () { File.read(); }, 'Missing argument - module');
+
+
+
+    // argument checking
+
+    t.section('Function - Argument Checking');
+
+    t.ok(t.checkArgsString(''), 'string');
+    t.ok(t.checkArgsNumber(123), 'number');
+    t.ok(t.checkArgsList([]), 'list');
+    t.ok(t.checkArgsFlag(false), 'flag');
+    t.ok(t.checkArgsMap({}), 'map');
+
+    t.ok(t.checkArgsMulti('', 0, []), 'multi: string, number, list');
+
+
+    t.dies(F () { t.checkArgsMap(true, true); }, 'Too many args');
+
+    t.dies(F () { t.checkArgsMap([]); }, 'Expect map.  Got List.');
+    t.dies(F () { t.checkArgsMap('x'); }, 'Expect map. Got String');
+    t.dies(F () { t.checkArgsMap(123); }, 'Expect map. Got Number');
+    t.dies(F () { t.checkArgsMap(true); }, 'Expect map. Got Flag');
+
+    t.ok(t.checkArgsString(123), 'Number as string');
+    t.dies(F () { t.checkArgsNumber('123') }, 'String as number');
+
+    t.dies(F () { t.checkArgsMulti(true, 123, []); }, 'Multi (snl): bad #1');
+    t.dies(F () { t.checkArgsMulti('', '123', []); }, 'Multi (snl): bad #2');
+    t.dies(F () { t.checkArgsMulti('', 123, 'x'); }, 'Multi (snl): bad #3');
+
+
 }
 
 
