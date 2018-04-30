@@ -3,23 +3,27 @@
 namespace o;
 
 
-// Report startup errors until the main handlers are initialized.
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
-set_error_handler('o\onStartupError');
-
-// Avoid timezone warning
-if (!ini_get('date.timezone')) {
-    date_default_timezone_set('UTC');
-}
-
-// Doing this right away to include hits from static cache
 if (isset($_SERVER['HTTP_USER_AGENT'])) {
+
+    // Avoid timezone warning
+    if (!ini_get('date.timezone')) {
+        date_default_timezone_set('UTC');
+    }
+
+    // Report startup errors until the main handlers are initialized.
+    ini_set('display_errors', '1');
+    error_reporting(E_ALL);
+    set_error_handler('o\onStartupError');
+
+    // Doing this right away to include hits from static cache
     startupHitCounter();
+
     startupStaticCache();
+
+
+    restore_error_handler();
 }
 
-restore_error_handler();
 
 // Include THT lib
 require dirname(__FILE__) . '/../lib/core/Tht.php';
@@ -43,40 +47,39 @@ function onStartupError($a, $errstr) {
 
 function startupStaticCache() {
 
-    $cacheSecs = defined('STATIC_CACHE_SECONDS') ? constant('STATIC_CACHE_SECONDS') : 0;
+    $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
 
     // Serve directly from HTML cache
-    if ($cacheSecs && $cacheSecs !== 0) {
+    if ($cacheTag) {
 
         $cacheFile = md5($_SERVER['SCRIPT_NAME']);
-        $cachePath = APP_ROOT . '/data/cache/html/' . $cacheFile . '.html';
-        if (file_exists($cachePath)) {
-            if ($cacheSecs < 0 || time() < filemtime($cachePath) + $cacheSecs) {
+        $cachePath = DATA_ROOT . '/cache/html/' . $cacheTag . '_' . $cacheFile . '.html';
 
-                // security headers
-                header("X-Content-Type-Options: nosniff");
-                header("X-Frame-Options: deny");
-                header("X-UA-Compatible: IE=Edge");
-                header("X-Cached: true");
-                header_remove("X-Powered-By");
-                header("Content-Type: text/html");
+        if (file_exists(realpath($cachePath))) {
 
-                ob_start("ob_gzhandler");
-                readfile($cachePath);
-                ob_end_flush();
+            // security headers
+            header("X-Content-Type-Options: nosniff");
+            header("X-Frame-Options: deny");
+            header("X-UA-Compatible: IE=Edge");
+            header("X-Static-Cache: true");
+            header_remove("X-Powered-By");
+            header("Content-Type: text/html");
 
-                exit(0);
+            ob_start("ob_gzhandler");
+            readfile($cachePath);
+            ob_end_flush();
 
-            } else {
-                // prevent stampede while cache is updated
-                touch($cachePath);
-            }
+            exit(0);
         }
     }
 }
 
-// Hit Counter
+// Hit Counter - no significant performance hit
 function startupHitCounter() {
+
+    if (defined('HIT_COUNTER') && constant('HIT_COUNTER') === false) {
+        return;
+    }
 
     // skip bots
     $botRx = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
@@ -84,7 +87,7 @@ function startupHitCounter() {
 
     $counterDir = DATA_ROOT . '/counter';
 
-    // date counter
+    // date counter - 1 byte per hit
     $date = strftime('%Y%m%d');
     $dateLogPath = $counterDir . '/date/' . $date . '.txt';
     file_put_contents($dateLogPath, '+', FILE_APPEND|LOCK_EX);
@@ -96,6 +99,16 @@ function startupHitCounter() {
     $page = trim($page, '_') ?: 'home';
     $pageLogPath = $counterDir . '/page/' . $page . '.txt';
     file_put_contents($pageLogPath, '+', FILE_APPEND|LOCK_EX);
+
+    // referrer log - 1 line per referrer
+    $ref = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+    if ($ref) { 
+        if (stripos($ref, $_SERVER['HTTP_HOST']) === false) {
+            $date = strftime('%Y%m');
+            $referrerLogPath = $counterDir . '/referrer/' . $date . '.txt';
+            file_put_contents($referrerLogPath, $ref . "\n", FILE_APPEND|LOCK_EX);
+        }
+    }
 }
 
 
