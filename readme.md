@@ -9,7 +9,7 @@ Please visit **[tht.help](https://tht.help)**.
 ## Features
 
 - Familiar JavaScript-like syntax
-- Compiles to PHP, so it's quick & available everywhere
+- Auto-compiles to PHP, so it's quick & available nearly everywhere
 - More secure & easier to use than PHP alone
 
 
