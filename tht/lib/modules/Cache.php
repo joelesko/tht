@@ -7,19 +7,9 @@ class u_Cache extends StdModule {
     private $driver;
 
     function __construct() {
+    	// TODO: support memcache, etc.
         $this->driver = new FileCacheDriver ();
     }
-
-    // TODO: support memcache, etc.
-
-    // function u_set_driver($d) {
-    //     if ($d == 'file') {
-    //         $this->driver = new FileCacheDriver ();
-    //     } else if ($d == 'db') {
-    //         $this->driver = new DbCacheDriver ();
-    //     }
-    // }
-
 
     function u_has($k) {
     	Tht::module('Perf')->start('Cache.has', $k);
@@ -185,36 +175,3 @@ class FileCacheDriver extends CacheDriver {
         }
     }
 }
-
-// About 4x slower than File Driver...
-// class DbCacheDriver extends CacheDriver {
-
-//     function db() {
-//         return Tht::module('Database')->u_use('cache');
-//     }
-
-//     function get($k, $def='', $expiry=-1) {
-//         $db = $this->db();
-//         $lsql = new \o\OLockString('SELECT * FROM cache WHERE key = {0} AND expireDate > {1}');
-//         $lsql->u_fill($k, time());
-//         $row = $db->u_select_row($lsql);
-//         return $row ? $this->unwrap($row['value']) : $def;
-//     }
-
-//     function set($k, $v, $ex) {
-//         $db = $this->db();
-//         $lWhere = new \o\OLockString('key = {0}');
-//         $db->u_delete_row('cache', $lWhere->u_fill($k));
-//         $db->u_insert_row('cache', [
-//             'key' => $k,
-//             'value' => $this->wrap($v),
-//             'expireDate' => $ex
-//         ]);
-//     }
-
-//     function delete() {
-
-//     }
-
-// }
-
