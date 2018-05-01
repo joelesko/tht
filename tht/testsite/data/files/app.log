@@ -186,3 +186,25 @@
     12 |  tht, line 32 - Tht.start()
     13 |  thtApp, line 7 - require_once()
 
+[2018-05-01 09:40:12]  --- RuntimeError ---
+
+    Missing argument 3 for `CacheDriver.get()`
+
+    86:  return $this->get($k, -1) !== '';
+    --- Trace ---
+
+     0 |  Cache, line 86 - CacheDriver.get()
+     1 |  Cache, line 26 - CacheDriver.has()
+     2 |  Css, line 18 - Cache.has()
+     3 |  Css, line 642 - Css.minify()
+     4 |  Css, line 100 - Css.inc_base()
+     5 |  pages/home.tht, line 18 - Css.include()
+     6 |  pages/home.tht, line 9 - html()
+     7 |  WebMode, line 237 - call_user_func()
+     8 |  WebMode, line 202 - WebMode.callAutoFunction()
+     9 |  WebMode, line 30 - WebMode.executeWebController()
+    10 |  Tht, line 119 - WebMode.main()
+    11 |  Tht, line 68 - Tht.main()
+    12 |  tht, line 32 - Tht.start()
+    13 |  thtApp, line 7 - require_once()
+

@@ -64,6 +64,7 @@ function run(t) {
     libSettings(t);  
    // libMapDb(t);  
     libSession(t);
+    libCache(t);
 }
 
 
@@ -1739,6 +1740,45 @@ function libSession(t) {
 
     t.dies(function () { Session.get('missing'); }, 'get bad key');
 
+}
+
+function libCache(t) {
+
+    t.section('Module: Cache');
+
+    Cache.set('test', 123, 1);
+    t.ok(Cache.has('test'), 'has');
+
+    t.ok(!Cache.has('not'), 'has not');
+    t.ok(Cache.get('test') == 123, 'get');
+
+    t.ok(Cache.get('not', 'missing') == 'missing', 'get default');
+
+    Cache.set('data', { a: ['x', 'y', 'z'] }, 3);
+    t.ok(Cache.get('data').a.join('|') == 'x|y|z', 'get map + list');
+
+    Cache.delete('data');
+    t.ok(!Cache.has('data'), 'delete');
+
+    t.ok(Cache.counter('count') == 1, 'counter 1');
+    t.ok(Cache.counter('count') == 2, 'counter 2');
+    t.ok(Cache.counter('count', 2) == 4, 'counter +2');
+    t.ok(Cache.counter('count', -1) == 3, 'counter -1');
+
+    Cache.delete('count');
+
+
+    Cache.set('short', 'a', 0.1);
+    Cache.set('longer', 'a', 0.5);
+    Cache.set('forever', 'a', 0);
+    System.sleep(200);
+    t.ok(!Cache.has('short'), '100ms expiry');
+    t.ok(Cache.has('longer'), '500ms expiry');
+    t.ok(Cache.has('forever'), 'no expiry');
+
+    Cache.delete('short');
+    Cache.delete('longer');
+    Cache.delete('forever');
 }
 
 
