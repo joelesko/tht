@@ -25,7 +25,7 @@ abstract class TokenType {
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~@';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~#';
     const MULTI_GLYPH_SUFFIX = '=<>&|+-*:';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
@@ -157,7 +157,7 @@ class ParserData {
         '~='  => 'S_Assign',
         '||=' => 'S_Assign',
         '&&=' => 'S_Assign',
-        '@='  => 'S_Assign',
+        '#='  => 'S_Assign',
 
         // delimiters / members
         '.'   => 'S_Dot',

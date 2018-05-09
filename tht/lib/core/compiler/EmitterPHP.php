@@ -34,7 +34,7 @@ class EmitterPHP extends Emitter {
         'ASSIGN'          => 'pAssign',
         'ASSIGN|||='      => 'pAssignOr',
         'ASSIGN|&&='      => 'pAssignAnd',
-        'ASSIGN|@='       => 'pAssignPush',
+        'ASSIGN|#='       => 'pAssignPush',
         'METHOD_ASSIGN'   => 'pMethodAssign',
 
         'NEW_VAR'         => 'pNewVar',
