@@ -71,10 +71,11 @@ F main() {
     //     }
     // }, 'loginForm');
 
-    form.fill({
+    form.setFields({
         userName: 'jlesko',
         color: 'Green',
-        state: 'wi'
+        state: 'wi',
+        toppings: Q[ Pepperoni Pineapple ]
     });
 
 

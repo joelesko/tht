@@ -1,11 +1,11 @@
 <?php
 
-namespace tht5ae4d4b68cf26;
-\o\Runtime::setNameSpace('pages/form.tht','tht5ae4d4b68cf26');
+namespace tht5aeb41cfa5de6;
+\o\Runtime::setNameSpace('pages/form.tht','tht5aeb41cfa5de6');
 
 function u_main ()  {
  $u_form = \o\Runtime::getModule(__NAMESPACE__, 'Web')->u_form(\o\OMap::create([ 'userName' => \o\OMap::create([ 'label' => "User Name", 'rule' => "min:4" ]), 'email' => \o\OMap::create([ 'label' => "Email", 'rule' => "email", 'value' => "a@b.com", 'help' => "Make sure it is valid!" ]), 'zip' => \o\OMap::create([ 'label' => "Zip Code", 'rule' => "optional|digits" ]), 'password' => \o\OMap::create([ 'label' => "Password", 'type' => "password" ]), 'comment' => \o\OMap::create([ 'label' => "Comment", 'type' => "textarea" ]), 'secret' => \o\OMap::create([ 'type' => "hidden", 'value' => "12345" ]), 'state' => \o\OMap::create([ 'label' => "State", 'type' => "select", 'options' => \o\OMap::create([ 'wi' => "Wisconsin", 'fl' => "Florida", 'ca' => "California" ]) ]), 'color' => \o\OMap::create([ 'label' => "Color", 'type' => "radio", 'options' => \o\OList::create([ "Red", "Blue", "Green" ]) ]), 'toppings' => \o\OMap::create([ 'label' => "Toppings", 'type' => "checkbox", 'options' => \o\OList::create([ "Pepperoni", "Pineapple", "Anchovies" ]) ]) ]));
-\o\v($u_form)->u_fill(\o\OMap::create([ 'userName' => "jlesko", 'color' => "Green", 'state' => "wi" ]));
+\o\v($u_form)->u_set_fields(\o\OMap::create([ 'userName' => "jlesko", 'color' => "Green", 'state' => "wi", 'toppings' => \o\OList::create([ "Pepperoni", "Pineapple" ]) ]));
 $u_html = "";
 if (\o\v($u_form)->u_ok()) {
 $u_html = u_process_form($u_form);
@@ -62,6 +62,6 @@ return $t->getString();
 
 
 
-/* SOURCE={"file":"pages\/form.tht","6":3,"7":49,"8":77,"9":81,"10":82,"11":83,"15":85,"19":91,"22":95,"23":96,"24":97,"27":100,"29":106,"30":106,"31":109,"35":111,"36":115,"39":120,"41":126,"42":126,"43":128,"45":128,"46":130,"49":130,"50":132,"53":132,"54":134,"57":134,"58":144} */
+/* SOURCE={"file":"pages\/form.tht","6":3,"7":49,"8":78,"9":82,"10":83,"11":84,"15":86,"19":92,"22":96,"23":97,"24":98,"27":101,"29":107,"30":107,"31":110,"35":112,"36":116,"39":121,"41":127,"42":127,"43":129,"45":129,"46":131,"49":131,"50":133,"53":133,"54":135,"57":135,"58":145} */
 
 ?>

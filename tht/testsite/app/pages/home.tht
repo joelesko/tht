@@ -9,6 +9,7 @@ function main() {
     Web.sendHtml(html(test.resultsHtml()));
 }
 
+
 template html(results) {
 
     <!-- this is a comment -->
@@ -446,7 +447,7 @@ function testFunctions(t) {
 
 
     function addToList(l) {
-        l @= 4;
+        l #= 4;
     }
     let refList = [1, 2, 3];
     addToList(refList);
@@ -1226,24 +1227,37 @@ function testLists(t) {
 
     t.ok(copyAryA[0] == 11 && copyAryB[0] == 22, 'copy');
 
-    // add / remove
+    // insert / remove
     ary = [1, 2, 3];
-    t.ok(ary.add(40)[3] == 40, 'add');
-    t.ok(ary.remove() == 40, 'remove');
-    t.ok(ary.add(-10, 0)[0] == -10, 'add index 0');
-    t.ok(ary.remove(0) == -10, 'remove index 0');
+
+    t.ok(ary.push(40)[3] == 40, 'push');
+    t.ok(ary.pop() == 40, 'pop');
+
+    t.ok(ary.insert(-10, 0)[0] == -10 && ary.length() == 4, 'add index 0');
+    t.ok(ary.remove(0) == -10 && ary.length() == 3, 'remove index 0');
 
     ary = [1, 2, 3];
-    t.ok(ary.add(40, -1)[3] == 40, 'add index -1');
-    ary.remove();
-    t.ok(ary.add(40, -2)[2] == 40, 'add index -2');
+    t.ok(ary.insert(40, -1)[3] == 40, 'add index -1');
+    ary.pop();
+    t.ok(ary.insert(40, -2)[2] == 40, 'add index -2');
 
     t.ok([0, 1, 2].remove(-1) == 2, 'remove index -1');
     t.ok([0, 1, 2].remove(-2) == 1, 'remove index -2');
 
     ary = [1, 2, 3];
-    ary.remove();
-    t.ok(ary.length() == 2, 'length after remove');
+    ary.pop();
+    t.ok(ary.length() == 2 && ary.last() == 2, 'length after pop');
+
+    ary.pushAll([3, 4]);
+    t.ok(ary.length() == 4 && ary.last() == 4, 'pushAll');
+    
+    ary = [1, 2, 3];
+    ary.insertAll([10, 11], 2);
+    t.ok(ary.length() == 5 && ary[2] == 10 && ary.last() == 3, 'insertAll');
+
+    ary = [1, 2, 3];
+    ary.insertAll([10, 11], -2);
+    t.ok(ary.length() == 5 && ary[2] == 10 && ary.last() == 3, 'insertAll - negative');
 
 
     // sublist

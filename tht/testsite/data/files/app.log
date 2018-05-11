@@ -208,3 +208,69 @@
     12 |  tht, line 32 - Tht.start()
     13 |  thtApp, line 7 - require_once()
 
+[2018-05-02 21:35:08]  --- RuntimeError ---
+
+    Unknown function: `session_create_id`
+
+    42:  session_id(session_create_id());
+
+    File: Session  Line: 42
+
+[2018-05-02 21:35:08]  Entry file not found for path: `/favicon.ico`
+[2018-05-02 21:35:12]  --- RuntimeError ---
+
+    Unknown function: `session_create_id`
+
+    42:  session_id(session_create_id());
+
+    File: Session  Line: 42
+
+[2018-05-02 21:35:43]  --- RuntimeError ---
+
+    Unknown function: `session_create_id`
+
+    42:  session_id(\session_create_id());
+
+    File: Session  Line: 42
+
+[2018-05-10 10:42:05]  --- ThtException ---
+
+    Unknown method `add` for class `List`.
+
+    1231:  t.ok(ary.add(40)[3] == 40, 'add');
+    --- Trace ---
+
+     0 |  OClass, line 100 - Tht.error()
+     1 |  pages/home.tht, line 1231 - Class.__call()
+     2 |  pages/home.tht, line 1231 - List.add()
+     3 |  pages/home.tht, line 41 - testLists()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-10 10:42:05]  Entry file not found for path: `/favicon.ico`
+[2018-05-10 11:25:37]  --- ThtException ---
+
+    Unknown method `add` for class `List`.
+
+    1232:  t.ok(ary.add(40)[3] == 40, 'add');
+    --- Trace ---
+
+     0 |  OClass, line 100 - Tht.error()
+     1 |  pages/home.tht, line 1232 - Class.__call()
+     2 |  pages/home.tht, line 1232 - List.add()
+     3 |  pages/home.tht, line 42 - testLists()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
