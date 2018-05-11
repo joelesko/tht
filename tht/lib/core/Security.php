@@ -16,6 +16,8 @@ class Security {
     static private $isCrossOrigin = null;
     static private $isOpenFileSandbox = false;
 
+    static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
+
     static private $PHP_BLACKLIST = [
         'assert',
         'call_user_func',
@@ -45,12 +47,7 @@ class Security {
         'url_exec',
     ];
 
-    static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
-
-
-
-    /// METHODS
-
+    
 
 	static function createPassword ($plainText) {
 		return new OPassword ($plainText);
@@ -90,11 +87,6 @@ class Security {
         $b64 = base64_encode($bytes);
 
         return substr($b64, 0, $len);
-	}
-
-	static function getSessionChecksum() {
-		$plainKey = Tht::getPhpGlobal('server', 'REMOTE_ADDR') . '::' . Tht::getPhpGlobal('server', 'HTTP_USER_AGENT');
-		return md5($plainKey);
 	}
 
 	static function initSessionParams() {
