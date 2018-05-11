@@ -5,6 +5,7 @@ namespace o;
 class CliMode {
 
     static private $SERVER_PORT = 8888;
+    static private $SERVER_HOSTNAME = 'localhost';
 
     static private $CLI_OPTIONS = [
         'new'    => 'new',
@@ -31,7 +32,8 @@ class CliMode {
         }
         else if ($firstOption === CliMode::$CLI_OPTIONS['server']) {
             Tht::initPaths(true);
-            CliMode::startTestServer();  // TODO: support run from tht parent, port
+            $port = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
+            CliMode::startTestServer($port);
         }
         // else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
         //     // Tht::init();
@@ -328,13 +330,16 @@ class CliMode {
         echo " [OK]\n";
     }
 
-    static function startTestServer ($hostName='localhost', $port=0, $docRoot='.') {
+    static function startTestServer ($port=0, $docRoot='.') {
+
+        $hostName = CliMode::$SERVER_HOSTNAME;
 
         if (!$port) {
             $port = CliMode::$SERVER_PORT;
         }
-        if ($port <= 1024) {
-            Tht::error("Server port must be greater than 1024.");
+        else if ($port < 8000 || $port >= 9000) {
+            echo "\nServer port must be in the range of 8000-8999.\n\n";
+            exit(1);
         }
 
         if (!CliMode::isAppInstalled()) {
