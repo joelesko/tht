@@ -86,7 +86,7 @@ class u_Form extends StdModule {
         return v($this->schema);
     }
 
-    function u_fill($data) {
+    function u_set_fields($data) {
         // TODO: validate map
         $this->fillData = $data;
     }
