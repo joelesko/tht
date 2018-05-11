@@ -31,27 +31,6 @@ class u_Session extends StdModule {
         session_name($this->sessionIdName);
         session_start();
 
-
-        $checksum = Security::getSessionChecksum();
-
-        if (isset($_SESSION[$this->checksumKey])) {
-            if ($checksum !== $_SESSION[$this->checksumKey]) {
-
-                // force a new session
-                session_write_close();
-                session_id(session_create_id());
-                session_start();
-                $_SESSION[$this->checksumKey] = $checksum;
-            }
-            // Refresh cookie to extend expiry
-            // else if ($this->cookieDuration > 0) {
-            //     setcookie($this->sessionIdName, session_id(), time() + $this->cookieDuration, '/', 'localhost', false, true);
-            // }
-        }
-        else {
-            $_SESSION[$this->checksumKey] = $checksum;
-        }
-
         if (isset($_SESSION[$this->flashKey])) {
             $this->flashData = $_SESSION[$this->flashKey];
             unset($_SESSION[$this->flashKey]);
