@@ -54,11 +54,11 @@ class u_Cache extends StdModule {
 
 class CacheDriver {
 
+	// Most recent key/value.  
+	// Perf improvement for calling has(), followed by get()
     private $prevKey = '';
     private $prevValue = '';
 
-
-	// most recent key/value
     function setPrev($k, $v) {
     	$this->prevKey = $k;
     	$this->prevValue = $v;
@@ -88,7 +88,6 @@ class CacheDriver {
 		$prevValue = $this->getPrev($k);
     	if (!is_null($prevValue)) { return $prevValue; }
 
-
 		$json = $this->fetch($k);
 		
 		$v = $default;
@@ -104,14 +103,14 @@ class CacheDriver {
 			}
 	        else if ($syncFileTime >= 0) {
 	        	// synced file was updated
-	        	if ($syncFileTime > $r['c']) {
+	        	if ($syncFileTime > ceil($r['c'] / 1000)) {
 	        		$v = $default;
-	        	}
+	        	}                
 	        } 
 	        else {
 	        	// check standard expiry
 	        	$expiry = $r['c'] + $r['ttl'];
-		        if (Tht::module('Date')->u_now(true) > $expiry && $r['ttl'] > 0) {
+		        if ($r['ttl'] > 0 && Tht::module('Date')->u_now(true) > $expiry) {
 		        	$v = $default;
 		        }  
 	        }
@@ -124,7 +123,7 @@ class CacheDriver {
         return $v;
 	}
 
-    function wrap($v, $ttlSecs) {
+    function serialize($v, $ttlSecs) {
     	$record = [
     		'v' => $v, 
     		'c' => Tht::module('Date')->u_now(true), 
@@ -137,11 +136,13 @@ class CacheDriver {
         return preg_replace('/[^a-zA-Z0-9]/', '_', trim($k));
     }
 
+    // TODO: figure out how to cleanly support user TTL
     function counter($k, $delta) {
         $v = $this->get($k, -1, 0);
         $v += $delta;
         if ($v < 0) { $v = 0; }
-        $this->set($k, $v, time() + (60 * 60 * 24 * 30));  // 30 days
+        $ttlSecs = (60 * 60 * 24 * 30); // 30 days
+        $this->set($k, $v, $ttlSecs);  
         return $v;
     }
 }
@@ -164,8 +165,7 @@ class FileCacheDriver extends CacheDriver {
 
     function set($k, $v, $ttlSecs) {
         $path = $this->path($k);
-        file_put_contents($path, $this->wrap($v, $ttlSecs));
-        //touch($path, $ex);
+        file_put_contents($path, $this->serialize($v, $ttlSecs));
     }
 
     function delete($k) {
