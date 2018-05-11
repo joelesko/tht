@@ -346,11 +346,13 @@ class u_Web extends StdModule {
         $title = $doc['title'];
         $description = isset($doc['description']) ?: '';
 
-        // TODO: get updateTime of the files
-        $cacheTag = '?cache=' . Source::getAppCompileTime();
+        // TODO: get updateTime of the files, allow base64 urls
+        // $cacheTag = '?cache=' . Source::getAppCompileTime();
+        $cacheTag = '';
+        
         $image = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
         $icon = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
-       // $jsData = Tht::module('Js')->serializeData();
+        // $jsData = Tht::module('Js')->serializeData();
 
         $bodyClasses = uv($doc['bodyClasses']) ?: [];
         $bodyClass = implode(' ', $bodyClasses);
