@@ -93,37 +93,67 @@ class OList extends OBag {
 
 
 
-    // ADD
+    // ADD / REMOVE
 
-    function u_addAll ($a2) {
-        ARGS('l', func_get_args());
-        return array_merge($this->val, $a2);
+    function u_push ($v) {
+        ARGS('*', func_get_args());
+        array_push($this->val, $v);
+        return $this->val;
     }
 
+    // function u_push_first ($v) {
+    //     ARGS('*', func_get_args());
+    //     array_unshift($this->val, $v);
+    //     return $this->val;
+    // }
 
-    function u_add ($v, $pos=-1) {
+    function u_push_all ($a2) {
+        ARGS('l', func_get_args());
+        $this->val = array_merge($this->val, $a2->val);
+        return $this->val;
+    }
+
+    function u_pop () {
+        return array_pop($this->val);
+    }
+
+    // function u_pop_first () {
+    //     return array_shift($this->val);
+    // }
+
+    function u_insert ($v, $pos) {
         ARGS('*n', func_get_args());
+        return $this->insert($v, $pos, false);
+    }
+
+    function u_insert_all ($v, $pos) {
+        ARGS('ln', func_get_args());
+        return $this->insert($v, $pos, true);
+    }
+
+    function insert($v, $pos, $isAll) {
         if ($pos < 0) {
             // insert AFTER index
             if ($pos === -1) {
-                array_push($this->val, $v);
+                if ($isAll) {
+                    $this->val = array_merge($this->val, $v->val);
+                } else {
+                    array_push($this->val, $v);
+                }
             } else {
+                $v = $isAll ? $v->val : [$v];
                 array_splice($this->val, $pos + 1, 0, $v);
             }
         } else {
             // insert BEFORE index
+            $v = $isAll ? $v->val : [$v];
             array_splice($this->val, $pos, 0, $v);
         }
         return $this->val;
     }
 
-
-
-
-
-    // REMOVES
-
-    function u_remove ($pos=-1) {
+    // TODO: remove multiple
+    function u_remove ($pos) {
         ARGS('n', func_get_args());
         $len = count($this->val);
         if (!$len) {
