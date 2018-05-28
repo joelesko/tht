@@ -115,7 +115,7 @@ function ARGS($sig, $arguments) {
  
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
-                $name = gettype($arg);
+                $name = $t;
                 // if ($name == 'object') {
                 //     $name = get_class($arg);
                 // }
