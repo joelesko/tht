@@ -1649,13 +1649,15 @@ function libWeb(t) {
 
     t.section('Module: Web - Form Input');
 
-    t.ok(formValidate('123') == '123', 'default token ok');
-    t.ok(formValidate('$foo') == '', 'token not ok');
+    t.ok(formValidate('123') == '123', 'default id ok');
+    t.ok(formValidate('$foo') == '', 'default id not ok');
 
-    t.ok(formValidate('123', 'id') == 123, 'id ok');
+    t.ok(formValidate('id123', 'id') == 'id123', 'id ok');
     t.ok(formValidate('$foo', 'id') == '', 'id not ok');
 
-    t.ok(formValidate('-123.45', 'number') == -123.45, 'number ok');
+    t.ok(formValidate('1234', 'number') == 1234, 'number ok');
+    t.ok(formValidate('123,456', 'number') == 123456, 'number with comma ok');
+    t.ok(formValidate('123`456', 'number') == 123456, 'number with apos ok');
     t.ok(formValidate('$1', 'number') == '', 'number not ok');
 
     t.ok(formValidate('true', 'flag') == true, 'flag ok');
@@ -1669,6 +1671,13 @@ function libWeb(t) {
     t.ok(formValidate('me@mailcom', 'email') == '', 'email not ok');
     t.ok(formValidate('skip', 'email') == '', 'email not ok');
 
+    t.ok(formValidate('1', 'accepted') == true, 'accepted ok');
+    t.ok(formValidate('0', 'accepted') == '', 'accepted not ok');
+    t.ok(formValidate('', 'accepted') == '', 'accepted not ok');
+
+    t.ok(formValidate('(123) 456-7890 x23', 'phone') == '(123) 456-7890 x23', 'phone ok');
+    t.ok(formValidate('badPhone', 'phone') == '', 'phone not ok');
+
     t.ok(formValidate('abc  123!', 'text') == 'abc 123!', 'text ok');
     t.ok(formValidate('abc<b>tag', 'text') == 'abctag', 'text no tag');
     t.ok(formValidate('abc\nline2', 'text') == 'abc line2', 'text newline');
@@ -1677,10 +1686,17 @@ function libWeb(t) {
     t.ok(formValidate('abc<b>tag', 'textarea') == 'abctag', 'textarea no tag');
     t.ok(formValidate('abc\n\n\nline2', 'textarea') == 'abc\n\nline2', 'textarea newline');
 
+    t.dies(F { formValidate('abc', 'badRule'); }, 'bad rule');
+
 }
 
-function formValidate(v, type = 'token') {
-    return Web.tempValidateInput(v, type)['value'];
+function formValidate(v, type = '') {
+    if (type == '') {
+        return Web.validateInput(v)['value'];
+    } else {
+        return Web.validateInput(v, type)['value'];
+    }
+    
 }
 
 function libSettings(t) {

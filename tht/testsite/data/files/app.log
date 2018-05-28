@@ -274,3 +274,138 @@
     10 |  tht, line 32 - Tht.start()
     11 |  thtApp, line 7 - require_once()
 
+[2018-05-20 09:51:16]  --- ThtException ---
+
+    Unknown input type: `id`
+
+    1683:  return Web.tempValidateInput(v, type)['value'];
+    --- Trace ---
+
+     0 |  Web, line 767 - Tht.error()
+     1 |  pages/home.tht, line 1683 - Web.tempValidateInput()
+     2 |  pages/home.tht, line 1655 - formValidate()
+     3 |  pages/home.tht, line 63 - libWeb()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-20 09:51:17]  Entry file not found for path: `/favicon.ico`
+[2018-05-20 09:54:41]  --- ThtException ---
+
+    Unknown input type: `token`
+
+    1683:  return Web.tempValidateInput(v, type)['value'];
+    --- Trace ---
+
+     0 |  Web, line 767 - Tht.error()
+     1 |  pages/home.tht, line 1683 - Web.tempValidateInput()
+     2 |  pages/home.tht, line 1652 - formValidate()
+     3 |  pages/home.tht, line 63 - libWeb()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-20 09:55:02]  --- ThtException ---
+
+    Unknown input type: `token`
+
+    1683:  return Web.tempValidateInput(v, type)['value'];
+    --- Trace ---
+
+     0 |  Web, line 767 - Tht.error()
+     1 |  pages/home.tht, line 1683 - Web.tempValidateInput()
+     2 |  pages/home.tht, line 1652 - formValidate()
+     3 |  pages/home.tht, line 63 - libWeb()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-20 09:56:04]  --- ThtException ---
+
+    Unknown input type: `token`
+
+    1683:  return Web.tempValidateInput(v, type)['value'];
+    --- Trace ---
+
+     0 |  Web, line 767 - Tht.error()
+     1 |  pages/home.tht, line 1683 - Web.tempValidateInput()
+     2 |  pages/home.tht, line 1652 - formValidate()
+     3 |  pages/home.tht, line 63 - libWeb()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-21 12:18:57]  --- RuntimeError ---
+
+    Unknown method: `Web.tempValidateInput`
+
+    1684:  return Web.tempValidateInput(v)['value'];
+
+    File: home.tht  Line: 1684
+
+[2018-05-23 09:18:59]  --- RuntimeError ---
+
+    Unknown method: `Form.redirectBack`
+
+    142:  $this->u_redirect_back();
+
+    File: Form  Line: 142
+
+[2018-05-23 09:19:31]  --- ThtException ---
+
+    Can not autoload PHP class: `LockString`
+
+    83:  if (form.ok()) {
+    --- Trace ---
+
+     0 |  index, line 77 - Tht.error()
+     1 |  Web, line 191 - spl_autoload_call()
+     2 |  Form, line 142 - Web.redirectBack()
+     3 |  Form, line 127 - Form.validateRequest()
+     4 |  pages/form.tht, line 83 - Form.ok()
+     5 |  WebMode, line 237 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 119 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-05-25 10:40:29]  Entry file not found for path: `/yay`
+[2018-05-25 10:44:46]  Entry file not found for path: `/yay`
+[2018-05-25 10:58:18]  Entry file not found for path: `/yay`
+[2018-05-25 10:58:30]  Entry file not found for path: `/yay`
+[2018-05-25 10:58:40]  Entry file not found for path: `/yay`
+[2018-05-25 10:58:44]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:01]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:06]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:24]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:28]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:32]  Entry file not found for path: `/yay`
+[2018-05-25 10:59:37]  Entry file not found for path: `/yay`
+[2018-05-25 11:06:48]  Entry file not found for path: `/yay`
+[2018-05-25 11:07:11]  Entry file not found for path: `/yay`
+[2018-05-25 11:09:01]  Entry file not found for path: `/yay`
+[2018-05-25 13:44:17]  Entry file not found for path: `/yay`
+[2018-05-25 14:44:42]  Entry file not found for path: `/yay`
+[2018-05-25 14:49:06]  Entry file not found for path: `/yay`

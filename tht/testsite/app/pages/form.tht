@@ -2,6 +2,31 @@
 
 F main() {
 
+    let form = getForm();
+    
+    form.setFields({
+        userName: 'jlesko',
+        color: 'Green',
+        state: 'wi',
+        toppings: Q[ Pepperoni Pineapple ]
+    });
+
+
+    let html = formHtml(form);
+
+    Web.sendPage({
+        body: html,
+        title: 'Test Form',
+        css: Css.include('base')
+    });
+}
+
+F ajax() {
+   getForm().validate('/yay');
+}
+
+F getForm() {
+
     let form = Web.form({
         userName: {
             label: 'User Name',
@@ -71,31 +96,8 @@ F main() {
     //     }
     // }, 'loginForm');
 
-    form.setFields({
-        userName: 'jlesko',
-        color: 'Green',
-        state: 'wi',
-        toppings: Q[ Pepperoni Pineapple ]
-    });
 
-
-    let html = '';
-    if (form.ok()) {
-        html = processForm(form);
-    } else {
-        html = formHtml(form);
-    }
-
-    Web.sendPage({
-        body: html,
-        title: 'Test Form',
-        css: Css.include('base')
-    });
-}
-
-F processForm(form) {
-    print(form.data());
-    return thanksHtml(form.data());
+    return form;
 }
 
 T thanksHtml(d) {
@@ -126,17 +128,13 @@ T formHtml(form) {
 
         :: let f = form;
 
-        {{ f.open() }}
+        {{ f.open('', { jsValidation: false }) }}
 
             {{ f.tags() }}
 
             {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
 
         {{ f.close() }}
-
-
-
-        
 
 
     </></>
