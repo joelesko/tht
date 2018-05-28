@@ -2,18 +2,22 @@
 
 namespace o;
 
-// Sensitive operations in one place, for easier auditing
+// All sensitive operations in one place, for easier auditing
 
 class Security {
 
 	static private $CSP_NONCE = '';
 	static private $CSRF_TOKEN_LENGTH = 64;
 	static private $NONCE_LENGTH = 40;
+    // static private $MIN_FORM_SUBMIT_TIME_SECS = 2;
 
 	static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
     static private $isCrossOrigin = null;
+    static private $isCsrfTokenValid = null;
+    // static private $isFormSubmittedByHuman = null;
+
     static private $isOpenFileSandbox = false;
 
     static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
@@ -115,21 +119,39 @@ class Security {
 
 	static function validateCsrfToken() {
 
+        if (!is_null(self::$isCsrfTokenValid)) {
+            return self::$isCsrfTokenValid;
+        }
+
+        self::$isCsrfTokenValid = false;
+
 		$localCsrfToken = Tht::module('Session')->u_get('csrfToken', '');
-        
         $post = Tht::data('phpGlobals', 'post');
         $remoteCsrfToken = isset($post['csrfToken']) ? $post['csrfToken'] : '';
 
         if ($localCsrfToken && hash_equals($localCsrfToken, $remoteCsrfToken)) {
-
-            // client (human) took longer than 2 seconds to submit
-            $formLoadTime = Tht::module('Session')->u_get('formLoadTime', 0);
-            if (time() >= $formLoadTime + 2) {
-                return true;
-            }
+            self::$isCsrfTokenValid = true;
         }
-        return false;
+
+        return self::$isCsrfTokenValid;
 	}
+
+    // static function isFormSubmittedByHuman() {
+
+    //     if (!is_null(self::$isFormSubmittedByHuman)) {
+    //         return self::$isFormSubmittedByHuman;
+    //     }
+
+    //     self::$isFormSubmittedByHuman = false;
+
+    //     // Client (human) should take longer than 2 seconds before submitting
+    //     $formLoadTime = Tht::module('Session')->u_get('formLoadTime', 0);
+    //     if (time() >= $formLoadTime + self::$MIN_FORM_SUBMIT_TIME_SECS) {
+    //         self::$isFormSubmittedByHuman = true;
+    //     }
+
+    //     return self::$isFormSubmittedByHuman;
+    // }
 
 	static function validatePhpFunction($func) {
 		if (in_array(strtolower($func), self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
