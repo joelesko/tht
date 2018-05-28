@@ -453,7 +453,7 @@ class Tht {
     static function data($k, $subKey='') {
         $d = Tht::$data[$k];
         if ($subKey) {
-            return $d[$subKey];
+            return isset($d[$subKey]) ? $d[$subKey] : '';
         }
         if (is_array($d)) {
             Tht::error("Need to specify a subKey for array data: `$k`");
