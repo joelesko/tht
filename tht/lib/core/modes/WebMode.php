@@ -213,9 +213,11 @@ class WebMode {
 
         $mainFunction = 'main';
         $web = Tht::module('Web');
-        if ($web->u_request()['isAjax']) {
+        $req = uv($web->u_request());
+
+        if ($req['isAjax']) {
             $mainFunction = 'ajax';
-        } else if ($web->u_request()['method'] === 'POST') {
+        } else if ($req['method'] === 'POST') {
             $mainFunction = 'post';
         }
         $fullMainFunction = $nameSpace . '\\u_' . $mainFunction;
@@ -246,14 +248,11 @@ class WebMode {
     }
 
     static function getWebRequestHeader ($key) {
-        if (!isset(WebMode::$requestHeaders[$key])) {
-            return '';
-        }
-        return WebMode::$requestHeaders[$key];
+        return Tht::data('requestHeaders', $key);
     }
 
     static function getWebRequestHeaders () {
-        return WebMode::$requestHeaders;
+        return Tht::data('requestHeaders');
     }
 
     static function getWebRouteParam ($key) {
