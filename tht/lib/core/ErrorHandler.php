@@ -437,7 +437,7 @@ class ErrorHandler {
         <?php
 
 
-        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark');
+        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')->u_unlocked();
         print($colorJs);
     }
 

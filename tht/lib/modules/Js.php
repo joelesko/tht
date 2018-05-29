@@ -82,7 +82,7 @@ class u_Js extends StdModule {
         array_shift($args);
 
         if ($id == 'colorCode') {
-            return $this->incSyntaxHighlight($args)->u_unlocked();
+            return $this->incSyntaxHighlight($args);
         }
         if ($id == 'lazyLoadImages') {
             return $this->incLazyLoadImages();
