@@ -409,3 +409,157 @@
 [2018-05-25 13:44:17]  Entry file not found for path: `/yay`
 [2018-05-25 14:44:42]  Entry file not found for path: `/yay`
 [2018-05-25 14:49:06]  Entry file not found for path: `/yay`
+[2018-05-28 11:43:26]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:43:28]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:44:41]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:47:53]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:48:56]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:49:08]  --- RuntimeError ---
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:51:11]  ### RuntimeError ###
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-28 11:51:48]  ######### RuntimeError #########
+
+    Missing argument 2 for `Web.validateInput()`
+
+    1695:  return Web.validateInput(v)['value'];
+
+    --- Trace ---
+
+     0 |  pages/home.tht, line 1695 - Web.validateInput()
+     1 |  pages/home.tht, line 1652 - formValidate()
+     2 |  pages/home.tht, line 63 - libWeb()
+     3 |  pages/home.tht, line 7 - run()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
