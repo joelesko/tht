@@ -16,7 +16,7 @@ class OLockString extends OVar {
     }
 
     function __toString() {
-        $s = $this->str;
+        $s = substr(trim($this->str), 0, 30);
         return "[LockString | $s]";
     }
 
