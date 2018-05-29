@@ -265,7 +265,8 @@ class ErrorHandler {
             } else {
                 if (!$logOut) { $logOut = $plainOut; }
                 $eh->printToLog($logOut);
-                file_put_contents('php://stderr', $plainOut);
+                // print to console
+                file_put_contents('php://stderr', $plainOut . "\n\n");
                 Tht::module('Web')->u_send_error(500);
             }
         }
@@ -302,7 +303,7 @@ class ErrorHandler {
 
     function formatError ($error) {
 
-        $out = "--- " . $error['type'] . " ---\n\n";
+        $out = "######### " . $error['type'] . " #########\n\n";
         $out .= $error['message'];
         if (isset($error['srcLine'])) {
             $out .= "\n\n" . $error['srcLine'];
@@ -310,7 +311,7 @@ class ErrorHandler {
 
         $src = isset($error['src']) ? $error['src'] : null;
         if ($error['trace']) {
-            $out .= $error['trace'];
+            $out .= "\n" . $error['trace'];
         } else if ($src['file']) {
             $out .= "\n\nFile: " . $src['file'] . "  Line: " . $src['line'];
             if (isset($src['pos'])) {
@@ -376,18 +377,20 @@ class ErrorHandler {
             $heading = "Format Checker";
         }
 
+        $isLongSrc = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
+
         // convert backticks to code
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="tht-error-code">$1</span>', $error['message']);
 
         // Put hints on a separate line
         $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Suggestion: $1', $error['message']);
 
-        // format caret
-        $isLongSrc = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
-        $error['srcLine'] = preg_replace("/\^$/", '<span class="tht-caret">&uarr;</span>', $error['srcLine']);
+        // format caret, wrap for color coding
+        $error['srcLine'] = preg_replace("/\^$/", '</span><span class="tht-caret">&uarr;</span>', $error['srcLine']);
+        $error['srcLine'] = '<span class="tht-color-code theme-dark">' . $error['srcLine'];
 
+        
 
-        // TODO: Clean this up.
         ?>
 
 
@@ -398,11 +401,11 @@ class ErrorHandler {
                 .tht-error-message { margin-bottom: 40px; }
                 .tht-error-content { font: 22px <?= u_Css::u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
                 .tht-error-hint {   margin-top: 80px; line-height: 2; opacity: 0.5; font-size: 80%; }
-                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 20px; padding: 30px 30px 30px; background-color: rgba(0,0,0,0.25); white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; overflow: auto; }
-                .src-small { font-size: 65%; }
-                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 20px; padding: 20px 30px; background-color: rgba(0,0,0,0.25); white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; }
+                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 20px; padding: 30px 30px 30px; background-color: #282828; white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; overflow: auto; }
+                .tht-src-small { font-size: 65%; }
+                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 20px; padding: 20px 30px; background-color: #282828; white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; }
                 .tht-caret { color: #eac222; font-size: 30px; position: relative; left: -3px; top: 2px; line-height: 0; }
-                .src-small .tht-caret { font-size: 24px; }
+                .tht-src-small .tht-caret { font-size: 24px; }
                 .tht-error-file { font-size: 90%; margin-bottom: 40px;  }
                 .tht-error-file span { margin-right: 40px; margin-left: 5px; font-size: 105%; font-weight: bold; color: inherit; }
                 .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= u_Css::u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2 8px; }
@@ -421,7 +424,7 @@ class ErrorHandler {
                 <?php } ?>
 
                 <?php if ($error['srcLine']) { ?>
-                <div class='tht-error-srcline <?= $isLongSrc ? 'src-small' : '' ?>'><?= $error['srcLine'] ?></div>
+                <div class='tht-error-srcline <?= $isLongSrc ? 'tht-src-small' : '' ?>'><?= $error['srcLine'] ?></div>
                 <?php } ?>
 
                 <?php if ($error['trace']) { ?>
@@ -432,6 +435,10 @@ class ErrorHandler {
         </div>
 
         <?php
+
+
+        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark');
+        print($colorJs);
     }
 
     function printToConsole ($out) {
