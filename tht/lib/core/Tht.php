@@ -75,7 +75,10 @@ class Tht {
         }
     }
 
+    // TODO: put all these in one registry function/file?
     static private function includeLibs() {
+        
+        Tht::loadLib('Utils.php');
         Tht::loadLib('ErrorHandler.php');
         Tht::loadLib('Source.php');
         Tht::loadLib('StringReader.php');
@@ -544,6 +547,10 @@ class Tht {
         return $fileBaseName . '.' . Tht::$SRC_EXT;
     }
 
+    static function getNamespace($relPath) {
+        return 'tht' . md5($relPath);
+    }
+
 
 
     // MISC GETTERS
@@ -590,10 +597,18 @@ class Tht {
 
     static function getPhpGlobal ($g, $key, $def='') {
 
-        if (!isset(Tht::$data['phpGlobals'][$g]) || !isset(Tht::$data['phpGlobals'][$g][$key])) {
+        if (!isset(Tht::$data['phpGlobals'][$g])) {
             return $def;
         }
-        $val = Tht::$data['phpGlobals'][$g][$key];
+        $val = Tht::$data['phpGlobals'][$g];
+
+        if ($key !== '*') {
+            if (!isset($val[$key])) {
+                return $def;
+            }
+            $val = $val[$key];
+        }
+         
         $val = Security::sanitizeString($val);
 
         return $val;
