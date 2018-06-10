@@ -37,9 +37,27 @@ class TokenStream {
 
 class Tokenizer extends StringReader {
 
-    private $ALLOW_PREV_ADJ_ATOMS = ['let', 'function', 'template', 'in', 'return' , 'new', 'class', 'for', 'if', 'F', 'T', 'R'];
-    private $ALLOW_NEXT_ADJ_ATOMS = ['in', 'if'];
+
     private $ADJ_ATOMS = ['NUMBER', 'STRING', 'LSTRING', 'RSTRING', 'WORD'];
+    private $ALLOW_NEXT_ADJ_ATOMS = [
+        'in', 
+        'if'
+    ];
+    private $ALLOW_PREV_ADJ_ATOMS = [
+        'let', 
+        'function', 
+        'template', 
+        'in', 
+        'return' , 
+        'new', 
+        'class', 
+        'for', 
+        'if', 
+        'F', 
+        'T', 
+        'R'
+    ];
+    
 
     private $prevToken = [];
     private $tokens = [];
