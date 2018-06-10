@@ -382,6 +382,7 @@ function testMisc(t) {
 
     t.ok(TestClass.factory().name == 'factory', 'module factory');
 
+    print(tc);
 
     import('subDir/OtherClass');
     let oc = new OtherClass();
