@@ -34,6 +34,7 @@ class u_Meta extends StdModule {
         return Source::safeParseString($source);
     }
 
+    // TODO:  debug_backtrace is slow. support inline splats instead (supported in PHP 5.6+).
     function u_arguments () {
         $trace = debug_backtrace(0, 2);
         $args = $trace[1]['args'];
@@ -59,6 +60,7 @@ class u_Meta extends StdModule {
     // }
     //
 
+    // TODO: isTestServer
 
     function u_no_template_mode () {
         if (Runtime::inTemplate()) {
