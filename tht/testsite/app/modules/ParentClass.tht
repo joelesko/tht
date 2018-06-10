@@ -1,0 +1,10 @@
+
+class ParentClass {
+	
+	F parentMethod() {
+
+		return 'parent';
+	}
+
+}
+

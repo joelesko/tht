@@ -349,15 +349,44 @@ function testMisc(t) {
 
     t.ok(TestModule.bareFun('Joe') == 'bare:Joe', 'module call - autoloaded');
 
-    // TODO: class
-    // let modObj = TestModule.new('Joe');
-    // t.ok(modObj.test() == 'class:Joe', 'module class');
-
     Global.foo = 'BAR';
     t.ok(TestModule.testGlobal() == 'global:BAR', 'module global');
 
+    t.ok(TestModule.testModuleVar() == 'moduleVar:mod', 'module var - inside access');
+    t.ok(TestModule.moduleVar == 'mod', 'module var - outside access');
+
+
     import('subDir/OtherModule');
     t.ok(OtherModule.ok('Joe') == 'ok:Joe', 'import from subfolder');
+
+
+
+    t.section('Classes (OOP)'); 
+
+    let tc = new TestClass('green', 123);
+
+    t.ok(tc.test() == 'class:green123', 'new object');
+    t.ok(tc.name == 'green', 'get property');
+    t.ok(tc.html().unlocked() == '<b>Hello</b>\n', 'object template');
+
+    t.ok(tc.getHidden() == 0, 'get state');
+    tc.setHidden(345)
+    t.ok(tc.getHidden() == 345, 'set state');
+    t.ok(tc.allState()['hiddenNum'] == 345, 'all state');
+
+    t.ok(tc.dependency() == 'other', 'dependency')
+
+    t.dies(F { tc.state['abc'] = 123;  }, 'private state')
+
+    t.dies(F { tc.foo = 123; }, 'Fields locked after construction');
+
+    t.ok(TestClass.factory().name == 'factory', 'module factory');
+
+
+    import('subDir/OtherClass');
+    let oc = new OtherClass();
+
+    t.ok(oc.ok() == 'other', 'OtherClass');
 
 }
 
@@ -1682,7 +1711,7 @@ function libWeb(t) {
     t.ok(formValidate('abc<b>tag', 'text') == 'abctag', 'text no tag');
     t.ok(formValidate('abc\nline2', 'text') == 'abc line2', 'text newline');
 
-    t.ok(formValidate('abc  123!', 'textarea') == 'abc 123!', 'textarea spaces');
+    t.ok(formValidate('abc  123\n\n\nxyz!\n', 'textarea') == 'abc 123\n\nxyz!', 'textarea spaces');
     t.ok(formValidate('abc<b>tag', 'textarea') == 'abctag', 'textarea no tag');
     t.ok(formValidate('abc\n\n\nline2', 'textarea') == 'abc\n\nline2', 'textarea newline');
 
@@ -1691,7 +1720,7 @@ function libWeb(t) {
 }
 
 function formValidate(v, type) {
-    return Web.validateInput(v, type)['value'];    
+    return FormValidator.validate(v, type)['value'];    
 }
 
 function libSettings(t) {

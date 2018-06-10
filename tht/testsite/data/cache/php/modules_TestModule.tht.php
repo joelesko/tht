@@ -1,31 +1,24 @@
 <?php
 
-namespace tht5ae4d4addb839;
-\o\Runtime::setNameSpace('modules/TestModule.tht','tht5ae4d4addb839');
+namespace tht25ca020412a05b2c5cdc411674c2d40a;
+\o\Runtime::setNameSpace('modules/TestModule.tht','tht25ca020412a05b2c5cdc411674c2d40a');
 
+\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_module_var = "mod";
 function u_bare_fun ($u_name)  {
  return \o\Runtime::concat("bare:", $u_name);
  return \o\Runtime::void(__METHOD__);
 }
 function u_test_global ()  {
- return \o\Runtime::concat("global:", \o\Runtime::getModule(__NAMESPACE__, 'Global')->u_foo);
+ return \o\Runtime::concat("global:", \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_foo);
  return \o\Runtime::void(__METHOD__);
 }
-class u_test_module extends \o\OClass {
-function u_setup ($u_name)  {
- \o\v($this)->u_name = $u_name;
- return \o\Runtime::void(__METHOD__);
-}
-function u_test ()  {
- return \o\Runtime::concat("class:", \o\v($this)->u_name);
+function u_test_module_var ()  {
+ return \o\Runtime::concat("moduleVar:", \o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_module_var);
  return \o\Runtime::void(__METHOD__);
 }
 
-}
-$u_test_module = __NAMESPACE__ . "\u_test_module";
 
 
-
-/* SOURCE={"file":"modules\/TestModule.tht","6":3,"7":4,"10":7,"11":8,"14":12,"15":14,"16":15,"19":18,"20":19} */
+/* SOURCE={"file":"modules\/TestModule.tht","6":2,"7":4,"8":5,"11":8,"12":9,"15":12,"16":13} */
 
 ?>

@@ -563,3 +563,168 @@
      9 |  tht, line 32 - Tht.start()
     10 |  thtApp, line 7 - require_once()
 
+[2018-05-29 09:19:10]  Entry file not found for path: `/yay`
+[2018-05-31 00:13:48]  ######### RuntimeError #########
+
+    Unknown method: `Form.reader`
+
+    115:  $this->u_reader($rules, $formId);
+
+    File: Form  Line: 115
+
+[2018-05-31 00:13:54]  ######### RuntimeError #########
+
+    Unknown method: `Web.validateInput`
+
+    1694:  return Web.validateInput(v, type)['value'];
+
+    File: home.tht  Line: 1694
+
+[2018-05-31 10:34:41]  ######### RuntimeError #########
+
+    Illegal string offset 'rule'
+
+    121:  $sRules = $schema['rule'];
+
+    --- Trace ---
+
+     0 |  FormValidator, line 121
+     1 |  FormValidator, line 82 - FormValidator.validateField()
+     2 |  pages/home.tht, line 1694 - FormValidator.validate()
+     3 |  pages/home.tht, line 1655 - formValidate()
+     4 |  pages/home.tht, line 63 - libWeb()
+     5 |  pages/home.tht, line 7 - run()
+     6 |  WebMode, line 239 - call_user_func()
+     7 |  WebMode, line 202 - WebMode.callAutoFunction()
+     8 |  WebMode, line 30 - WebMode.executeWebController()
+     9 |  Tht, line 119 - WebMode.main()
+    10 |  Tht, line 68 - Tht.main()
+    11 |  tht, line 32 - Tht.start()
+    12 |  thtApp, line 7 - require_once()
+
+[2018-05-31 10:35:19]  ######### RuntimeError #########
+
+    Undefined index: rule
+
+    121:  $sRules = $schema['rule'];
+
+    --- Trace ---
+
+     0 |  FormValidator, line 121
+     1 |  FormValidator, line 82 - FormValidator.validateField()
+     2 |  pages/home.tht, line 1694 - FormValidator.validate()
+     3 |  pages/home.tht, line 1655 - formValidate()
+     4 |  pages/home.tht, line 63 - libWeb()
+     5 |  pages/home.tht, line 7 - run()
+     6 |  WebMode, line 239 - call_user_func()
+     7 |  WebMode, line 202 - WebMode.callAutoFunction()
+     8 |  WebMode, line 30 - WebMode.executeWebController()
+     9 |  Tht, line 119 - WebMode.main()
+    10 |  Tht, line 68 - Tht.main()
+    11 |  tht, line 32 - Tht.start()
+    12 |  thtApp, line 7 - require_once()
+
+[2018-05-31 10:35:21]  ######### RuntimeError #########
+
+    Undefined index: rule
+
+    121:  $sRules = $schema['rule'];
+
+    --- Trace ---
+
+     0 |  FormValidator, line 121
+     1 |  FormValidator, line 82 - FormValidator.validateField()
+     2 |  pages/home.tht, line 1694 - FormValidator.validate()
+     3 |  pages/home.tht, line 1655 - formValidate()
+     4 |  pages/home.tht, line 63 - libWeb()
+     5 |  pages/home.tht, line 7 - run()
+     6 |  WebMode, line 239 - call_user_func()
+     7 |  WebMode, line 202 - WebMode.callAutoFunction()
+     8 |  WebMode, line 30 - WebMode.executeWebController()
+     9 |  Tht, line 119 - WebMode.main()
+    10 |  Tht, line 68 - Tht.main()
+    11 |  tht, line 32 - Tht.start()
+    12 |  thtApp, line 7 - require_once()
+
+[2018-05-31 10:35:31]  ######### RuntimeError #########
+
+    Undefined variable: listResult
+
+    159:  $isOk = !is_array($listResult);
+
+    --- Trace ---
+
+     0 |  FormValidator, line 159
+     1 |  FormValidator, line 129 - FormValidator.validateRule()
+     2 |  FormValidator, line 82 - FormValidator.validateField()
+     3 |  pages/home.tht, line 1694 - FormValidator.validate()
+     4 |  pages/home.tht, line 1655 - formValidate()
+     5 |  pages/home.tht, line 63 - libWeb()
+     6 |  pages/home.tht, line 7 - run()
+     7 |  WebMode, line 239 - call_user_func()
+     8 |  WebMode, line 202 - WebMode.callAutoFunction()
+     9 |  WebMode, line 30 - WebMode.executeWebController()
+    10 |  Tht, line 119 - WebMode.main()
+    11 |  Tht, line 68 - Tht.main()
+    12 |  tht, line 32 - Tht.start()
+    13 |  thtApp, line 7 - require_once()
+
+[2018-05-31 22:56:59]  ######### RuntimeError #########
+
+    Unknown method: `Form.reader`
+
+    45:  $this->u_reader($rules, $formId);
+
+    File: Form  Line: 45
+
+[2018-05-31 22:58:39]  ######### RuntimeError #########
+
+    Unknown method: `Form.getRuleMap`
+
+    516:  $JSON_FIELD_RULES = json_encode($this->getRuleMap($formId));
+
+    File: Form  Line: 516
+
+[2018-05-31 23:00:00]  ######### RuntimeError #########
+
+    Undefined variable: JSON_FIELD_RULES
+
+    522:  $formRegisterJs = "FormValidator.registerForm('$FORM_ID', $JSON_FIELD_RULES);\n";
+
+    --- Trace ---
+
+     0 |  Form, line 522
+     1 |  Form, line 270 - Form.formJs()
+     2 |  pages/form.tht, line 137 - Form.close()
+     3 |  pages/form.tht, line 15 - formHtml()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-31 23:00:26]  ######### RuntimeError #########
+
+    Undefined variable: JSON_RULE_PATTERNS
+
+    559:  var CSRF_TOKEN = '$CSRF_TOKEN';
+
+    --- Trace ---
+
+     0 |  Form, line 559
+     1 |  Form, line 270 - Form.formJs()
+     2 |  pages/form.tht, line 137 - Form.close()
+     3 |  pages/form.tht, line 15 - formHtml()
+     4 |  WebMode, line 239 - call_user_func()
+     5 |  WebMode, line 202 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 119 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 32 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2018-05-31 23:01:09]  Entry file not found for path: `/yay`
+[2018-06-02 16:52:36]  Entry file not found for path: `/favicon.ico`
+[2018-06-04 10:00:25]  Entry file not found for path: `/favicon.ico`

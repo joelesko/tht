@@ -1,0 +1,10 @@
+
+
+class OtherClass {
+
+    F ok {
+        return 'other';
+    }
+
+}
+

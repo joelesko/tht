@@ -2,17 +2,17 @@
 
 F main() {
 
-    let form = getForm();
+    let html = '';
+
+    if (Web.query('done')) {
+        html = L'Thanks!';
+    }
+    else {
+
+        let form = getForm();
     
-    form.setFields({
-        userName: 'jlesko',
-        color: 'Green',
-        state: 'wi',
-        toppings: Q[ Pepperoni Pineapple ]
-    });
-
-
-    let html = formHtml(form);
+        html = formHtml(form);
+    }
 
     Web.sendPage({
         body: html,
@@ -22,12 +22,102 @@ F main() {
 }
 
 F ajax() {
-   getForm().validate('/yay');
+
+    let form = getForm();
+    if (!form.validate()) {
+        form.goFail();
+    }
+
+    form.goNext('?done=1');
 }
 
 F getForm() {
 
     let form = Web.form({
+        name: {
+            label: 'Name',
+            type: 'text',
+            rule: 'text'
+        }
+    });
+
+    return form;
+}
+
+T thanksHtml(d) {
+
+    <.row><.col>
+
+        <h1>> Success
+
+        <p>> Thanks!
+
+        </></>
+}
+
+F getOptions() {
+    return {
+        '1': 'Option 1',
+        '2': 'Option 2',
+        '3': 'Option 3',
+    };
+}
+
+
+T formHtml(form) {
+
+    <.row><.col>
+
+        <h1>> Test Form
+
+        :: let f = form;
+
+        {{ f.open('', { jsValidation: false }) }}
+
+            {{ f.tags() }}
+
+            {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
+
+        {{ f.close() }}
+
+
+    </></>
+
+
+}
+
+
+
+/*
+    // form.setFields({
+    //     userName: 'jlesko',
+    //     color: 'Green',
+    //     state: 'wi',
+    //     toppings: Q[ Pepperoni Pineapple ]
+    // });
+
+
+        // TODO
+        // users: {
+        //     label: 'User',
+        //     type: 'select',
+        //     options: [
+        //         { userId: 1, name: 'Bob' },
+        //         { userId: 2, name: 'Alice' },
+        //         { userId: 3, name: 'Charlie' }
+        //     ]
+        // }
+
+    // let loginForm = Web.form({
+    //     userName: {
+    //         label: 'User Name',
+    //         rule: 'min:4'
+    //     },
+    //     password: {
+    //         label: 'Password',
+    //         type: 'password',
+    //     }
+    // }, 'loginForm');
         userName: {
             label: 'User Name',
             rule: 'min:4'
@@ -73,80 +163,6 @@ F getForm() {
             type: 'checkbox',
             options: Q[ Pepperoni Pineapple Anchovies ]
         },
-        // TODO
-        // users: {
-        //     label: 'User',
-        //     type: 'select',
-        //     options: [
-        //         { userId: 1, name: 'Bob' },
-        //         { userId: 2, name: 'Alice' },
-        //         { userId: 3, name: 'Charlie' }
-        //     ]
-        // }
-    });
-
-    // let loginForm = Web.form({
-    //     userName: {
-    //         label: 'User Name',
-    //         rule: 'min:4'
-    //     },
-    //     password: {
-    //         label: 'Password',
-    //         type: 'password',
-    //     }
-    // }, 'loginForm');
-
-
-    return form;
-}
-
-T thanksHtml(d) {
-
-    <.row><.col>
-
-        <h1>> Success
-
-        <p>> Thanks <b>> {{ d.userName }}!
-
-        </></>
-}
-
-F getOptions() {
-    return {
-        '1': 'Option 1',
-        '2': 'Option 2',
-        '3': 'Option 3',
-    };
-}
-
-
-T formHtml(form) {
-
-    <.row><.col>
-
-        <h1>> Test Form
-
-        :: let f = form;
-
-        {{ f.open('', { jsValidation: false }) }}
-
-            {{ f.tags() }}
-
-            {{ f.submit('Submit', { class: 'button-large button-primary' }) }}
-
-        {{ f.close() }}
-
-
-    </></>
-
-
-}
-
-
-
-/*
-
-
         {{ loginForm.open('/login', { id: 'loginForm' }) }}
 
             {{ loginForm.tag('userName') }}
@@ -174,29 +190,6 @@ T formHtml(form) {
         {{ Form.radio('hey', '3', 'Option 3') }}
         </>
 
-
-    email (__@__.__)
-    url (https?://)
-
-    num (length) - negative | decimal | range
-
-    token ([a-zA-Z0-9_-])
-    id (numeric, non-negative)
-    alphanumeric (e.g. hash)
-
-    digits_between (min, max)
-    accepted
-    filled/required
-
-    sameAs
-    minsize - string length
-    maxsize - string length
-
-    text
-
-    multiline
-
-    (regex)
 
 */
 

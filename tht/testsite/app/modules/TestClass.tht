@@ -1,0 +1,56 @@
+import('subDir/OtherClass');
+
+F factory() {
+
+    return new TestClass('factory', 99);
+}
+
+class TestClass {
+
+    F constructor(name, num) {
+
+        @.name = name;
+        @.num = num;
+
+        @.state['hiddenChar'] = 'x';
+        @.state = {
+            hiddenNum: 0
+        };
+
+        @.dep = new OtherClass();
+
+        return @;
+    }
+
+    F dependency() {
+        return @.dep.ok();
+    }
+
+    F getHidden() {
+        return @.state.hiddenNum;
+    }
+
+    F setHidden(num) {
+        @.state.hiddenNum = num;
+    }
+
+    F allState() {
+        return @.state;
+    }
+
+    F getName() {
+        print('get name');
+        return @.name ~ '!';
+    }
+
+    F test() {
+        return 'class:' ~ @.name ~ @.num;
+    }
+
+    T html() {
+
+        <b>Hello</>
+
+    }
+}
+
