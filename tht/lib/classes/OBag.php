@@ -37,7 +37,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         } else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField] = $val;
         } else {
-            Tht::error("Invalid field: `$plainField`");
+            Tht::error("Can't directly set new field: `$plainField`.  Tip: Use `[]` instead of dot `.`");
         }
     }
 
