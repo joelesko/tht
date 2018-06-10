@@ -3,20 +3,30 @@
 namespace o;
 
 class OModule {
-    private $ns;
+    
+    private $namespace;
     private $baseName;
-    function __construct ($ns, $path) {
-        $this->ns = $ns;
-        $this->baseName = $ns . "\\u_" . basename($path, '.' . Tht::getExt());
+
+    function __construct ($namespace, $path) {
+        $this->namespace = $namespace;
+        $base = basename($path, '.' . Tht::getExt());
+        $this->baseName = $namespace . "\\" . u_($base);
     }
+
     function __call ($f, $args) {
-        $qf = $this->ns . "\\" . $f;
+        $qf = $this->namespace . "\\" . $f;
         if (!function_exists($qf)) {
             Tht::error("Unknown function: `$f`");
         }
         return call_user_func_array($qf, $args);
     }
-    function u_new () {
-        return forward_static_call_array([$this->baseName, 'u_new'], func_get_args());
+
+    function newObject($className, $args) {
+        $qc = $this->namespace . "\\" . u_($className);
+
+        $o = new $qc ();
+        $o->_init($args);
+
+        return $o;  
     }
 }

@@ -497,6 +497,45 @@ class S_Ternary extends Symbol {
     }
 }
 
+class S_New extends Symbol {
+
+    var $type = SymbolType::NEW_OBJECT;
+
+    // e.g. new Foo()
+    function asLeft ($p) {
+
+        $p->space('*new ', true);
+
+        $p->next();
+
+        $sClassName = $p->symbol;
+        if (! $sClassName->token[TOKEN_TYPE] === TokenType::WORD) {
+            $p->error("Expected a class name.  Ex: `new User()`");
+        }
+        $p->space(' classNamex', true);
+        $sClassName->updateType(SymbolType::PACKAGE);
+        $this->addKid($sClassName);
+        $p->next();
+
+        // Argument list
+        $p->now('(', 'new')->space('x(x', true)->next();
+        $args = [];
+        while (true) {
+            if ($p->symbol->isValue(')')) { break; }
+            $args[]= $p->parseExpression(0);
+            if (!$p->symbol->isValue(",")) { break; }
+            $p->space('x, ')->next();
+        }
+        $argSymbol = $p->makeSequence(SequenceType::FLAT, $args);
+        $this->addKid($argSymbol);
+
+        $p->now(')')->space('x)*')->next();
+
+
+        return $this;
+    }
+}
+
 
 //===================================
 //          STATEMENTS
@@ -782,7 +821,6 @@ class S_NewFunction extends S_Statement {
     }
 }
 
-// Undocumented
 class S_Class extends S_Statement {
     var $type = SymbolType::NEW_CLASS;
 
@@ -794,13 +832,25 @@ class S_Class extends S_Statement {
         $p->next();
 
         $sClassName = $p->symbol;
-        if (! $sClassName->token[TOKEN_TYPE] === TokenType::WORD) {
+        if ($sClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
 			$p->error("Expected a class name.  Ex: `class User { ... }`");
 		}
 
         $sClassName->updateType(SymbolType::PACKAGE);
         $this->addKid($sClassName);
         $p->next();
+
+        // if ($p->symbol->isValue('extends')) {
+
+        //     $p->next();
+        //     $sParentClassName = $p->symbol;
+        //     if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
+        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends ParentClass { ... }`");
+        //     }
+        //     $sParentClassName->updateType(SymbolType::PACKAGE);
+        //     $this->addKid($sParentClassName);
+        //     $p->next();
+        // }
 
         $this->addKid($p->parseBlock());
 

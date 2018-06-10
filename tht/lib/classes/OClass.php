@@ -2,174 +2,117 @@
 
 namespace o;
 
-
 class OClass {
 
-//	protected $ufield = [];
-//    protected $plugins = [];
+    private $_fieldsLocked = false;
+    protected $u_state = null;
+
+    function _init($args) {
+
+        $this->u_state = OMap::create([]);
+
+        if (method_exists($this, 'u_constructor')) {
+            call_user_func_array([ $this, 'u_constructor' ], $args);
+        }
+
+        $this->_fieldsLocked = true;
+    }
 
     function __toString () {
         // TODO: clean namespace & prefix (reflection class)
         return '[' . ltrim(get_called_class(), 'o\\') . ']';
     }
 
+    // TODO: toJson
+
     function __get ($field) {
 
-        $plainField = unu_($field);
-        $getterMethod = 'u_get_' . v($plainField)->u_to_token_case();
-
-        if (method_exists($this, $getterMethod)) {
-            return $this->$getterMethod();
+        if (method_exists($this, 'u_dynamic_get')) {
+            return $this->u_dynamic_get($field);
         }
-        else if (property_exists($this, $field)) {
-            return $this->$field;
+
+        $suggestion = '';
+        if (method_exists($this, 'u_suggest_field')) {
+            $suggestion = $this->u_suggest_field(unu_($field));
         }
-        else {
+        $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
 
-            // TODO: allow user fallback method? 
-
-            $suggestions = [
-                'len'    => 'length()',
-                'length' => 'length()',
-                'size'   => 'length()',
-                'count'  => 'length()',
-            ];
-
-            $suggest = isset($suggestions[$plainField]) ? " Try: `" . $suggestions[$plainField] . '`' : '';
-
-            Tht::error("Unknown field: `$field` $suggest");
-        }
+        Tht::error("Unknown field: `$field` $suggest");
     }
 
     function __set ($field, $value) {
-        
-        $plainField = unu_($field);
-        $setterMethod = 'u_set' . v($plainField)->u_to_token_case();
 
-        if (method_exists($this, $setterMethod)) {
-            $this->$setterMethod($value);
-     //   } else if (property_exists($this, $field)) {
-       } else {
-            // $this->ufield[$plainField] = $value;
-            $this->$field = $value;
+        if (method_exists($this, 'u_dynamic_set')) {
+            return $this->u_dynamic_set($field, $value);
         }
-        // else {
-        //     // TODO: allow user fallback method? 
-        //   //  Tht::error("Unknown field: `$field`");
-        // }
 
-        return $this;
+        if ($this->_fieldsLocked) {
+            Tht::error("Can not create field `$field` after object is constructed.");
+        }
+        $this->$field = $value;
     }
 
     function __call ($method, $args) {
 
-        $c = \get_called_class();
-
-        if ($method === 'new') {
-            $c = \get_called_class();
-            return $c::u_new();
+        if (method_exists($this, 'u_dynamic_call')) {
+            return $this->u_dynamic_call(unu_($method), $args);
         }
 
-        // TODO: dedupe with callPlugin
-        // foreach (array_reverse($this->plugins) as $h) {
-        //     if ($h->u_has_function($method)) {
-        //         array_unshift($args, $this);
-        //         return $h->u_call($method, $args);
-        //     }
-        // }
+        $suggestion = '';
+        if (method_exists($this, 'u_suggest_method')) {
+            $suggestion = $this->u_suggest_method(unu_($method));
+        }
+        $suggest = $suggestion ? " Try: `"  . $suggestion . "()`" : '';
 
-        // type check: only return bool for isObject
-        // if (substr($method, 0, 2) === 'is') {
-        //     return $method === 'isObject' ? true : false;
-        // }
-
-        //$val = ($c == 'o\ONumber' || $c == 'o\OString' || $c == 'o\OFlag') ? '(' . $this->val . ')' : '';
-
-
-        // TODO: move to each class
-        $suggestions = [
-            'o\OString::toUpperCase' => 'upperCase',
-            'o\OString::toLowerCase' => 'lowerCase',
-            'o\OList::count' => 'length',
-            'o\OMap::count' => 'length',
-        ];
-
-        $k = $c . '::' . $method;
-        $suggest = isset($suggestions[$k]) ? " Try: `"  . $suggestions[$k] . "()`" : '';
+        $c = get_called_class();
 
         Tht::error("Unknown method `$method` for class `$c`. $suggest");
     }
-    //
-    static function u_new () {
-        $c = \get_called_class();
-        $o = new $c ();
-        if (method_exists($o, 'u_setup')) {
-            call_user_func_array([ $o, 'u_setup' ], func_get_args());
-        }
-        return $o;
+
+    function u_call_method($method, $args) {
+        $uMethod = u_($method);
+        call_user_func_array([ $this, $uMethod ], $args);
     }
-    //
-    // function xu_clone () {
-    //     return clone $this;
-    // }
-    //
-    // function xu_addData ($data) {
-    //     $this->u_data = array_merge($this->u_data, $data->val);
-    // }
-    //
-    // function u_call ($meth, $args=[]) {
-    //     $meth = 'u_' . $meth;
-    //     return call_user_func_array([ $this, $meth ], $args);
-    // }
-    //
-    // function u_has_method ($method) {
-    //     if (method_exists($this, 'u_' . $method)) {
-    //         return true;
-    //     } else {
-    //         foreach (array_reverse($this->plugins) as $d) {
-    //             if ($d->u_can($method)) {
-    //                 return true;
-    //             }
-    //         }
-    //         return false;
-    //     }
-    // }
 
+    function u_set_field($field, $vel) {
+        $uField = u_($field);
+        $this->$uField = $val;
+    }
 
+    function u_get_field($field) {
+        $uField = u_($field);
+        return $this->$uField;
+    }
+
+    function u_has_method ($method) {
+        return method_exists($this, u_($method));
+    }
+
+    function u_has_field ($field) {
+        return property_exists($this, u_($field));
+    }
+
+    function u_fields () {
+        $fields = get_object_vars($this);
+        return $this->userDefinedElements(array_keys($fields));
+    }
 
     function u_methods () {
         $methods = get_class_methods(get_called_class());
-        $userMethods = [];
-        foreach ($methods as $m) {
-            if (hasu_($m)) {
-                $userMethods []= substr($m, 2);
-            }
-        }
-        sort($userMethods);
-        return $userMethods;
+        return $this->userDefinedElements($methods);
     }
 
-
-    // Plugins
-
-    // function xu_addPlugin ($h) {
-    //     if (is_string($h)) {
-    //         $h = new $h ();  // or call static?
-    //     }
-    //     $this->plugins []= $h;
-    // }
-    //
-    // function xu_callPlugin ($method, $args=[]) {
-    //     foreach (array_reverse($this->plugins) as $h) {
-    //         if ($h->u_has_function($method)) {
-    //             array_unshift($args, $this);
-    //             return $h->u_call($method, $args);
-    //         }
-    //     }
-    //     Tht::error("Unknown method '$method'");
-    // }
-    //
-    // function xu_getPlugins () {
-    //     return $this->plugins;
-    // }
+    private function userDefinedElements($elements) {
+        $userElements = [];
+        foreach ($elements as $e) {
+            if (hasu_($e)) {
+                $userElements []= unu_($e);
+            }
+        }
+        sort($userElements);
+        return $userElements;
+    }
 }
+
+
+

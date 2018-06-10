@@ -3,13 +3,13 @@
 namespace o;
 
 
-
 class EmitterPHP extends Emitter {
 
     var $astToTarget = [
 
         'FLAG'            => 'pFlag',
         'CONSTANT|this'   => 'pThis',
+        'CONSTANT|@'      => 'pThis',
         'NUMBER'          => 'pNumber',
         'STRING'          => 'pString',
         'LSTRING'         => 'pLString',
@@ -21,6 +21,7 @@ class EmitterPHP extends Emitter {
         'TEMPLATE_EXPR'   => 'pTemplateExpr',
         'CLASS'           => 'pClassName',
         'FUN_ARG'         => 'pFunArg',
+        'PACKAGE'         => 'pPackage',
 
         'PAIR'            => 'pPair',
         'BARE_FUN'        => 'pBareFun',
@@ -41,6 +42,7 @@ class EmitterPHP extends Emitter {
         'NEW_FUN'         => 'pFunction',
         'NEW_TEMPLATE'    => 'pTemplate',
 		'NEW_CLASS'       => 'pClass',
+        'NEW_OBJECT'      => 'pNew',
 
         'OPERATOR|~'      => 'pConcat',
         'OPERATOR|if'     => 'pIf',
@@ -65,8 +67,8 @@ class EmitterPHP extends Emitter {
 
         $php = $this->out($symbolTable->getFirst());
 
-        $nameSpace = uniqid('tht');
         $relPath = Tht::getRelativePath('app', $filePath);
+        $nameSpace = Tht::getNamespace($relPath); 
         $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\Runtime::setNameSpace('$relPath','$nameSpace');\n";
 
         $finalCode = "<?php\n\n$nameSpacePhp\n$php\n\n";
@@ -301,12 +303,11 @@ class EmitterPHP extends Emitter {
     }
 
     function pMemberDot ($value, $k) {
-        if ($k[0]['type'] === SymbolType::PACKAGE) {
-            return $this->format('\o\Runtime::getModule(__NAMESPACE__, \'###\')->###', $k[0]['value'], u_($k[1]['value']));
-        }
-        else {
-            return $this->format('\o\v(###)->###', $k[0], u_($k[1]['value']));
-        }
+        return $this->format('\o\v(###)->###', $k[0], u_($k[1]['value']));
+    }
+
+    function pPackage($value, $k) {
+        return $this->format('\o\Runtime::getModule(__NAMESPACE__, \'###\')', $value);
     }
 
 
@@ -370,8 +371,10 @@ class EmitterPHP extends Emitter {
 
 	function pClass ($value, $k) {
         $className = $k[0]['value'];
-		$c = $this->format('class ### extends \o\OClass {###}', u_($className), $this->out($k[1], true));
-        $c .= $this->format('$### = __NAMESPACE__ . "\###";', u_($className), u_($className));
+        $parent = '\o\OClass';
+        $block = $k[1];
+		$c = $this->format('class ### extends ### {###}', u_($className), $parent, $this->out($block, true));
+     //   $c .= $this->format('$### = __NAMESPACE__ . "\###";', u_($className), u_($className));
         return $c;
 	}
 
@@ -382,6 +385,12 @@ class EmitterPHP extends Emitter {
         }
         return $s . "\n";
 	}
+
+    function pNew ($value, $k) {
+        $className = $k[0]['value'];
+        $c = $this->format('\o\Runtime::newObject(__NAMESPACE__, "###", [###])', $className, $this->out($k[1], true));
+        return $c;
+    }
 
 
     // Commands
@@ -397,6 +406,14 @@ class EmitterPHP extends Emitter {
         return $this->format('return ###;', $k[0]);
     }
 }
+
+
+
+
+
+
+
+
 
 
 

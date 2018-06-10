@@ -71,6 +71,7 @@ abstract class SymbolType {
     const NEW_VAR       =  'NEW_VAR';    // let foo = 1
     const NEW_FUN       =  'NEW_FUN';    // function foo () {}
     const NEW_CLASS     =  'NEW_CLASS';  // class Foo {}
+    const NEW_OBJECT    =  'NEW_OBJECT'; // new Foo ()
     const BARE_FUN      =  'BARE_FUN';   // print
     const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
     const FUN_ARG       =  'FUN_ARG';    // function foo (arg) {}
@@ -122,6 +123,7 @@ class ParserData {
         'true'  => 'S_Flag',
         'false' => 'S_Flag',
         'this'  => 'S_Constant',
+        '@'     => 'S_Constant',
 
         // prefix
         '!'  => 'S_Prefix',
@@ -173,6 +175,7 @@ class ParserData {
         'template' => 'S_NewTemplate',
         'T'        => 'S_NewTemplate',
     	'class'    => 'S_Class',
+        'new'      => 'S_New',
         'if'       => 'S_If',
         'for'      => 'S_For',
         'try'      => 'S_TryCatch',
