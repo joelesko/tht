@@ -5,7 +5,6 @@ namespace o;
 class u_Session extends StdModule {
 
     private $sessionStarted = false;
-    private $checksumKey = '**checksum';
     private $flashKey = '**flash';
     private $flashData = [];
     private $sessionIdName = 'sid';
@@ -75,7 +74,6 @@ class u_Session extends StdModule {
     function u_get_all() {
         $this->startSession();
         $all = $_SESSION;
-        unset($all[$this->checksumKey]);
         unset($all[$this->flashKey]);
         return OMap::create($all);
     }
@@ -93,9 +91,7 @@ class u_Session extends StdModule {
 
     function u_delete_all() {
         $this->startSession();
-        $checksum = $_SESSION[$this->checksumKey];
         $_SESSION = [];
-        $_SESSION[$this->checksumKey] = $checksum;
     }
 
     function u_has_key($key) {
