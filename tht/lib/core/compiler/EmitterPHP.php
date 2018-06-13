@@ -5,6 +5,9 @@ namespace o;
 
 class EmitterPHP extends Emitter {
 
+    private $constantContext = '';
+    private $constantValues = [];
+
     var $astToTarget = [
 
         'FLAG'            => 'pFlag',
@@ -92,6 +95,7 @@ class EmitterPHP extends Emitter {
             $targetSrc []= $dent . $this->out($k, $isBlock);
         }
         $delim = $isBlock ? '' : ', ';
+
         return implode($targetSrc, $delim);
     }
 
@@ -148,11 +152,31 @@ class EmitterPHP extends Emitter {
     // Arrays
 
     function pMap ($value, $k) {
-        return $this->format('\o\OMap::create([ ### ])', $this->toSequence($value, $k));
+        $template = '\o\OMap::create([ ### ])';
+        if ($this->constantContext) {
+            $template = '[ ### ]';
+            $this->constantValues []= [
+                'type' => 'map',
+                'name' => $this->constantContext
+            ];
+        }
+        //return $this->format('\o\OMap::create([ ### ])', $this->toSequence($value, $k));
+        return $this->format($template, $this->toSequence($value, $k));
     }
 
     function pList ($value, $k) {
-       return $this->format('\o\OList::create([ ### ])', $this->toSequence($value, $k));
+
+        $template = '\o\OList::create([ ### ])';
+        if ($this->constantContext) {
+            $template = '[ ### ]';
+            $this->constantValues []= [
+                'type' => 'list',
+                'name' => $this->constantContext
+            ];
+        }
+
+       return $this->format($template, $this->toSequence($value, $k));
+       //return $this->format('[ ### ]', $this->toSequence($value, $k));
     }
 
 
@@ -174,7 +198,11 @@ class EmitterPHP extends Emitter {
 
     function pFunArg ($value, $k) {
         if (isset($k[0])) {
-            return $this->format('$###=###', u_($value), $k[0]);
+            // mark defaults as constants, so maps and lists can be wrapped inside the function body
+            $this->constantContext = $value;
+            $out = $this->format('$###=###', u_($value), $k[0]);
+            $this->constantContext = '';
+            return $out;
         } else {
             return $this->format('$###', u_($value));
         }
@@ -320,8 +348,24 @@ class EmitterPHP extends Emitter {
             $closure = $this->format('use (###)', $k[3]);
         }
 
-        return $this->format('function ### (###) ### { ### return \o\Runtime::void(__METHOD__);}',
+        $out = $this->format('function ### (###) ### { %%% ### return \o\Runtime::void(__METHOD__);}',
           $k[0], $k[1], $closure, $this->out($k[2], true) );
+
+        // wrap any lists or maps that are 
+        $objectWrappers = '';
+        foreach ($this->constantValues as $cv) {
+            $varName = '$' . u_($cv['name']);
+            if ($cv['type'] == 'map') {
+                $objectWrappers .= "$varName = is_object($varName) ? $varName : \o\OMap::create($varName);\n";
+            }
+            else {
+                $objectWrappers .= "$varName = is_object($varName) ? $varName : \o\OList::create($varName);\n";
+            }
+        } 
+        $this->constantValues = [];
+        $out = preg_replace('/%%%/', $objectWrappers, $out, 1);
+
+        return $out;
     }
 
     function pTemplate ($value, $k) {

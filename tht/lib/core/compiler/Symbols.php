@@ -298,7 +298,7 @@ class S_Dot extends S_Infix {
         }
         $sMember->updateType(SymbolType::MEMBER_VAR);
         $name = $sMember->token[TOKEN_VALUE];
-        if (!($name >= 'a' && $name <= 'z')) {
+        if (!($name[0] >= 'a' && $name[0] <= 'z')) {
             $p->error("Member `$name` must be lowerCamelCase.");
         }
         $this->setKids([ $objName, $sMember ]);
@@ -756,13 +756,14 @@ class S_NewFunction extends S_Statement {
 
                     // argument with default.
                     // e.g. function foo (a = 1) { ... }
-                    $sDefault = $p->next();
-                    $types = [ SymbolType::STRING, SymbolType::NUMBER, SymbolType::FLAG ];
-                    if (!in_array($sDefault->type, $types)) {
-                        $p->error("Argument defaults need to be a String, Number, or Flag.", $sDefault->token);
-                    }
-                    $sArg->addKid($sDefault);
                     $p->next();
+                    $sDefault = $p->parseExpression(0);
+                    // $types = [ SymbolType::STRING, SymbolType::NUMBER, SymbolType::FLAG ];
+                    // if (!in_array($sDefault->type, $types)) {
+                    //     $p->error("Argument defaults need to be a String, Number, or Flag.", $sDefault->token);
+                    // }
+
+                    $sArg->addKid($sDefault);
                     $hasOptionalArg = true;
                 }
                 else if ($hasOptionalArg) {
