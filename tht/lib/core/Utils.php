@@ -9,6 +9,7 @@ namespace o;
 function v ($v) {
 
     $phpType = gettype($v);
+
     if ($phpType === 'object') {
        if ($v instanceof \Closure) {
            $phpType = 'Closure';
@@ -45,7 +46,8 @@ function vn ($v, $isAdd) {
 
 // Convert camelCase to user_underscore_case (with u_ prefix)
 function u_ ($s) {
-    $out = preg_replace('/([^_])([A-Z])/', '$1_$2', $s);
+   // $out = preg_replace('/([^_])([A-Z])/', '$1_$2', $s);
+    $out = preg_replace('/([A-Z])/', '_$1', $s);
     return 'u_' . strtolower($out);
 }
 
