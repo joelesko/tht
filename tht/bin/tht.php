@@ -107,7 +107,7 @@ function startupHitCounter() {
             $fileDate = strftime('%Y%m');
             $lineDate = strftime('%Y-%m-%d');
             $referrerLogPath = $counterDir . '/referrer/' . $fileDate . '.txt';
-            file_put_contents($referrerLogPath, "[$lineDate] $ref => " . $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND|LOCK_EX);
+            file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND|LOCK_EX);
         }
     }
 }
