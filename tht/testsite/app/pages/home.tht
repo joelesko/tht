@@ -9,7 +9,6 @@ function main() {
     Web.sendHtml(html(test.resultsHtml()));
 }
 
-
 template html(results) {
 
     <!-- this is a comment -->
@@ -382,7 +381,28 @@ function testMisc(t) {
 
     t.ok(TestClass.factory().name == 'factory', 'module factory');
 
-    print(tc);
+    t.ok(tc.zMethods().contains('getHidden'), 'zMethods');
+    t.ok(tc.zFields().name == 'green', 'zFields');
+
+    t.ok(tc.zGetField('num') == 123, 'zGetField');
+    tc.zSetField('name', 'blue');
+    t.ok(tc.name == 'blue', 'zSetField');
+
+    tc.zCallMethod('setHidden', [789]);
+    t.ok(tc.zCallMethod('getHidden') == 789, 'zCallMethod')
+
+    t.ok(tc.okField == 'dynamic:okField', 'zDynamicGet ok');
+    t.dies(F { tc.badField = 1 }, 'zDynamicGet fail');
+
+    t.ok(tc.getSecretNumber() == 42, 'zDynamicCall');
+
+    t.ok(tc.zHasMethod('setHidden'), 'zHasMethod true');
+    t.ok(!tc.zHasMethod('sethidden'), 'zHasMethod false');
+
+    t.ok(tc.zHasField('num'), 'zHasField true');
+    t.ok(!tc.zHasField('Num'), 'zHasField false');
+
+
 
     import('subDir/OtherClass');
     let oc = new OtherClass();
@@ -508,6 +528,16 @@ function testFunctions(t) {
     t.dies(F () { File.read(); }, 'Missing argument - module');
 
 
+    t.ok(testDefaultMap().a == 123, 'map as default arg');
+    t.ok(testDefaultMap({ a: 345 }).a == 345, 'map as default arg - with passed arg');
+
+    t.ok(testDefaultList()[1] == 'b', 'list as default arg');
+    t.ok(testDefaultList(['x', 'y', 'z'])[1] == 'y', 'list as default arg - with passed arg');
+
+    t.ok(testDefaultMaps().a == 'aa', 'multiple default args as maps');
+    t.ok(testDefaultMaps().m2.b == 'bb', 'multiple default args as maps');
+
+
 
     // argument checking
 
@@ -535,6 +565,8 @@ function testFunctions(t) {
     t.dies(F () { t.checkArgsMulti(true, 123, []); }, 'Multi (snl): bad #1');
     t.dies(F () { t.checkArgsMulti('', '123', []); }, 'Multi (snl): bad #2');
     t.dies(F () { t.checkArgsMulti('', 123, 'x'); }, 'Multi (snl): bad #3');
+
+
 
 
 }
@@ -1907,5 +1939,20 @@ function dynamicFunction(a) {
 
 function noReturn() {
 
+}
+
+F testDefaultMap(xmap = { a: 123 }) {
+
+    return xmap;
+}
+
+F testDefaultList(xlist = ['a', 'b', 'c']) {
+
+    return xlist;
+}
+
+F testDefaultMaps(m1 = { a: 'aa' }, m2 = { b: 'bb' }) {
+    m1['m2'] = m2;
+    return m1;
 }
 

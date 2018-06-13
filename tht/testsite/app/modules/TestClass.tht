@@ -7,7 +7,7 @@ F factory() {
 
 class TestClass {
 
-    F constructor(name, num) {
+    F new(name, num) {
 
         @.name = name;
         @.num = num;
@@ -45,6 +45,22 @@ class TestClass {
 
     F test() {
         return 'class:' ~ @.name ~ @.num;
+    }
+
+    F zDynamicGet(field) {
+        if (field == 'okField') {
+            return Result.ok('dynamic:' ~ field);
+        }
+        else {
+            return Result.fail();
+        }
+    }
+
+    F zDynamicCall(methodName, args) {
+        if (methodName == 'getSecretNumber') {
+            return Result.ok(42);
+        }
+        return Result.fail();
     }
 
     T html() {
