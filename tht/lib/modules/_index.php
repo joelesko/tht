@@ -31,6 +31,7 @@ class LibModules {
         'Litemark',
         'Jcon',
         'Form',
+        'FormValidator',
         'Session',
         'Cache'
     ];

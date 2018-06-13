@@ -2,24 +2,13 @@
 
 namespace o;
 
-
 class u_Web extends StdModule {
 
-    
-
-    // TODO: complete list
-    static private $VALIDATION_RULES = [
-        'url'      => '^https?://\\S+$',
-        // ___@___.__ format, only one '@' symbol
-        'email'    => '^\\S+?@[^@\\s]+\\.\\S+$',
-        'digits'   => '^[0-9]+$',
-    ];
-
     private $jsData = [];
-    private $validators = [];
+    
     private $request;
     private $isCrossOrigin = null;
-    private $includedValidatorJs = false;
+    private $includedFormJs = false;
 
 
     // REQUEST
@@ -35,7 +24,6 @@ class u_Web extends StdModule {
 
     function u_request () {
 
-        
         if (!$this->request) {
 
             $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
@@ -83,6 +71,7 @@ class u_Web extends StdModule {
     function isAjax () {
         $requestedWith = WebMode::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
+        
     }
 
     function relativeUrl() {
@@ -349,7 +338,7 @@ class u_Web extends StdModule {
         // TODO: get updateTime of the files, allow base64 urls
         // $cacheTag = '?cache=' . Source::getAppCompileTime();
         $cacheTag = '';
-        
+
         $image = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
         $icon = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
         // $jsData = Tht::module('Js')->serializeData();
@@ -416,11 +405,12 @@ HTML;
         //     exit(1);
         // }
 
-        if (!$title) {
-            $title = $code === 404 ? 'Page Not Found' : 'Website Error';
-        }
-
         if (!$this->u_request()['isAjax']) {
+
+            if (!$title) {
+                $title = $code === 404 ? 'Page Not Found' : 'Website Error';
+            }
+
             ?><html><head><title><?= $title ?></title></head><body>
             <div style="text-align: center; font-family: <?= u_Css::u_sans_serif_font() ?>;">
             <h1 style="margin-top: 40px;"><?= $title ?></h1>
@@ -684,18 +674,28 @@ HTML;
     // --------------------------------------------
 
 
-    // Temporary Methods
+    function u_form ($schema, $formId='defaultForm') {
+        return new u_Form ($schema, $formId);
+    }
 
-    function u_temp_get_input($method, $name, $type='token') {
+    // function u_query($name, $sRules='id') {
+
+    //     ARGS('ss', func_get_args());
+
+    //     $rawVal = trim(Tht::getPhpGlobal('get', $name, false));
+
+    //     $validated = $this->u_temp_validate_input($val, $type);
+
+    //     return $validated['value'];
+    // }
+
+    function u_temp_get_input($method, $name, $type='id') {
+
+        ARGS('sss', func_get_args());
 
         if (strpos('get|post|dangerDangerRemote', $method) === false) {
             Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
         }
-
-        // Require https for non-GET requests
-        // if ($method !== 'get' && !Tht::module('Web')->u_request()['isHttps'] && !Tht::isMode('testServer')) {
-        //     Tht::error("Page must be run under 'https' to accept non-GET requests.\n\nCheck your web host's admin panel, or visit 'letsencrypt.org' for a free SSL cert.");
-        // }
 
         // Disallow cross-origin request
         if ($method === 'post') {
@@ -703,439 +703,83 @@ HTML;
                 Tht::module('Web')->u_send_error(403, 'Remote Origin Not Allowed');
             }
         }
-
         if ($method == 'dangerDangerRemote') {
             $method = 'post';
         }
 
         $val = trim(Tht::getPhpGlobal($method, $name, false));
+        $validated = $this->u_temp_validate_input($val, $type);
 
-        $validate = $this->u_temp_validate_input($val, $type);
-
-        return $validate['value'];
+        return $validated['value'];
     }
 
-    function u_temp_validate_input($val, $type='token') {
+    function u_temp_validate_input($val, $type='id') {
 
         $isFail = false;
-
-        if ($type === 'token') {
+        if ($type === 'id') {
             if (preg_match('/[^a-zA-Z0-9_]/', $val)) {
-    			$isFail = true;
-    		}
+                $isFail = true;
+            }
             if (strlen($val) > 64) {
                 $isFail = true;
             }
         }
-        else if ($type === 'id') {
+        else if ($type === 'number') {
+            $val = preg_replace("/[',]/", '', $val);
             if (preg_match('/[^0-9]/', $val)) {
-            	$isFail = true;
-    		}
-            if (strlen($val) > 12) {
+                $isFail = true;
+            }
+            if (strlen($val) > 8) {
                 $isFail = true;
             }
             $val = intval($val);
         }
-        else if ($type === 'number') {
+        else if ($type === 'numberAny') {
+            $val = preg_replace("/[',]/", '', $val);
             if (preg_match('/[^0-9\.\-]/', $val)) {
-            	$isFail = true;
-    		}
-            if (strlen($val) > 8) {
                 $isFail = true;
             }
-            $val = floatval($val);
+            $val = strpos($val, '.') !== false ? floatval($val) : intval($val);
         }
         else if ($type === 'flag') {
             if ($val !== 'true' && $val !== 'false' && $val !== '1' && $val !== '0') {
-            	$isFail = true;
-    		}
+                $isFail = true;
+            }
             $val = ($val === 'true' || $val === '1');
         }
         else if ($type === 'email') {
             if (!preg_match('/^\S+?@[^@\s]+\.\S+$/', $val)) {
-            	$isFail = true;
-    		}
-            if (strlen($val) > 128) {
                 $isFail = true;
             }
-		}
+            if (strlen($val) > 80) {
+                $isFail = true;
+            }
+        }
         else if ($type === 'text') {
             // one line of text
             $val = preg_replace('/\s+/', ' ', $val);
             $val = preg_replace('/<.*?>/', '', $val);
-            if (strlen($val) > 128) {
+            if (strlen($val) > 120) {
                 $isFail = true;
             }
-		}
+        }
         else if ($type === 'textarea') {
             // multiline text
             $val = preg_replace('/<.*?>/', '', $val);
             $val = preg_replace('/ +/', ' ', $val);
             $val = preg_replace('/\n{2,}/', "\n\n", $val);
-		}
+            $val = trim($val);
+        }
         else if ($type === 'dangerDangerRaw') {
             // pass through as-is
-		}
+        }
         else {
             Tht::error("Unknown input type: `$type`");
         }
-
         return OMap::create([
             'value' => $isFail ? '' : $val,
             'ok' => !$isFail
         ]);
-    }
-
-
-
-
-
-    // NEW FORM
-
-    function u_form ($schema, $formId='defaultForm') {
-        return new u_Form ($schema, $formId);
-    }
-
-
-
-
-
-    function u_reader($schema, $formId="defaultForm") {
-        $this->validators[$formId] = uv($schema);
-    }
-
-    function getRuleMap($formId='defaultForm') {
-        if (!isset($this->validators[$formId])) {
-            Tht::error("Unknown form ID: `$formId`");
-        }
-        return $this->validators[$formId];
-    }
-
-    function u_get_data($method, $formId="defaultForm") {
-
-        $ruleset = $this->getRuleMap($formId);
-
-        $p = [];
-
-        foreach ($ruleset as $name => $sRules) {
-            $rawVal = Tht::getPhpGlobal($method, $name, false);
-            $isOptional = strpos($sRules, 'optional') !== false;
-            if ($isOptional && trim($rawVal) === '') {
-                continue;
-            }
-            $rules = explode('|', $sRules);
-            foreach ($rules as $rule) {
-                if (trim($rule) === '') { continue; }
-                if ($rule === 'optional') { continue; }
-                $isOk = $this->u_test_rule($rule, $rawVal);
-                if (!$isOk) {
-                    return u_Status::u_fail();
-                }
-            }
-            $p[$name] = $rawVal;
-        }
-        return u_Status::u_new(0, OMap::create($p));
-    }
-
-    function u_test_rule ($rule, $val) {
-        $rules = u_Web::$VALIDATION_RULES;
-        if (!isset($rules[$rule])) {
-            Tht::error("Unknown validation rule: `$rule`");
-        }
-        $apply = $rules[$rule];
-        if (!preg_match("#$apply#", $val)) {
-            return false;
-        }
-        return true;
-    }
-
-
-
-    function checkAjax ($isAjax) {
-        if ($isAjax !== $this->u_request()['isAjax']) {
-            Tht::errorLog('Expected ' . ($isAjax ? 'Ajax' : 'non-Ajax') . ' request.');
-            return false;
-        }
-        return true;
-    }
-
-    /***
-
-    function u_data ($method, $key, $type='token') {
-        if ($method === 'route') {
-            return WebMode::getWebRouteParam($key);
-        }
-        else if ($method === 'get') {
-            return $this->getValue('get', false, $key, $type);
-        }
-        else if ($method === 'ajaxGet') {
-            return $this->getValue('get', true, $key, $type);
-        }
-        else if ($method === 'post') {
-            return $this->getValue('post', false, $key, $type);
-        }
-        else if ($method === 'ajaxPost') {
-            return $this->getValue('post', true, $key, $type);
-        }
-        else {
-            Tht::error("Unknown method '$method' for key '$key'");
-        }
-    }
-
-    function getValue ($method, $isAjax, $key, $type, $max=0) {
-        if (!$this->checkAjax($isAjax)) {
-            return '';
-        }
-        $raw = Tht::getPhpGlobal($method, $key, '');
-        return $this->sanitizeParam($key, $raw, $type, $max);
-    }
-
-    ***/
-
-
-    function u_validate_js($formId="defaultForm") {
-
-        $JSON_FIELD_RULES = json_encode($this->getRuleMap($formId));
-        $JSON_RULE_PATTERNS = json_encode(u_Web::$VALIDATION_RULES);
-        $CSRF_TOKEN = self::u_csrf_token();
-        $FORM_ID = $formId;
-
-        // TODO: validate/sanitize formId
-
-        $formJs = "FormValidator.registerForm('$FORM_ID', $JSON_FIELD_RULES);\n";
-
-        // About 2kb gzipped
-        $validatorJs = $this->includedValidatorJs ? '' : <<<EOJS
-
-            (function(){
-
-                addFormStyles();
-                listen();
-
-
-                function listen() {
-                    document.addEventListener('submit', function(e){ 
-                        e.preventDefault(); 
-                        FormValidator.submitFormIfOk(e.target);
-                        return false; 
-                    });
-                }
-
-                function addFormStyles() {
-                    
-                    var css = '@keyframes submit-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(359deg); } }\\n';
-                    css += '.form-spinner { display: inline-block; vertical-align: text-top; height: 1.2em; width: 1.2em; border-radius: 50%; border: solid 0.2em rgba(0,0,0,0.2); border-right-color: rgba(0,0,0,0.4); animation: submit-spin 600ms linear 0s infinite }\\n';
-                    css += '.button-primary .form-spinner { border-color: rgba(255,255,255,0.5); border-right-color: rgba(255,255,255,0.8); }\\n';
-                    css += 'form .form-field-invalid, form .form-field-invalid:focus { outline: 2px solid #e33; }\\n';
-                    css += '.form-error-message { margin-top: 1em; color: #e33; }\\n';
-
-                    var style = document.createElement('style');
-                    style.innerHTML = css;
-                    document.getElementsByTagName('head')[0].appendChild(style);
-                }
-
-                window.FormValidator = (function() {
-
-                    var STATE = {};
-                    var FORMS = {};
-
-                    var RULE_PATTERNS = $JSON_RULE_PATTERNS;
-                    var CSRF_TOKEN = '$CSRF_TOKEN';
-
-                    return {
-
-                        registerForm: function(formId, fieldRules) {
-                            if (!FORMS[formId]) {
-                                FORMS[formId] = fieldRules;
-                            } 
-                        },
-
-                        submitFormIfOk: function(form) {
-                            if (STATE.isSubmitting) {
-                                return false;
-                            }
-
-                            if (this.validateForm(form)) {
-                                this.submitForm(form);
-                            }
-                        },
-
-                        validateForm: function(form) {
-
-                            var formId = form.id;
-                            var fields = form.querySelectorAll('*[name]');
-                            for (var i=0; i < fields.length; i++) {
-                                var field = fields[i];
-                                if (!this.validateField(form, formId, field)) {
-                                    return false;
-                                }
-                            }
-
-                            return true;
-                        },
-
-                        submitForm: function(form) {
-                            STATE.isSubmitting = true;
-                            var hasSpinner = this.addSpinner(form);
-                            this.setCsrfToken(form);
-
-                            setTimeout(function(){
-                                form.submit();
-                            }, hasSpinner ? 600 : 1);
-                        },
-
-                        setCsrfToken: function(form) {
-                            var csrfField = document.createElement('input'); 
-                            csrfField.type = 'hidden';
-                            csrfField.name = 'csrfToken';
-                            csrfField.value = CSRF_TOKEN;
-                            form.appendChild(csrfField);
-                        },
-
-                        validateRequiredField: function(elField){
-                            if (elField.type == 'checkbox') {
-                                if (!elField.checked) {
-                                    return false;
-                                }
-                            }
-                            else if (elField.value.trim() == '') {
-                                return false;
-                            }
-                            return true;
-                        },
-
-                        validateFieldRule: function(elField, rule) {
-
-                            var value = elField.value.trim();
-
-                            if (RULE_PATTERNS[rule] && value !== '') {
-                                var re = new RegExp(RULE_PATTERNS[rule]);
-                                if (!value.match(re)) {
-                                    return false;
-                                }
-                            }
-                            else if (rule.indexOf(':') !== -1) {
-                                var pair = rule.split(':');
-                                if (pair[0] == 'min' && value.length < 0 + pair[1]) {
-                                    return false;
-                                } 
-                                else if (pair[0] == 'max' && value.length > 0 + pair[1]) {
-                                    return false;
-                                } 
-                            }
-                            return true;
-                        },
-
-                        validateField: function(form, formId, elField) {
-
-                            if (elField.type == 'hidden') {
-                                return true;
-                            }
-
-                            var isOk = true;
-                            var isRequired = true;
-                            var errorMessage = '';
-
-                            var fieldRules = FORMS[formId][elField.name];
-
-                            var rules = fieldRules.split(/\\s*\\|\\s*/);
-                            for (var i=0; i < rules.length; i++) {
-                                var rule = rules[i];
-                                if (rule === 'optional') {
-                                    isRequired = false;
-                                }
-                                else if (!this.validateFieldRule(elField, rule)) {
-                                    isOk = false;
-                                }
-                            }
-
-                            if (elField.type == 'password') {
-                                if (!this.passwordStrengthOk(elField.value)) {
-                                    errorMessage = 'Please use a stronger password.';
-                                    isOk = false;
-                                }
-                                if (!this.validateFieldRule(elField, 'min:8')) {
-                                    errorMessage = 'Please use a longer password. (8+ letters)';
-                                    isOk = false;
-                                }
-                            }
-
-                            if (isRequired && !this.validateRequiredField(elField)) {
-                                errorMessage = 'Please fill the required field.'; 
-                                isOk = false;
-                            }
-
-                            if (!isOk) {
-
-                                if (!elField.instantValidate) {
-                                    elField.instantValidate = true;
-                                    var self = this;
-                                    elField.addEventListener('keyup', function(){
-                                        self.validateField(form, formId, elField);
-                                    });
-                                    elField.addEventListener('change', function(){
-                                        self.validateField(form, formId, elField);
-                                    });
-                                }
-                                elField.focus();
-                            }
-
-                            elField.classList.toggle('form-field-invalid', !isOk);
-                            if (!isOk && !errorMessage) { errorMessage = 'Please check the highlighted field.'; }
-                            form.querySelector('.form-error-message').innerText = errorMessage;
-
-                            return isOk;
-                        },
-
-                        passwordStrengthOk: function(v) {
-
-                            v = v.trim();
-
-                            // all same character
-                            if (v.match(/^(.)\\1{1,}$/)) {
-                                return false;
-                            }
-                            // all digits
-                            if (v.match(/^\d+$/)) {
-                                return false;
-                            }
-                            // most common patterns
-                            if (v.match(/^(abcd|abc1|qwer|asdf|1qaz|passw|admin|login|welcome|access)/i)) {
-                                return false;
-                            }
-                            // most common passwords
-                            if (v.match(/^(football|baseball|princess|starwars|trustno1|superman|iloveyou)$/i)) {
-                                return false;
-                            }
-                            
-                            return true;
-                        },
-
-                        addSpinner: function(form) {
-                            var submit = form.querySelector('*[type="submit"]');
-                            if (!submit) { return false; }
-                                    
-                            var rect = submit.getBoundingClientRect();
-                            submit.innerHTML = '';
-                            submit.style.width = (Math.floor((rect.right - rect.left) / 2) * 2) + 'px';
-
-                            var spinner = document.createElement('div');
-                            spinner.classList.add('form-spinner');
-                            submit.appendChild(spinner);
-
-                            return true;
-                        }
-                    };
-                })();
-
-            })();
-
-EOJS;
-
-        $this->includedValidatorJs = true;
-
-        return new JsLockString($validatorJs . $formJs);
-
     }
 
 }
