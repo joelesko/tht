@@ -104,9 +104,10 @@ function startupHitCounter() {
     $ref = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
     if ($ref) { 
         if (stripos($ref, $_SERVER['HTTP_HOST']) === false) {
-            $date = strftime('%Y%m');
-            $referrerLogPath = $counterDir . '/referrer/' . $date . '.txt';
-            file_put_contents($referrerLogPath, $ref . "\n", FILE_APPEND|LOCK_EX);
+            $fileDate = strftime('%Y%m');
+            $lineDate = strftime('%Y-%m-%d');
+            $referrerLogPath = $counterDir . '/referrer/' . $fileDate . '.txt';
+            file_put_contents($referrerLogPath, "[$lineDate] $ref => " . $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND|LOCK_EX);
         }
     }
 }
