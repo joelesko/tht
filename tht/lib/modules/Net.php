@@ -8,18 +8,18 @@ class u_Net extends StdModule {
 	function u_http_get($lUrl, $headers=[]) {
 
         ARGS('*mm', func_get_args());
-    	return $this->request('httpGet', 'GET', $lUrl, [], $headers);
+    	return $this->request('httpGet', 'GET', $lUrl, '', $headers);
     }
 
-    function u_http_post($lUrl, $postData=[], $headers=[]) {
+    function u_http_post($lUrl, $postData, $headers=[]) {
 
-        ARGS('*mm', func_get_args());
+        ARGS('**m', func_get_args());
     	return $this->request('httpPost', 'POST', $lUrl, $postData, $headers);
     }
 
-    function u_http_request($method, $lUrl, $postData=[], $headers=[]) {
+    function u_http_request($method, $lUrl, $postData='', $headers=[]) {
 
-    	ARGS('s*mm', func_get_args());
+    	ARGS('s**m', func_get_args());
     	return $this->request('httpRequest', $method, $lUrl, $postData, $headers);
     }
 
@@ -58,13 +58,18 @@ class u_Net extends StdModule {
 	        }
 		}
         
-		$postData = uv($postData);
+        if (!is_string($postData)) {
+            if (!OMap::isa($postData)) {
+                Tht::error('`postData` must be a String or a Map.');
+            }
+            $postData = http_build_query(uv($postData));
+        }
 
         $opts = [
             'http' => [
                 'method' => $method,
                 'header' => $this->formatHeaders($headers),
-                'content' => empty($postData) ? '' : http_build_query($postData),
+                'content' => $postData,
             ]
         ];
         $context = stream_context_create($opts);
