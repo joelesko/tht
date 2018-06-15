@@ -120,6 +120,10 @@ class Runtime {
         }
     }
 
+
+    // MODULES 
+    // TODO: refactor these and modules/_index to a ModuleManager
+
     static function registerStdModule ($name, $obj=-1) {
         Runtime::$moduleRegistry[$name] = $obj;
     }
@@ -129,34 +133,44 @@ class Runtime {
     }
 
     static function loadModule ($localNs, $fullPath) {
+        
         $relPath = Tht::getRelativePath('app', $fullPath);
         if (!isset(Runtime::$moduleRegistry[$relPath])) {
-            Tht::error("Can't find module for `$relPath`", [ 'knownModules' => Runtime::$moduleRegistry ]);
+            Tht::error("Can't find module for `$relPath`");
         }
-        $derivedAlias = basename($relPath, '.' . Tht::getExt());
-        Runtime::$moduleRegistry[$localNs . '::' . $derivedAlias] = Runtime::$moduleRegistry[$relPath];
+
+        // Create alias
+        $baseName = basename($relPath, '.' . Tht::getExt());
+        $aliasKey = $localNs . '//' . $baseName;
+        Runtime::$moduleRegistry[$aliasKey] = Runtime::$moduleRegistry[$relPath];
 
         return Runtime::$moduleRegistry[$relPath];
     }
 
-    static function getModule ($localNs, $alias) {
+    static function getModule ($localNs, $modName) {
 
-        $key = $localNs . '::' . $alias;
-        if (isset(Runtime::$moduleRegistry[$key])) {
-            return Runtime::$moduleRegistry[$key];
+        // Module with alias
+        $aliasKey = $localNs . '//' . $modName;
+        if (isset(Runtime::$moduleRegistry[$aliasKey])) {
+            return Runtime::$moduleRegistry[$aliasKey];
         }
-        else if (isset(Runtime::$moduleRegistry[$alias])) {
-            if (Runtime::$moduleRegistry[$alias] === -1) {
+
+        // Built-in
+        if (isset(Runtime::$moduleRegistry[$modName])) {
+            // Built-in Module
+            if (Runtime::$moduleRegistry[$modName] === -1) {
                 // lazy init
-                $c = '\\o\\u_' . $alias;
-                Runtime::$moduleRegistry[$alias] = new $c ();
+                $c = '\\o\\u_' . $modName;
+                Runtime::$moduleRegistry[$modName] = new $c ();
             }
-            return Runtime::$moduleRegistry[$alias];
-        } else {
-            return Runtime::loadUserModule($localNs, $alias);
-        }
+            return Runtime::$moduleRegistry[$modName];
+        } 
+        
+        // User module
+        return Runtime::loadUserModule($localNs, $modName);
     }
 
+    // entry point from import()
     static function loadUserModule($localNs, $relPath) {
         $fullPath = Tht::path('modules', $relPath . '.' . Tht::getExt());
         Source::process($fullPath);
@@ -168,10 +182,6 @@ class Runtime {
         $mod = self::getModule($localNs, $className);
         $o = $mod->newObject($className, $args);
         return $o;    
-    }
-
-    static function void ($fnName) {
-        return new ONothing ($fnName);
     }
 }
 
