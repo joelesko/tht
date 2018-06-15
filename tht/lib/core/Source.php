@@ -12,14 +12,15 @@ class Source {
 
     static function process ($relSourceFile, $isEntry=false) {
 
-        Tht::module('Perf')->u_start('tht.execute', basename($relSourceFile));
-
         $sourceFile = Tht::getFullPath($relSourceFile);
 
         // Source already included
         if (isset(Source::$processedFile[$sourceFile])) {
             return;
         }
+
+        Tht::module('Perf')->u_start('tht.execute', basename($relSourceFile));
+
         if (!file_exists($sourceFile)) {
             Tht::error("Source file not found: `$sourceFile`");
         }
