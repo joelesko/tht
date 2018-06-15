@@ -33,7 +33,8 @@ class LibModules {
         'Form',
         'FormValidator',
         'Session',
-        'Cache'
+        'Cache',
+        'Net',
     ];
 
     public static function load () {
