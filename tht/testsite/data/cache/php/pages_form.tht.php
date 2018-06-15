@@ -1,11 +1,11 @@
 <?php
 
-namespace tht5b117107821ca;
-\o\Runtime::setNameSpace('pages/form.tht','tht5b117107821ca');
+namespace thtf13d648fa2b70ebc0ede87fdd1244154;
+\o\Runtime::setNameSpace('pages/form.tht','thtf13d648fa2b70ebc0ede87fdd1244154');
 
 function u_main ()  {
- $u_html = "";
-if (\o\Runtime::getModule(__NAMESPACE__, 'Web')->u_query("done")) {
+  $u_html = "";
+if (\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_temp_get_input("get", "done")) {
 $u_html = new \o\OLockString ("Thanks!");
 
 }
@@ -15,11 +15,11 @@ $u_html = u_form_html($u_form);
 
 }
 
-\o\Runtime::getModule(__NAMESPACE__, 'Web')->u_send_page(\o\OMap::create([ 'body' => $u_html, 'title' => "Test Form", 'css' => \o\Runtime::getModule(__NAMESPACE__, 'Css')->u_include("base") ]));
+\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_send_page(\o\OMap::create([ 'body' => $u_html, 'title' => "Test Form", 'css' => \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Css'))->u_include("base") ]));
  return \o\Runtime::void(__METHOD__);
 }
 function u_ajax ()  {
- $u_form = u_get_form();
+  $u_form = u_get_form();
 if ((! \o\v($u_form)->u_validate())) {
 \o\v($u_form)->u_go_fail();
 
@@ -29,7 +29,7 @@ if ((! \o\v($u_form)->u_validate())) {
  return \o\Runtime::void(__METHOD__);
 }
 function u_get_form ()  {
- $u_form = \o\Runtime::getModule(__NAMESPACE__, 'Web')->u_form(\o\OMap::create([ 'name' => \o\OMap::create([ 'label' => "Name", 'type' => "text", 'rule' => "text" ]) ]));
+  $u_form = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_form(\o\OMap::create([ 'name' => \o\OMap::create([ 'label' => "Name", 'type' => "text", 'rule' => "text" ]) ]));
 return $u_form;
  return \o\Runtime::void(__METHOD__);
 }
@@ -40,7 +40,7 @@ $t->addStatic("<div class='row'><div class='col'><h1>Success</h1><p>Thanks!</p><
 return $t->getString();
 }
 function u_get_options ()  {
- return \o\OMap::create([ '1' => "Option 1", '2' => "Option 2", '3' => "Option 3" ]);
+  return \o\OMap::create([ '1' => "Option 1", '2' => "Option 2", '3' => "Option 3" ]);
  return \o\Runtime::void(__METHOD__);
 }
 function u_form_html ($u_form)  {

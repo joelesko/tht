@@ -4,7 +4,7 @@ F main() {
 
     let html = '';
 
-    if (Web.query('done')) {
+    if (Web.tempGetInput('get', 'done')) {
         html = L'Thanks!';
     }
     else {

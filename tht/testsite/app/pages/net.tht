@@ -1,0 +1,10 @@
+
+
+if (Web.request().method == 'get') {
+	Web.sendJson({ method: Web.request() });
+}
+else if (Web.request().method == 'post') {
+	Web.sendJson({ foo: Web.tempGetInput('dangerDangerRemote', 'foo') });
+}
+
+

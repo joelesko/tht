@@ -65,6 +65,7 @@ function run(t) {
    // libMapDb(t);  
     libSession(t);
     libCache(t);
+    libNet(t);
 }
 
 
@@ -401,8 +402,6 @@ function testMisc(t) {
 
     t.ok(tc.zHasField('num'), 'zHasField true');
     t.ok(!tc.zHasField('Num'), 'zHasField false');
-
-
 
     import('subDir/OtherClass');
     let oc = new OtherClass();
@@ -1867,6 +1866,16 @@ function libCache(t) {
     Cache.delete('short');
     Cache.delete('longer');
     Cache.delete('forever');
+}
+
+function libNet(t) {
+
+    t.section('Module: Net');
+
+    let content = Net.httpGet(L'https://tht.help');
+    t.ok(content.match(R'programming language'.flags('i')), 'Net get');
+
+    // TODO
 }
 
 
