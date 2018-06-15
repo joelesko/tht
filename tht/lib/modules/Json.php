@@ -9,7 +9,11 @@ class u_Json extends StdModule {
     }
 
     static function u_decode ($v) {
-        return u_Json::convertToMaps(json_decode($v, false));
+        $dec = json_decode($v, false);
+        if (is_null($dec)) {
+            Tht::error("Unable to decode JSON string");
+        }
+        return u_Json::convertToMaps($dec);
     }
 
     static function convertToMaps ($obj) {
