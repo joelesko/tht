@@ -38,6 +38,7 @@ class u_Web extends StdModule {
                 'referrer'    => Tht::getPhpGlobal('server', 'HTTP_REFERER', ''),
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
+                'headers'     => OMap::create(WebMode::getWebRequestHeaders()),
             ];
 
             $relativeUrl = $this->relativeUrl();
@@ -245,6 +246,7 @@ class u_Web extends StdModule {
         ARGS('s', func_get_args());
 
         $this->u_set_header('Content-Type', 'text/plain');
+
         u_Web::sendGzip(new \o\OLockString ($text));
     }
 
@@ -667,6 +669,7 @@ HTML;
     function u_route_param ($key) {
         return WebMode::getWebRouteParam($key);
     }
+
 
 
 

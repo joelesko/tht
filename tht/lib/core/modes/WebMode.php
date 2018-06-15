@@ -252,7 +252,7 @@ class WebMode {
     }
 
     static function getWebRequestHeaders () {
-        return Tht::data('requestHeaders');
+        return Tht::data('requestHeaders', '*');
     }
 
     static function getWebRouteParam ($key) {
