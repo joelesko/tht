@@ -348,7 +348,7 @@ class EmitterPHP extends Emitter {
             $closure = $this->format('use (###)', $k[3]);
         }
 
-        $out = $this->format('function ### (###) ### { %%% ### return \o\Runtime::void(__METHOD__);}',
+        $out = $this->format('function ### (###) ### { %%% ### return new \o\ONothing(__METHOD__); }',
           $k[0], $k[1], $closure, $this->out($k[2], true) );
 
         // wrap any lists or maps that are 
@@ -445,7 +445,7 @@ class EmitterPHP extends Emitter {
 
     function pReturn ($value, $k) {
         if (!isset($k[0])) {
-            $k[0] = '\o\Runtime::void(__METHOD__)';
+            $k[0] = 'new \o\ONothing(__METHOD__)';
         }
         return $this->format('return ###;', $k[0]);
     }
