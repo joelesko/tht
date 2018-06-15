@@ -370,7 +370,7 @@ class ErrorHandler {
 
         // Formatting for "Got: ..." detail.
         // TODO: fix this formatting
-        $error['message'] = preg_replace("/\n+Got:(.*)/s", "<br /><br />    : '$1'", $error['message']);
+        $error['message'] = preg_replace("/\n+Got:(.*)/s", "<br /><br />Got: $1", $error['message']);
 
         if (preg_match('/Format Checker/', $error['message'])) {
             $error['message'] = preg_replace('/\(Format Checker\)/i', '', $error['message']);
