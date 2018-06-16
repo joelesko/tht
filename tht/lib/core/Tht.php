@@ -4,7 +4,7 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.1.4 - Beta';
+    static private $VERSION = '0.2.0 - Beta';
     static private $SRC_EXT = 'tht';
 
     static private $THT_SITE = 'https://tht.help';

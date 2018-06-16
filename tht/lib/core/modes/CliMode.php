@@ -175,9 +175,9 @@ class CliMode {
                             <h1>> Hello World
                             <.subline>> {{ Web.icon('check') }}  Congratulations!  The hard part is over.
 
-                            <p>> Add new pages to:<br /> <code>> tht/pages
+                            <p>> Add new pages to:<br /> <code>> app/pages
 
-                            <p>> For example, when you add this file...<br /> <code>> tht/pages/testPage.tht
+                            <p>> For example, when you add this file...<br /> <code>> app/pages/testPage.tht
 
                             <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite.com/test-page
 
