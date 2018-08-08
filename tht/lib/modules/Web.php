@@ -453,6 +453,9 @@ HTML;
                 } else {
                     // Link to asset, with cache time set to file modtime
                     $basePath = preg_replace('/\?.*/', '', $path);
+                    if (defined('BASE_URL')) {
+                        $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
+                    }
                     $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
                     $cacheTag = strpos($path, '?') === false ? '?' : '&';
                     $cacheTag .= 'cache=' . filemtime($filePath);
@@ -592,10 +595,10 @@ HTML;
             'wideChevronUp'    => '<polyline points="-5,60 50,30 105,60"/>',
             'wideChevronDown'  => '<polyline points="-5,40 50,70 105,40"/>',
 
-            'caretLeft'   => '<path class="fill" d="M60,20 30,50 60,80z"/>',
-            'caretRight'  => '<path class="fill" d="M40,20 70,50 40,80z"/>',
-            'caretUp'     => '<path class="fill" d="M20,60 50,30 80,60z"/>',
-            'caretDown'   => '<path class="fill" d="M20,40 50,70 80,40z"/>',
+            'caretLeft'   => '<path class="svgfill" d="M60,20 30,50 60,80z"/>',
+            'caretRight'  => '<path class="svgfill" d="M40,20 70,50 40,80z"/>',
+            'caretUp'     => '<path class="svgfill" d="M20,60 50,30 80,60z"/>',
+            'caretDown'   => '<path class="svgfill" d="M20,40 50,70 80,40z"/>',
 
             'menu'         => '<path d="M0,20H100zM0,50H100zM0,80H100z"/>',
             'plus'         => '<path d="M15,50H85zM50,15V85z"/>',
@@ -603,15 +606,15 @@ HTML;
             'cancel'       => '<path d="M20,20 80,80z M80,20 20,80z"/>',
             'check'        => '<polyline points="15,45 40,70 85,15"/>',
 
-            'home'   => '<path class="fill" d="M0,50 50,15 100,50z"/><rect class="fill" x="15" y="50" height="40" width="25" /><rect class="fill" x="60" y="50" height="40" width="25" /><rect class="fill" x="40" y="50" height="15" width="40" /><rect class="fill" x="70" y="20" height="20" width="15" />',
-            'download' => '<path class="fill" d="M10,40 50,75 90,40z"/><rect class="fill" x="35" y="0" height="42" width="30" /><rect class="fill" x="0" y="88" height="12" width="100" />',
-            'upload'   => '<path class="fill" d="M10,35 50,0 90,35z"/><rect class="fill" x="35" y="33" height="40" width="30" /><rect class="fill" x="0" y="88" height="12" width="100" />',
+            'home'   => '<path class="svgfill" d="M0,50 50,15 100,50z"/><rect class="svgfill" x="15" y="50" height="40" width="25" /><rect class="svgfill" x="60" y="50" height="40" width="25" /><rect class="svgfill" x="40" y="50" height="15" width="40" /><rect class="svgfill" x="70" y="20" height="20" width="15" />',
+            'download' => '<path class="svgfill" d="M10,40 50,75 90,40z"/><rect class="svgfill" x="35" y="0" height="42" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
+            'upload'   => '<path class="svgfill" d="M10,35 50,0 90,35z"/><rect class="svgfill" x="35" y="33" height="40" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
             'search'    => '<circle cx="45" cy="45" r="30"/><path d="M95,95 65,65z"/>',
-            'lock'      => '<rect class="fill" x="15" y="35" height="50" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="7" height="50" width="38" rx="15" rx="15" />',
-            'heart'     => '<path class="fill" d="M90,45 50,85 10,45z"/><rect class="fill" x="48" y="43" height="4" width="4"/><circle class="fill" cx="29" cy="31" r="23"/><circle class="fill" cx="71" cy="31" r="23"/>',
+            'lock'      => '<rect class="svgfill" x="15" y="35" height="50" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="7" height="50" width="38" rx="15" rx="15" />',
+            'heart'     => '<path class="svgfill" d="M90,45 50,85 10,45z"/><rect class="svgfill" x="48" y="43" height="4" width="4"/><circle class="svgfill" cx="29" cy="31" r="23"/><circle class="svgfill" cx="71" cy="31" r="23"/>',
 
             // generated from $this->starIcon(50,50,55,22)
-            'star'     => '<path class="fill" d="M102.38,33.22 70.89,56.89 82.14,94.63 49.91,72.00 17.49,94.36 29.05,56.71 -2.24,32.79 37.14,32.15 50.23,-5.00 63.01,32.26z"/>',
+            'star'     => '<path class="svgfill" d="M102.38,33.22 70.89,56.89 82.14,94.63 49.91,72.00 17.49,94.36 29.05,56.71 -2.24,32.79 37.14,32.15 50.23,-5.00 63.01,32.26z"/>',
 
             'twitter' => '<svg class="ticonx" viewBox="0 0 33 33"><g><path d="M 32,6.076c-1.177,0.522-2.443,0.875-3.771,1.034c 1.355-0.813, 2.396-2.099, 2.887-3.632 c-1.269,0.752-2.674,1.299-4.169,1.593c-1.198-1.276-2.904-2.073-4.792-2.073c-3.626,0-6.565,2.939-6.565,6.565 c0,0.515, 0.058,1.016, 0.17,1.496c-5.456-0.274-10.294-2.888-13.532-6.86c-0.565,0.97-0.889,2.097-0.889,3.301 c0,2.278, 1.159,4.287, 2.921,5.465c-1.076-0.034-2.088-0.329-2.974-0.821c-0.001,0.027-0.001,0.055-0.001,0.083 c0,3.181, 2.263,5.834, 5.266,6.438c-0.551,0.15-1.131,0.23-1.73,0.23c-0.423,0-0.834-0.041-1.235-0.118 c 0.836,2.608, 3.26,4.506, 6.133,4.559c-2.247,1.761-5.078,2.81-8.154,2.81c-0.53,0-1.052-0.031-1.566-0.092 c 2.905,1.863, 6.356,2.95, 10.064,2.95c 12.076,0, 18.679-10.004, 18.679-18.68c0-0.285-0.006-0.568-0.019-0.849 C 30.007,8.548, 31.12,7.392, 32,6.076z"></path></g></svg>',
 
@@ -634,7 +637,7 @@ HTML;
             return new \o\HtmlLockString($icons[$id]);
         }
 
-        return new \o\HtmlLockString('<svg class="ticon" viewBox="0,0,100,100">' . $icons[$id] . '</svg>');
+        return new \o\HtmlLockString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
     }
 
 

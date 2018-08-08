@@ -88,6 +88,11 @@ class WebMode {
 
         $routes = Tht::getTopConfig(WebMode::$SETTINGS_KEY_ROUTE);
 
+        if (defined('BASE_URL') ) {
+            $path = preg_replace('#' . BASE_URL . '#', '', $path);
+            if ($path == '') { $path = '/'; }
+        }
+
         if (isset($routes[$path])) {
             // static path
             return Tht::path('pages', $routes[$path]);
