@@ -83,7 +83,7 @@ class u_File extends StdModule {
         }
     }
 
-    function u_for_lines ($fileName, $fn) {
+    function u_read_lines ($fileName, $fn) {
         $handle = $this->_call('fopen', [$fileName, ['r']], $fileName, true);
         $accum = [];
         while (true) {
@@ -91,7 +91,12 @@ class u_File extends StdModule {
             if ($line === false) { break; }
             $line = rtrim("\n");
             $ret = $fn($line);
-            if ($ret !== false) { $accum []= $ret; }
+            if ($ret === false) {
+                break;
+            }
+            if (get_class($ret) !== 'ONothing' && $ret !== true) {
+                $accum []= $ret;
+            }
         }
         fclose($handle);
         return $accum;
