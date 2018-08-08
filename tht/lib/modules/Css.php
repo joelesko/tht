@@ -721,13 +721,14 @@ EOCSS;
         width: 1em;
         top: 0.2em;
         fill: currentColor;
+
     }
     .ticon * {
         stroke: currentColor;
         stroke-width: 15;
         fill: none;
     }
-    .ticon .fill {
+    .ticon .svgfill {
         stroke: none;
         fill: currentColor;
     }
