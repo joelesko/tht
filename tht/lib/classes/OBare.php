@@ -51,7 +51,7 @@ class OBare {
             echo $out, "\n";
         }
 
-        return Runtime::void('print');
+        return new \o\ONothing('print');
     }
 
     static function u_import ($localNs, $relPath) {
