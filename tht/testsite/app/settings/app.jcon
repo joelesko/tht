@@ -34,7 +34,7 @@
 
         memoryLimitMb: 32
 
-        _disablePhpCache: false
+        _disablePhpCache: true
         _phpErrors: true
         _showPhpInTrace: true
     }

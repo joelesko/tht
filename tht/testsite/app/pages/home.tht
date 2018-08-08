@@ -264,6 +264,10 @@ function compileErrors(t) {
     t.parserError('function fHtml() {\n  <',              'unexpected `<`', '');
     t.parserError('template foo() {\n',                   'missing type');
 
+    t.parserError('template fHtml() {\nTest\n}', 'should be indented');
+    t.parserOk('template fHtml() {\n\tTest\n}', 'tab indent');
+    t.parserOk('  template fHtml() {\n\tTest\n}', 'tab indent(4) vs space(2)');
+
 
     t.section('Parser Errors - Assignment as Expression');
 
