@@ -733,3 +733,87 @@
 [2018-06-14 23:46:57]  Path `/netX` is not valid
 [2018-06-14 23:48:15]  Path `/netX` is not valid
 [2018-06-14 23:48:34]  Path `/netX` is not valid
+[2018-06-15 11:35:56]  ######### ThtException #########
+
+    `postData` must be a String or a Map.
+
+    1875:  let content = Net.httpGet(L'https://tht.help');
+
+    --- Trace ---
+
+     0 |  Net, line 63 - Tht.error()
+     1 |  Net, line 11 - Net.request()
+     2 |  pages/home.tht, line 1875 - Net.httpGet()
+     3 |  pages/home.tht, line 68 - libNet()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 239 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 122 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-06-15 11:37:20]  ######### ThtException #########
+
+    `postData` must be a String or a Map.
+
+    1875:  let content = Net.httpGet(L'https://tht.help');
+
+    --- Trace ---
+
+     0 |  Net, line 64 - Tht.error()
+     1 |  Net, line 11 - Net.request()
+     2 |  pages/home.tht, line 1875 - Net.httpGet()
+     3 |  pages/home.tht, line 68 - libNet()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 239 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 122 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-06-15 11:39:37]  ######### ThtException #########
+
+    `postData` must be a String or a Map.
+
+    1875:  let content = Net.httpGet(L'https://tht.help');
+
+    --- Trace ---
+
+     0 |  Net, line 63 - Tht.error()
+     1 |  Net, line 11 - Net.request()
+     2 |  pages/home.tht, line 1875 - Net.httpGet()
+     3 |  pages/home.tht, line 68 - libNet()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 239 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 122 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
+[2018-06-15 11:41:04]  ######### ThtException #########
+
+    `postData` must be a String or a Map.
+
+    1875:  let content = Net.httpGet(L'https://tht.help');
+
+    --- Trace ---
+
+     0 |  Net, line 63 - Tht.error()
+     1 |  Net, line 11 - Net.request()
+     2 |  pages/home.tht, line 1875 - Net.httpGet()
+     3 |  pages/home.tht, line 68 - libNet()
+     4 |  pages/home.tht, line 7 - run()
+     5 |  WebMode, line 239 - call_user_func()
+     6 |  WebMode, line 202 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 122 - WebMode.main()
+     9 |  Tht, line 68 - Tht.main()
+    10 |  tht, line 32 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+
