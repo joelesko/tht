@@ -101,6 +101,9 @@ class Tht {
             // See: https://github.com/joelesko/tht/issues/2
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
             if ($_SERVER["REQUEST_URI"] !== "/" && file_exists($path)) {
+                if (is_dir($path)) {
+                    throw new StartupException ("Path can not match a directory in the Document Root.");
+                }
                 return false;
             }
         }
@@ -237,6 +240,7 @@ class Tht {
         // Set paths for 'app' and 'data'
         foreach (['app', 'data'] as $topDir) {
 
+            // Read APP_ROOT & DATA_ROOT
             $globalConstant = strtoupper($topDir . '_root'); 
 
             if (defined($globalConstant)) {
@@ -255,7 +259,7 @@ class Tht {
             }
 
             if (!Tht::$paths[$topDir]) {
-                Tht::startupError("Can't find app directory `$topDir`.\n\n"
+                throw new StartupException ("Can't find app directory `$topDir`.\n\n"
                     . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory\nto create a new app.\n\n");
             }
         }
