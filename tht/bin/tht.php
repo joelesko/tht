@@ -2,7 +2,6 @@
 
 namespace o;
 
-
 if (isset($_SERVER['HTTP_USER_AGENT'])) {
 
     // Avoid timezone warning
