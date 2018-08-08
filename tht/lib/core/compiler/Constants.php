@@ -182,7 +182,7 @@ class ParserData {
         'break'     => 'S_Command',
         'continue'  => 'S_Command',
         'return'    => 'S_Return',
-      //  'R'         => 'S_Return',
+        'R'         => 'S_Return',
     ];
 
     static public $RESERVED_NAMES = [
