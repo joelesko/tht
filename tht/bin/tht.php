@@ -15,7 +15,7 @@ if (isset($_SERVER['HTTP_USER_AGENT'])) {
     set_error_handler('o\onStartupError');
 
     // Doing this right away to include hits from static cache
-  //  startupHitCounter();
+    startupHitCounter();
 
     startupStaticCache();
 
