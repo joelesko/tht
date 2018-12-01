@@ -102,7 +102,7 @@ class Tht {
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
             if ($_SERVER["REQUEST_URI"] !== "/" && file_exists($path)) {
                 if (is_dir($path)) {
-                    throw new StartupException ("Path can not match a directory in the Document Root.");
+                    throw new StartupException ("Path `$path` can not be a directory under Document Root.");
                 }
                 return false;
             }
