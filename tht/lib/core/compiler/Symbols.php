@@ -90,7 +90,7 @@ class Symbol {
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
-    // TODO: refactor. log is a little hairy
+    // TODO: isHard not currently used
     function spacePos ($isHard, $pos, $require) {
 
         if ($require == '*') { return; }
@@ -141,7 +141,7 @@ class Symbol {
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 
             $fullMsg = 'Please ' . $msg . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
-            if (!$isHard) { $fullMsg = '(Format Checker) ' . $fullMsg; }
+            $fullMsg = '(Format Checker) ' . $fullMsg; 
 
             $p->error($fullMsg, $t);
         }
