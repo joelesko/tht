@@ -136,7 +136,7 @@ class CliMode {
             // TODO: don't overwrite previous
             CliMode::writeSetupFile('.htaccess', "
 
-                # THT App
+                ### THT APP
 
                 DirectoryIndex index.html index.php thtApp.php
                 Options -Indexes
@@ -150,6 +150,21 @@ class CliMode {
                 # Uncomment to redirect to HTTPS
                 # RewriteCond %{HTTPS} off
                 # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+                # Compression 
+                <IfModule mod_deflate.c>
+                    <IfModule mod_filter.c>
+                        AddOutputFilterByType DEFLATE 
+                          "application/javascript" \
+                          "application/json" \
+                          "text/css" \
+                          "text/html" \
+                          "text/javascript" \
+                    </IfModule>
+                </IfModule>
+
+                ### END THT APP
+
             ");
 
 
