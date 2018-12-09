@@ -405,7 +405,7 @@ class Tht {
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
-            "compressOutput"       => true,
+          //  "compressOutput"       => true,  // currently not used
             "sessionDurationMins"  => 120,
 
             // security

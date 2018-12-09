@@ -224,6 +224,10 @@ class u_Web extends StdModule {
     //     ]);
     // }
 
+    function output($out) {
+        print $out;
+    }
+
     function sendByType($lout) {
         $type = $lout->u_get_string_type();
 
@@ -235,11 +239,25 @@ class u_Web extends StdModule {
         }
     }
 
+    function renderChunks() {
+
+        // Normalize. Could be a single LocKString, OList, or a PHP array
+        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
+            $chunks = OList::create([ $chunks ]); 
+        }
+
+        $out = '';
+        foreach ($chunks->val as $c) {
+            $out .= OLockString::getUnlocked($c);
+        }
+        return $out;
+    }
+
     function u_send_json ($map) {
         ARGS('m', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/json');
-        u_Web::sendGzip(new \o\OLockString (json_encode(uv($map))));
+        $this->output(json_encode(uv($map)));
     }
 
     function u_send_text ($text) {
@@ -247,7 +265,7 @@ class u_Web extends StdModule {
 
         $this->u_set_header('Content-Type', 'text/plain');
 
-        u_Web::sendGzip(new \o\OLockString ($text));
+        $this->output($text);
     }
 
     function u_send_css ($chunks) {
@@ -256,14 +274,8 @@ class u_Web extends StdModule {
 
         $this->u_set_header('Content-Type', 'text/css');
         $this->u_set_cache_header();
-        $this->startGzip();
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]); // todo make a List
-        }
-        foreach ($chunks->val as $c) {
-            print OLockString::getUnlocked($c);
-        }
-        $this->endGzip();
+
+        return $this->renderChunks($chunks);
     }
 
     function u_send_js ($chunks) {
@@ -273,21 +285,16 @@ class u_Web extends StdModule {
         $this->u_set_header('Content-Type', 'application/javascript');
         $this->u_set_cache_header();
 
-        $this->startGzip();
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]);
-        }
-        print "(function(){\n";
-        foreach ($chunks->val as $c) {
-            print OLockString::getUnlocked($c);
-        }
-        print "\n})();";
-        $this->endGzip();
+        $out = "(function(){\n";
+        $out .= $this->renderChunks($chunks);
+        $out .= "\n})();";
+
+        $this->output($out);
     }
 
     function u_send_html ($html) {
-        OLockString::getUnlocked($html);
-        u_Web::sendGzip($html);
+        $html = OLockString::getUnlocked($html);  
+        $this->output($html);
     }
 
     function u_danger_danger_send ($s) {
@@ -337,7 +344,8 @@ class u_Web extends StdModule {
         $title = $doc['title'];
         $description = isset($doc['description']) ?: '';
 
-        // TODO: get updateTime of the files, allow base64 urls
+        // TODO: get updateTime of the files
+        // TODO: allow base64 urls
         // $cacheTag = '?cache=' . Source::getAppCompileTime();
         $cacheTag = '';
 
@@ -349,7 +357,7 @@ class u_Web extends StdModule {
         $bodyClass = implode(' ', $bodyClasses);
         $bodyClass = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $bodyClass); // TODO: call a lib to untaint instead
 
-        $this->startGzip();
+        
 
         $comment = '';
         if (isset($doc['comment'])) {
@@ -375,18 +383,16 @@ $comment
 </html>
 HTML;
 
-       print $out;
+        $this->sendGzip($out);
+     
+       
+        $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
+        if ($cacheTag && isset($doc['staticCache']) && $doc['staticCache']) {
+            $cacheFile = md5(Tht::module('Web')->u_request()['url']['relative']);
+            $cachePath = Tht::path('cache', 'html/' . $cacheTag . '_' . $cacheFile . '.html');
+            file_put_contents($cachePath, $out);
+        }
 
-       $this->endGzip();
-       flush();
-
-       $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
-
-       if ($cacheTag && isset($doc['staticCache']) && $doc['staticCache']) {
-           $cacheFile = md5(Tht::module('Web')->u_request()['url']['relative']);
-           $cachePath = Tht::path('cache', 'html/' . $cacheTag . '_' . $cacheFile . '.html');
-           file_put_contents($cachePath, $out);
-       }
     }
 
     function u_send_error ($code, $title='') {
@@ -476,29 +482,30 @@ HTML;
 
 
 
+    // TODO: Removed for now.  Letting webserver handle this.
 
     // GZIP
     // --------------------------------------------
 
-    function sendGzip ($xOut) {
-        $out = OLockString::getUnlocked($xOut);
-        $this->startGzip(true);
-        print $out;
-        $this->endGzip(true);
-        flush();
-    }
+    // function sendGzip ($xOut) {
+    //     $out = OLockString::getUnlocked($xOut);
+    //     $this->startGzip(true);
+    //     print $out;
+    //     $this->endGzip(true);
+    //     flush();
+    // }
 
-    function startGzip ($forceGzip=false) {
-        if ($forceGzip || Tht::getConfig('compressOutput')) {
-            ob_start("ob_gzhandler");
-        }
-    }
+    // function startGzip ($forceGzip=false) {
+    //     if ($forceGzip || Tht::getConfig('compressOutput')) {
+    //         ob_start("ob_gzhandler");
+    //     }
+    // }
 
-    function endGzip ($forceGzip=false) {
-        if ($forceGzip || Tht::getConfig('compressOutput')) {
-            ob_end_flush();
-        }
-    }
+    // function endGzip ($forceGzip=false) {
+    //     if ($forceGzip || Tht::getConfig('compressOutput')) {
+    //         ob_end_flush();
+    //     }
+    // }
 
 
 
