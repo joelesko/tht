@@ -383,7 +383,7 @@ $comment
 </html>
 HTML;
 
-        $this->sendGzip($out);
+        $this->output($out);
      
        
         $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
