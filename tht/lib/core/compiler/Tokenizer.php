@@ -70,6 +70,7 @@ class Tokenizer extends StringReader {
     private $currIndentBlock = [ 'indent' => 0, 'glyph' => '' ];
 
     private $prevSpace = false;
+    private $prevNewline = false;
 
     private $templateMode = TemplateMode::NONE;
     private $currentTemplateTransformer = null;
@@ -105,16 +106,21 @@ class Tokenizer extends StringReader {
         return $this->tokenStream->done();
     }
 
-    function makeToken ($type, $value, $spaceMask=null) {
+    function makeToken ($type, $value, $forceSpaceAfter = false) {
 
-        $c = $this->char();
+        $spaceMask = 0;
 
-        if ($spaceMask === null) {
-            $spaceMask = 0;
-            if ($this->prevSpace)          { $spaceMask  = 1; }
-            if ($c === ' ' || $c === "\t") { $spaceMask += 2; }
-            if ($c === "\n")               { $spaceMask += 4; }
+        $nextChar = $this->char();
+
+        if ($forceSpaceAfter) {
+            $nextChar = ' ';
         }
+        
+        if ($this->prevNewline)    { $spaceMask += 2; }
+        else if ($this->prevSpace) { $spaceMask += 1; }
+
+        if ($nextChar === ' ' || $nextChar === "\t") { $spaceMask += 4; }
+        else if ($nextChar === "\n")                 { $spaceMask += 8; }
 
         $pos = $this->tokenPos[0] . ',' . $this->tokenPos[1];
         $token = [$type, $pos, $spaceMask, $value];
@@ -123,6 +129,7 @@ class Tokenizer extends StringReader {
         $this->tokenStream->add($token);
 
         $this->prevSpace = false;
+        $this->prevNewline = false;
     }
 
     function insertToken ($type, $value) {
@@ -157,7 +164,7 @@ class Tokenizer extends StringReader {
                 else if (isset($this->isDigit[$c])) {
                     $this->handleNumber($c);
                 }
-                else if ($c === Glyph::QUOTE) {
+                else if ($c === Glyph::QUOTE || $c === Glyph::BACKTICK) {
                     $this->handleString($c);
                 }
                 else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
@@ -248,7 +255,10 @@ class Tokenizer extends StringReader {
             $this->error("Unexpected newline inside of template expression `{{ ... }}`.");
         }
 
-        if ($c === ' ' || $c === "\n" || $c === "\t") {
+        if ($c === "\n") {  
+            $this->prevNewline = true;
+        }
+        else if ($c === ' ' || $c === "\t") {  // $c === "\n" 
             $this->prevSpace = true;
         }
 
@@ -286,7 +296,7 @@ class Tokenizer extends StringReader {
                 $i = 0;
                 foreach ($words as $w) {
                     $this->makeToken(TokenType::STRING, $w);
-                    if ($i < count($words)) { $this->makeToken(TokenType::GLYPH, ',', 2); }
+                    if ($i < count($words)) { $this->makeToken(TokenType::GLYPH, ',', true); }
                     $i += 1;
                 }
                 $this->makeToken(TokenType::GLYPH, ']');
@@ -338,7 +348,7 @@ class Tokenizer extends StringReader {
         }
     }
 
-    // e.g. 'hello'
+    // e.g. 'hello' or `multiline\nstring`
     function handleString ($c) {
 
         $str = '';
@@ -347,12 +357,11 @@ class Tokenizer extends StringReader {
         $startPos = $this->getTokenPos();
 
         $this->inMultiLineString = false;
-        if ($this->nextChar(2) === "''") {
+        if ($c === "`") {
             $this->inMultiLineString = true;
-            $this->next(2);
             if ($this->nextChar() !== "\n") {
-                $this->error("Triple-quotes `'''` must be followed by a newline.\n\n"
-                    . "Surrounding whitespace will be trimmed and normalized.");
+                $this->error("Backtick `$c` must be followed by a newline.\n\n"
+                    . "Indentation will be trimmed to the left-most character.");
             }
         }
 
@@ -370,31 +379,22 @@ class Tokenizer extends StringReader {
 
             if ($c === "\n" && !$this->inMultiLineString) {
                 $this->updateTokenPos();
-                $this->error("Unexpected newline. Try: quote fences `'''` for a multi-line string.");
+                $this->error("Unexpected newline. Try: backtick ($c) for a multi-line string.");
             }
 
             if ($this->atEndOfFile()) {
-                $q =  $this->inMultiLineString ? "'''" : "'";
-                $this->error("Unclosed string. Looks like you missed a closing quote `$q`.", $startPos);
+                $this->error("Unclosed string. Maybe you missed a closing quote ($c).", $startPos);
             }
 
             if ($c === $closeQuote) {
-                if ($this->inMultiLineString) {
-                    if ($this->nextChar(2) === "''") {
-                        if (!$this->atStartOfLine()) {
-                            $this->error("Closing triple-quotes `'''` belong on a separate line.");
-                        }
-                        $this->next(2);
-                        break;
-                    }
+                if ($this->inMultiLineString && !$this->atStartOfLine()) {
+                        $this->error("Closing backtick ($c) must belong on a separate line.");
                 } else {
                     break;
                 }
             }
 
-            $c = $this->escape($c, $type);
-
-            $str .= $c;
+            $str .= $this->escape($c, $type);
         }
 
         if ($this->inMultiLineString) {

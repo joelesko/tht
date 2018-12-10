@@ -75,7 +75,7 @@ class Symbol {
     // ' | ' = space required before & after
     // 'x| ' = space not allowed before, required after
     // '*| ' = anything before, space required after
-    // '*|n' = anything before, newline or non-space after
+    // '*|N' = anything before, newline or non-space after
     function space ($pattern, $isHard=false) {
 
         if (Tht::getConfig('disableFormatChecker') && !$isHard) {
@@ -101,11 +101,15 @@ class Symbol {
         $isRequired = ($require === ' ' || $require === 'S');
         $allowNewline = ($require === 'N');
 
-        $lrBit = $pos === 'L' ? 1 : 2;
         $cSpace = $t[TOKEN_SPACE];
-        $hasNewline = $cSpace & 4;
-        $hasSpace = ($cSpace & $lrBit);
-        if ($hasNewline && $pos === 'R' && $require !== 'S') {
+
+        $bitHasSpace = $pos === 'L' ? 1 : 4;
+        $hasSpace = ($cSpace & $bitHasSpace);
+
+        $bitHasNewline = $pos === 'L' ? 2 : 8;
+        $hasNewline = ($cSpace & $bitHasNewline);
+        
+        if ($hasNewline && $require !== 'S') {
             $hasSpace = true;
         }
 
@@ -291,7 +295,7 @@ class S_Dot extends S_Infix {
     // Dot member.  foo.bar
     function asInner ($p, $objName) {
         $p->next();
-        $this->space('x.x', true);
+        $this->space('N.x', true);
         $sMember = $p->symbol;
         if ($sMember->token[TOKEN_TYPE] !== TokenType::WORD) {
             $p->error('Expected a field name.  Ex: `user.name`');

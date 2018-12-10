@@ -39,6 +39,7 @@ abstract class Glyph {
     const REGEX_MOD = 'R';
     const LOCK_MOD = 'L';
     const QUOTE = "'";
+    const BACKTICK = '`';
 }
 
 abstract class SymbolType {

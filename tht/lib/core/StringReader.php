@@ -106,13 +106,17 @@ class StringReader {
         if ($this->i >= $this->len) { return; }
 
         $c = $this->fullText[$this->i];
+
         if ($this->startOfLine) {
             if ($c === ' ') {
                 $this->indent += 1;
+            } else if ($c === '\t') {
+                $this->indent += 4;
             } else {
                 $this->startOfLine = false;
             }    
         }
+        
         if ($c === "\n") {
 
             $this->onNewline();

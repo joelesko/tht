@@ -4,6 +4,7 @@
 function main() {
 
     let test = Test.new();
+      
     run(test);
 
     Web.sendHtml(html(test.resultsHtml()));
@@ -98,7 +99,7 @@ function compileErrors(t) {
 
     t.section('Parser');
 
-    let code = '''
+    let code = `
 
         // test comments
 
@@ -108,7 +109,7 @@ function compileErrors(t) {
 
         let commented = 2; // line-end comment
 
-    ''';
+    `;
     t.parserOk(code, 'comments');
     let longComment = '// ' ~ String.repeat('a', 102) ~ '\n';
     t.parserOk(longComment, 'line comment over 100 chars');
@@ -195,13 +196,12 @@ function compileErrors(t) {
 
     t.section('Parser Errors - Newlines');
 
-    t.parserError('let a = ``` sdf', 'newline');
-    t.parserError('let a = ```\ndfg ```;', 'triple-quote');
+    t.parserError('let a = \` sdf', 'newline');
+    t.parserError('let a = \`\ndfg `;', 'unclosed');
     t.parserError('let a = 1; /*\n', 'separate line');
     t.parserError('/*\nsdf\n*/ d', 'missing newline');
     t.parserError('/*\nsdf', 'unclosed comment');
     t.parserError('template fooText() {\n};', 'missing newline'); // after }
-
 
 
     t.section('Parser Errors - Spaces');
@@ -241,6 +241,11 @@ function compileErrors(t) {
     t.parserError('a ? 1: 2;',            'space before `:`');
     t.parserError('a ? 1 :2;',            'space after `:`');
     t.parserError('let a = 1;let a = 2;', 'space after `;`');
+
+    t.parserError('String .random(4);', 'space before `.`');
+    t.parserError('String. random(4);', 'space after `.`');
+    t.parserError('String.\n    random(4);', 'space after `.`');
+    t.parserOk('String\n    .random(4);', 'newline before `.`');
 
     t.parserOk('if (true)\n{ }',            'newline after `)`');
     t.parserOk('else if (true)\n{ }',       'newline after `)`');
@@ -953,11 +958,11 @@ function testStrings(t) {
 
     let stra = '456789';
     t.ok(stra[-1] == '9', 'substring index');
-    let ml = '''
+    let ml = `
         this is a
         multiline
         string.
-    ''';
+    `;
     t.ok(ml.contains('multiline\nstring'), 'multiline with indent');
 
 
@@ -1080,14 +1085,14 @@ function testStrings(t) {
 
     t.ok(uni.splitChars()[2] == 'Ⓒ', 'chars');
 
-    let uniml = '''
+    let uniml = `
 
         ① item 1
         ② item 2
 
         ③ item 3
 
-    ''';
+    `;
     t.ok(uniml.splitLines().length() == 3, 'lines - count');
     t.ok(uniml.splitLines()[1].charAt(0) == '②', 'lines - trimmed indent');
     t.ok(uniml.splitLines(true).length() == 4, 'lines with whitespace');
@@ -1390,10 +1395,7 @@ function testTemplates(t) {
     htmlUsers = templateHtml(['Frodo', '<b>Sam</b>', 'Gandalf']);
     t.ok(htmlUsers.unlocked().contains('&lt;b&gt;Sam'), 'template with html escapes');
 
-    let p = Web.parseHtml(L'''
-        <h1>> Hello
-        <.abc>> 123
-    ''');
+    let p = Web.parseHtml(L'<h1>> Hello\n<.abc>> 123');
     p = p.unlocked();
     t.ok(p.contains('<h1>Hello</h1>'), 'parse html string - double arrow');
     t.ok(p.contains('<div class=\'abc\'>123</div>'), 'parse html string - dotted');
