@@ -239,7 +239,7 @@ class u_Web extends StdModule {
         }
     }
 
-    function renderChunks() {
+    function renderChunks($chunks) {
 
         // Normalize. Could be a single LocKString, OList, or a PHP array
         if (! (is_object($chunks) && v($chunks)->u_is_list())) {
@@ -275,7 +275,8 @@ class u_Web extends StdModule {
         $this->u_set_header('Content-Type', 'text/css');
         $this->u_set_cache_header();
 
-        return $this->renderChunks($chunks);
+        $out = $this->renderChunks($chunks);
+        $this->output($out);
     }
 
     function u_send_js ($chunks) {
