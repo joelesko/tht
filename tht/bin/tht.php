@@ -64,9 +64,7 @@ function startupStaticCache() {
             header_remove("X-Powered-By");
             header("Content-Type: text/html");
 
-            ob_start("ob_gzhandler");
             readfile($cachePath);
-            ob_end_flush();
 
             exit(0);
         }
