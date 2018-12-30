@@ -818,3 +818,6 @@
     11 |  thtApp, line 7 - require_once()
 
 [2018-08-08 10:20:26]  Entry file not found for path: `/favicon.ico`
+[2018-12-01 14:59:05]  Entry file not found for path: `/favicon.ico`
+[2018-12-08 13:22:51]  Entry file not found for path: `/favicon.ico`
+[2018-12-08 14:02:57]  Entry file not found for path: `/pref`

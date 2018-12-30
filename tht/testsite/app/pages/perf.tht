@@ -1,4 +1,3 @@
-
 F main() {
 
     Session.get('nothing', '');
@@ -13,6 +12,8 @@ F main() {
 		title: 'Perf Test Page',
 		//css: Css.include('base')
 	});
+
+
 }
 
 

@@ -30,7 +30,7 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfScore: false
+        showPerfScore: true
 
         memoryLimitMb: 32
 
