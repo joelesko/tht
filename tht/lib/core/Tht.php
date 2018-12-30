@@ -11,7 +11,7 @@ class Tht {
 
     static private $data = [
         'phpGlobals'     => [],
-        'settings'       => [],
+        'config'         => [],
         'memoryBuffer'   => ''
     ];
 
@@ -30,7 +30,7 @@ class Tht {
         'app'       => 'app',
         'pages'     =>   'pages',
         'modules'   =>   'modules',
-        'settings'  =>   'settings',
+        'config'    =>   'config',
         'scripts'   =>   'scripts',
         'localTht'  =>   '.tht', 
         // 'phpLib'    =>   'php',
@@ -237,8 +237,8 @@ class Tht {
 
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
 
-        // Set paths for 'app' and 'data'
-        foreach (['app', 'data'] as $topDir) {
+        // Set paths for 'app'
+        foreach (['app'] as $topDir) {
 
             // Read APP_ROOT & DATA_ROOT
             $globalConstant = strtoupper($topDir . '_root'); 
@@ -266,9 +266,10 @@ class Tht {
 
         
         // app subdirs
+        Tht::$paths['data']      = Tht::path('app', Tht::$APP_DIR['data']);
         Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
         Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
-        Tht::$paths['settings']  = Tht::path('app', Tht::$APP_DIR['settings']);
+        Tht::$paths['config']    = Tht::path('app', Tht::$APP_DIR['config']);
         Tht::$paths['scripts']   = Tht::path('app', Tht::$APP_DIR['scripts']);
         Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
         // Tht::$paths['phpLib']    = Tht::path('app', Tht::$APP_DIR['phpLib']);
@@ -287,7 +288,7 @@ class Tht {
 
 
         // file paths
-        Tht::$paths['configFile']         = Tht::path('settings', Tht::$APP_FILE['configFile']);
+        Tht::$paths['configFile']         = Tht::path('config',   Tht::$APP_FILE['configFile']);
         Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$APP_FILE['appCompileTimeFile']);
         Tht::$paths['logFile']            = Tht::path('files',    Tht::$APP_FILE['logFile']);
 
@@ -316,11 +317,11 @@ class Tht {
         $def = Tht::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
-                Tht::configError("Unknown settings key `$mainKey.$k` in `" . Tht::$paths['configFile'] . "`.");
+                Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['configFile'] . "`.");
             }
         }
 
-        Tht::$data['settings'] = $appConfig;
+        Tht::$data['config'] = $appConfig;
 
         Tht::module('Perf')->u_stop();
     }
@@ -567,7 +568,7 @@ class Tht {
     static function getTopConfig() {
         $args = func_get_args();
         if (is_array($args[0])) { $args = $args[0]; }
-        $val = Tht::searchConfig(Tht::$data['settings'], $args);
+        $val = Tht::searchConfig(Tht::$data['config'], $args);
         if ($val === null) {
             $val = Tht::searchConfig(Tht::getDefaultConfig(), $args);
             if ($val === null) {
@@ -596,7 +597,7 @@ class Tht {
     }
 
     static function getAllConfig () {
-        return Tht::$data['settings'];
+        return Tht::$data['config'];
     }
 
     static function getPhpGlobal ($g, $key, $def='') {
