@@ -155,11 +155,11 @@ class CliMode {
                 <IfModule mod_deflate.c>
                     <IfModule mod_filter.c>
                         AddOutputFilterByType DEFLATE 
-                          "application/javascript" \
-                          "application/json" \
-                          "text/css" \
-                          "text/html" \
-                          "text/javascript" \
+                          \"application/javascript\" \
+                          \"application/json\" \
+                          \"text/css\" \
+                          \"text/html\" \
+                          \"text/javascript\" \
                     </IfModule>
                 </IfModule>
 
