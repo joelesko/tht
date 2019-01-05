@@ -1,0 +1,10 @@
+
+
+abstract class AbstractClass {
+	
+	F callMe() {
+
+		print(123);
+	}
+
+}

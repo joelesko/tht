@@ -1,7 +1,7 @@
 <?php
 
-namespace tht36aec3eff0be1952541ad7093f749f98;
-\o\Runtime::setNameSpace('modules/subDir/OtherModule.tht','tht36aec3eff0be1952541ad7093f749f98');
+namespace tht\modules\subDir\OtherModule;
+\o\ModuleManager::registerUserModule('modules/subDir/OtherModule.tht','tht\\modules\\subDir\\OtherModule');
 
 function u_ok ($u_check)  {
   return \o\Runtime::concat("ok:", $u_check);

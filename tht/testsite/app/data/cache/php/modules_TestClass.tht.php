@@ -1,11 +1,11 @@
 <?php
 
-namespace thtbb2fb6612dd941340fc4fc2489ed529b;
-\o\Runtime::setNameSpace('modules/TestClass.tht','thtbb2fb6612dd941340fc4fc2489ed529b');
+namespace tht\modules\TestClass;
+\o\ModuleManager::registerUserModule('modules/TestClass.tht','tht\\modules\\TestClass');
 
-\o\OBare::u_import(__NAMESPACE__, "subDir/OtherClass");
+\o\OBare::u_import("subDir/OtherClass");
 function u_factory ()  {
-  return \o\Runtime::newObject(__NAMESPACE__, "TestClass", ["factory", 99]);
+  return \o\ModuleManager::newObject("TestClass", ["factory", 99]);
  return new \o\ONothing(__METHOD__);
  
 }
@@ -15,7 +15,7 @@ function u_new ($u_name, $u_num)  {
 \o\v($this)->u_num = $u_num;
 \o\v(\o\v($this)->u_state)["hiddenChar"] = "x";
 \o\v($this)->u_state = \o\OMap::create([ 'hiddenNum' => 0 ]);
-\o\v($this)->u_dep = \o\Runtime::newObject(__NAMESPACE__, "OtherClass", []);
+\o\v($this)->u_dep = \o\ModuleManager::newObject("OtherClass", []);
 return $this;
  return new \o\ONothing(__METHOD__);
  
@@ -53,11 +53,11 @@ function u_test ()  {
 }
 function u_z_dynamic_get ($u_field)  {
   if (($u_field === "okField")) {
-return \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_ok(\o\Runtime::concat("dynamic:", $u_field));
+return \o\v(\o\ModuleManager::getModule('Result'))->u_ok(\o\Runtime::concat("dynamic:", $u_field));
 
 }
  else {
-return \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_fail();
+return \o\v(\o\ModuleManager::getModule('Result'))->u_fail();
 
 }
 
@@ -66,11 +66,11 @@ return \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_fail();
 }
 function u_z_dynamic_call ($u_method_name, $u_args)  {
   if (($u_method_name === "getSecretNumber")) {
-return \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_ok(42);
+return \o\v(\o\ModuleManager::getModule('Result'))->u_ok(42);
 
 }
 
-return \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_fail();
+return \o\v(\o\ModuleManager::getModule('Result'))->u_fail();
  return new \o\ONothing(__METHOD__);
  
 }

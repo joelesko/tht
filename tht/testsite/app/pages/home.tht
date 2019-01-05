@@ -1,7 +1,21 @@
 
+   let ac = new AbstractSubClass();
+   // t.ok(ac.callMe() == 123, 'abstract class');
+
+   ac.pleaseCallMe();
+
+   print(ac.prop);
+
+   ac.prop = 'outside';
+
+   print(ac.prop);
+
+   AbstractSubClass.hello();
+
+
 // Test Suite
 
-function main() {
+function main2() {
 
     let test = Test.new();
       
@@ -45,6 +59,7 @@ function run(t) {
     testTypes(t);
     testMisc(t);
     testTemplates(t);
+    testOop(t);
 
     runtimeErrors(t);
     compileErrors(t);
@@ -368,8 +383,11 @@ function testMisc(t) {
     import('subDir/OtherModule');
     t.ok(OtherModule.ok('Joe') == 'ok:Joe', 'import from subfolder');
 
+}
 
 
+function testOop(t) {
+    
     t.section('Classes (OOP)'); 
 
     let tc = new TestClass('green', 123);
@@ -417,7 +435,10 @@ function testMisc(t) {
 
     t.ok(oc.ok() == 'other', 'OtherClass');
 
+
+
 }
+
 
 function testTypes(t) {
 
@@ -1492,6 +1513,7 @@ function libDb(t) {
 
     t.section('Module: Db');
 
+    Db.query(L'CREATE TABLE IF NOT EXISTS test (key, value);');
     Db.query(L'delete from test');
 
     let key = 'test' ~ Math.random(0, 1000);

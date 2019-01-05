@@ -1,19 +1,25 @@
 <?php
 
-namespace tht56c96bb25769e47a6a07ef140e39e79f;
-\o\Runtime::setNameSpace('pages/home.tht','tht56c96bb25769e47a6a07ef140e39e79f');
+namespace tht\pages\home;
+\o\ModuleManager::registerUserModule('pages/home.tht','tht\\pages\\home');
 
-function u_main ()  {
-  $u_test = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Test'))->u_new();
+$u_ac = \o\ModuleManager::newObject("AbstractSubClass", []);
+\o\v($u_ac)->u_please_call_me();
+\o\OBare::u_print(\o\v($u_ac)->u_prop);
+\o\v($u_ac)->u_prop = "outside";
+\o\OBare::u_print(\o\v($u_ac)->u_prop);
+\o\v(\o\ModuleManager::getModule('AbstractSubClass'))->u_hello();
+function u_main2 ()  {
+  $u_test = \o\v(\o\ModuleManager::getModule('Test'))->u_new();
 u_run($u_test);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_send_html(u_html(\o\v($u_test)->u_results_html()));
+\o\v(\o\ModuleManager::getModule('Web'))->u_send_html(u_html(\o\v($u_test)->u_results_html()));
  return new \o\ONothing(__METHOD__);
  
 }
 function u_html ($u_results)  {
 $t = \o\Runtime::openTemplate("html");
 $t->addStatic("<!-- this is a comment --><html><head><title>THT Unit Tests</title>");
-$t->addDynamic(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Css'))->u_include("base"));
+$t->addDynamic(\o\v(\o\ModuleManager::getModule('Css'))->u_include("base"));
 $t->addStatic("</head><body><main><h1>THT Unit Tests</h1><a href=\"#test-results\">Skip to Results</a>");
 $t->addDynamic($u_results);
 $t->addStatic("</main></body></html>");
@@ -30,6 +36,7 @@ u_test_functions($u_t);
 u_test_types($u_t);
 u_test_misc($u_t);
 u_test_templates($u_t);
+u_test_oop($u_t);
 u_runtime_errors($u_t);
 u_compile_errors($u_t);
 u_lib_file($u_t);
@@ -105,9 +112,9 @@ $u_code = "// test comments
 
 let commented = 2; // line-end comment";
 \o\v($u_t)->u_parser_ok($u_code, "comments");
-$u_long_comment = \o\Runtime::concat(\o\Runtime::concat("// ", \o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_repeat("a", 102)), "\n");
+$u_long_comment = \o\Runtime::concat(\o\Runtime::concat("// ", \o\v(\o\ModuleManager::getModule('String'))->u_repeat("a", 102)), "\n");
 \o\v($u_t)->u_parser_ok($u_long_comment, "line comment over 100 chars");
-$u_long_block_comment = \o\Runtime::concat(\o\Runtime::concat("/*\n", \o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_repeat("a", 102)), "\n*/");
+$u_long_block_comment = \o\Runtime::concat(\o\Runtime::concat("/*\n", \o\v(\o\ModuleManager::getModule('String'))->u_repeat("a", 102)), "\n*/");
 \o\v($u_t)->u_parser_ok($u_long_block_comment, "block comment over 100 chars");
 \o\v($u_t)->u_section("Parser Errors - Names");
 \o\v($u_t)->u_parser_error("let FOO = 3;", "camelCase");
@@ -116,7 +123,7 @@ $u_long_block_comment = \o\Runtime::concat(\o\Runtime::concat("/*\n", \o\v(\o\Ru
 \o\v($u_t)->u_parser_error("let a_b = 3;", "camelCase");
 \o\v($u_t)->u_parser_error("function FOO() {}", "camelCase");
 \o\v($u_t)->u_parser_error("function a () {}", "longer than 1");
-$u_long_name = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_repeat("a", 41);
+$u_long_name = \o\v(\o\ModuleManager::getModule('String'))->u_repeat("a", 41);
 \o\v($u_t)->u_parser_error(\o\Runtime::concat(\o\Runtime::concat("let ", $u_long_name), " = 1;"), "40 characters or less");
 \o\v($u_t)->u_parser_error(\o\Runtime::concat(\o\Runtime::concat("function ", $u_long_name), " () {}"), "40 characters or less");
 \o\v($u_t)->u_section("Parser Errors - Aliases");
@@ -267,8 +274,8 @@ $u_long_name = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_repeat("a
 }
 function u_test_misc ($u_t)  {
   \o\v($u_t)->u_section("Performance");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_start("Large Array");
-$u_now = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_now(true);
+\o\v(\o\ModuleManager::getModule('Perf'))->u_start("Large Array");
+$u_now = \o\v(\o\ModuleManager::getModule('Date'))->u_now(true);
 $u_num_els = 1000;
 $u_nums = \o\OBare::u_range(1, $u_num_els);
 $u_ii = 0;
@@ -278,27 +285,31 @@ $u_ii += \o\vn(1, 1);
 
 }
 \o\v($u_t)->u_ok(($u_ii === $u_num_els), "large loop done");
-$u_elapsed = (\o\vn(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_now(true), 0) - \o\vn($u_now, 0));
+$u_elapsed = (\o\vn(\o\v(\o\ModuleManager::getModule('Date'))->u_now(true), 0) - \o\vn($u_now, 0));
 \o\v($u_t)->u_ok((\o\vn($u_elapsed, 0) < \o\vn(3, 0)), \o\v("ArrayAccess loop ({0} elements) took {1} ms")->u_fill($u_num_els, $u_elapsed));
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_stop();
+\o\v(\o\ModuleManager::getModule('Perf'))->u_stop();
 \o\v($u_t)->u_section("Functional Methods");
 \o\v($u_t)->u_section("Result Objects");
-$u_st = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_ok(123);
+$u_st = \o\v(\o\ModuleManager::getModule('Result'))->u_ok(123);
 \o\v($u_t)->u_ok(\o\v($u_st)->u_ok(), "not ok");
 \o\v($u_t)->u_ok((\o\v($u_st)->u_get() === 123), "ok value");
-$u_st = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Result'))->u_fail(66);
+$u_st = \o\v(\o\ModuleManager::getModule('Result'))->u_fail(66);
 \o\v($u_t)->u_ok((! \o\v($u_st)->u_ok()), "not ok");
 \o\v($u_t)->u_ok((\o\v($u_st)->u_fail_code() === 66), "failCode");
 \o\v($u_t)->u_section("Modules");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_bare_fun("Joe") === "bare:Joe"), "module call - autoloaded");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_foo = "BAR";
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_test_global() === "global:BAR"), "module global");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_test_module_var() === "moduleVar:mod"), "module var - inside access");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestModule'))->u_module_var === "mod"), "module var - outside access");
-\o\OBare::u_import(__NAMESPACE__, "subDir/OtherModule");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'OtherModule'))->u_ok("Joe") === "ok:Joe"), "import from subfolder");
-\o\v($u_t)->u_section("Classes (OOP)");
-$u_tc = \o\Runtime::newObject(__NAMESPACE__, "TestClass", ["green", 123]);
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('TestModule'))->u_bare_fun("Joe") === "bare:Joe"), "module call - autoloaded");
+\o\v(\o\ModuleManager::getModule('Global'))->u_foo = "BAR";
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('TestModule'))->u_test_global() === "global:BAR"), "module global");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('TestModule'))->u_test_module_var() === "moduleVar:mod"), "module var - inside access");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('TestModule'))->u_module_var === "mod"), "module var - outside access");
+\o\OBare::u_import("subDir/OtherModule");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('OtherModule'))->u_ok("Joe") === "ok:Joe"), "import from subfolder");
+ return new \o\ONothing(__METHOD__);
+ 
+}
+function u_test_oop ($u_t)  {
+  \o\v($u_t)->u_section("Classes (OOP)");
+$u_tc = \o\ModuleManager::newObject("TestClass", ["green", 123]);
 \o\v($u_t)->u_ok((\o\v($u_tc)->u_test() === "class:green123"), "new object");
 \o\v($u_t)->u_ok((\o\v($u_tc)->u_name === "green"), "get property");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_tc)->u_html())->u_unlocked() === "<b>Hello</b>\n"), "object template");
@@ -319,7 +330,7 @@ $u_tc = \o\Runtime::newObject(__NAMESPACE__, "TestClass", ["green", 123]);
  
 }
 , "Fields locked after construction");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'TestClass'))->u_factory())->u_name === "factory"), "module factory");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('TestClass'))->u_factory())->u_name === "factory"), "module factory");
 \o\v($u_t)->u_ok(\o\v(\o\v($u_tc)->u_z_methods())->u_contains("getHidden"), "zMethods");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_tc)->u_z_fields())->u_name === "green"), "zFields");
 \o\v($u_t)->u_ok((\o\v($u_tc)->u_z_get_field("num") === 123), "zGetField");
@@ -339,8 +350,8 @@ $u_tc = \o\Runtime::newObject(__NAMESPACE__, "TestClass", ["green", 123]);
 \o\v($u_t)->u_ok((! \o\v($u_tc)->u_z_has_method("sethidden")), "zHasMethod false");
 \o\v($u_t)->u_ok(\o\v($u_tc)->u_z_has_field("num"), "zHasField true");
 \o\v($u_t)->u_ok((! \o\v($u_tc)->u_z_has_field("Num")), "zHasField false");
-\o\OBare::u_import(__NAMESPACE__, "subDir/OtherClass");
-$u_oc = \o\Runtime::newObject(__NAMESPACE__, "OtherClass", []);
+\o\OBare::u_import("subDir/OtherClass");
+$u_oc = \o\ModuleManager::newObject("OtherClass", []);
 \o\v($u_t)->u_ok((\o\v($u_oc)->u_ok() === "other"), "OtherClass");
  return new \o\ONothing(__METHOD__);
  
@@ -400,7 +411,7 @@ function u_test_b ($u_arg="default")  {
 \o\v($u_t)->u_ok((u_test_b() === "default!"), "default");
 function u_test_sum ()  {
   $u_asum = 0;
-foreach (\o\uv(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_arguments()) as $u_arg) {
+foreach (\o\uv(\o\v(\o\ModuleManager::getModule('Meta'))->u_arguments()) as $u_arg) {
 $u_asum += \o\vn($u_arg, 1);
 
 }
@@ -464,7 +475,7 @@ function u_missing_args ($u_arg1, $u_arg2)  {
 }
 , "Missing argument - user function");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_read();
+  \o\v(\o\ModuleManager::getModule('File'))->u_read();
  return new \o\ONothing(__METHOD__);
  
 }
@@ -936,7 +947,7 @@ $u_fin = true;
 \o\v($u_t)->u_ok($u_fin, "try/catch - finally");
 $u_file_ex = false;
 try {
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_read("sdfsdfsdf");
+\o\v(\o\ModuleManager::getModule('File'))->u_read("sdfsdfsdf");
 
 }
  catch (\Exception $u_e) {
@@ -978,7 +989,7 @@ $u_hi = "Hello World!";
 \o\v($u_t)->u_ok((! \o\v($u_hi)->u_contains("missing")), "! has()");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_hi)->u_split("o"))->u_length() === 3), "split()");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_hi)->u_split("o"))[0] === "Hell"), "split()");
-\o\v($u_t)->u_ok((\o\Runtime::concat(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_char_from_code(65), \o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_char_from_code(122)) === "Az"), "String.fromCharCode");
+\o\v($u_t)->u_ok((\o\Runtime::concat(\o\v(\o\ModuleManager::getModule('String'))->u_char_from_code(65), \o\v(\o\ModuleManager::getModule('String'))->u_char_from_code(122)) === "Az"), "String.fromCharCode");
 \o\v($u_t)->u_ok((\o\v("false")->u_to_flag() === false), "toFlag - false");
 \o\v($u_t)->u_ok((\o\v("true")->u_to_flag() === true), "toFlag - true");
 \o\v($u_t)->u_ok((\o\v("0")->u_to_flag() === false), "toFlag - 0");
@@ -991,8 +1002,8 @@ $u_uni = "ⒶⒷⒸ①②③ abc123";
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_char_at(2) === "Ⓒ"), "charAt");
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_char_at((- 1)) === "3"), "charAt negative");
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_char_code_at(2) === 9400), "codeAt");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_char_from_code(9400) === "Ⓒ"), "charFromCode");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'String'))->u_char_from_code(65) === "A"), "charFromCode, ascii");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('String'))->u_char_from_code(9400) === "Ⓒ"), "charFromCode");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('String'))->u_char_from_code(65) === "A"), "charFromCode, ascii");
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_left(3) === "ⒶⒷⒸ"), "left");
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_right(3) === "123"), "right");
 \o\v($u_t)->u_ok((\o\v($u_uni)->u_substring(4, 5) === "②③ ab"), "substring");
@@ -1157,7 +1168,7 @@ $u_ticks = "hello 'WORLD'";
 $u_esc_ticks = "hello `WORLD`";
 \o\v($u_t)->u_ok((\o\v($u_esc_ticks)->u_replace(new \o\ORegex ("\`(\w+)\`"), "THERE") === "hello THERE"), "escaped backticks");
 \o\v($u_t)->u_ok((\o\v("ab  cd e")->u_replace(new \o\ORegex ("\s+"), "-") === "ab-cd-e"), "replace");
-$u_rx = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Regex'))->u_new(\o\v("'{0}'")->u_fill("world"), "i");
+$u_rx = \o\v(\o\ModuleManager::getModule('Regex'))->u_new(\o\v("'{0}'")->u_fill("world"), "i");
 \o\v($u_t)->u_ok((\o\v($u_ticks)->u_replace($u_rx, "VAR") === "hello VAR"), "replace with variable");
 \o\v($u_t)->u_section("LockStrings");
 \o\v($u_t)->u_ok(\o\v(new \o\OLockString ("abc"))->u_is_lock_string(), "isLockString = true");
@@ -1302,7 +1313,7 @@ $u_html_users = \o\v(u_template_html(\o\OList::create([ "Frodo", "Sam", "Gandalf
 \o\v($u_t)->u_ok(\o\v($u_html_users)->u_match(new \o\ORegex ("<li>Frodo.*?<li>Sam.*?<li>Gandalf")), "template - loop & variables");
 $u_html_users = u_template_html(\o\OList::create([ "Frodo", "<b>Sam</b>", "Gandalf" ]));
 \o\v($u_t)->u_ok(\o\v(\o\v($u_html_users)->u_unlocked())->u_contains("&lt;b&gt;Sam"), "template with html escapes");
-$u_p = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_parse_html(new \o\OLockString ("<h1>> Hello\n<.abc>> 123"));
+$u_p = \o\v(\o\ModuleManager::getModule('Web'))->u_parse_html(new \o\OLockString ("<h1>> Hello\n<.abc>> 123"));
 $u_p = \o\v($u_p)->u_unlocked();
 \o\v($u_t)->u_ok(\o\v($u_p)->u_contains("<h1>Hello</h1>"), "parse html string - double arrow");
 \o\v($u_t)->u_ok(\o\v($u_p)->u_contains("<div class='abc'>123</div>"), "parse html string - dotted");
@@ -1329,97 +1340,98 @@ $u_ls = new \o\OLockString ("<p>a &gt; c</p>");
 function u_lib_file ($u_t)  {
   \o\v($u_t)->u_section("Module: File");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists("../bad.txt");
+  \o\v(\o\ModuleManager::getModule('File'))->u_exists("../bad.txt");
  return new \o\ONothing(__METHOD__);
  
 }
 , "parent shortcut (..)");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_read("http://yahoo.com");
+  \o\v(\o\ModuleManager::getModule('File'))->u_read("http://yahoo.com");
  return new \o\ONothing(__METHOD__);
  
 }
 , "stop remote file read");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists("sdf/sdf")), "Missing file does not exist");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_is_file("sdf/sdf")), "Missing path is not a file");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_is_dir("sdf/sdf")), "Missing path is not a dir");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_exists("sdf/sdf")), "Missing file does not exist");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_is_file("sdf/sdf")), "Missing path is not a file");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_is_dir("sdf/sdf")), "Missing path is not a dir");
 $u_f = "testFile.txt";
 $u_d = "testDir";
-if (\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists($u_d)) {
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_delete_dir($u_d);
+if (\o\v(\o\ModuleManager::getModule('File'))->u_exists($u_d)) {
+\o\v(\o\ModuleManager::getModule('File'))->u_delete_dir($u_d);
 
 }
 
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_make_dir($u_d);
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_is_dir($u_d), "make dir");
-$u_p = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_join_path(\o\OList::create([ $u_d, $u_f ]));
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_write($u_p, "12345");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_get_size($u_p) === 5), "File size");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists($u_p), "File exists");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_is_file($u_p), "File is file");
-$u_info = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_path_info($u_p);
+\o\v(\o\ModuleManager::getModule('File'))->u_make_dir($u_d);
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('File'))->u_is_dir($u_d), "make dir");
+$u_p = \o\v(\o\ModuleManager::getModule('File'))->u_join_path(\o\OList::create([ $u_d, $u_f ]));
+\o\v(\o\ModuleManager::getModule('File'))->u_write($u_p, "12345");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('File'))->u_get_size($u_p) === 5), "File size");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('File'))->u_exists($u_p), "File exists");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('File'))->u_is_file($u_p), "File is file");
+$u_info = \o\v(\o\ModuleManager::getModule('File'))->u_path_info($u_p);
 \o\v($u_t)->u_ok((\o\v(\o\v($u_info)->u_dir_list)->u_last() === $u_d), "Path info dirList has parent dir");
 \o\v($u_t)->u_ok((\o\v($u_info)->u_file_ext === "txt"), "Path info extension");
 \o\v($u_t)->u_ok((\o\v($u_info)->u_file_name === "testFile.txt"), "Path info fileName");
 \o\v($u_t)->u_ok((\o\v($u_info)->u_file_name_short === "testFile"), "Path info shortFileName");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_delete($u_p);
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists($u_p)), "File deleted");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_delete_dir($u_d);
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'File'))->u_exists($u_d)), "Dir deleted");
+\o\v(\o\ModuleManager::getModule('File'))->u_delete($u_p);
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_exists($u_p)), "File deleted");
+\o\v(\o\ModuleManager::getModule('File'))->u_delete_dir($u_d);
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_exists($u_d)), "Dir deleted");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_date ($u_t)  {
   \o\v($u_t)->u_section("Module: Date");
-\o\v($u_t)->u_ok((\o\vn(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_now(), 0) > \o\vn(1490000000, 0)), "Date.now");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_minutes(3) === 180), "minutes");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_hours(2) === 7200), "hours");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_days(3) === 259200), "days");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_to_minutes(90) === 1.5), "inMinutes");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_to_hours(7200) === 2), "inHours");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_to_days(259200) === 3), "inDays");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_format("%Y-%m-%d %H:%M:%S", 1400000000) === "2014-05-13 09:53:20"), "Date.format");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_difference(100, 280) === "3 minutes"), "Date.difference");
+\o\v($u_t)->u_ok((\o\vn(\o\v(\o\ModuleManager::getModule('Date'))->u_now(), 0) > \o\vn(1490000000, 0)), "Date.now");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_minutes(3) === 180), "minutes");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_hours(2) === 7200), "hours");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_days(3) === 259200), "days");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_to_minutes(90) === 1.5), "inMinutes");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_to_hours(7200) === 2), "inHours");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_to_days(259200) === 3), "inDays");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_format("%Y-%m-%d %H:%M:%S", 1400000000) === "2014-05-13 09:53:20"), "Date.format");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_difference(100, 280) === "3 minutes"), "Date.difference");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_db ($u_t)  {
   \o\v($u_t)->u_section("Module: Db");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_query(new \o\OLockString ("delete from test"));
-$u_key = \o\Runtime::concat("test", \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_random(0, 1000));
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_insert_row("test", \o\OMap::create([ 'key' => $u_key, 'value' => \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Date'))->u_now() ]));
-$u_rows = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_select_rows(new \o\OLockString ("select * from test"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_query(new \o\OLockString ("CREATE TABLE IF NOT EXISTS test (key, value);"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_query(new \o\OLockString ("delete from test"));
+$u_key = \o\Runtime::concat("test", \o\v(\o\ModuleManager::getModule('Math'))->u_random(0, 1000));
+\o\v(\o\ModuleManager::getModule('Db'))->u_insert_row("test", \o\OMap::create([ 'key' => $u_key, 'value' => \o\v(\o\ModuleManager::getModule('Date'))->u_now() ]));
+$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(new \o\OLockString ("select * from test"));
 \o\v($u_t)->u_ok((\o\v($u_rows)->u_length() === 1), "Insert & select row");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_rows)[0])->u_key === $u_key), "Check inserted row");
-$u_dbh = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_use("default");
+$u_dbh = \o\v(\o\ModuleManager::getModule('Db'))->u_use("default");
 $u_rows = \o\v($u_dbh)->u_select_rows(new \o\OLockString ("select * from test"));
 \o\v($u_t)->u_ok((\o\v(\o\v($u_rows)[0])->u_key === $u_key), "Db.use");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_update_rows("test", \o\OMap::create([ 'key' => $u_key, 'value' => "new!" ]), \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
-$u_row = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_select_row(\o\v(new \o\OLockString ("select * from test where key = {}"))->u_fill($u_key));
+\o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("test", \o\OMap::create([ 'key' => $u_key, 'value' => "new!" ]), \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
+$u_row = \o\v(\o\ModuleManager::getModule('Db'))->u_select_row(\o\v(new \o\OLockString ("select * from test where key = {}"))->u_fill($u_key));
 \o\v($u_t)->u_ok((\o\v($u_row)->u_value === "new!"), "Update row");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_delete_rows("test", \o\v(new \o\OLockString ("key = {}"))->u_fill($u_key));
-$u_rows = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_select_rows(new \o\OLockString ("select * from test"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("test", \o\v(new \o\OLockString ("key = {}"))->u_fill($u_key));
+$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(new \o\OLockString ("select * from test"));
 \o\v($u_t)->u_ok((\o\v($u_rows)->u_length() === 0), "Delete row");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_update_rows("\"bad", \o\OMap::create([ 'key' => $u_key ]), \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
+  \o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("\"bad", \o\OMap::create([ 'key' => $u_key ]), \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
  return new \o\ONothing(__METHOD__);
  
 }
 , "invalid table name - updateRows");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_delete_rows("\"bad", \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
+  \o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("\"bad", \o\v(new \o\OLockString (" key = {}"))->u_fill($u_key));
  return new \o\ONothing(__METHOD__);
  
 }
 , "invalid table name - deleteRows");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_query("delete from test");
+  \o\v(\o\ModuleManager::getModule('Db'))->u_query("delete from test");
  return new \o\ONothing(__METHOD__);
  
 }
 , "reject unlocked query - query");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_select_rows("select * from test");
+  \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows("select * from test");
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1429,46 +1441,46 @@ $u_rows = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Db'))->u_select_rows(new \o
 }
 function u_lib_jcon_test ($u_t)  {
   \o\v($u_t)->u_section("Module: Jcon");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: value\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: value\n}\n");
 \o\v($u_t)->u_ok((\o\v($u_d)->u_key === "value"), "string value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: true\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: true\n}\n");
 \o\v($u_t)->u_ok((\o\v($u_d)->u_key === true), "true value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkeyA: valA\nkeyB: valB\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkeyA: valA\nkeyB: valB\n}\n");
 \o\v($u_t)->u_ok((\o\v($u_d)->u_key_b === "valB"), "2nd key");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: false\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: false\n}\n");
 \o\v($u_t)->u_ok((\o\v($u_d)->u_key === false), "false value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: 1234.5\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: 1234.5\n}\n");
 \o\v($u_t)->u_ok((\o\v($u_d)->u_key === 1234.5), "num value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: [\nv1\nv2\nv3\n]\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: [\nv1\nv2\nv3\n]\n}\n");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_d)->u_key)->u_length() === 3), "list value");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_d)->u_key)[2] === "v3"), "list value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkey: '''\nThis is\nmultiline\n'''\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: '''\nThis is\nmultiline\n'''\n}\n");
 \o\v($u_t)->u_ok(\o\v(\o\v($u_d)->u_key)->u_contains("\nmultiline"), "multiline value");
-$u_d = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Jcon'))->u_parse("{\nkeyLite: '''\n## Heading!\n'''\n}\n");
+$u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkeyLite: '''\n## Heading!\n'''\n}\n");
 \o\v($u_t)->u_ok(\o\v(\o\v(\o\v($u_d)->u_key_lite)->u_unlocked())->u_contains("<h2>"), "Litemark value");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_js ($u_t)  {
   \o\v($u_t)->u_section("Module: Js");
-\o\v($u_t)->u_ok(\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Js'))->u_plugin("colorCode"))->u_unlocked())->u_contains("highlight"), "colorCode");
-\o\v($u_t)->u_ok(\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Js'))->u_plugin("lazyLoadImages"))->u_unlocked())->u_contains("img"), "lazyLoadImages");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Js'))->u_minify("/* comment */\n\nhello\n    \n") === "hello"), "minify");
+\o\v($u_t)->u_ok(\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Js'))->u_plugin("colorCode"))->u_unlocked())->u_contains("highlight"), "colorCode");
+\o\v($u_t)->u_ok(\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Js'))->u_plugin("lazyLoadImages"))->u_unlocked())->u_contains("img"), "lazyLoadImages");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Js'))->u_minify("/* comment */\n\nhello\n    \n") === "hello"), "minify");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_json ($u_t)  {
   \o\v($u_t)->u_section("Module: Json");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode("{\"k1\":[123,\"hello\"]}"))["k1"])[1] === "hello"), "decode sub-list");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode("{\"k1\":{\"k2\":\"hello\"}}"))["k1"])["k2"] === "hello"), "decode sub-map");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode("[1,2,3]"))[1] === 2), "decode list");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode("true") === true), "decode boolean");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode("123.45") === 123.45), "decode number");
-$u_st = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_encode(\o\OMap::create([ 'a' => "hi", 'b' => \o\OList::create([ 1, 2, 3 ]) ]));
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Json'))->u_decode("{\"k1\":[123,\"hello\"]}"))["k1"])[1] === "hello"), "decode sub-list");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Json'))->u_decode("{\"k1\":{\"k2\":\"hello\"}}"))["k1"])["k2"] === "hello"), "decode sub-map");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Json'))->u_decode("[1,2,3]"))[1] === 2), "decode list");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Json'))->u_decode("true") === true), "decode boolean");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Json'))->u_decode("123.45") === 123.45), "decode number");
+$u_st = \o\v(\o\ModuleManager::getModule('Json'))->u_encode(\o\OMap::create([ 'a' => "hi", 'b' => \o\OList::create([ 1, 2, 3 ]) ]));
 \o\v($u_t)->u_ok(\o\v($u_st)->u_contains("\"hi\""), "encode string");
 \o\v($u_t)->u_ok(\o\v($u_st)->u_contains("[1,2,3]"), "encode list");
 \o\v($u_t)->u_ok(\o\v($u_st)->u_contains("\"b\":"), "encode key");
-$u_obj = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Json'))->u_decode($u_st);
+$u_obj = \o\v(\o\ModuleManager::getModule('Json'))->u_decode($u_st);
 \o\v($u_t)->u_ok((\o\v(\o\v($u_obj)->u_b)[1] === 2), "decode after encode");
  return new \o\ONothing(__METHOD__);
  
@@ -1480,47 +1492,47 @@ function u_lib_litemark ($u_t)  {
 }
 function u_lib_math ($u_t)  {
   \o\v($u_t)->u_section("Module: Math");
-$u_rand = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_random(6, 8);
+$u_rand = \o\v(\o\ModuleManager::getModule('Math'))->u_random(6, 8);
 \o\v($u_t)->u_ok(((\o\vn($u_rand, 0) >= \o\vn(6, 0)) && (\o\vn($u_rand, 0) <= \o\vn(8, 0))), "random");
-$u_rnd = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_random();
+$u_rnd = \o\v(\o\ModuleManager::getModule('Math'))->u_random();
 \o\v($u_t)->u_ok(((\o\vn($u_rnd, 0) >= \o\vn(0, 0)) && (\o\vn($u_rnd, 0) < \o\vn(1, 0))), "random float");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_round(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_pi(), 2) === 3.14), "rounded pi");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_clamp(5, 1, 10) === 5), "clamp in boundary");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_clamp(20, 1, 10) === 10), "clamp max");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_clamp((- 20), 1, 10) === 1), "clamp min");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_min(1, 3, 5) === 1), "min");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_min(\o\OList::create([ 1, 3, 5 ])) === 1), "min list");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_max(1, 3, 5) === 5), "max");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_max(\o\OList::create([ 1, 3, 5 ])) === 5), "max list");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_convert_base(21, 10, 2) === "10101"), "convertBase: dec to bin");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Math'))->u_convert_base("1af9", 16, 10) === 6905), "convertBase: hex to dec");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_round(\o\v(\o\ModuleManager::getModule('Math'))->u_pi(), 2) === 3.14), "rounded pi");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_clamp(5, 1, 10) === 5), "clamp in boundary");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_clamp(20, 1, 10) === 10), "clamp max");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_clamp((- 20), 1, 10) === 1), "clamp min");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_min(1, 3, 5) === 1), "min");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_min(\o\OList::create([ 1, 3, 5 ])) === 1), "min list");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_max(1, 3, 5) === 5), "max");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_max(\o\OList::create([ 1, 3, 5 ])) === 5), "max list");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_convert_base(21, 10, 2) === "10101"), "convertBase: dec to bin");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_convert_base("1af9", 16, 10) === 6905), "convertBase: hex to dec");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_meta ($u_t)  {
   \o\v($u_t)->u_section("Module: Meta");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_function_exists("libMeta"), "functionExists");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_call_function("metaCallMe", \o\OList::create([ "a", "b" ])) === "a|b"), "callFunction & arguments");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_no_template_mode(), "noTemplateMode ok");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Meta'))->u_function_exists("libMeta"), "functionExists");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Meta'))->u_call_function("metaCallMe", \o\OList::create([ "a", "b" ])) === "a|b"), "callFunction & arguments");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Meta'))->u_no_template_mode(), "noTemplateMode ok");
 \o\v($u_t)->u_dies(function  ()  {
   u_fail_mode_html();
  return new \o\ONothing(__METHOD__);
  
 }
 , "noTemplateMode fail");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_function_exists("dynamicFunction"), "dynamic function exists");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_call_function("dynamicFunction", \o\OList::create([ "Hey" ])) === "Hey!!!"), "call dynamic function");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Meta'))->u_function_exists("dynamicFunction"), "dynamic function exists");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Meta'))->u_call_function("dynamicFunction", \o\OList::create([ "Hey" ])) === "Hey!!!"), "call dynamic function");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_meta_call_me ()  {
-  $u_args = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_arguments();
+  $u_args = \o\v(\o\ModuleManager::getModule('Meta'))->u_arguments();
 return \o\v($u_args)->u_join("|");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_fail_template_mode ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Meta'))->u_no_template_mode();
+  \o\v(\o\ModuleManager::getModule('Meta'))->u_no_template_mode();
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1535,11 +1547,11 @@ return $t->getString();
 }
 function u_lib_perf ($u_t)  {
   \o\v($u_t)->u_section("Module: Perf");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_force_active(true);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_start("testPerf");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'System'))->u_sleep(1);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_stop(true);
-$u_res = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_results(true);
+\o\v(\o\ModuleManager::getModule('Perf'))->u_force_active(true);
+\o\v(\o\ModuleManager::getModule('Perf'))->u_start("testPerf");
+\o\v(\o\ModuleManager::getModule('System'))->u_sleep(1);
+\o\v(\o\ModuleManager::getModule('Perf'))->u_stop(true);
+$u_res = \o\v(\o\ModuleManager::getModule('Perf'))->u_results(true);
 $u_found = false;
 foreach (\o\uv($u_res) as $u_r) {
 if ((\o\v($u_r)->u_task === "testPerf")) {
@@ -1551,29 +1563,29 @@ break;
 
 }
 \o\v($u_t)->u_ok($u_found, "Perf task & results");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Perf'))->u_force_active(false);
+\o\v(\o\ModuleManager::getModule('Perf'))->u_force_active(false);
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_php ($u_t)  {
   \o\v($u_t)->u_section("Module: Php");
-$u_fl = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Php'))->u_options(\o\OList::create([ "PATHINFO_FILENAME", "PATHINFO_BASENAME" ]));
+$u_fl = \o\v(\o\ModuleManager::getModule('Php'))->u_options(\o\OList::create([ "PATHINFO_FILENAME", "PATHINFO_BASENAME" ]));
 \o\v($u_t)->u_ok(($u_fl === 10), "PHP - constant flags");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Php'))->u_call(new \o\OLockString ("strrev"), \o\OList::create([ "abcdef" ])) === "fedcba"), "call");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Php'))->u_call(new \o\OLockString ("strrev"), \o\OList::create([ "abcdef" ])) === "fedcba"), "call");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Php'))->u_call(new \o\OLockString ("nonexistent"), \o\OList::create([ 1, 2 ]));
+  \o\v(\o\ModuleManager::getModule('Php'))->u_call(new \o\OLockString ("nonexistent"), \o\OList::create([ 1, 2 ]));
  return new \o\ONothing(__METHOD__);
  
 }
 , "Non-existent PHP call");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Php'))->u_call(new \o\OLockString ("eval"), \o\OList::create([ "print(\"hi\");" ]));
+  \o\v(\o\ModuleManager::getModule('Php'))->u_call(new \o\OLockString ("eval"), \o\OList::create([ "print(\"hi\");" ]));
  return new \o\ONothing(__METHOD__);
  
 }
 , "stop blacklisted function - by name");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Php'))->u_call(new \o\OLockString ("ini_set"), \o\OList::create([ "x", "y" ]));
+  \o\v(\o\ModuleManager::getModule('Php'))->u_call(new \o\OLockString ("ini_set"), \o\OList::create([ "x", "y" ]));
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1589,37 +1601,37 @@ function u_lib_test ($u_t)  {
 function u_lib_global ($u_t)  {
   \o\v($u_t)->u_section("Module: Global");
 u_set_globals();
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_hello === "world"), "global set");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_hello === "world"), "global set");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_set_globals ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_hello = "world";
+  \o\v(\o\ModuleManager::getModule('Global'))->u_hello = "world";
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_web ($u_t)  {
   \o\v($u_t)->u_section("Module: Web");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_redirect("http://google.com");
+  \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("http://google.com");
  return new \o\ONothing(__METHOD__);
  
 }
 , "redirect - normal");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_redirect("mailto:google.com");
+  \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("mailto:google.com");
  return new \o\ONothing(__METHOD__);
  
 }
 , "redirect - mailto");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_redirect("//google.com");
+  \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("//google.com");
  return new \o\ONothing(__METHOD__);
  
 }
 , "redirect - no protocol");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_redirect("bob@ftp://google.com");
+  \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("bob@ftp://google.com");
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1657,20 +1669,20 @@ function u_lib_web ($u_t)  {
  
 }
 function u_form_validate ($u_v, $u_type)  {
-  return \o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_temp_validate_input($u_v, $u_type))["value"];
+  return \o\v(\o\v(\o\ModuleManager::getModule('Web'))->u_temp_validate_input($u_v, $u_type))["value"];
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_settings ($u_t)  {
   \o\v($u_t)->u_section("Module: Settings");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("num") === (- 123.45)), "get num");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("flagFalse") === false), "get flag");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("flagTrue") === true), "get flag");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("string") === "value with spaces, etc."), "get string");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("map"))->u_key === "value"), "get map");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("list"))[1] === "value 1"), "get list");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_setting("num") === (- 123.45)), "get num");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_setting("flagFalse") === false), "get flag");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_setting("flagTrue") === true), "get flag");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_setting("string") === "value with spaces, etc."), "get string");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Global'))->u_setting("map"))->u_key === "value"), "get map");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Global'))->u_setting("list"))[1] === "value 1"), "get list");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Global'))->u_setting("MISSING");
+  \o\v(\o\ModuleManager::getModule('Global'))->u_setting("MISSING");
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1680,42 +1692,42 @@ function u_lib_settings ($u_t)  {
 }
 function u_lib_map_db ($u_t)  {
   \o\v($u_t)->u_section("Module: MapDb");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_delete_bucket("test"), "delete bucket");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_insert_map("test", "hello", \o\OMap::create([ 'hello' => "World!" ])), "insert");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_insert_map("test", "hello", \o\OMap::create([ 'hello' => "There!" ])), "insert");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_select_map("test", 1))->u_hello === "World!"), "selectMap");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_select_maps("test", "hello"))->u_length() === 2), "selectMaps");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'MapDb'))->u_buckets())[0])->u_num_maps === 2), "buckets()");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('MapDb'))->u_delete_bucket("test"), "delete bucket");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('MapDb'))->u_insert_map("test", "hello", \o\OMap::create([ 'hello' => "World!" ])), "insert");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('MapDb'))->u_insert_map("test", "hello", \o\OMap::create([ 'hello' => "There!" ])), "insert");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('MapDb'))->u_select_map("test", 1))->u_hello === "World!"), "selectMap");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('MapDb'))->u_select_maps("test", "hello"))->u_length() === 2), "selectMaps");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('MapDb'))->u_buckets())[0])->u_num_maps === 2), "buckets()");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_session ($u_t)  {
   \o\v($u_t)->u_section("Module: Session");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_delete_all();
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_set("key1", "value");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_set("key2", \o\OMap::create([ 'a' => "b" ]));
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("key1") === "value"), "set/get");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("key2"))->u_a === "b"), "get map");
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get_all())->u_keys())->u_join("|") === "key1|key2"), "getAll");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("missing", "") === ""), "get with blank default");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("missing", "default") === "default"), "get with default");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_has_key("key1"), "hasKey true");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_delete("key1") === "value"), "delete");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_has_key("key1")), "hasKey false");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_delete_all();
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get_all())->u_keys())->u_length() === 0), "deleteAll");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_add_counter("num") === 1), "counter 1");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_add_counter("num") === 2), "counter 2");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_set_flash("fkey", "fvalue");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get_flash("fkey") === "fvalue"), "flash set/get");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_has_flash("fkey"), "hasFlash - true");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_has_flash("missing"), "hasFlash - false");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_add_to_list("list", 123);
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("list"))[0] === 123), "addToList 1");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_add_to_list("list", 456);
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("list"))[1] === 456), "addToList 2");
+\o\v(\o\ModuleManager::getModule('Session'))->u_delete_all();
+\o\v(\o\ModuleManager::getModule('Session'))->u_set("key1", "value");
+\o\v(\o\ModuleManager::getModule('Session'))->u_set("key2", \o\OMap::create([ 'a' => "b" ]));
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_get("key1") === "value"), "set/get");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Session'))->u_get("key2"))->u_a === "b"), "get map");
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Session'))->u_get_all())->u_keys())->u_join("|") === "key1|key2"), "getAll");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_get("missing", "") === ""), "get with blank default");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_get("missing", "default") === "default"), "get with default");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Session'))->u_has_key("key1"), "hasKey true");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_delete("key1") === "value"), "delete");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('Session'))->u_has_key("key1")), "hasKey false");
+\o\v(\o\ModuleManager::getModule('Session'))->u_delete_all();
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Session'))->u_get_all())->u_keys())->u_length() === 0), "deleteAll");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_add_counter("num") === 1), "counter 1");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_add_counter("num") === 2), "counter 2");
+\o\v(\o\ModuleManager::getModule('Session'))->u_set_flash("fkey", "fvalue");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Session'))->u_get_flash("fkey") === "fvalue"), "flash set/get");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Session'))->u_has_flash("fkey"), "hasFlash - true");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Session'))->u_has_flash("missing"), "hasFlash - false");
+\o\v(\o\ModuleManager::getModule('Session'))->u_add_to_list("list", 123);
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Session'))->u_get("list"))[0] === 123), "addToList 1");
+\o\v(\o\ModuleManager::getModule('Session'))->u_add_to_list("list", 456);
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('Session'))->u_get("list"))[1] === 456), "addToList 2");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Session'))->u_get("missing");
+  \o\v(\o\ModuleManager::getModule('Session'))->u_get("missing");
  return new \o\ONothing(__METHOD__);
  
 }
@@ -1725,36 +1737,36 @@ function u_lib_session ($u_t)  {
 }
 function u_lib_cache ($u_t)  {
   \o\v($u_t)->u_section("Module: Cache");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_set("test", 123, 1);
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("test"), "has");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("not")), "has not");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_get("test") === 123), "get");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_get("not", "missing") === "missing"), "get default");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_set("data", \o\OMap::create([ 'a' => \o\OList::create([ "x", "y", "z" ]) ]), 3);
-\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_get("data"))->u_a)->u_join("|") === "x|y|z"), "get map + list");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_delete("data");
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("data")), "delete");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_counter("count") === 1), "counter 1");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_counter("count") === 2), "counter 2");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_counter("count", 2) === 4), "counter +2");
-\o\v($u_t)->u_ok((\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_counter("count", (- 1)) === 3), "counter -1");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_delete("count");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_set("short", "a", 0.1);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_set("longer", "a", 0.5);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_set("forever", "a", 0);
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'System'))->u_sleep(200);
-\o\v($u_t)->u_ok((! \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("short")), "100ms expiry");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("longer"), "500ms expiry");
-\o\v($u_t)->u_ok(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_has("forever"), "no expiry");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_delete("short");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_delete("longer");
-\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Cache'))->u_delete("forever");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_set("test", 123, 1);
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Cache'))->u_has("test"), "has");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('Cache'))->u_has("not")), "has not");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_get("test") === 123), "get");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_get("not", "missing") === "missing"), "get default");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_set("data", \o\OMap::create([ 'a' => \o\OList::create([ "x", "y", "z" ]) ]), 3);
+\o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Cache'))->u_get("data"))->u_a)->u_join("|") === "x|y|z"), "get map + list");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_delete("data");
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('Cache'))->u_has("data")), "delete");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_counter("count") === 1), "counter 1");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_counter("count") === 2), "counter 2");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_counter("count", 2) === 4), "counter +2");
+\o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Cache'))->u_counter("count", (- 1)) === 3), "counter -1");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_delete("count");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_set("short", "a", 0.1);
+\o\v(\o\ModuleManager::getModule('Cache'))->u_set("longer", "a", 0.5);
+\o\v(\o\ModuleManager::getModule('Cache'))->u_set("forever", "a", 0);
+\o\v(\o\ModuleManager::getModule('System'))->u_sleep(200);
+\o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('Cache'))->u_has("short")), "100ms expiry");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Cache'))->u_has("longer"), "500ms expiry");
+\o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Cache'))->u_has("forever"), "no expiry");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_delete("short");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_delete("longer");
+\o\v(\o\ModuleManager::getModule('Cache'))->u_delete("forever");
  return new \o\ONothing(__METHOD__);
  
 }
 function u_lib_net ($u_t)  {
   \o\v($u_t)->u_section("Module: Net");
-$u_content = \o\v(\o\Runtime::getModule(__NAMESPACE__, 'Net'))->u_http_get(new \o\OLockString ("https://tht.help"));
+$u_content = \o\v(\o\ModuleManager::getModule('Net'))->u_http_get(new \o\OLockString ("https://tht.help"));
 \o\v($u_t)->u_ok(\o\v($u_content)->u_match(\o\v(new \o\ORegex ("programming language"))->u_flags("i")), "Net get");
  return new \o\ONothing(__METHOD__);
  
@@ -1804,7 +1816,7 @@ return $t->getString();
 function u_js_html ()  {
 $t = \o\Runtime::openTemplate("Html");
 $t->addStatic("<script nonce=\"");
-$t->addDynamic(\o\v(\o\Runtime::getModule(__NAMESPACE__, 'Web'))->u_nonce());
+$t->addDynamic(\o\v(\o\ModuleManager::getModule('Web'))->u_nonce());
 $t->addStatic("\">var a = '&lt;a\\nb\\nc';</script>");
 \o\Runtime::closeTemplate();
 return $t->getString();
@@ -1889,6 +1901,6 @@ return $u_m1;
 
 
 
-/* SOURCE={"file":"pages\/home.tht","6":5,"7":7,"8":9,"9":11,"13":14,"15":20,"16":20,"17":28,"18":28,"19":34,"23":38,"24":40,"25":41,"26":42,"27":43,"28":44,"29":45,"30":46,"31":47,"32":48,"33":50,"34":51,"35":53,"36":54,"37":55,"38":56,"39":57,"40":58,"41":59,"42":60,"43":62,"44":63,"45":64,"46":65,"47":66,"48":68,"49":69,"50":70,"54":74,"55":76,"56":78,"57":78,"61":78,"62":79,"63":79,"67":79,"68":81,"69":82,"73":83,"74":85,"75":86,"79":87,"80":89,"81":90,"82":90,"88":93,"89":95,"90":95,"94":95,"98":99,"99":101,"100":103,"107":114,"108":115,"109":116,"110":117,"111":118,"112":121,"113":123,"114":124,"115":125,"116":126,"117":127,"118":128,"119":129,"120":130,"121":131,"122":134,"123":136,"124":137,"125":138,"126":139,"127":142,"128":144,"129":145,"130":146,"131":147,"132":148,"133":149,"134":150,"135":151,"136":152,"137":153,"138":154,"139":155,"140":156,"141":157,"142":158,"143":159,"144":160,"145":161,"146":162,"147":163,"148":164,"149":165,"150":166,"151":167,"152":168,"153":169,"154":170,"155":171,"156":172,"157":173,"158":174,"159":185,"160":187,"161":188,"162":189,"163":190,"164":191,"165":192,"166":193,"167":194,"168":195,"169":198,"170":200,"171":201,"172":202,"173":203,"174":204,"175":205,"176":208,"177":210,"178":211,"179":212,"180":213,"181":214,"182":215,"183":216,"184":217,"185":218,"186":219,"187":220,"188":221,"189":222,"190":223,"191":224,"192":225,"193":226,"194":227,"195":228,"196":229,"197":230,"198":231,"199":232,"200":233,"201":234,"202":235,"203":236,"204":237,"205":238,"206":239,"207":240,"208":241,"209":242,"210":243,"211":244,"212":246,"213":247,"214":248,"215":249,"216":251,"217":252,"218":253,"219":254,"220":255,"221":258,"222":260,"223":261,"224":262,"225":263,"226":264,"227":265,"228":267,"229":268,"230":269,"231":270,"232":271,"233":273,"234":274,"235":275,"236":278,"237":280,"238":281,"239":282,"240":283,"241":284,"242":285,"243":286,"244":287,"245":290,"246":292,"247":293,"248":294,"249":295,"250":296,"251":297,"252":298,"253":299,"254":300,"255":301,"256":302,"257":303,"258":304,"259":305,"260":306,"261":307,"262":308,"263":309,"264":311,"268":319,"269":321,"270":324,"271":325,"272":326,"273":327,"274":328,"275":329,"276":330,"277":331,"280":333,"281":334,"282":335,"283":336,"284":339,"285":345,"286":347,"287":348,"288":349,"289":351,"290":352,"291":353,"292":358,"293":360,"294":362,"295":363,"296":365,"297":366,"298":369,"299":370,"300":374,"301":376,"302":378,"303":379,"304":380,"305":382,"306":383,"307":384,"308":385,"309":387,"310":389,"311":389,"315":389,"316":391,"317":391,"321":391,"322":393,"323":395,"324":396,"325":398,"326":399,"327":400,"328":402,"329":403,"330":405,"331":406,"332":406,"336":406,"337":408,"338":410,"339":411,"340":413,"341":414,"342":416,"343":417,"344":419,"348":423,"349":425,"350":427,"351":428,"352":429,"353":430,"354":431,"355":432,"356":433,"357":434,"358":434,"362":435,"363":439,"364":441,"365":442,"366":443,"367":444,"368":445,"369":446,"370":447,"371":449,"372":450,"373":451,"374":452,"375":453,"376":454,"377":455,"381":460,"382":462,"383":464,"384":465,"388":467,"389":469,"390":470,"394":472,"395":474,"396":475,"400":477,"401":479,"402":480,"403":481,"404":482,"407":484,"411":486,"412":487,"413":492,"414":493,"418":495,"419":496,"420":498,"421":499,"422":501,"423":502,"424":503,"429":505,"430":508,"431":509,"435":511,"436":512,"437":513,"438":515,"439":516,"440":520,"441":521,"445":523,"446":524,"447":525,"448":528,"449":529,"450":530,"455":532,"456":535,"457":535,"460":536,"461":536,"465":536,"466":537,"467":537,"471":537,"472":540,"473":541,"474":543,"475":544,"476":546,"477":547,"478":553,"479":555,"480":556,"481":557,"482":558,"483":559,"484":561,"485":564,"486":564,"490":564,"491":566,"492":566,"496":566,"497":567,"498":567,"502":567,"503":568,"504":568,"508":568,"509":569,"510":569,"514":569,"515":571,"516":572,"517":572,"521":572,"522":574,"523":574,"527":574,"528":575,"529":575,"533":575,"534":576,"535":576,"539":576,"543":584,"544":586,"545":588,"546":589,"547":590,"548":591,"549":592,"550":593,"551":594,"552":595,"553":596,"554":597,"555":598,"556":599,"557":602,"558":604,"559":606,"560":607,"561":612,"562":614,"563":615,"564":615,"568":615,"569":618,"570":620,"571":621,"572":622,"573":623,"574":624,"575":625,"576":628,"577":630,"578":631,"579":632,"580":634,"581":635,"582":636,"583":639,"584":641,"585":643,"586":644,"587":646,"588":647,"589":649,"590":650,"591":653,"592":654,"593":655,"594":656,"595":657,"596":658,"597":659,"598":662,"599":663,"600":663,"604":663,"605":664,"606":667,"607":668,"608":669,"609":670,"610":671,"611":674,"612":676,"613":676,"617":676,"618":677,"619":677,"623":677,"627":682,"628":685,"629":687,"630":688,"631":689,"632":690,"633":691,"634":692,"635":693,"636":694,"637":696,"638":697,"639":698,"640":699,"641":700,"642":701,"643":702,"644":704,"645":705,"646":707,"647":710,"648":712,"649":712,"653":712,"654":713,"655":713,"659":713,"660":714,"661":714,"665":714,"666":715,"667":715,"671":715,"672":716,"673":716,"677":716,"678":717,"679":717,"683":717,"684":718,"685":718,"686":718,"690":718,"691":719,"692":719,"696":719,"697":720,"698":720,"702":720,"703":721,"704":721,"708":721,"709":722,"710":722,"714":722,"715":723,"716":723,"720":723,"721":724,"722":724,"726":724,"727":727,"728":729,"729":730,"730":731,"731":732,"732":733,"733":734,"734":737,"735":739,"736":740,"737":741,"738":742,"739":745,"740":747,"741":748,"742":749,"743":750,"744":751,"745":752,"746":753,"747":754,"748":756,"749":757,"750":758,"751":759,"752":761,"753":762,"754":763,"755":764,"756":767,"757":769,"758":770,"759":771,"760":772,"761":773,"762":774,"763":775,"764":776,"765":777,"766":778,"767":779,"768":782,"769":784,"770":785,"771":786,"772":787,"773":788,"774":790,"775":792,"776":793,"777":794,"778":795,"782":799,"783":802,"784":804,"785":805,"786":806,"789":808,"790":810,"791":811,"792":812,"795":814,"796":816,"797":817,"798":818,"799":819,"802":821,"803":824,"804":825,"805":826,"806":827,"807":828,"808":829,"809":829,"815":831,"816":833,"817":834,"818":835,"819":836,"820":837,"821":838,"825":840,"826":841,"827":842,"833":845,"834":847,"835":848,"836":851,"837":852,"838":853,"839":854,"840":855,"841":856,"842":857,"843":858,"844":859,"845":860,"846":861,"847":862,"848":863,"849":864,"850":865,"851":866,"852":867,"853":868,"854":869,"855":870,"856":871,"857":872,"858":873,"859":874,"860":875,"861":876,"862":877,"863":878,"864":881,"865":883,"866":885,"867":885,"871":886,"872":888,"873":888,"877":889,"878":891,"879":892,"883":895,"887":897,"888":899,"889":900,"892":902,"893":903,"898":905,"899":907,"900":908,"903":910,"904":911,"907":913,"908":914,"912":917,"918":919,"919":923,"920":925,"921":926,"922":927,"923":928,"926":930,"927":931,"931":934,"935":937,"936":938,"937":940,"938":941,"939":942,"942":943,"943":944,"947":946,"948":949,"949":951,"950":952,"954":956,"955":958,"956":960,"957":961,"958":962,"961":967,"962":970,"963":972,"964":973,"965":974,"966":975,"967":976,"968":978,"969":979,"970":980,"971":983,"972":985,"973":986,"974":987,"975":988,"976":989,"977":990,"978":991,"979":992,"980":993,"981":994,"982":997,"983":998,"984":999,"985":1000,"986":1002,"987":1003,"988":1006,"989":1008,"990":1009,"991":1011,"992":1012,"993":1014,"994":1015,"995":1016,"996":1018,"997":1019,"998":1021,"999":1022,"1000":1024,"1001":1025,"1002":1026,"1003":1027,"1004":1029,"1005":1030,"1006":1031,"1007":1033,"1008":1034,"1009":1035,"1010":1037,"1011":1038,"1012":1040,"1013":1041,"1014":1043,"1015":1044,"1016":1045,"1017":1046,"1018":1047,"1019":1049,"1020":1050,"1021":1051,"1022":1052,"1023":1053,"1024":1054,"1025":1056,"1026":1057,"1027":1059,"1028":1060,"1029":1062,"1030":1063,"1031":1065,"1032":1066,"1033":1068,"1034":1069,"1035":1070,"1036":1072,"1037":1073,"1038":1074,"1039":1075,"1040":1077,"1041":1078,"1042":1080,"1043":1081,"1044":1082,"1045":1083,"1046":1084,"1047":1085,"1048":1087,"1049":1089,"1053":1097,"1054":1098,"1055":1099,"1056":1101,"1057":1102,"1058":1104,"1059":1105,"1060":1107,"1061":1109,"1062":1110,"1063":1111,"1064":1112,"1065":1114,"1066":1115,"1067":1116,"1068":1118,"1069":1119,"1070":1120,"1071":1122,"1072":1123,"1073":1124,"1074":1131,"1075":1132,"1076":1134,"1077":1135,"1078":1136,"1079":1137,"1080":1140,"1081":1142,"1082":1143,"1083":1144,"1084":1146,"1085":1147,"1086":1148,"1087":1150,"1088":1151,"1089":1152,"1090":1153,"1091":1155,"1092":1156,"1093":1157,"1094":1158,"1095":1160,"1096":1161,"1097":1162,"1098":1163,"1099":1165,"1100":1166,"1101":1167,"1102":1168,"1103":1170,"1104":1171,"1105":1172,"1106":1173,"1107":1174,"1108":1176,"1109":1177,"1110":1178,"1111":1179,"1112":1181,"1113":1182,"1114":1183,"1115":1184,"1116":1185,"1117":1187,"1118":1188,"1119":1189,"1120":1190,"1121":1191,"1122":1193,"1123":1194,"1124":1195,"1125":1196,"1126":1197,"1127":1198,"1128":1199,"1129":1201,"1130":1202,"1131":1203,"1132":1204,"1133":1207,"1134":1209,"1135":1210,"1136":1211,"1137":1212,"1138":1213,"1139":1216,"1140":1217,"1141":1218,"1142":1221,"1143":1223,"1144":1224,"1145":1225,"1146":1225,"1150":1225,"1151":1227,"1152":1228,"1153":1230,"1154":1231,"1155":1233,"1156":1234,"1157":1236,"1158":1237,"1159":1239,"1160":1241,"1161":1242,"1162":1245,"1163":1247,"1164":1248,"1165":1250,"1166":1250,"1170":1250,"1171":1251,"1172":1251,"1176":1251,"1177":1253,"1178":1254,"1179":1255,"1180":1256,"1181":1257,"1182":1259,"1183":1260,"1187":1264,"1188":1266,"1189":1268,"1190":1269,"1191":1270,"1192":1271,"1193":1272,"1194":1273,"1195":1274,"1196":1275,"1197":1276,"1198":1277,"1199":1278,"1200":1280,"1201":1281,"1202":1286,"1203":1289,"1204":1294,"1205":1295,"1206":1296,"1207":1297,"1208":1299,"1209":1302,"1210":1304,"1211":1305,"1212":1307,"1213":1308,"1214":1310,"1215":1311,"1216":1312,"1217":1313,"1218":1315,"1219":1316,"1220":1318,"1221":1319,"1222":1320,"1223":1322,"1224":1323,"1225":1325,"1226":1326,"1227":1327,"1228":1329,"1229":1330,"1230":1331,"1231":1335,"1232":1336,"1233":1337,"1234":1341,"1235":1342,"1236":1343,"1237":1347,"1238":1348,"1239":1352,"1240":1355,"1241":1356,"1242":1358,"1243":1358,"1248":1359,"1249":1361,"1250":1362,"1251":1364,"1252":1365,"1253":1367,"1254":1368,"1255":1370,"1256":1371,"1257":1373,"1258":1373,"1262":1373,"1263":1375,"1264":1376,"1265":1379,"1266":1381,"1267":1381,"1271":1381,"1272":1382,"1273":1382,"1277":1382,"1278":1383,"1279":1383,"1283":1383,"1284":1384,"1285":1384,"1289":1384,"1290":1385,"1291":1385,"1295":1385,"1299":1390,"1300":1392,"1301":1394,"1302":1395,"1303":1396,"1304":1397,"1305":1399,"1306":1400,"1307":1401,"1308":1402,"1309":1406,"1310":1408,"1311":1409,"1312":1411,"1313":1412,"1314":1413,"1315":1415,"1316":1416,"1317":1417,"1318":1419,"1319":1420,"1320":1423,"1321":1424,"1322":1425,"1323":1426,"1324":1427,"1325":1428,"1329":1436,"1330":1438,"1331":1440,"1332":1440,"1336":1440,"1337":1441,"1338":1441,"1342":1441,"1343":1443,"1344":1444,"1345":1445,"1346":1447,"1347":1448,"1348":1450,"1349":1451,"1353":1453,"1354":1454,"1355":1456,"1356":1458,"1357":1459,"1358":1460,"1359":1461,"1360":1463,"1361":1464,"1362":1465,"1363":1466,"1364":1467,"1365":1468,"1366":1469,"1367":1471,"1368":1472,"1372":1477,"1373":1479,"1374":1481,"1375":1482,"1376":1483,"1377":1484,"1378":1485,"1379":1486,"1380":1487,"1381":1488,"1382":1489,"1386":1492,"1387":1494,"1388":1496,"1389":1498,"1390":1499,"1391":1501,"1392":1502,"1393":1503,"1394":1505,"1395":1506,"1396":1507,"1397":1509,"1398":1510,"1399":1511,"1400":1513,"1401":1514,"1402":1515,"1403":1517,"1404":1518,"1408":1519,"1409":1521,"1410":1522,"1414":1523,"1415":1525,"1416":1526,"1420":1527,"1421":1529,"1422":1530,"1426":1531,"1430":1534,"1431":1536,"1432":1538,"1433":1539,"1434":1541,"1435":1542,"1436":1544,"1437":1545,"1438":1547,"1439":1548,"1440":1550,"1441":1551,"1442":1553,"1443":1554,"1444":1555,"1445":1557,"1446":1558,"1447":1560,"1448":1561,"1452":1564,"1453":1566,"1454":1568,"1455":1569,"1456":1570,"1460":1573,"1461":1575,"1462":1577,"1463":1578,"1464":1579,"1465":1580,"1466":1581,"1467":1583,"1468":1584,"1469":1585,"1470":1586,"1471":1588,"1472":1589,"1476":1592,"1477":1594,"1481":1598,"1482":1600,"1483":1602,"1484":1603,"1485":1605,"1486":1606,"1487":1608,"1488":1610,"1489":1611,"1490":1612,"1491":1614,"1492":1615,"1493":1617,"1494":1618,"1495":1620,"1496":1621,"1500":1625,"1501":1626,"1502":1628,"1503":1629,"1504":1630,"1505":1631,"1506":1631,"1510":1631,"1511":1633,"1512":1634,"1516":1637,"1517":1638,"1518":1639,"1522":1642,"1523":1643,"1527":1646,"1529":1647,"1531":1647,"1532":1648,"1536":1651,"1537":1652,"1538":1654,"1539":1655,"1540":1656,"1541":1657,"1542":1659,"1543":1660,"1544":1661,"1545":1662,"1546":1663,"1547":1664,"1553":1667,"1554":1669,"1558":1672,"1559":1674,"1560":1676,"1561":1677,"1562":1679,"1563":1680,"1564":1680,"1568":1680,"1569":1681,"1570":1681,"1574":1681,"1575":1682,"1576":1682,"1580":1682,"1584":1692,"1585":1693,"1589":1696,"1590":1697,"1591":1699,"1592":1701,"1596":1704,"1597":1705,"1601":1709,"1602":1711,"1603":1713,"1604":1713,"1608":1713,"1609":1714,"1610":1714,"1614":1714,"1615":1715,"1616":1715,"1620":1715,"1621":1716,"1622":1716,"1626":1716,"1627":1718,"1628":1723,"1629":1724,"1630":1726,"1631":1727,"1632":1728,"1633":1729,"1634":1730,"1635":1732,"1636":1733,"1637":1734,"1638":1735,"1639":1736,"1640":1738,"1641":1739,"1642":1740,"1643":1741,"1644":1750,"1645":1751,"1646":1752,"1647":1754,"1648":1755,"1649":1756,"1650":1758,"1651":1758,"1655":1758,"1659":1762,"1660":1763,"1664":1766,"1665":1768,"1666":1770,"1667":1771,"1668":1772,"1669":1773,"1670":1774,"1671":1775,"1672":1777,"1673":1777,"1677":1777,"1681":1780,"1682":1782,"1683":1784,"1684":1786,"1685":1787,"1686":1790,"1687":1791,"1688":1792,"1692":1797,"1693":1799,"1694":1801,"1695":1803,"1696":1804,"1697":1805,"1698":1806,"1699":1808,"1700":1810,"1701":1811,"1702":1813,"1703":1814,"1704":1815,"1705":1817,"1706":1818,"1707":1820,"1708":1821,"1709":1823,"1710":1824,"1711":1826,"1712":1827,"1713":1829,"1714":1830,"1715":1832,"1716":1833,"1717":1835,"1718":1835,"1722":1835,"1726":1839,"1727":1841,"1728":1843,"1729":1844,"1730":1846,"1731":1847,"1732":1849,"1733":1851,"1734":1852,"1735":1854,"1736":1855,"1737":1857,"1738":1858,"1739":1859,"1740":1860,"1741":1862,"1742":1865,"1743":1866,"1744":1867,"1745":1868,"1746":1869,"1747":1870,"1748":1871,"1749":1873,"1750":1874,"1751":1875,"1755":1878,"1756":1880,"1757":1882,"1758":1883,"1762":1892,"1764":1895,"1765":1895,"1766":1896,"1767":1896,"1768":1897,"1771":1899,"1776":1901,"1778":1902,"1779":1902,"1780":1903,"1784":1905,"1786":1907,"1790":1909,"1792":1913,"1796":1915,"1798":1917,"1804":1919,"1806":1920,"1807":1920,"1808":1923,"1812":1925,"1814":1926,"1815":1926,"1816":1926,"1817":1926,"1818":1927,"1822":1929,"1824":1930,"1826":1930,"1827":1931,"1832":1933,"1834":1935,"1838":1937,"1840":1939,"1844":1941,"1846":1942,"1847":1942,"1848":1943,"1852":1945,"1854":1946,"1855":1946,"1856":1947,"1860":1953,"1861":1954,"1865":1957,"1866":1959,"1869":1961,"1871":1963,"1875":1966,"1877":1968,"1881":1971,"1884":1972,"1885":1973} */
+/* SOURCE={"file":"pages\/home.tht","6":2,"7":5,"8":7,"9":9,"10":11,"11":13,"12":18,"13":20,"14":22,"15":24,"19":27,"21":33,"22":33,"23":41,"24":41,"25":47,"29":51,"30":53,"31":54,"32":55,"33":56,"34":57,"35":58,"36":59,"37":60,"38":61,"39":62,"40":64,"41":65,"42":67,"43":68,"44":69,"45":70,"46":71,"47":72,"48":73,"49":74,"50":76,"51":77,"52":78,"53":79,"54":80,"55":82,"56":83,"57":84,"61":88,"62":90,"63":92,"64":92,"68":92,"69":93,"70":93,"74":93,"75":95,"76":96,"80":97,"81":99,"82":100,"86":101,"87":103,"88":104,"89":104,"95":107,"96":109,"97":109,"101":109,"105":113,"106":115,"107":117,"114":128,"115":129,"116":130,"117":131,"118":132,"119":135,"120":137,"121":138,"122":139,"123":140,"124":141,"125":142,"126":143,"127":144,"128":145,"129":148,"130":150,"131":151,"132":152,"133":153,"134":156,"135":158,"136":159,"137":160,"138":161,"139":162,"140":163,"141":164,"142":165,"143":166,"144":167,"145":168,"146":169,"147":170,"148":171,"149":172,"150":173,"151":174,"152":175,"153":176,"154":177,"155":178,"156":179,"157":180,"158":181,"159":182,"160":183,"161":184,"162":185,"163":186,"164":187,"165":188,"166":199,"167":201,"168":202,"169":203,"170":204,"171":205,"172":206,"173":207,"174":208,"175":209,"176":212,"177":214,"178":215,"179":216,"180":217,"181":218,"182":219,"183":222,"184":224,"185":225,"186":226,"187":227,"188":228,"189":229,"190":230,"191":231,"192":232,"193":233,"194":234,"195":235,"196":236,"197":237,"198":238,"199":239,"200":240,"201":241,"202":242,"203":243,"204":244,"205":245,"206":246,"207":247,"208":248,"209":249,"210":250,"211":251,"212":252,"213":253,"214":254,"215":255,"216":256,"217":257,"218":258,"219":260,"220":261,"221":262,"222":263,"223":265,"224":266,"225":267,"226":268,"227":269,"228":272,"229":274,"230":275,"231":276,"232":277,"233":278,"234":279,"235":281,"236":282,"237":283,"238":284,"239":285,"240":287,"241":288,"242":289,"243":292,"244":294,"245":295,"246":296,"247":297,"248":298,"249":299,"250":300,"251":301,"252":304,"253":306,"254":307,"255":308,"256":309,"257":310,"258":311,"259":312,"260":313,"261":314,"262":315,"263":316,"264":317,"265":318,"266":319,"267":320,"268":321,"269":322,"270":323,"271":325,"275":333,"276":335,"277":338,"278":339,"279":340,"280":341,"281":342,"282":343,"283":344,"284":345,"287":347,"288":348,"289":349,"290":350,"291":353,"292":359,"293":361,"294":362,"295":363,"296":365,"297":366,"298":367,"299":372,"300":374,"301":376,"302":377,"303":379,"304":380,"305":383,"306":384,"310":389,"311":391,"312":393,"313":395,"314":396,"315":397,"316":399,"317":400,"318":401,"319":402,"320":404,"321":406,"322":406,"326":406,"327":408,"328":408,"332":408,"333":410,"334":412,"335":413,"336":415,"337":416,"338":417,"339":419,"340":420,"341":422,"342":423,"343":423,"347":423,"348":425,"349":427,"350":428,"351":430,"352":431,"353":433,"354":434,"355":436,"359":443,"360":445,"361":447,"362":448,"363":449,"364":450,"365":451,"366":452,"367":453,"368":454,"369":454,"373":455,"374":459,"375":461,"376":462,"377":463,"378":464,"379":465,"380":466,"381":467,"382":469,"383":470,"384":471,"385":472,"386":473,"387":474,"388":475,"392":480,"393":482,"394":484,"395":485,"399":487,"400":489,"401":490,"405":492,"406":494,"407":495,"411":497,"412":499,"413":500,"414":501,"415":502,"418":504,"422":506,"423":507,"424":512,"425":513,"429":515,"430":516,"431":518,"432":519,"433":521,"434":522,"435":523,"440":525,"441":528,"442":529,"446":531,"447":532,"448":533,"449":535,"450":536,"451":540,"452":541,"456":543,"457":544,"458":545,"459":548,"460":549,"461":550,"466":552,"467":555,"468":555,"471":556,"472":556,"476":556,"477":557,"478":557,"482":557,"483":560,"484":561,"485":563,"486":564,"487":566,"488":567,"489":573,"490":575,"491":576,"492":577,"493":578,"494":579,"495":581,"496":584,"497":584,"501":584,"502":586,"503":586,"507":586,"508":587,"509":587,"513":587,"514":588,"515":588,"519":588,"520":589,"521":589,"525":589,"526":591,"527":592,"528":592,"532":592,"533":594,"534":594,"538":594,"539":595,"540":595,"544":595,"545":596,"546":596,"550":596,"554":604,"555":606,"556":608,"557":609,"558":610,"559":611,"560":612,"561":613,"562":614,"563":615,"564":616,"565":617,"566":618,"567":619,"568":622,"569":624,"570":626,"571":627,"572":632,"573":634,"574":635,"575":635,"579":635,"580":638,"581":640,"582":641,"583":642,"584":643,"585":644,"586":645,"587":648,"588":650,"589":651,"590":652,"591":654,"592":655,"593":656,"594":659,"595":661,"596":663,"597":664,"598":666,"599":667,"600":669,"601":670,"602":673,"603":674,"604":675,"605":676,"606":677,"607":678,"608":679,"609":682,"610":683,"611":683,"615":683,"616":684,"617":687,"618":688,"619":689,"620":690,"621":691,"622":694,"623":696,"624":696,"628":696,"629":697,"630":697,"634":697,"638":702,"639":705,"640":707,"641":708,"642":709,"643":710,"644":711,"645":712,"646":713,"647":714,"648":716,"649":717,"650":718,"651":719,"652":720,"653":721,"654":722,"655":724,"656":725,"657":727,"658":730,"659":732,"660":732,"664":732,"665":733,"666":733,"670":733,"671":734,"672":734,"676":734,"677":735,"678":735,"682":735,"683":736,"684":736,"688":736,"689":737,"690":737,"694":737,"695":738,"696":738,"697":738,"701":738,"702":739,"703":739,"707":739,"708":740,"709":740,"713":740,"714":741,"715":741,"719":741,"720":742,"721":742,"725":742,"726":743,"727":743,"731":743,"732":744,"733":744,"737":744,"738":747,"739":749,"740":750,"741":751,"742":752,"743":753,"744":754,"745":757,"746":759,"747":760,"748":761,"749":762,"750":765,"751":767,"752":768,"753":769,"754":770,"755":771,"756":772,"757":773,"758":774,"759":776,"760":777,"761":778,"762":779,"763":781,"764":782,"765":783,"766":784,"767":787,"768":789,"769":790,"770":791,"771":792,"772":793,"773":794,"774":795,"775":796,"776":797,"777":798,"778":799,"779":802,"780":804,"781":805,"782":806,"783":807,"784":808,"785":810,"786":812,"787":813,"788":814,"789":815,"793":819,"794":822,"795":824,"796":825,"797":826,"800":828,"801":830,"802":831,"803":832,"806":834,"807":836,"808":837,"809":838,"810":839,"813":841,"814":844,"815":845,"816":846,"817":847,"818":848,"819":849,"820":849,"826":851,"827":853,"828":854,"829":855,"830":856,"831":857,"832":858,"836":860,"837":861,"838":862,"844":865,"845":867,"846":868,"847":871,"848":872,"849":873,"850":874,"851":875,"852":876,"853":877,"854":878,"855":879,"856":880,"857":881,"858":882,"859":883,"860":884,"861":885,"862":886,"863":887,"864":888,"865":889,"866":890,"867":891,"868":892,"869":893,"870":894,"871":895,"872":896,"873":897,"874":898,"875":901,"876":903,"877":905,"878":905,"882":906,"883":908,"884":908,"888":909,"889":911,"890":912,"894":915,"898":917,"899":919,"900":920,"903":922,"904":923,"909":925,"910":927,"911":928,"914":930,"915":931,"918":933,"919":934,"923":937,"929":939,"930":943,"931":945,"932":946,"933":947,"934":948,"937":950,"938":951,"942":954,"946":957,"947":958,"948":960,"949":961,"950":962,"953":963,"954":964,"958":966,"959":969,"960":971,"961":972,"965":976,"966":978,"967":980,"968":981,"969":982,"972":987,"973":990,"974":992,"975":993,"976":994,"977":995,"978":996,"979":998,"980":999,"981":1000,"982":1003,"983":1005,"984":1006,"985":1007,"986":1008,"987":1009,"988":1010,"989":1011,"990":1012,"991":1013,"992":1014,"993":1017,"994":1018,"995":1019,"996":1020,"997":1022,"998":1023,"999":1026,"1000":1028,"1001":1029,"1002":1031,"1003":1032,"1004":1034,"1005":1035,"1006":1036,"1007":1038,"1008":1039,"1009":1041,"1010":1042,"1011":1044,"1012":1045,"1013":1046,"1014":1047,"1015":1049,"1016":1050,"1017":1051,"1018":1053,"1019":1054,"1020":1055,"1021":1057,"1022":1058,"1023":1060,"1024":1061,"1025":1063,"1026":1064,"1027":1065,"1028":1066,"1029":1067,"1030":1069,"1031":1070,"1032":1071,"1033":1072,"1034":1073,"1035":1074,"1036":1076,"1037":1077,"1038":1079,"1039":1080,"1040":1082,"1041":1083,"1042":1085,"1043":1086,"1044":1088,"1045":1089,"1046":1090,"1047":1092,"1048":1093,"1049":1094,"1050":1095,"1051":1097,"1052":1098,"1053":1100,"1054":1101,"1055":1102,"1056":1103,"1057":1104,"1058":1105,"1059":1107,"1060":1109,"1064":1117,"1065":1118,"1066":1119,"1067":1121,"1068":1122,"1069":1124,"1070":1125,"1071":1127,"1072":1129,"1073":1130,"1074":1131,"1075":1132,"1076":1134,"1077":1135,"1078":1136,"1079":1138,"1080":1139,"1081":1140,"1082":1142,"1083":1143,"1084":1144,"1085":1151,"1086":1152,"1087":1154,"1088":1155,"1089":1156,"1090":1157,"1091":1160,"1092":1162,"1093":1163,"1094":1164,"1095":1166,"1096":1167,"1097":1168,"1098":1170,"1099":1171,"1100":1172,"1101":1173,"1102":1175,"1103":1176,"1104":1177,"1105":1178,"1106":1180,"1107":1181,"1108":1182,"1109":1183,"1110":1185,"1111":1186,"1112":1187,"1113":1188,"1114":1190,"1115":1191,"1116":1192,"1117":1193,"1118":1194,"1119":1196,"1120":1197,"1121":1198,"1122":1199,"1123":1201,"1124":1202,"1125":1203,"1126":1204,"1127":1205,"1128":1207,"1129":1208,"1130":1209,"1131":1210,"1132":1211,"1133":1213,"1134":1214,"1135":1215,"1136":1216,"1137":1217,"1138":1218,"1139":1219,"1140":1221,"1141":1222,"1142":1223,"1143":1224,"1144":1227,"1145":1229,"1146":1230,"1147":1231,"1148":1232,"1149":1233,"1150":1236,"1151":1237,"1152":1238,"1153":1241,"1154":1243,"1155":1244,"1156":1245,"1157":1245,"1161":1245,"1162":1247,"1163":1248,"1164":1250,"1165":1251,"1166":1253,"1167":1254,"1168":1256,"1169":1257,"1170":1259,"1171":1261,"1172":1262,"1173":1265,"1174":1267,"1175":1268,"1176":1270,"1177":1270,"1181":1270,"1182":1271,"1183":1271,"1187":1271,"1188":1273,"1189":1274,"1190":1275,"1191":1276,"1192":1277,"1193":1279,"1194":1280,"1198":1284,"1199":1286,"1200":1288,"1201":1289,"1202":1290,"1203":1291,"1204":1292,"1205":1293,"1206":1294,"1207":1295,"1208":1296,"1209":1297,"1210":1298,"1211":1300,"1212":1301,"1213":1306,"1214":1309,"1215":1314,"1216":1315,"1217":1316,"1218":1317,"1219":1319,"1220":1322,"1221":1324,"1222":1325,"1223":1327,"1224":1328,"1225":1330,"1226":1331,"1227":1332,"1228":1333,"1229":1335,"1230":1336,"1231":1338,"1232":1339,"1233":1340,"1234":1342,"1235":1343,"1236":1345,"1237":1346,"1238":1347,"1239":1349,"1240":1350,"1241":1351,"1242":1355,"1243":1356,"1244":1357,"1245":1361,"1246":1362,"1247":1363,"1248":1367,"1249":1368,"1250":1372,"1251":1375,"1252":1376,"1253":1378,"1254":1378,"1259":1379,"1260":1381,"1261":1382,"1262":1384,"1263":1385,"1264":1387,"1265":1388,"1266":1390,"1267":1391,"1268":1393,"1269":1393,"1273":1393,"1274":1395,"1275":1396,"1276":1399,"1277":1401,"1278":1401,"1282":1401,"1283":1402,"1284":1402,"1288":1402,"1289":1403,"1290":1403,"1294":1403,"1295":1404,"1296":1404,"1300":1404,"1301":1405,"1302":1405,"1306":1405,"1310":1410,"1311":1412,"1312":1414,"1313":1415,"1314":1416,"1315":1417,"1316":1419,"1317":1420,"1318":1421,"1319":1422,"1320":1426,"1321":1428,"1322":1429,"1323":1431,"1324":1432,"1325":1433,"1326":1435,"1327":1436,"1328":1437,"1329":1439,"1330":1440,"1331":1443,"1332":1444,"1333":1445,"1334":1446,"1335":1447,"1336":1448,"1340":1456,"1341":1458,"1342":1460,"1343":1460,"1347":1460,"1348":1461,"1349":1461,"1353":1461,"1354":1463,"1355":1464,"1356":1465,"1357":1467,"1358":1468,"1359":1470,"1360":1471,"1364":1473,"1365":1474,"1366":1476,"1367":1478,"1368":1479,"1369":1480,"1370":1481,"1371":1483,"1372":1484,"1373":1485,"1374":1486,"1375":1487,"1376":1488,"1377":1489,"1378":1491,"1379":1492,"1383":1497,"1384":1499,"1385":1501,"1386":1502,"1387":1503,"1388":1504,"1389":1505,"1390":1506,"1391":1507,"1392":1508,"1393":1509,"1397":1512,"1398":1514,"1399":1516,"1400":1517,"1401":1519,"1402":1520,"1403":1522,"1404":1523,"1405":1524,"1406":1526,"1407":1527,"1408":1528,"1409":1530,"1410":1531,"1411":1532,"1412":1534,"1413":1535,"1414":1536,"1415":1538,"1416":1539,"1420":1540,"1421":1542,"1422":1543,"1426":1544,"1427":1546,"1428":1547,"1432":1548,"1433":1550,"1434":1551,"1438":1552,"1442":1555,"1443":1557,"1444":1559,"1445":1560,"1446":1562,"1447":1563,"1448":1565,"1449":1566,"1450":1568,"1451":1569,"1452":1571,"1453":1572,"1454":1574,"1455":1575,"1456":1576,"1457":1578,"1458":1579,"1459":1581,"1460":1582,"1464":1585,"1465":1587,"1466":1589,"1467":1590,"1468":1591,"1472":1594,"1473":1596,"1474":1598,"1475":1599,"1476":1600,"1477":1601,"1478":1602,"1479":1604,"1480":1605,"1481":1606,"1482":1607,"1483":1609,"1484":1610,"1488":1613,"1489":1615,"1493":1619,"1494":1621,"1495":1623,"1496":1624,"1497":1626,"1498":1627,"1499":1629,"1500":1631,"1501":1632,"1502":1633,"1503":1635,"1504":1636,"1505":1638,"1506":1639,"1507":1641,"1508":1642,"1512":1646,"1513":1647,"1514":1649,"1515":1650,"1516":1651,"1517":1652,"1518":1652,"1522":1652,"1523":1654,"1524":1655,"1528":1658,"1529":1659,"1530":1660,"1534":1663,"1535":1664,"1539":1667,"1541":1668,"1543":1668,"1544":1669,"1548":1672,"1549":1673,"1550":1675,"1551":1676,"1552":1677,"1553":1678,"1554":1680,"1555":1681,"1556":1682,"1557":1683,"1558":1684,"1559":1685,"1565":1688,"1566":1690,"1570":1693,"1571":1695,"1572":1697,"1573":1698,"1574":1700,"1575":1701,"1576":1701,"1580":1701,"1581":1702,"1582":1702,"1586":1702,"1587":1703,"1588":1703,"1592":1703,"1596":1713,"1597":1714,"1601":1717,"1602":1718,"1603":1720,"1604":1722,"1608":1725,"1609":1726,"1613":1730,"1614":1732,"1615":1734,"1616":1734,"1620":1734,"1621":1735,"1622":1735,"1626":1735,"1627":1736,"1628":1736,"1632":1736,"1633":1737,"1634":1737,"1638":1737,"1639":1739,"1640":1744,"1641":1745,"1642":1747,"1643":1748,"1644":1749,"1645":1750,"1646":1751,"1647":1753,"1648":1754,"1649":1755,"1650":1756,"1651":1757,"1652":1759,"1653":1760,"1654":1761,"1655":1762,"1656":1771,"1657":1772,"1658":1773,"1659":1775,"1660":1776,"1661":1777,"1662":1779,"1663":1779,"1667":1779,"1671":1783,"1672":1784,"1676":1787,"1677":1789,"1678":1791,"1679":1792,"1680":1793,"1681":1794,"1682":1795,"1683":1796,"1684":1798,"1685":1798,"1689":1798,"1693":1801,"1694":1803,"1695":1805,"1696":1807,"1697":1808,"1698":1811,"1699":1812,"1700":1813,"1704":1818,"1705":1820,"1706":1822,"1707":1824,"1708":1825,"1709":1826,"1710":1827,"1711":1829,"1712":1831,"1713":1832,"1714":1834,"1715":1835,"1716":1836,"1717":1838,"1718":1839,"1719":1841,"1720":1842,"1721":1844,"1722":1845,"1723":1847,"1724":1848,"1725":1850,"1726":1851,"1727":1853,"1728":1854,"1729":1856,"1730":1856,"1734":1856,"1738":1860,"1739":1862,"1740":1864,"1741":1865,"1742":1867,"1743":1868,"1744":1870,"1745":1872,"1746":1873,"1747":1875,"1748":1876,"1749":1878,"1750":1879,"1751":1880,"1752":1881,"1753":1883,"1754":1886,"1755":1887,"1756":1888,"1757":1889,"1758":1890,"1759":1891,"1760":1892,"1761":1894,"1762":1895,"1763":1896,"1767":1899,"1768":1901,"1769":1903,"1770":1904,"1774":1913,"1776":1916,"1777":1916,"1778":1917,"1779":1917,"1780":1918,"1783":1920,"1788":1922,"1790":1923,"1791":1923,"1792":1924,"1796":1926,"1798":1928,"1802":1930,"1804":1934,"1808":1936,"1810":1938,"1816":1940,"1818":1941,"1819":1941,"1820":1944,"1824":1946,"1826":1947,"1827":1947,"1828":1947,"1829":1947,"1830":1948,"1834":1950,"1836":1951,"1838":1951,"1839":1952,"1844":1954,"1846":1956,"1850":1958,"1852":1960,"1856":1962,"1858":1963,"1859":1963,"1860":1964,"1864":1966,"1866":1967,"1867":1967,"1868":1968,"1872":1974,"1873":1975,"1877":1978,"1878":1980,"1881":1982,"1883":1984,"1887":1987,"1889":1989,"1893":1992,"1896":1993,"1897":1994} */
 
 ?>
