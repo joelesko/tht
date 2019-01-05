@@ -83,6 +83,8 @@ class Tht {
         Tht::loadLib('Source.php');
         Tht::loadLib('StringReader.php');
         Tht::loadLib('Runtime.php');
+        Tht::loadLib('ModuleManager.php');
+
         Tht::loadLib('Security.php');
 
         Tht::loadLib('../classes/_index.php');
@@ -552,10 +554,6 @@ class Tht {
         return $fileBaseName . '.' . Tht::$SRC_EXT;
     }
 
-    static function getNamespace($relPath) {
-        return 'tht' . md5($relPath);
-    }
-
 
 
     // MISC GETTERS
@@ -624,7 +622,7 @@ class Tht {
     }
 
     static function module ($name) {
-        return Runtime::getModule('', $name);
+        return ModuleManager::getModule($name);
     }
 }
 

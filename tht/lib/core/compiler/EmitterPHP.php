@@ -7,12 +7,14 @@ class EmitterPHP extends Emitter {
 
     private $constantContext = '';
     private $constantValues = [];
+    private $isPhpLiteral = false;
 
     var $astToTarget = [
 
         'FLAG'            => 'pFlag',
         'CONSTANT|this'   => 'pThis',
         'CONSTANT|@'      => 'pThis',
+        'CONSTANT|@@'     => 'pThisModule',
         'NUMBER'          => 'pNumber',
         'STRING'          => 'pString',
         'LSTRING'         => 'pLString',
@@ -46,6 +48,7 @@ class EmitterPHP extends Emitter {
         'NEW_TEMPLATE'    => 'pTemplate',
 		'NEW_CLASS'       => 'pClass',
         'NEW_OBJECT'      => 'pNew',
+        'NEW_OBJECT_VAR'  => 'pNewObjectVar',
 
         'OPERATOR|~'      => 'pConcat',
         'OPERATOR|if'     => 'pIf',
@@ -71,14 +74,13 @@ class EmitterPHP extends Emitter {
         $php = $this->out($symbolTable->getFirst());
 
         $relPath = Tht::getRelativePath('app', $filePath);
-        $nameSpace = Tht::getNamespace($relPath); 
-        $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\Runtime::setNameSpace('$relPath','$nameSpace');\n";
+        $nameSpace = ModuleManager::getNamespace($relPath); 
+        $escNamespace = str_replace('\\', '\\\\', $nameSpace);
+        $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\ModuleManager::registerUserModule('$relPath','$escNamespace');\n";
 
         $finalCode = "<?php\n\n$nameSpacePhp\n$php\n\n";
         $finalCode = $this->appendSourceMap($finalCode, $filePath);
         $finalCode .= "\n\n?" . ">";
-
-        // Tht::devPrint($finalCode);
 
         return $finalCode;
     }
@@ -107,6 +109,10 @@ class EmitterPHP extends Emitter {
 
     function pThis ($value, $k) {
         return '$this';
+    }
+
+    function pThisModule ($value, $k) {
+        return '\o\ModuleManager::getModuleFromNamespace(__NAMESPACE__)';
     }
 
     function pNumber ($value, $k) {
@@ -160,6 +166,9 @@ class EmitterPHP extends Emitter {
                 'name' => $this->constantContext
             ];
         }
+        else if ($this->isPhpLiteral) {
+            $template = '[ ### ]';
+        }
         //return $this->format('\o\OMap::create([ ### ])', $this->toSequence($value, $k));
         return $this->format($template, $this->toSequence($value, $k));
     }
@@ -173,6 +182,9 @@ class EmitterPHP extends Emitter {
                 'type' => 'list',
                 'name' => $this->constantContext
             ];
+        }
+        else if ($this->isPhpLiteral) {
+            $template = '[ ### ]';
         }
 
        return $this->format($template, $this->toSequence($value, $k));
@@ -209,7 +221,7 @@ class EmitterPHP extends Emitter {
     }
 
     function pClassName ($value, $k) {
-        $nameSpace = Runtime::isStdLib($value) ? '\o\\' : '$';
+        $nameSpace = ModuleManager::isStdLib($value) ? '\o\\' : '$';
         return $this->format('######', $nameSpace, u_($value));
     }
 
@@ -256,6 +268,10 @@ class EmitterPHP extends Emitter {
         return $this->format('(### ###)', $value, $k[0]);
     }
 
+    function pQualifier ($value) {
+        return $this->format('###', $value);
+    }
+
     function pTernary ($value, $k) {
         return $this->format('(### ? ### : ###)', $k[0], $k[1], $k[2]);
     }
@@ -280,6 +296,13 @@ class EmitterPHP extends Emitter {
 
     function pNewVar ($value, $k) {
         return $this->format('### = ###;', $k[0], $k[1]);
+    }
+
+    function pNewObjectVar ($value, $k) {
+        $this->isPhpLiteral = true;
+        $out = $this->format('private ### = ###;', $k[0], $k[1]);
+        $this->isPhpLiteral = false;
+        return $out;
     }
 
     function pAssign ($value, $k) {
@@ -318,7 +341,7 @@ class EmitterPHP extends Emitter {
 
     function pCall ($value, $k) {
         if ($k[0]['value'] === 'import') {
-            return $this->format('\o\OBare::u_import(__NAMESPACE__, ###)', $k[1]);
+            return $this->format('\o\OBare::u_import(###)', $k[1]);
         }
         else if (substr($k[0]['value'], 0, 3) === 'fun') {
             return $this->format('$###(###)', $k[0], $k[1]);
@@ -335,7 +358,7 @@ class EmitterPHP extends Emitter {
     }
 
     function pPackage($value, $k) {
-        return $this->format('\o\Runtime::getModule(__NAMESPACE__, \'###\')', $value);
+        return $this->format('\o\ModuleManager::getModule(\'###\')', $value);
     }
 
 
@@ -351,7 +374,7 @@ class EmitterPHP extends Emitter {
         $out = $this->format('function ### (###) ### { %%% ### return new \o\ONothing(__METHOD__); }',
           $k[0], $k[1], $closure, $this->out($k[2], true) );
 
-        // wrap any lists or maps that are 
+        // wrap any lists or maps that come in as an argument
         $objectWrappers = '';
         foreach ($this->constantValues as $cv) {
             $varName = '$' . u_($cv['name']);
@@ -414,13 +437,16 @@ class EmitterPHP extends Emitter {
     }
 
 	function pClass ($value, $k) {
-        $className = $k[0]['value'];
-        $parent = '\o\OClass';
-        $block = $k[1];
-		$c = $this->format('class ### extends ### {###}', u_($className), $parent, $this->out($block, true));
+        $quals = $k[0]['value'];
+        $className = $k[1]['value'];
+        $parent = $k[2]['value'] ? ModuleManager::getNamespacedPackage($k[2]['value']) : '\o\OClass';
+        $block = $k[3];
+		$c = $this->format('### ### extends ### {###}', $quals, u_($className), $parent, $this->out($block, true));
      //   $c .= $this->format('$### = __NAMESPACE__ . "\###";', u_($className), u_($className));
         return $c;
 	}
+
+
 
 	function pTryCatch ($value, $k) {
 		$s = $this->format('try {###} catch (\Exception ###) {###}', $k[0], $k[1], $k[2]);
@@ -432,7 +458,7 @@ class EmitterPHP extends Emitter {
 
     function pNew ($value, $k) {
         $className = $k[0]['value'];
-        $c = $this->format('\o\Runtime::newObject(__NAMESPACE__, "###", [###])', $className, $this->out($k[1], true));
+        $c = $this->format('\o\ModuleManager::newObject("###", [###])', $className, $this->out($k[1], true));
         return $c;
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-// TODO: probably make operators instead (e.g. +&, +|)
+// TODO: probably make operators instead (e.g. +&, +|, +^, +~, +>>, +<<)
 //
 // namespace o;
 //

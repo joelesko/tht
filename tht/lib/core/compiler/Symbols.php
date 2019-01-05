@@ -213,7 +213,6 @@ class S_Prefix extends Symbol {
 }
 
 
-
 //===================================
 //              INFIX
 //===================================
@@ -268,7 +267,7 @@ class S_OpenBracket extends S_Infix {
 
     // List literal.  [ ... ]
     function asLeft($p) {
-        $p->space('*[N')->next();
+        $p->space('*[*')->next();
         $this->updateType(SymbolType::SEQUENCE);
         $els = [];
         while (true) {
@@ -562,6 +561,10 @@ class S_NewVar extends S_Statement {
         $this->addKid($sNewVarName);
         $p->validator->setPaused(false);
 
+        if ($p->inClass && $p->blockDepth == 1) {
+            $this->updateType(SymbolType::NEW_OBJECT_VAR);
+        }
+
         $p->next();
         $p->now('=')->space(' = ')->next();
 
@@ -577,6 +580,30 @@ class S_NewVar extends S_Statement {
         return $this;
     }
 }
+
+// class S_Qualifier extends S_Statement {
+//     function asStatement($p) {
+        
+//         $quals = [];
+//         while (true) {
+//             $this->space(' keyword ', true);
+//             $s = $p->symbol;
+//             $keyword = $s->token[TOKEN_VALUE];
+//             $p->next();
+//             if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
+//                 $quals []= $keyword;
+//             }
+//             else {
+//                 break;
+//             }
+//         }
+        
+//       //  $this->addKid(implode(' ', $quals));
+//         $this->setKids([$p->parseExpression(0)]);
+
+//         return $this;
+//     }
+// }
 
 class S_If extends S_Statement {
     var $type = SymbolType::OPERATOR;
@@ -832,32 +859,102 @@ class S_Class extends S_Statement {
     // e.g. class Foo { ... }
     function asStatement ($p) {
 
-        $p->space(' class ', true);
+        // qualifiers and class keyword
+        $quals = [];
+        while (true) {
+            $this->space(' keyword ', true);
+            $s = $p->symbol;
+            $keyword = $s->token[TOKEN_VALUE];
+            if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
+                $quals []= $keyword;
+                $p->next();
+            }
+            else {
+                break;
+            }
+        }
+        $sQuals = $p->makeSymbol(
+            TokenType::WORD,
+            implode(' ', $quals),
+            SymbolType::PACKAGE_QUALIFIER
+        );
+        $this->addKid($sQuals);
+        
 
+        // Class name
+        $sName = $p->symbol;
+        if ($sName->token[TOKEN_TYPE] == TokenType::WORD) {
+                $sName->updateType(SymbolType::PACKAGE);
+                $this->addKid($sName);
+        }
+        else {
+          //  print_r($sName); exit();
+            $p->error("Expected a class name.  Ex: `class User { ... }`");
+        }
+
+
+
+        // read in class qualifiers (e.g. abstract) and the package name
+        // while (true) {
+
+        //     $p->next();
+        //     $s = $p->symbol;
+
+        //     if ($s->token[TOKEN_VALUE] == 'abstract' || $s->token[TOKEN_VALUE] == 'final') {
+        //       //  $s->updateType(SymbolType::PACKAGE_QUALIFIER);
+        //       //  $this->addKid($s);
+        //     }
+        //     else if ($s->token[TOKEN_TYPE] == TokenType::WORD) {
+        //         $s->updateType(SymbolType::PACKAGE);
+        //         $this->addKid($s);
+        //         break;
+        //     }
+        //     else {
+        //         $p->error("Expected a class name.  Ex: `class User { ... }`");
+        //     }
+        // }
+        
         $p->next();
 
-        $sClassName = $p->symbol;
-        if ($sClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-			$p->error("Expected a class name.  Ex: `class User { ... }`");
-		}
 
-        $sClassName->updateType(SymbolType::PACKAGE);
-        $this->addKid($sClassName);
-        $p->next();
+        if ($p->symbol->isValue('extends')) {
 
-        // if ($p->symbol->isValue('extends')) {
+            $p->next();
+            $sParentClassName = $p->symbol;
+            if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
+                $p->error("Expected a parent class name.  Ex: `class MyClass extends MyParentClass { ... }`");
+            }
+            $sParentClassName->updateType(SymbolType::PACKAGE);
+            $this->addKid($sParentClassName);
+
+            $p->next();
+        }
+        else {
+            $sNull = $p->makeSymbol(
+                TokenType::WORD,
+                '',
+                SymbolType::PACKAGE
+            );
+            $this->addKid($sNull);
+        }
+
+        // // TODO: duplicated code
+        // if ($p->symbol->isValue('implements')) {
 
         //     $p->next();
         //     $sParentClassName = $p->symbol;
         //     if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends ParentClass { ... }`");
+        //         $p->error("Expected an interface name.  Ex: `class MyClass implements MyInterface { ... }`");
         //     }
         //     $sParentClassName->updateType(SymbolType::PACKAGE);
         //     $this->addKid($sParentClassName);
-        //     $p->next();
         // }
 
+
+        $p->inClass = true;
         $this->addKid($p->parseBlock());
+        $p->inClass = false;
+
 
         return $this;
     }

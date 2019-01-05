@@ -294,7 +294,7 @@ class Security {
     // Register an un-sandboxed version of File, for internal use.
     static function registerInternalFileModule() {
     	self::$isOpenFileSandbox = true;
-    	Runtime::registerStdModule('*File', new u_File ());  
+    	ModuleManager::registerStdModule('*File', new u_File ());  
     	self::$isOpenFileSandbox = false;
     }
 

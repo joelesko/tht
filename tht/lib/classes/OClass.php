@@ -5,11 +5,24 @@ namespace o;
 class OClass {
 
     private $_fieldsLocked = false;
+    private $_fields = [];
     protected $u_state = null;
 
     function _init($args) {
 
         $this->u_state = OMap::create([]);
+
+        // convert PHP arrays to THT 
+        foreach (get_object_vars($this) as $k => $v) {
+            if (is_array($this->$k)) {
+                if (isset($this->$k['___map'])) {
+                    unset($this->$k['___map']);
+                    $this->$k = OMap::create($this->$k);
+                } else {
+                    $this->$k = OList::create($this->$k);
+                }
+            }
+        }
 
         if (method_exists($this, 'u_new')) {
             call_user_func_array([ $this, 'u_new' ], $args);
@@ -29,12 +42,17 @@ class OClass {
 
         $field = unu_($field);
 
+        $autoGetter = u_('get' . ucfirst($field));
+        if (method_exists($this, $autoGetter)) {
+            return $this->$autoGetter();
+        }
+            
         if (method_exists($this, 'u_z_dynamic_get')) {
             $result = $this->u_z_dynamic_get($field);
             if ($result->u_ok()) {
                 return $result->u_get();
             }
-        }
+        } 
 
         $suggestion = '';
         if (method_exists($this, 'u_z_suggest_field')) {
@@ -47,6 +65,11 @@ class OClass {
 
     function __set ($field, $value) {
 
+        $unfield = unu_($field);
+        $autoSetter = u_('set' . ucfirst($unfield));
+        if (method_exists($this, $autoSetter)) {
+            return $this->$autoSetter($value);
+        }
         if (method_exists($this, 'u_z_dynamic_set')) {
             return $this->u_z_dynamic_set($field, $value);
         }
@@ -54,7 +77,7 @@ class OClass {
         if ($this->_fieldsLocked) {
             Tht::error("Can not create field `$field` after object is constructed.");
         }
-        $this->$field = $value;
+        $this->$unfield = $value;
     }
 
     function __call ($method, $args) {

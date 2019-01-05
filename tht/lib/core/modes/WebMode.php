@@ -211,7 +211,7 @@ class WebMode {
 
     static private function callAutoFunction($controllerFile, $userFunction) {
 
-        $nameSpace = Runtime::getNameSpace(Tht::getFullPath($controllerFile));
+        $nameSpace = ModuleManager::getNamespace(Tht::getFullPath($controllerFile));
 
         $fullController = $nameSpace . '\\u_' . basename($controllerFile);
         $fullUserFunction = $nameSpace . '\\u_' . $userFunction;

@@ -54,8 +54,8 @@ class OBare {
         return new \o\ONothing('print');
     }
 
-    static function u_import ($localNs, $relPath) {
-        Runtime::loadUserModule($localNs, $relPath);
+    static function u_import ($relPath) {
+        ModuleManager::loadUserModule($relPath);
     }
 
     static function u_range ($start, $end, $step=1) {

@@ -10,7 +10,7 @@ class u_Meta extends StdModule {
 
     function getCallerNamespace () {
         $trace = debug_backtrace(0, 2);
-        $nameSpace = Runtime::getNameSpace(Tht::getThtPathForPhp($trace[1]['file']));
+        $nameSpace = ModuleManager::getNamespace(Tht::getThtPathForPhp($trace[1]['file']));
         return $nameSpace;
     }
 

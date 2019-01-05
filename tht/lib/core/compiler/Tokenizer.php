@@ -37,12 +37,23 @@ class TokenStream {
 
 class Tokenizer extends StringReader {
 
-
     private $ADJ_ATOMS = ['NUMBER', 'STRING', 'LSTRING', 'RSTRING', 'WORD'];
+
     private $ALLOW_NEXT_ADJ_ATOMS = [
         'in', 
-        'if'
+        'if',
+        'abstract',
+        'class',
+        'trait',
+        'interface',
+        'final',
+        'public',
+        'private',
+        'protected',
+        'static',
+        'extends',
     ];
+
     private $ALLOW_PREV_ADJ_ATOMS = [
         'let', 
         'function', 
@@ -55,7 +66,16 @@ class Tokenizer extends StringReader {
         'if', 
         'F', 
         'T', 
-        'R'
+        'R',
+        'class',
+        'trait',
+        'interface',
+        'final',
+        'public',
+        'private',
+        'protected',
+        'static',
+        'extends',
     ];
     
 

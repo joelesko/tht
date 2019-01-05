@@ -396,7 +396,8 @@ class ErrorHandler {
 
         <div style='position: fixed; overflow: auto; z-index: 99999; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
             <style scoped>
-                a { color: #ffd267; }
+                a { color: #ffd267; text-decoration: none; }
+                a:hover { text-decoration: underline;  }
                 .tht-error-header { font-weight: bold; margin-bottom: 40px; font-size: 150%; border-bottom: solid 12px #ecc25f; padding-bottom: 12px;  }
                 .tht-error-message { margin-bottom: 40px; }
                 .tht-error-content { font: 22px <?= u_Css::u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
@@ -490,6 +491,9 @@ class ErrorHandler {
         $lines = preg_split('/\n/', $source);
         $line = (count($lines) > $srcLineNum) ? $lines[$srcLineNum] : '';
 
+        // have to convert to spaces for pointer to line up
+        $line = preg_replace('/\t/', '    ', $line);  
+        
         // trim indent
         preg_match('/^(\s*)/', $line, $matches);
         $numSpaces = strlen($matches[1]);

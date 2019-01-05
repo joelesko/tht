@@ -6,6 +6,8 @@ class Parser {
 
     var $symbol = null;
     var $inTernary = false;
+    var $inClass = false;
+    var $blockDepth = 0;
     var $expressionDepth = 0;
     var $foreverDepth = 0;
     var $symbolTable = null;
@@ -71,6 +73,8 @@ class Parser {
 
         $this->now('{')->space(' { ', true)->next();
 
+        $this->blockDepth += 1;
+
         while (true) {
             $s = $this->symbol;
             if ($s->isValue('}')) {
@@ -88,6 +92,8 @@ class Parser {
         }
 
         $this->validator->popScope();
+
+        $this->blockDepth -= 1;
 
         return $this->makeSequence(SequenceType::BLOCK, $sStatements);
     }

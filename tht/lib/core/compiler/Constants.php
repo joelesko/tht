@@ -25,8 +25,8 @@ abstract class TokenType {
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~#';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~#@';
+    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
     const BLOCK_COMMENT_START = '/*';
@@ -66,24 +66,27 @@ abstract class SymbolType {
     const OPERATOR      =  'OPERATOR';   // if (...) {}
     const COMMAND       =  'COMMAND';    // break;
 
-    const TEMPLATE_EXPR =  'TEMPLATE_EXPR';   // (( fobar ))
-    const CALL          =  'CALL';       // foo()
-    const TRY_CATCH     =  'TRY_CATCH';  // try {} catch {}
-    const NEW_VAR       =  'NEW_VAR';    // let foo = 1
-    const NEW_FUN       =  'NEW_FUN';    // function foo () {}
-    const NEW_CLASS     =  'NEW_CLASS';  // class Foo {}
-    const NEW_OBJECT    =  'NEW_OBJECT'; // new Foo ()
-    const BARE_FUN      =  'BARE_FUN';   // print
+    const TEMPLATE_EXPR =  'TEMPLATE_EXPR';  // (( fobar ))
+    const CALL          =  'CALL';           // foo()
+    const TRY_CATCH     =  'TRY_CATCH';      // try {} catch {}
+    const NEW_VAR       =  'NEW_VAR';        // let foo = 1
+    const NEW_FUN       =  'NEW_FUN';        // function foo () {}
+    const NEW_CLASS     =  'NEW_CLASS';      // class Foo {}
+    const NEW_OBJECT    =  'NEW_OBJECT';     // new Foo ()
+    const BARE_FUN      =  'BARE_FUN';       // print
     const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
-    const FUN_ARG       =  'FUN_ARG';    // function foo (arg) {}
-    const USER_FUN      =  'USER_FUN';   // myFunction
-    const USER_VAR      =  'USER_VAR';   // myVar
-    const PACKAGE       =  'PACKAGE';      // MyClass
+    const FUN_ARG       =  'FUN_ARG';        // function foo (arg) {}
+    const USER_FUN      =  'USER_FUN';       // myFunction
+    const USER_VAR      =  'USER_VAR';       // myVar
 
     const MEMBER        =  'MEMBER';     // foo[...]
     const MEMBER_VAR    =  'MEMBER_VAR'; // foo.bar
     const MAP_KEY       =  'MAP_KEY';    // _foo_: bar
     const PAIR          =  'PAIR';       // foo: 'bar'
+
+    const PACKAGE           = 'PACKAGE';           // MyClass
+    const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
+    const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private myVar = 123;
 }
 
 abstract class SequenceType {
@@ -123,14 +126,17 @@ class ParserData {
         // constants
         'true'  => 'S_Flag',
         'false' => 'S_Flag',
+        'super' => 'S_Constant',
+        'self'  => 'S_Constant',
         'this'  => 'S_Constant',
         '@'     => 'S_Constant',
+        '@@'    => 'S_Constant',
 
         // prefix
         '!'  => 'S_Prefix',
 
         // infix
-        '~'   => 'S_Concat',   // + .
+        '~'  => 'S_Concat',   // + .
         '+'  => 'S_Add',
         '-'  => 'S_Add',
         '*'  => 'S_Multiply',
@@ -175,7 +181,6 @@ class ParserData {
         'F'         => 'S_NewFunction',
         'template'  => 'S_NewTemplate',
         'T'         => 'S_NewTemplate',
-        'class'     => 'S_Class',
         'new'       => 'S_New',
         'if'        => 'S_If',
         'for'       => 'S_For',
@@ -184,10 +189,21 @@ class ParserData {
         'continue'  => 'S_Command',
         'return'    => 'S_Return',
         'R'         => 'S_Return',
+
+        // oop
+        'class'     => 'S_Class',
+        'interface' => 'S_Class',
+        'trait'     => 'S_Class',
+        'abstract'  => 'S_Class',
+        'final'     => 'S_Class',
+        'public'    => 'S_Class',
+        'private'   => 'S_Class',
+        'protected' => 'S_Class',
+        'static'    => 'S_Class',
     ];
 
     static public $RESERVED_NAMES = [
-        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in'
+        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in', 'extends'
     ];
 
     static public $ALT_TOKENS = [
@@ -235,6 +251,18 @@ class ParserData {
         '{' => '}',
         '[' => ']',
         '(' => ')'
+    ];
+
+    static $QUALIFIER_KEYWORDS = [
+        'abstract',
+        'final',
+        'public',
+        'private',
+        'protected',
+        'static',
+        'class',
+        'trait',
+        'interface',
     ];
 }
 

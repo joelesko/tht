@@ -44,6 +44,9 @@ class u_Test extends StdModule {
         } catch (\Exception $e) {
             $ex = true;
         }
+         catch (\TypeError $e) {
+            $ex = true;
+        }
 
         $trapped = ErrorHandler::endTrapErrors();
 
