@@ -15,7 +15,7 @@
 
 // Test Suite
 
-function main2() {
+function main() {
 
     let test = Test.new();
       
@@ -231,7 +231,7 @@ function compileErrors(t) {
     t.parserError('( a + 1)',             'space after `(`');
     t.parserOk('let a = (\n1 +\n2\n);',    'space after `(`');
     t.parserError('foo( );',              'space after `(`');
-    t.parserError('let a = [ ]',          'space after `[`');
+   // t.parserError('let a = [ ]',          'space after `[`');
     t.parserError('let a = { }',          'space after `{`');
     t.parserOk('let a = [\n];',            'space after `[`');
     t.parserOk('let a = {\n};',            'space after `{`');
