@@ -352,15 +352,12 @@ class Tokenizer extends StringReader {
         $this->updateTokenPos();
 
         $str = $this->slurpNumber();
-
-        $c = $this->char();
-        if ($this->isAlpha($c)) {
-            $str .= $c;
-            $this->error("Bad number `$str`. Numbers can not contain letters.");
-        }
-
+        
         // Convert the string value to a number
-        if (is_numeric($str)) {
+        if (strlen($str) > 1 && ($str[1] == 'b' || $str[1] == 'x')) {
+            $this->makeToken(TokenType::NUMBER, $str);
+        }
+        else if (is_numeric($str)) {
             $this->checkAdjacentAtom('number', $str);
             $this->makeToken(TokenType::NUMBER, (float)$str);
         } else {

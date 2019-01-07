@@ -23,6 +23,8 @@ class StringReader {
 
     static public $SisDigit = [];
     static public $SisAlpha = [];
+    static public $SisBinaryDigit = [];
+    static public $SisHexDigit = [];
 
     public $isDigit = [];
     public $isAlpha = [];
@@ -42,14 +44,23 @@ class StringReader {
         $this->char1 = $this->fullText[0];
         $this->char2 = $this->fullText[1];
 
-        $this->isDigit = static::$SisDigit;
-        $this->isAlpha = static::$SisAlpha;
+        $this->isDigit       = static::$SisDigit;
+        $this->isAlpha       = static::$SisAlpha;
+        $this->isHexDigit    = static::$SisHexDigit;
+        $this->isBinaryDigit = static::$SisBinaryDigit;
     }
 
     // precompile list of character ranges
     static function initChars() {
         foreach (range(0,9) as $n) {
             StringReader::$SisDigit['' . $n] = 1;
+        }
+        foreach (range(0,1) as $n) {
+            StringReader::$SisBinaryDigit['' . $n] = 1;
+        }
+        $hexDigits = str_split('0123456789abcdef');
+        foreach ($hexDigits as $n) {
+            StringReader::$SisHexDigit['' . $n] = 1;
         }
         foreach (range('a', 'z') as $n) {
             StringReader::$SisAlpha[$n] = 1;
@@ -195,23 +206,37 @@ class StringReader {
     }
 
     function slurpNumber() {
+
         $str = $this->slurpDigits();
 
-        // fraction
         if ($this->char1 === '.') {
             $this->next();
             $str .= '.';
-            $str .= $this->slurpDigits();
+            $str .= $this->slurpDigits($this->isDigit);
         }
+        else if ($this->char1 === 'b') {
+            $this->next();
+            $str .= 'b';
+            $str .= $this->slurpDigits($this->isBinaryDigit);
+        }
+        else if ($this->char1 === 'x') {
+            $this->next();
+            $str .= 'x';
+            $str .= $this->slurpDigits($this->isHexDigit);
+        }
+
         return $str;
     }
 
-    function slurpDigits() {
+    function slurpDigits($allowedDigits=null) {
+        if (!$allowedDigits) {
+            $allowedDigits = $this->isDigit;
+        }
         $str = '';
         while (true) {
             $c = $this->char1;
             if ($c === '_') { $this->next();  continue; }  // _ separator
-            if (!isset($this->isDigit[$c])) {
+            if (!isset($allowedDigits[$c])) {
                 break;
             }
             $str .= $c;
