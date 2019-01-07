@@ -1,18 +1,4 @@
 
-   let ac = new AbstractSubClass();
-   // t.ok(ac.callMe() == 123, 'abstract class');
-
-   ac.pleaseCallMe();
-
-   print(ac.prop);
-
-   ac.prop = 'outside';
-
-   print(ac.prop);
-
-   AbstractSubClass.hello();
-
-
 // Test Suite
 
 function main() {
@@ -53,6 +39,7 @@ function run(t) {
 
     testMathAndLogic(t);
     testStrings(t);
+    testBitwise(t);
     testControlFlow(t);
     testLists(t);
     testMaps(t);
@@ -152,6 +139,11 @@ function compileErrors(t) {
     t.parserError('foreach (ary as a) { }', 'try: \`for\`');
     t.parserError('let ary = [];\nfor (ary as a) { }', 'item in list');
     t.parserError('$foo = 123',  'remove $ from name');
+    t.parserError('let a = 1 ^ 2',  '+^');
+    t.parserError('let a = 1 & 2',  '+&');
+    t.parserError('let a = 1 | 2',  '+|');
+    t.parserError('let a = 1 >> 2',  '+>');
+    t.parserError('let a = 1 << 2',  '+<');
 
 
     t.section('Parser Errors - Misc');
@@ -1452,6 +1444,20 @@ function testTemplates(t) {
    // print(tagsHtml(entHtml()).unlock());
 }
 
+function testBitwise(t) {
+
+    t.section('Bitwise Operators');
+
+    t.ok((1 +| 2) == 3, 'bitwise OR (+|)');
+    t.ok((2 +& 3) == 2, 'bitwise AND (+&)');
+    t.ok((1 +^ 2) == 3, 'bitwise XOR (+^)');
+
+    t.ok(+~5 == -6, 'bitwise NOT (+~)');
+
+    t.ok((3 +< 2) == 12, 'bitwise shift LEFT (+<)');
+    t.ok((13 +> 2) == 3, 'bitwise shift RIGHT (+>)');
+
+}
 
     
 function libFile(t) {
