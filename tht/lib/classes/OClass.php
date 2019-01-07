@@ -77,7 +77,7 @@ class OClass {
         if ($this->_fieldsLocked) {
             Tht::error("Can not create field `$field` after object is constructed.");
         }
-        $this->$unfield = $value;
+        $this->$field = $value;
     }
 
     function __call ($method, $args) {
