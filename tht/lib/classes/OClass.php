@@ -36,6 +36,12 @@ class OClass {
         return '[' . ltrim(get_called_class(), 'o\\') . ']';
     }
 
+    function __destruct() {
+        if (method_exists($this, 'u_z_on_destroy')) {
+            call_user_func_array([ $this, 'u_z_on_destroy' ], []);
+        }
+    }
+
     // TODO: toJson
 
     function __get ($field) {
