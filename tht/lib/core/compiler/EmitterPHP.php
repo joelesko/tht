@@ -33,6 +33,8 @@ class EmitterPHP extends Emitter {
         'TRY_CATCH'       => 'pTryCatch',
         'CALL'            => 'pCall',
         'INFIX'           => 'pInfix',
+        'BITSHIFT'        => 'pBitwise',
+        'BITWISE'         => 'pBitwise',
         'PREFIX'          => 'pPrefix',
         'VALGATE'         => 'pValGate',
         'TERNARY'         => 'pTernary',
@@ -65,6 +67,14 @@ class EmitterPHP extends Emitter {
         'SEQUENCE'        => 'pSequence',
         'SEQUENCE|{'      => 'pMap',
         'SEQUENCE|['      => 'pList',
+    ];
+
+    private $bitwiseToPhp = [
+        '+&' => '&',
+        '+|' => '|',
+        '+^' => '^',
+        '+>' => '>>',
+        '+<' => '<<',
     ];
 
     function emit ($symbolTable, $filePath) {
@@ -264,7 +274,15 @@ class EmitterPHP extends Emitter {
         return $this->format($t, $k[0], $value, $k[1]);
     }
 
+    function pBitwise ($value, $k) {
+        $phpOp = $this->bitwiseToPhp[$value];
+        return $this->pInfix($phpOp, $k);
+    }
+
     function pPrefix ($value, $k) {
+        if ($value == '+~') {
+            $value = '~';
+        }
         return $this->format('(### ###)', $value, $k[0]);
     }
 

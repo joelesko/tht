@@ -26,7 +26,7 @@ abstract class TokenType {
 
 abstract class Glyph {
     const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~#@';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@';
+    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
     const BLOCK_COMMENT_START = '/*';
@@ -60,7 +60,9 @@ abstract class SymbolType {
 
     const PREFIX        =  'PREFIX';     // ! a
     const INFIX         =  'INFIX';      // a + b
-    const VALGATE       =  'VALGATE';    // a | b & c
+    const BITWISE       =  'BITWISE';    // a +| b +~ c
+    const BITSHIFT      =  'BITSHIFT';   // a +> b
+    const VALGATE       =  'VALGATE';    // a |: b &: c
     const TERNARY       =  'TERNARY';    // c ? b1 : b2
     const ASSIGN        =  'ASSIGN';     // foo = 123
     const OPERATOR      =  'OPERATOR';   // if (...) {}
@@ -134,6 +136,7 @@ class ParserData {
 
         // prefix
         '!'  => 'S_Prefix',
+        '+~' => 'S_Prefix',
 
         // infix
         '~'  => 'S_Concat',   // + .
@@ -154,6 +157,11 @@ class ParserData {
         '&&' => 'S_Logic',
         '||:' => 'S_ValGate',
         '&&:' => 'S_ValGate',
+        '+&'  => 'S_Bitwise',
+        '+|'  => 'S_Bitwise',
+        '+^'  => 'S_Bitwise',
+        '+>' => 'S_BitShift',
+        '+<' => 'S_BitShift',
 
         // assignment
         '='   => 'S_Assign',
@@ -200,6 +208,7 @@ class ParserData {
         'private'   => 'S_Class',
         'protected' => 'S_Class',
         'static'    => 'S_Class',
+
     ];
 
     static public $RESERVED_NAMES = [
@@ -214,8 +223,8 @@ class ParserData {
         '=<'  => '<=',
         '=>'  => ">= (comparison) or colon ':' (map)",
         '<>'  => '!=',
-    //    '>>'  => 'Bit.shift()',
-    //    '<<'  => 'Bit.shift() or #=',
+        '>>'  => '+> (bit shift)',
+        '<<'  => '+< (bit shift) or #=',
         '++'  => '+= 1',
         '--'  => '-= 1',
         '**'  => 'Math.exp()',
@@ -223,6 +232,10 @@ class ParserData {
         '->'  => 'dot (.)',
         '$'   => 'remove $ from name',
         '::'  => 'dot (.)',
+        '^'   => '+^ (bitwise xor)',
+        '&'   => '&& or +& (bitwise and)',
+        '|'   => '|| or +| (bitwise or)',
+
      //   '[]=' => '#=',
         '"'   => 'single quote (\')',
 
