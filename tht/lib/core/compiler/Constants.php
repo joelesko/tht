@@ -25,7 +25,7 @@ abstract class TokenType {
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:!/%~#@';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#';
     const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
@@ -136,7 +136,6 @@ class ParserData {
 
         // prefix
         '!'  => 'S_Prefix',
-        '+~' => 'S_Prefix',
 
         // infix
         '~'  => 'S_Concat',   // + .
@@ -157,11 +156,13 @@ class ParserData {
         '&&' => 'S_Logic',
         '||:' => 'S_ValGate',
         '&&:' => 'S_ValGate',
-        '+&'  => 'S_Bitwise',
-        '+|'  => 'S_Bitwise',
-        '+^'  => 'S_Bitwise',
-        '+>' => 'S_BitShift',
-        '+<' => 'S_BitShift',
+
+        '&&&' => 'S_Bitwise',
+        '|||' => 'S_Bitwise',
+        '^^^' => 'S_Bitwise',
+        '>>>' => 'S_BitShift',
+        '<<<' => 'S_BitShift',
+        '~~~' => 'S_Prefix',
 
         // assignment
         '='   => 'S_Assign',
@@ -223,8 +224,8 @@ class ParserData {
         '=<'  => '<=',
         '=>'  => ">= (comparison) or colon ':' (map)",
         '<>'  => '!=',
-        '>>'  => '+> (bit shift)',
-        '<<'  => '+< (bit shift) or #=',
+        '>>'  => '>>> (bit shift)',
+        '<<'  => '<<< (bit shift) or #=',
         '++'  => '+= 1',
         '--'  => '-= 1',
         '**'  => 'Math.exp()',
@@ -232,11 +233,10 @@ class ParserData {
         '->'  => 'dot (.)',
         '$'   => 'remove $ from name',
         '::'  => 'dot (.)',
-        '^'   => '+^ (bitwise xor)',
-        '&'   => '&& or +& (bitwise and)',
-        '|'   => '|| or +| (bitwise or)',
+        '^'   => '^^^ (bitwise xor)',
+        '&'   => '&& or &&& (bitwise and)',
+        '|'   => '|| or ||| (bitwise or)',
 
-     //   '[]=' => '#=',
         '"'   => 'single quote (\')',
 
         // other langs

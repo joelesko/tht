@@ -338,7 +338,7 @@ class S_InfixRight extends Symbol {
 // 50  infix 
 // 45  bitshift
 // 40  compare
-// 30  Bbitwise
+// 30  bitwise
 // 20  logic
 // 10  assignment
 

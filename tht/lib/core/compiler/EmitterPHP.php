@@ -70,11 +70,11 @@ class EmitterPHP extends Emitter {
     ];
 
     private $bitwiseToPhp = [
-        '+&' => '&',
-        '+|' => '|',
-        '+^' => '^',
-        '+>' => '>>',
-        '+<' => '<<',
+        '&&&' => '&',
+        '|||' => '|',
+        '^^^' => '^',
+        '>>>' => '>>',
+        '<<<' => '<<',
     ];
 
     function emit ($symbolTable, $filePath) {
@@ -280,7 +280,7 @@ class EmitterPHP extends Emitter {
     }
 
     function pPrefix ($value, $k) {
-        if ($value == '+~') {
+        if ($value == '~~~') {
             $value = '~';
         }
         return $this->format('(### ###)', $value, $k[0]);
