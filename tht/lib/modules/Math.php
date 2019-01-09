@@ -40,15 +40,16 @@ class u_Math extends StdModule {
     }
     function u_floor ($n) {
         ARGS('n', func_get_args());
-        return floor($n);
+        return (int)floor($n);
     }
     function u_ceil ($n) {
         ARGS('n', func_get_args());
-        return ceil($n);
+        return (int)ceil($n);
     }
     function u_round ($n, $precision=0) {
         ARGS('nn', func_get_args());
-        return round($n, $precision);
+        $rn = round($n, $precision);
+        return $precision == 0 ? (int) $rn : $rn;
     }
     function u_sin ($n) {
         ARGS('n', func_get_args());
