@@ -72,26 +72,27 @@ class Symbol {
     // Whitespace rule for this token (before and after).
     // The middle symbol(s) are arbitrary.  Only the left and right have meaning.
     // Examples:
-    // ' | ' = space required before & after
-    // 'x| ' = space not allowed before, required after
-    // '*| ' = anything before, space required after
+    // ' | ' = whitespace required before & after
+    // 'x| ' = space not allowed before, whitespace required after
+    // '*| ' = anything before, whitespace required after
     // '*|N' = anything before, newline or non-space after
+    // '*|B' = anything before, newline required (hard break) after
+    // '*|S' = anything before, space (not newline) required after
     function space ($pattern, $isHard=false) {
 
-        if (Tht::getConfig('disableFormatChecker') && !$isHard) {
-            return $this;
-        }
+        // if (Tht::getConfig('disableFormatChecker') && !$isHard) {
+        //     return $this;
+        // }
 
-        $this->spacePos($isHard, 'L', $pattern[0]);
-        $this->spacePos($isHard, 'R', $pattern[strlen($pattern) - 1]);
+        $this->spacePos('L', $pattern[0]);
+        $this->spacePos('R', $pattern[strlen($pattern) - 1]);
 
         return $this;
     }
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
-    // TODO: isHard not currently used
-    function spacePos ($isHard, $pos, $require) {
+    function spacePos ($pos, $require) {
 
         if ($require == '*') { return; }
 
@@ -99,7 +100,7 @@ class Symbol {
         $t = $this->token;
 
         $isRequired = ($require === ' ' || $require === 'S');
-        $allowNewline = ($require === 'N');
+        $allowNewline = ($require === 'N' || $require === 'B');
 
         $cSpace = $t[TOKEN_SPACE];
 
@@ -122,6 +123,9 @@ class Symbol {
         if ($require === 'S' && $pos === 'R' && $hasNewline) {
             $msg = 'remove the';
             $what = 'newline';
+        } else if ($require === 'B' && !$hasNewline) {
+            $msg = 'add a';
+            $what = 'newline';  
         } else if ($hasSpace && !$isRequired) {
             $msg = 'remove the';
         }
@@ -531,7 +535,7 @@ class S_New extends Symbol {
     // e.g. new Foo()
     function asLeft ($p) {
 
-        $p->space('*new ', true);
+        $p->space('*newS', true);
 
         $p->next();
 
@@ -539,7 +543,7 @@ class S_New extends Symbol {
         if (! $sClassName->token[TOKEN_TYPE] === TokenType::WORD) {
             $p->error("Expected a class name.  Ex: `new User()`");
         }
-        $p->space(' classNamex', true);
+        $p->space('SclassNamex', true);
         $sClassName->updateType(SymbolType::PACKAGE);
         $this->addKid($sClassName);
         $p->next();
@@ -577,6 +581,8 @@ class S_NewVar extends S_Statement {
 
     // e.g. let a = 1;
     function asStatement ($p) {
+
+        $this->space('*letS');
 
         // var name
         $p->validator->setPaused(true);
@@ -635,14 +641,14 @@ class S_If extends S_Statement {
     // if / else
     function asStatement ($p) {
 
-        $this->space('*if ');
+        $this->space('*ifS');
 
         $p->next();
 
         $p->expressionDepth += 1;  // prevent assignment
 
         // conditional. if (...)
-        $p->now('(', 'if')->space(' (x', true)->next();
+        $p->now('(', 'if')->space('S(x', true)->next();
         $this->addKid($p->parseExpression(0));
         $p->now(')', 'if')->space('x) ', true)->next();
 
@@ -668,6 +674,8 @@ class S_For extends S_Statement {
 
     // for (...) { ... }
     function asStatement ($p) {
+
+        $this->space('*forS');
 
         $p->expressionDepth += 1; // prevent assignment
 
@@ -752,7 +760,7 @@ class S_NewFunction extends S_Statement {
     function asStatement ($p) {
 
         $p->next();
-        $this->space('*function ', true);
+        $this->space('*functionS', true);
 
         $hasName = false;
 
@@ -886,7 +894,7 @@ class S_Class extends S_Statement {
         // qualifiers and class keyword
         $quals = [];
         while (true) {
-            $this->space(' keyword ', true);
+            $this->space('*keywordS', true);
             $s = $p->symbol;
             $keyword = $s->token[TOKEN_VALUE];
             if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
@@ -990,7 +998,7 @@ class S_TryCatch extends S_Statement {
     // try { ... } catch (e) { ... }
     function asStatement ($p) {
 
-        $p->space(' try ', true);
+        $p->space(' tryS', true);
 
         $p->next();
 
@@ -998,7 +1006,7 @@ class S_TryCatch extends S_Statement {
         $this->addKid($p->parseBlock());
 
         // catch
-        $p->now('catch')->space(' catch ', true)->next();
+        $p->now('catch')->space(' catchS', true)->next();
 
         // exception var
         $p->now('(', 'try/catch')->next();
@@ -1081,7 +1089,7 @@ class S_Return extends S_Command {
     function asStatement ($p) {
         $p->next();
         if (!$p->symbol->isValue(';')) {
-            $this->space('*| ', true);
+            $this->space('*returnS', true);
             $p->expressionDepth += 1; // prevent assignment
             $this->addKid($p->parseExpression(0));
         }
