@@ -118,11 +118,11 @@ class ParserData {
 
         // separators / terminators
         ';'  => 'S_Sep',
+        ','  => 'S_Sep',
         ':'  => 'S_Sep',
         ')'  => 'S_Sep',
         ']'  => 'S_Sep',
         '}'  => 'S_Sep',
-        ','  => 'S_Sep',
         '}}' => 'S_Sep',
 
         // constants

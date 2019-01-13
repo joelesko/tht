@@ -265,7 +265,7 @@ class Tokenizer extends StringReader {
         if ($this->templateMode === TemplateMode::CODE_LINE && $c === "\n") {
             $prev = $this->prevChar();
             if ($prev !== '{' && $prev !== ';' && $prev !== '}') {
-                $this->error("Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end in brace `{}` or semicolon `;`");
+                $this->error("Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end with a semicolon `;` or brace `{ }`");
             }
             $this->templateMode = TemplateMode::BODY;
         }
