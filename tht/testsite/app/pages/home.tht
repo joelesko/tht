@@ -1,14 +1,11 @@
-
 // Test Suite
 
 function main() {
 
     let test = Test.new();
-      
-    run(test);
-
+    
+    run(test); 
     Web.sendHtml(html(test.resultsHtml()));
-
 }
 
 template html(results) {
@@ -23,9 +20,9 @@ template html(results) {
             <main>
                 <h1>> THT Unit Tests
 
-                    <a href="#test-results">> Skip to Results
+                <a href="#test-results">> Skip to Results
 
-                    {{ results }}
+                {{ results }}
 
             </main>
         </body>
@@ -60,12 +57,12 @@ function run(t) {
     libJson(t);
     libLitemark(t);
     libMath(t);
-  //  libMeta(t);
+    libMeta(t);
     libPerf(t);
     libPhp(t);
     libWeb(t);
     libGlobal(t);
-    libSettings(t);  
+    libSettings(t);
    // libMapDb(t);  
     libSession(t);
     libCache(t);
@@ -77,25 +74,20 @@ function runtimeErrors(t) {
 
     t.section('Runtime Errors');
 
-    t.dies(function () { 'abc'.sdf() }, 'non-existent method');
-    t.dies(function () { 'abc {1}'.fill(['foo']) }, 'bad fill value');
+    t.dies(F { 'abc'.sdf(); }, 'non-existent method');
 
-    t.dies(function () {
-        { a: 1 }.sdfsdf();
-    }, 'invalid method');
+    t.dies(F { 'abc {1}'.fill(['foo']); }, 'bad fill value');
 
-    t.dies(function () {
-         let a = 'sdf'.reverse;
-    }, 'missing parens in method call');
+    t.dies(F { { a: 1 }.sdfsdf(); }, 'invalid method');
 
-    let funFor = function () {
-        for (foo in 2) { }
-    };
+    t.dies(F { let a = 'sdf'.reverse; }, 'missing parens in method call');
+
+    let funFor = F { for (foo in 2) { } };
 
     t.dies(funFor, 'Invalid argument');
 
-    t.dies(function () { return 'abc'.length; }, 'length()');
-
+    t.dies(F {  return 'abc'.length; }, 'length()');
+    
 }
 
 function compileErrors(t) {
@@ -139,16 +131,16 @@ function compileErrors(t) {
     t.parserError('foreach (ary as a) { }', 'try: \`for\`');
     t.parserError('let ary = [];\nfor (ary as a) { }', 'item in list');
     t.parserError('$foo = 123',  'remove $ from name');
-    t.parserError('let a = 1 ^ 2',  '+^');
-    t.parserError('let a = 1 & 2',  '+&');
-    t.parserError('let a = 1 | 2',  '+|');
-    t.parserError('let a = 1 >> 2',  '+>');
-    t.parserError('let a = 1 << 2',  '+<');
+    t.parserError('let a = 1 ^ 2',  '^^^');
+    t.parserError('let a = 1 & 2',  '&&&');
+    t.parserError('let a = 1 | 2',  '|||');
+    t.parserError('let a = 1 >> 2',  '>>>');
+    t.parserError('let a = 1 << 2',  '<<<');
 
 
     t.section('Parser Errors - Misc');
 
-    t.parserError('asdasd', 'unknown variable', '');
+    t.parserError('asdasd;', 'unknown variable', '');
     t.parserError('if (a = 3) { }', 'assignment', 'if, missing paren');
     t.parserError('break;\nlet a = 3;', 'unreachable');
     t.parserOk('return;\nlet a = 3;', 'may return early');
@@ -172,7 +164,7 @@ function compileErrors(t) {
     t.parserError('let a = { FOO: `bar` };', 'camelCase');
     t.parserError('let a = { foo: `bar`, foo: 1 };', 'duplicate key');
     t.parserError('if (true) return;',   'Expected `{`');
-    t.parserError('print(`a`), print(`b`);', 'comma');
+    t.parserError('print(`a`), print(`b`);', 'Missing semicolon');
     t.parserError('let a = 1, b = 2;', 'Missing semicolon', '');
     t.parserError('let a = (1 + );', 'incomplete');
     t.parserError('let a = 2 + (1 * ) + 1;', 'incomplete');
@@ -210,6 +202,23 @@ function compileErrors(t) {
     t.parserError('/*\nsdf\n*/ d', 'missing newline');
     t.parserError('/*\nsdf', 'unclosed comment');
     t.parserError('template fooText() {\n};', 'missing newline'); // after }
+    t.parserOk('if (true)\n{ }',            'newline after `)`');
+    t.parserError('if\n(true)\n{ } ',       'newline after `if`');
+    t.parserError('let\na = 1;',            'newline after `let`');
+    t.parserError('for\n(el in list)',      'newline after `for`');
+    t.parserError('function\nfoo()',        'newline after `function`');
+    t.parserError('class\nFoo {}',          'newline after `class`');
+    t.parserError('let a = new\nFoo()',     'newline after `new`');   
+    t.parserOk('if (true) {\n}\nelse\n{ }', 'newline after `else`');
+    t.parserOk('for (a in [`a`])\n{ }',     'newline after `)`');
+    t.parserOk('function fn()\n{ }',        'newline after `)`');
+
+    t.parserError('let a = 1;  let b = 2;',  'Only one semicolon statement');
+    t.parserError('let a = 1; a = 2;',  'Only one semicolon statement');
+    t.parserOk('let a = b(F { c(); });',  'Statement in anon function');
+    t.parserError('let a = b(F { c(); d(); });',  'Only one semicolon statement');
+    t.parserOk('if (true) { b(); }',  'Statement in conditional block');
+    t.parserError('if (true) { b(); c(); }',  'Only one semicolon statement');
 
 
     t.section('Parser Errors - Spaces');
@@ -255,11 +264,7 @@ function compileErrors(t) {
     t.parserError('String.\n    random(4);', 'space after `.`');
     t.parserOk('String\n    .random(4);', 'newline before `.`');
 
-    t.parserOk('if (true)\n{ }',            'newline after `)`');
-    t.parserOk('else if (true)\n{ }',       'newline after `)`');
-    t.parserOk('if (true) {\n}\nelse\n{ }', 'newline after `else`');
-    t.parserOk('for (a in [`a`])\n{ }',     'newline after `)`');
-    t.parserOk('function fn()\n{ }',        'newline after `)`');
+
 
 
     t.section('Parser Errors - Templates');
@@ -390,13 +395,13 @@ function testOop(t) {
     t.ok(tc.html().unlocked() == '<b>Hello</b>\n', 'object template');
 
     t.ok(tc.getHidden() == 0, 'get state');
-    tc.setHidden(345)
+    tc.setHidden(345);
     t.ok(tc.getHidden() == 345, 'set state');
     t.ok(tc.allState()['hiddenNum'] == 345, 'all state');
 
-    t.ok(tc.dependency() == 'other', 'dependency')
+    t.ok(tc.dependency() == 'other', 'dependency');
 
-    t.dies(F { tc.state['abc'] = 123;  }, 'private state')
+    t.dies(F { tc.state['abc'] = 123;  }, 'private state');
 
     t.dies(F { tc.foo = 123; }, 'Fields locked after construction');
 
@@ -410,10 +415,10 @@ function testOop(t) {
     t.ok(tc.name == 'blue', 'zSetField');
 
     tc.zCallMethod('setHidden', [789]);
-    t.ok(tc.zCallMethod('getHidden') == 789, 'zCallMethod')
+    t.ok(tc.zCallMethod('getHidden') == 789, 'zCallMethod');
 
     t.ok(tc.okField == 'dynamic:okField', 'zDynamicGet ok');
-    t.dies(F { tc.badField = 1 }, 'zDynamicGet fail');
+    t.dies(F { tc.badField = 1; }, 'zDynamicGet fail');
 
     t.ok(tc.getSecretNumber() == 42, 'zDynamicCall');
 
@@ -582,7 +587,7 @@ function testFunctions(t) {
     t.dies(F () { t.checkArgsMap(true); }, 'Expect map. Got Flag');
 
     t.ok(t.checkArgsString(123), 'Number as string');
-    t.dies(F () { t.checkArgsNumber('123') }, 'String as number');
+    t.dies(F () { t.checkArgsNumber('123'); }, 'String as number');
 
     t.dies(F () { t.checkArgsMulti(true, 123, []); }, 'Multi (snl): bad #1');
     t.dies(F () { t.checkArgsMulti('', '123', []); }, 'Multi (snl): bad #2');
@@ -625,7 +630,7 @@ function testMaps(t) {
     t.section('Maps - dot access');
 
     t.ok(user.name == 'Drac', 'dot access');
-    t.dies(function () keep (user) { print(user.nameX) }, 'dot access - missing field dies');
+    t.dies(function () keep (user) { print(user.nameX); }, 'dot access - missing field dies');
 
 
     t.section('Maps - Missing values');
@@ -694,7 +699,6 @@ function testMaps(t) {
 
 function testMathAndLogic(t) {
 
-
     t.section('Math operators');
 
     let a = 2;
@@ -728,13 +732,25 @@ function testMathAndLogic(t) {
     t.dies(F { R 'a' % 2; }, 'Modulo string');
     t.dies(F { R true + 2; }, 'Add flag to number');
     t.dies(F { R {} + 2; }, 'Add Map to number');
-    t.dies(F { let aa = 1; aa += 'v'; }, '+= string');
+    t.dies(F { 
+        let aa = 1; 
+        aa += 'v'; }, '+= string');
     t.dies(F { R 1 > 'a'; }, 'number > string');
     t.dies(F { R 1 >= 'a'; }, 'number >= string');
     t.dies(F { R 1 < 'a'; }, 'number < string');
     t.dies(F { R 1 <= 'a'; }, 'number <= string');
     t.dies(F { R 2 ** 'a'; }, 'number ** string');
     t.dies(F { R 2 / 0; }, 'divide by zero');
+
+
+    t.section('Hex & Binary Numbers');
+
+    t.ok(0b10111 == 23, 'binary');
+    t.ok(0b10111 * 2 == 46, 'binary * dec');
+
+    t.ok(0x1f == 31, 'hex');
+    t.ok(0x1f * 2 == 62, 'hex * dec');
+
 
 
     t.section('Truth');
@@ -806,6 +822,13 @@ function testMathAndLogic(t) {
     t.ok((0).toFlag() == false, 'toFlag - false');
     t.ok((-1).toFlag() == true, 'toFlag - negative');
     t.ok((0.1).toFlag() == true, 'toFlag - float');
+
+
+    t.section('Float & Ints');
+
+    t.ok(5 == 5.0, '5 == 5.0');
+    t.ok(1.0 + 2.0 == 3.0, '1.0 + 2.0 == 3.0');
+
 }
 
 
@@ -883,7 +906,7 @@ function testControlFlow(t) {
     t.ok(a == 5, '&&= true');
     a = 0;
     a &&= 3;
-    t.ok(a == 0, '&&= false')
+    t.ok(a == 0, '&&= false');
     a = 0;
     a ||= 2;
     t.ok(a == 2, '||= true');
@@ -895,10 +918,10 @@ function testControlFlow(t) {
 
     a = 1;
 
-    if (true) { a = 2 }
+    if (true) { a = 2; }
     t.ok(a == 2, 'if true');
 
-    if (false) { a = 3 }
+    if (false) { a = 3; }
     t.ok(a == 2, 'if false');
 
     if (false) {
@@ -1007,11 +1030,11 @@ function testStrings(t) {
     t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode');
 
 
-    t.ok('false'.toFlag() == false, 'toFlag - false');
+    t.ok(''.toFlag() == false, 'toFlag - empty string');
+    t.ok('0'.toFlag() == true, 'toFlag - 0');
+    t.ok('false'.toFlag() == true, 'toFlag - false');
     t.ok('true'.toFlag() == true, 'toFlag - true');
-    t.ok('0'.toFlag() == false, 'toFlag - 0');
-    t.ok('null'.toFlag() == false, 'toFlag - null');
-
+    
     t.ok('123'.toNumber() == 123, 'toNumber');
     t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
 
@@ -1235,7 +1258,7 @@ function testStrings(t) {
 
     t.ok(hi.split(R'\s')[1] == 'World!', 'split regex');
     t.ok(hi.match(R'(\w+)!$')[1] == 'World', 'regex with dollar');
-    t.dies(F { 'longstringlongstring'.find(R'(?:\D+|<\d+>)*[!?]') }, 'regex error');
+    t.dies(F { 'longstringlongstring'.find(R'(?:\D+|<\d+>)*[!?]'); }, 'regex error');
 
     let multi = 'one\ntwo\nthree';
     t.ok(multi.split(R'\s').length() == 3, 'Newline regex');
@@ -1383,7 +1406,7 @@ function testLists(t) {
     list = ['a1', 'a10', 'a2'].sort({ type: 'regular' });
     t.ok(list.join('|') == 'a1|a10|a2', 'regular sort');
 
-    t.dies(F { ['a'].sort({ type: 'nope' }) }, 'unknown sort type');
+    t.dies(F { ['a'].sort({ type: 'nope' }); }, 'unknown sort type');
 
     list = ['a1', 'A2', 'a3', 'A4'].sort({ type: 'stringCase' });
     t.ok(list.join('|') == 'A2|A4|a1|a3', 'case sensitive');
@@ -1448,15 +1471,19 @@ function testBitwise(t) {
 
     t.section('Bitwise Operators');
 
-    t.ok((1 +| 2) == 3, 'bitwise OR (+|)');
-    t.ok((2 +& 3) == 2, 'bitwise AND (+&)');
-    t.ok((1 +^ 2) == 3, 'bitwise XOR (+^)');
+    t.ok((1 ||| 2) == 3, 'bitwise OR (|||)');
+    t.ok((2 &&& 3) == 2, 'bitwise AND (&&&)');
+    t.ok((1 ^^^ 2) == 3, 'bitwise XOR (^^^)');
 
-    t.ok(+~5 == -6, 'bitwise NOT (+~)');
+    t.ok(~~~5 == -6, 'bitwise NOT (~~~)');
 
-    t.ok((3 +< 2) == 12, 'bitwise shift LEFT (+<)');
-    t.ok((13 +> 2) == 3, 'bitwise shift RIGHT (+>)');
+    t.ok((3 <<< 2) == 12, 'bitwise shift LEFT (<<<)');
+    t.ok((13 >>> 2) == 3, 'bitwise shift RIGHT (>>>)');
 
+    t.ok((0b100 ||| 0b010) == 0b110, 'OR (|||) with binary number');
+    t.ok((0b100 &&& 0b110) == 0b100, 'AND (&&&) with binary number');
+    t.ok((0b100 ^^^ 0b110) == 0b010, 'XOR (^^^) with binary number');
+    t.ok((~~~0b110) == -7, 'NOT (~~~) with binary number');
 }
 
     
@@ -1629,11 +1656,14 @@ function libMath(t) {
 
     let rand = Math.random(6, 8);
     t.ok(rand >= 6 && rand <= 8, 'random');
+    t.ok(Math.floor(rand) == rand, 'random is int');
 
     let rnd = Math.random();
     t.ok(rnd >= 0.0 && rnd < 1.0, 'random float');
 
     t.ok(Math.round(Math.pi(), 2) == 3.14, 'rounded pi');
+    t.ok(Math.round(2.6) == 3, 'round up to int');
+    t.ok(Math.round(2.4) == 2, 'round down to int');
 
     t.ok(Math.clamp(5, 1, 10) == 5, 'clamp in boundary');
     t.ok(Math.clamp(20, 1, 10) == 10, 'clamp max');
@@ -1655,11 +1685,13 @@ function libMeta(t) {
 
       t.ok(Meta.functionExists('libMeta'), 'functionExists');
       t.ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments');
-      t.ok(Meta.noTemplateMode(), 'noTemplateMode ok');
-      t.dies(function () { failModeHtml(); }, 'noTemplateMode fail');
+
+ // TODO: templateMode spills over after error
+ //     t.ok(Meta.noTemplateMode(), 'noTemplateMode ok');
+ //     t.dies(function () { failModeHtml(); }, 'noTemplateMode fail');
 
       t.ok(Meta.functionExists('dynamicFunction'), 'dynamic function exists');
-      t.ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
+      t.ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function');
 }
 
 function metaCallMe() {
@@ -1705,7 +1737,7 @@ function libPhp(t) {
     t.ok(fl == 10, 'PHP - constant flags');
 
     t.ok(Php.call(L'strrev', ['abcdef']) == 'fedcba', 'call');
-    t.dies(F () { Php.call(L'nonexistent', [1, 2]) }, 'Non-existent PHP call');
+    t.dies(F () { Php.call(L'nonexistent', [1, 2]); }, 'Non-existent PHP call');
     t.dies(F () { Php.call(L'eval', ['print("hi");']); }, 'stop blacklisted function - by name');
     t.dies(F () { Php.call(L'ini_set', ['x', 'y']); }, 'stop blacklisted function - by match');
 
