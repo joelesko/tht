@@ -85,7 +85,7 @@ class ErrorHandler {
                     $error['file'] = null;
                 }
 
-                // PHP5: strpos($error['message'], 'Missing argument') !== false 
+                // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false 
                 // PHP 7
                 if (strpos($error['message'], 'ArgumentCountError') !== false) {
 
