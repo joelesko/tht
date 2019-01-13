@@ -10,6 +10,10 @@ class ORegex extends OVar {
         return $this->getPattern();
     }
 
+    function __toJson() {
+        return $this->__toString();
+    }
+
     function __construct ($pat, $flags='x') {
         $pat = str_replace('\\$', '$', $pat);  // unescape dollar from tokenizer
 
@@ -18,8 +22,8 @@ class ORegex extends OVar {
     }
 
     function getPattern () {
-        $pat = str_replace('~', '\~', $this->pattern);
-        return '~' . $pat . '~u' . $this->flags;
+        $pat = str_replace('/', '\\/', $this->pattern);
+        return '/' . $pat . '/u' . $this->flags;
     }
 
     function u_flags ($f) {

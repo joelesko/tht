@@ -4,6 +4,10 @@ namespace o;
 
 class OMap extends OBag {
 
+    function __toString() {
+        return json_encode($this->__toJson()); 
+    }
+
     static function create ($ary) {
         $m = new OMap ();
         $m->setVal($ary);

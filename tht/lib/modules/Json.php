@@ -5,7 +5,7 @@ namespace o;
 class u_Json extends StdModule {
 
     static function u_encode ($v) {
-        return json_encode($v);
+        return json_encode($v, JSON_UNESCAPED_UNICODE);
     }
 
     static function u_decode ($v) {
@@ -35,7 +35,7 @@ class u_Json extends StdModule {
         return $obj;
     }
 
-    // Make human-readable
+    // Make JSON output human-readable
     static function u_format($obj, $isStrict=false) {
 
         $tab = str_repeat(' ', 4);
@@ -43,21 +43,23 @@ class u_Json extends StdModule {
         $indentLevel = 0;
         $inString = false;
 
-        if (is_string($obj)) {
-            $obj = json_decode($obj);
-        }
-
         if ($obj === false) {
             return 'false';
         }
+        else if (is_null($obj)) {
+            return '(nothing)';
+        }
 
-        if (is_array($obj)) {
+        if (is_string($obj)) {
+            $obj = json_decode($obj);
+        }
+        else if (is_array($obj)) {
             $obj = u_Json::deepSortKeys($obj);
         }
 
         $rawJson = json_encode($obj);
-        $len = strlen($rawJson);
 
+        $len = strlen($rawJson);
         for ($i = 0; $i < $len; $i++) {
             $c = $rawJson[$i];
 
@@ -65,7 +67,7 @@ class u_Json extends StdModule {
                 $c = "\\'";
             }
             else if ($c === '"') {
-                if ($i > 0 && $rawJson[$i-1] !== '\\') {
+                if (($i > 0 && $rawJson[$i-1] !== '\\') || $i == 0) {
                     $inString = !$inString;
                     if (!$isStrict) { $c = "'"; }
                 }

@@ -2,7 +2,7 @@
 
 namespace o;
 
-class OModule {
+class OModule implements \JsonSerializable {
     
     private $namespace;
     private $baseName;
@@ -24,9 +24,23 @@ class OModule {
     function newObject($className, $args) {
         $qc = $this->namespace . "\\" . u_($className);
 
-        $o = new $qc ();
+        try {
+            $o = new $qc ();
+        }
+        catch (\Exception $e) {
+            Tht::error("Can't create object");
+        }
+
         $o->_init($args);
 
         return $o;  
+    }
+
+    function __toString() {
+        return '<<<' . Tht::cleanPackageName($this->baseName) . '>>>';
+    }
+
+    function jsonSerialize() {
+        return $this->__toString();
     }
 }

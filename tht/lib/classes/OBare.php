@@ -15,25 +15,22 @@ class OBare {
 
         $outs = [];
         foreach ($parts as $a) {
-            if (is_object($a) || is_array($a)) {
-                if ($a instanceof ONothing) {
+
+            if (is_string($a)) {
+                $a = preg_replace("/<<<(.*?)>>>/", '<$1>', $a);
+                if ($a === '') {
                     $a = '(nothing)';
-                } else if ($a instanceof OLockString) {
-                    $a = $a->__toString();
-                } else if ($a instanceof ORegex) {
-                    $a = $a->__toString();
-                } else if ($a instanceof OPassword) {
-                    $a = $a->__toString();
-                } else {
-                    $a = Tht::module('Json')->u_format($a);
                 }
             }
-            if ($a === true)  { $a = 'true'; }
-            if ($a === false) { $a = 'false'; }
+            else {
+                $a = Tht::module('Json')->u_format(json_encode($a, JSON_UNESCAPED_UNICODE));
+                $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
+            }
+            
             if (Tht::isMode('web')) {
                 $a = htmlentities($a);
             }
-            if ($a === '' || $a === null) { $a = '(nothing)'; }
+
             $outs []= $a;
         }
 

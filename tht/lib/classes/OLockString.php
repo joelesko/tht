@@ -16,8 +16,17 @@ class OLockString extends OVar {
     }
 
     function __toString() {
-        $s = substr(trim($this->str), 0, 30);
-        return "[LockString | $s]";
+        $maxLen = 30;
+        $len = strlen($this->str);
+        $s = substr(trim($this->str), 0, $maxLen);
+        if ($len > $maxLen) {
+            $s .= '…';
+        }
+        return "<<<LockString = $s>>>";
+    }
+
+    function jsonSerialize() {
+        return $this->__toString();
     }
 
     static function create ($className, $s) {

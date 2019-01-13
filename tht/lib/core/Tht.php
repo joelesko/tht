@@ -624,5 +624,19 @@ class Tht {
     static function module ($name) {
         return ModuleManager::getModule($name);
     }
+
+    // TODO: this is a bit messy, and user module names have duplication
+    static function cleanPackageName($p) {
+        $p = preg_replace('/\\\\+/', '/', $p);
+       
+        $parts = explode('/', $p);
+        $name = array_pop($parts);
+        $name = unu_($name);
+        $parts []= ucfirst($name);
+        $p = implode('/', $parts);
+        $p = str_replace('o/', 'std/', $p);
+        $p = str_replace('tht/', '', $p);
+        return $p;
+    }
 }
 

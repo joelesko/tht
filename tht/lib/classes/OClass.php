@@ -2,7 +2,7 @@
 
 namespace o;
 
-class OClass {
+class OClass implements \JsonSerializable {
 
     private $_fieldsLocked = false;
     private $_fields = [];
@@ -32,8 +32,18 @@ class OClass {
     }
 
     function __toString () {
+        if (method_exists($this, 'u_z_to_string')) {
+            return call_user_func_array([ $this, 'u_z_to_string' ], []);
+        }
         // TODO: clean namespace & prefix (reflection class)
-        return '[' . ltrim(get_called_class(), 'o\\') . ']';
+        return '<<<' . Tht::cleanPackageName(get_called_class()) . '>>>';
+    }
+
+    function jsonSerialize() {
+        if (method_exists($this, 'u_z_to_json')) {
+            return call_user_func_array([ $this, 'u_z_to_json' ], []);
+        }
+        return $this->__toString();
     }
 
     function __destruct() {

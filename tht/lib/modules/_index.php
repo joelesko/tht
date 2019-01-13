@@ -2,9 +2,18 @@
 
 namespace o;
 
-class StdModule {
+class StdModule implements \JsonSerializable {
+
     function __set ($k, $v) {
         Tht::error("Can't set property '$k' on '" . get_class($this) . "' standard module.");
+    }
+
+    function __toString() {
+        return '<<<' . Tht::cleanPackageName(get_called_class()) . '>>>';
+    }
+
+    function jsonSerialize() {
+        return $this->__toString();
     }
 }
 
