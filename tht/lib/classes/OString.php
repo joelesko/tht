@@ -619,7 +619,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_to_flag () {
         $v = trim($this->val);
-        if ($v === 'false' || $v === 'null' || $v === '0' || $v === '') {
+        if ($v === '') {
             return false;
         }
         return true;
