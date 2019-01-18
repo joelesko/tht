@@ -14,8 +14,8 @@ class OList extends OBag {
 
     function u_copy() {
         // php apparently copies the array when assigned to a new var
-        $a = uv($this->val);
-        return v($a);
+        $a = $this->val;
+        return OList::create($a);
     }
 
     function u_is_empty () {
@@ -41,7 +41,7 @@ class OList extends OBag {
             return $this->val[0];
         }
         else {
-            return array_slice($this->val, 0, $n);
+            return OList::create(array_slice($this->val, 0, $n));
         }
     }
 
@@ -55,7 +55,7 @@ class OList extends OBag {
             return $this->val[$len - 1];
         }
         else {
-            return array_slice($this->val, $len - $n, $n);
+            return OList::create(array_slice($this->val, $len - $n, $n));
         }
     }
 
@@ -88,7 +88,7 @@ class OList extends OBag {
         if ($len < 0) {
             $len = null;
         }
-        return array_slice($this->val, $pos, $len);
+        return OList::create(array_slice($this->val, $pos, $len));
     }
 
 
@@ -98,7 +98,7 @@ class OList extends OBag {
     function u_push ($v) {
         ARGS('*', func_get_args());
         array_push($this->val, $v);
-        return $this->val;
+        return $this;
     }
 
     // function u_push_first ($v) {
@@ -110,7 +110,7 @@ class OList extends OBag {
     function u_push_all ($a2) {
         ARGS('l', func_get_args());
         $this->val = array_merge($this->val, $a2->val);
-        return $this->val;
+        return $this;
     }
 
     function u_pop () {
@@ -149,7 +149,7 @@ class OList extends OBag {
             $v = $isAll ? $v->val : [$v];
             array_splice($this->val, $pos, 0, $v);
         }
-        return $this->val;
+        return $this;
     }
 
     // TODO: remove multiple
@@ -190,12 +190,12 @@ class OList extends OBag {
     // ORDER
 
     function u_reverse () {
-        return v(array_reverse($this->val));
+        return OList::create(array_reverse($this->val));
     }
 
     function u_shuffle () {
         shuffle($this->val);
-        return $this->val;
+        return $this;
     }
 
     function u_sort ($fnOrArgs=false) {
@@ -238,7 +238,7 @@ class OList extends OBag {
             sort($this->val);
         }
 
-        return $this->val;
+        return $this;
     }
 
     function u_sort_by_key ($key, $isDesc=false) {
@@ -253,7 +253,7 @@ class OList extends OBag {
                return ($a[$key] - $b[$key]) * $sort;
            }
         });
-        return $this->val;
+        return $this;
     }
 
     function u_join ($delim='') {

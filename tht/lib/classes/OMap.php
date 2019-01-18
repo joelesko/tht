@@ -19,7 +19,7 @@ class OMap extends OBag {
 
     function u_clear() {
         $this->val = OMap::create([]);
-        return $this->val;
+        return $this;
     }
 
     function u_copy() {
@@ -62,19 +62,19 @@ class OMap extends OBag {
     }
 
     function u_values () {
-        return array_values($this->val);
+        return OList::create(array_values($this->val));
     }
 
     function u_keys () {
-        return array_keys($this->val);
+        return OList::create(array_keys($this->val));
     }
 
     function u_reverse () {
-		return array_flip($this->val);
+		return OMap::create(array_flip($this->val));
     }
 
     function u_merge ($a2) {
-        return array_merge($this->val, $a2->val);
+        return OMap::create(array_merge($this->val, $a2->val));
     }
 }
 
