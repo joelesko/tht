@@ -154,7 +154,9 @@ class Security {
     // }
 
 	static function validatePhpFunction($func) {
-		if (in_array(strtolower($func), self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
+        $func = strtolower($func);
+        $func = preg_replace('/^\\\\/', '', $func);
+		if (in_array($func, self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
             Tht::error("PHP function is blacklisted: `$func`");
         }
 	}
@@ -167,7 +169,7 @@ class Security {
         if (!strlen($path)) {
             Tht::error("File path cannot be empty: `$path`");
         }
-        if (v('' . $path)->u_is_url()) {
+        if (v($path)->u_is_url()) {
             Tht::error("Remote URL not allowed: `$path`");
         }
 		if (strpos($path, '..') !== false) {
@@ -268,7 +270,11 @@ class Security {
         ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
         ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
 
+        self::validatePhpIni();
+    }
 
+    static function validatePhpIni() {
+        
         // Configs that are only set in .ini or .htaccess
         // Trigger an error if PHP is more strict than Tht.
         $thtMaxPostSize = intval(Tht::getConfig('maxPostSizeMb'));
@@ -318,16 +324,20 @@ class OPassword {
  		return '[Password]';
  	}
 
- 	function hash() {
+ 	function u_hash() {
  		if (!$this->hash) {
  			$this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
  		}
  		return $this->hash;
  	}
 
- 	function u_is_correct($otherPasswordHash) {
- 		return password_verify($this->plainText, $otherPasswordHash);
+ 	function u_is_correct($correctHash) {
+ 		return password_verify($this->plainText, $correctHash);
  	}
+
+    function u_danger_danger_plain_text() {
+        return $this->plainText;
+    }
 }
 
 
