@@ -121,8 +121,6 @@ class StringReader {
         if ($this->startOfLine) {
             if ($c === ' ') {
                 $this->indent += 1;
-            } else if ($c === '\t') {
-                $this->indent += 4;
             } else {
                 $this->startOfLine = false;
             }    
@@ -150,6 +148,7 @@ class StringReader {
         $numIndent = 0;
         while (true) {
             $c = $this->char1;
+            
             if ($c === ' ' && $isIndent) {
                 $numIndent += 1;
                 $this->next();
@@ -276,12 +275,13 @@ class StringReader {
     function slurpUntil($endChar) {
         $s = '';
         while (true) {
-            $c = $this->char1;
-            $this->next();
-            if ($c == $endChar) {
+            if ($this->isGlyph($endChar)) {
+                $this->nextFor($endChar);
                 break;
             }
+            $c = $this->char1;
             $s .= $c;
+            $this->next();
         }
         return $s;
     }

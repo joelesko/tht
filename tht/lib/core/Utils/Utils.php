@@ -30,9 +30,18 @@ function v ($v) {
 }
 
 // THT to PHP type
-// TODO: recursive unwrap for list and map values
 function uv ($v) {
-    return OMap::isa($v) || OList::isa($v) ? $v->val : $v;
+
+    if (OMap::isa($v) || OList::isa($v)) {
+        $r = $v->val;
+        foreach ($r as $k => $v) {
+            $r[$k] = uv($v);
+        }
+        return $r;
+    }
+    else {
+        return $v;
+    }
 }
 
 // Assert Number type value
@@ -74,8 +83,7 @@ function hasu_ ($v) {
 //.  m = map
 //   * = any
 
-// NOTE: Fewer args are already handled by PHP, but we could possibly trap it here too.
-// PERF: ~ 0.3 ms - not significant
+// NOTE: Fewer args are already handled by PHP.
 function ARGS($sig, $arguments) {
 
     $err = '';
@@ -98,7 +106,7 @@ function ARGS($sig, $arguments) {
                 $t = 'number';  
                 if ($s === 's') {
                     // allow numbers to be cast as strings
-                    continue;
+                    $t = 'string';
                 }
             }
             else if ($t === 'boolean') {
@@ -117,9 +125,6 @@ function ARGS($sig, $arguments) {
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
                 $name = $t;
-                // if ($name == 'object') {
-                //     $name = get_class($arg);
-                // }
                 $err = "expects argument $i to be type `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got a `" . $name . "` instead.";
                 break;
             }
