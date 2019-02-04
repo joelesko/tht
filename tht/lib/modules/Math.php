@@ -118,5 +118,35 @@ class u_Math extends StdModule {
         $res = base_convert($n, $fromBase, $toBase);
         return $toBase === 10 ? v($res)->u_to_number() : $res;
     }
+    // function u_peg($n, $pegs) {
+    //     ARGS('n*', func_get_args());
+
+    //     if (OMap::isa($pegs)) {
+    //         $pegs = $pegs->u_keys();
+    //     }
+
+    //     if (OList::isa($pegs)) {
+    //         $pegs = uv($pegs);
+    //         if (!count($pegs)) {
+    //             Tht:error('2nd argument of `Math.pegs()` has no elements.');
+    //         }
+    //         foreach ($pegs as $k => $p) {
+    //             $pegs[$k] = 0 + $p;
+    //         }
+    //         sort($pegs);
+    //         $peg = false;
+    //         foreach ($pegs as $p) {
+    //             if ($n >= $p) {
+    //                 $peg = $p;
+    //             } else if ($n < $p) {
+    //                 break;
+    //             }
+    //         }
+    //         return ($peg === false) ? $pegs[0] : $peg;
+    //     } else {
+    //         $n = floor($n / $pegs) * $pegs;
+    //         return is_int($pegs) ? (int)$n : (float)$n;
+    //     }
+    // }
 }
 
