@@ -31,14 +31,16 @@ class Tht {
         'pages'     =>   'pages',
         'modules'   =>   'modules',
         'config'    =>   'config',
-        'scripts'   =>   'scripts',
-        'localTht'  =>   '.tht', 
-        // 'phpLib'    =>   'php',
 
+        'misc'      =>   'misc',
+        'phpLib'      =>   'php',
+        'scripts'     =>   'scripts',
+
+        'localTht'  =>   '.tht', 
+        
         'data'      => 'data',
         'db'        =>   'db',
         'sessions'  =>   'sessions',
-        'uploads'   =>   'uploads',
         'files'     =>   'files',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
@@ -78,13 +80,14 @@ class Tht {
     // TODO: put all these in one registry function/file?
     static private function includeLibs() {
         
-        Tht::loadLib('Utils.php');
+        Tht::loadLib('utils/Utils.php');
+        Tht::loadLib('utils/StringReader.php');
+        Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
+
         Tht::loadLib('ErrorHandler.php');
         Tht::loadLib('Source.php');
-        Tht::loadLib('StringReader.php');
         Tht::loadLib('Runtime.php');
         Tht::loadLib('ModuleManager.php');
-
         Tht::loadLib('Security.php');
 
         Tht::loadLib('../classes/_index.php');
@@ -139,6 +142,7 @@ class Tht {
 
     static public function handleShutdown() {
         Tht::clearMemoryBuffer();
+        Tht::module('Web')->endGzip();
     }
 
     static private function init () {
@@ -272,10 +276,12 @@ class Tht {
         Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
         Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
         Tht::$paths['config']    = Tht::path('app', Tht::$APP_DIR['config']);
-        Tht::$paths['scripts']   = Tht::path('app', Tht::$APP_DIR['scripts']);
         Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
-        // Tht::$paths['phpLib']    = Tht::path('app', Tht::$APP_DIR['phpLib']);
+        Tht::$paths['misc']      = Tht::path('app', Tht::$APP_DIR['misc']);
 
+        // misc subdirs
+        Tht::$paths['scripts']   = Tht::path('misc', Tht::$APP_DIR['scripts']);
+        Tht::$paths['phpLib']    = Tht::path('misc', Tht::$APP_DIR['phpLib']);
 
         // data subdirs
         Tht::$paths['db']          = Tht::path('data',    Tht::$APP_DIR['db']);
@@ -287,7 +293,6 @@ class Tht {
         Tht::$paths['counter']     = Tht::path('data',    Tht::$APP_DIR['counter']);
         Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
         Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
-
 
         // file paths
         Tht::$paths['configFile']         = Tht::path('config',   Tht::$APP_FILE['configFile']);
@@ -330,6 +335,11 @@ class Tht {
 
     // [security] clear out super globals
     static private function initPhpGlobals () {
+
+        // Avoid timezone warning
+        if (!ini_get('date.timezone')) {
+            date_default_timezone_set('UTC');
+        }
 
         Tht::$data['phpGlobals'] = [
             'get'    => $_GET,
@@ -408,8 +418,9 @@ class Tht {
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
-          //  "compressOutput"       => true,  // currently not used
+            "compressOutput"       => true, 
             "sessionDurationMins"  => 120,
+            'hitCounter'           => true,
 
             // security
             "allowFileAccess"         => false,
