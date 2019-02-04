@@ -20,10 +20,6 @@ class u_File extends StdModule {
 
     private $skipSandbox = false; 
 
-    function __construct() {
-        $this->skipSandbox = Security::isOpenFileSandbox();
-    }
-
     function _call ($fn, $args=[], $validationList='', $checkReturn=true) {
 
         Tht::module('Meta')->u_no_template_mode();

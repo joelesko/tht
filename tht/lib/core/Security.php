@@ -9,16 +9,12 @@ class Security {
 	static private $CSP_NONCE = '';
 	static private $CSRF_TOKEN_LENGTH = 64;
 	static private $NONCE_LENGTH = 40;
-    // static private $MIN_FORM_SUBMIT_TIME_SECS = 2;
 
 	static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
     static private $isCrossOrigin = null;
     static private $isCsrfTokenValid = null;
-    // static private $isFormSubmittedByHuman = null;
-
-    static private $isOpenFileSandbox = false;
 
     static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
 
@@ -50,8 +46,6 @@ class Security {
         'unserialize',
         'url_exec',
     ];
-
-    
 
 	static function createPassword ($plainText) {
 		return new OPassword ($plainText);
@@ -136,23 +130,6 @@ class Security {
         return self::$isCsrfTokenValid;
 	}
 
-    // static function isFormSubmittedByHuman() {
-
-    //     if (!is_null(self::$isFormSubmittedByHuman)) {
-    //         return self::$isFormSubmittedByHuman;
-    //     }
-
-    //     self::$isFormSubmittedByHuman = false;
-
-    //     // Client (human) should take longer than 2 seconds before submitting
-    //     $formLoadTime = Tht::module('Session')->u_get('formLoadTime', 0);
-    //     if (time() >= $formLoadTime + self::$MIN_FORM_SUBMIT_TIME_SECS) {
-    //         self::$isFormSubmittedByHuman = true;
-    //     }
-
-    //     return self::$isFormSubmittedByHuman;
-    // }
-
 	static function validatePhpFunction($func) {
         $func = strtolower($func);
         $func = preg_replace('/^\\\\/', '', $func);
@@ -198,6 +175,7 @@ class Security {
         }
     }
 
+    // TODO: Validate that form is submit by human?
     static function isCrossOrigin () {  
 
         if (!is_null(self::$isCrossOrigin)) {
@@ -299,15 +277,10 @@ class Security {
 
     // Register an un-sandboxed version of File, for internal use.
     static function registerInternalFileModule() {
-    	self::$isOpenFileSandbox = true;
-    	ModuleManager::registerStdModule('*File', new u_File ());  
-    	self::$isOpenFileSandbox = false;
+        $f = new u_File ();
+        $f->u_danger_danger_no_sandbox();
+    	ModuleManager::registerStdModule('*File', new u_File ());
     }
-
-    static function isOpenFileSandbox() {
-    	return self::$isOpenFileSandbox;
-    }
-
 }
 
 // Wrapper for incoming passwords to prevent leakage of plaintext
