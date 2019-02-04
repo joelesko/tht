@@ -1,22 +1,31 @@
 <?php
 
+// types of uses:
+//   key/value (ad hoc indexing)
+//   lists indexed by key (e.g. userId)
+//   how to order by a subkey? (e.g. most xp? lastVisitDate?)
+// re-add isDeleted
+// auto index numeric values?
+// performant way to iterate through many rows
+// one time query to get list of all tables and databases?  (a registry table on seperate db)
+// just check if database file exists on first access 
+
+
 namespace o;
 
 /*
-
-	CREATE TABLE map_db (
-	    id integer PRIMARY KEY,
-	    bucket text NOT NULL,
-	    key text NOT NULL,
-	    createDate INTEGER,
-	    isDeleted INTEGER,
-	    data TEXT
+	CREATE TABLE maps (
+		id integer PRIMARY KEY,
+		bucket text NOT NULL,
+		key text NOT NULL,
+		createDate INTEGER,
+		data TEXT
 	);
 
-	CREATE INDEX i_map_db_bucket ON map_db (bucket);
-	CREATE INDEX i_map_db_key ON map_db (key);
-	CREATE INDEX i_map_db_create_date ON map_db (createDate);
-
+	CREATE INDEX i_maps_bucket_key ON maps (bucket, key);
+	CREATE INDEX i_maps_bucket ON maps (bucket);
+	CREATE INDEX i_maps_key ON maps (key);
+	CREATE INDEX i_maps_create_date ON maps (createDate);
 */
 
 class u_MapDb extends StdModule {
@@ -44,40 +53,52 @@ class u_MapDb extends StdModule {
 			'createDate' => time(),
 			'bucket'     => $bucket,
 			'key'        => $key, 
-			'isDeleted'  => 0,
 			'data'       => json_encode(uv($map)),
 		];
 
-		$this->dbh->u_insert_row('map_db', $record);
+		$this->dbh->u_insert_row('maps', OMap::create($record));
 
-		return true;
+		return $this->dbh->u_last_insert_id();
 	}
 
-	public function u_select_map($bucket, $id) {
+	public function u_select_id($bucket, $id) {
 
 		$this->connect();
 
 		if (!is_numeric($id)) {
 			Tht::error('selectMap() argument `id` must be a Number.');
 		}
-		$sql = new \o\SqlLockString('select * from map_db where bucket = {bucket} and id = {id} limit 1');
+		$sql = new \o\SqlLockString('select * from maps where bucket = {bucket} and id = {id} limit 1');
 		$sql->u_fill([ 'bucket' => $bucket, 'id' => $id ]);
 
 		$row = $this->dbh->u_select_row($sql);
 		return $this->convertRowToMap($row);
 	}
 
+	// public function u_update_map($bucket, $id, $map) {
+
+	// 	$this->connect();
+
+	// 	if (!is_numeric($id)) {
+	// 		Tht::error('selectMap() argument `id` must be a Number.');
+	// 	}
+	// 	$where = new \o\SqlLockString('where bucket = {bucket} and id = {id} limit 1');
+	// 	$where->u_fill([ 'bucket' => $bucket, 'id' => $id, 'data' => ]);
+
+	// 	$row = $this->dbh->u_update_rows('map_db', [ 'data' => $map ], $where);
+	// 	return $this->convertRowToMap($row);
+	// }
+
 
 	// TODO: 
-	// optional key
 	// older than / younger than createDate
-	// limit, order by
-	public function u_select_maps($bucket, $key='', $limit=-1) {
+	// limit
+	public function u_select_maps($bucket, $key='', $limit=100) {
 
 		$this->connect();
 
-		$sql = new \o\SqlLockString('select * from map_db where bucket = {bucket} and key = {key} order by createDate desc');
-		$sql->u_fill([ 'bucket' => $bucket, 'key' => $key ]);
+		$sql = new \o\SqlLockString('select * from maps where bucket = {bucket} and key = {key} order by id desc limit {limit}');
+		$sql->u_fill([ 'bucket' => $bucket, 'key' => $key, 'limit' => $limit ]);
 
 		$rows = $this->dbh->u_select_rows($sql);
 
@@ -86,7 +107,7 @@ class u_MapDb extends StdModule {
 			$maps []= $this->convertRowToMap($row);
 		}
 
-		return $maps;
+		return OList::create($maps);
 	}
 
 	private function convertRowToMap($row) {
@@ -94,24 +115,24 @@ class u_MapDb extends StdModule {
 		$map = json_decode($row['data'], true);
 		$map['id'] = intval($row['id']);
 		$map['createDate'] = intval($row['createDate']);
-		return $map;
+		return OMap::create($map);
 	}
 
 	public function u_buckets() {
 		$this->connect();
-		$sql = new \o\SqlLockString('select bucket, count(*) numMaps from map_db group by bucket order by bucket ASC');
+		$sql = new \o\SqlLockString('select bucket, count(*) numMaps from maps group by bucket order by bucket ASC');
 		$rows = $this->dbh->u_select_rows($sql);
 		foreach ($rows as $row) {
 			$row['numMaps'] = intval($row['numMaps']);
 		}
-		return $rows;
+		return OList::create($rows);
 	}
 
 	public function u_delete_bucket($bucket) {
 		$this->connect();
 		$where = new OLockString('bucket = {0}');
 		$where->u_fill($bucket);
-		$this->dbh->u_delete_rows('map_db', $where);
+		$this->dbh->u_delete_rows('maps', $where);
 		return true;
 	}
 
@@ -119,7 +140,7 @@ class u_MapDb extends StdModule {
 		$this->connect();
 		$where = new OLockString('bucket = {0} and id = {1}');
 		$where->u_fill($bucket, $id);
-		$this->dbh->u_delete_rows('map_db', $where);
+		$this->dbh->u_delete_rows('maps', $where);
 		return true;
 	}
 
@@ -127,7 +148,7 @@ class u_MapDb extends StdModule {
 		$this->connect();
 		$where = new OLockString('bucket = {0} and key = {1}');
 		$where->u_fill($bucket, $key);
-		$this->dbh->u_delete_rows('map_db', $where);
+		$this->dbh->u_delete_rows('maps', $where);
 		return true;
 	}
 
