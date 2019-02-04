@@ -10,6 +10,7 @@ class Runtime {
     static $PHP_TO_TYPE = [
         'string'  => 'OString',
         'array'   => 'OList',
+        'map'     => 'OMap',
         'boolean' => 'OFlag',
         'null'    => 'ONothing',
         'double'  => 'ONumber',
@@ -101,6 +102,11 @@ class Runtime {
         } else {
             Tht::error("Can't combine (~) an array or object.");
         }
+    }
+
+    static function spaceship($a, $b) {
+        if ($a === $b) { return 0; }
+        return $a > $b ? 1 : -1;
     }
 
 }
