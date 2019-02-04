@@ -4,11 +4,19 @@ namespace o;
 
 // TODO: test all on Windows (path separator)
 
-// Not implemented. No plans to, unless necessary.
-//   chdir, getcwd, is_link, disk_free_space, disk_total_space
+// Not implemented. No plans to, unless necessary:
+//   chdir, getcwd, is_link, 
+
+// TODO:
 //   is_readable, is_writeable, is_executable
+//   disk_free_space, disk_total_space
 
 class u_File extends StdModule {
+
+    var $suggestMethod = [
+        'size' => 'getSize',
+        'open' => 'read',
+    ];
 
     private $skipSandbox = false; 
 
@@ -39,6 +47,10 @@ class u_File extends StdModule {
         }
 
         return $returnVal;
+    }
+
+    function u_danger_danger_no_sandbox() {
+        $this->skipSandbox = true;
     }
 
     // Validate argument against pattern
@@ -161,7 +173,8 @@ class u_File extends StdModule {
         ];
     }
 
-    function u_join_path ($parts) {
+    function u_join_path () {
+        $parts = func_get_args();
         $path = implode('/', uv($parts));
         $path = Security::validatePath($path, false);
         return $path;
@@ -245,6 +258,10 @@ class u_File extends StdModule {
         $p = Security::validatePath($p, false);
         $parentPath = preg_replace('~/.*?$~', '', $p);
         return strlen($parentPath) ? $parentPath : '/';
+    }
+
+    function u_app_dir() {
+        return Tht::path('app');
     }
 
 
@@ -383,19 +400,27 @@ class u_File extends StdModule {
         }
 
         $files = $this->_call('scandir', [$d], 'dir,exists');
-        if ($filter && $filter !== 'none') {
+      
             $filteredFiles = [];
             foreach ($files as $f) {
-                $isDir = is_dir($f);
-                if ($filter === 'dirs') {
-                    if ($isDir) {  $filteredFiles []= $f;  }
-                } else if ($filter === 'files') {
-                    if (!$isDir) {  $filteredFiles []= $f;  }
+                if ($f === '.' || $f === '..' || $f === '.DS_Store') { 
+                    continue; 
+                }
+
+                if ($filter && $filter !== 'none') {
+                    $isDir = is_dir($f);
+                    if ($filter === 'dirs') {
+                        if ($isDir) {  $filteredFiles []= $f;  }
+                    } else if ($filter === 'files') {
+                        if (!$isDir) {  $filteredFiles []= $f;  }
+                    }
+                }
+                else {
+                    $filteredFiles []= $f;
                 }
             }
             $files = $filteredFiles;
-        }
-
+    
         return $files;
     }
 
