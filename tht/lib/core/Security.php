@@ -279,7 +279,7 @@ class Security {
     static function registerInternalFileModule() {
         $f = new u_File ();
         $f->u_danger_danger_no_sandbox();
-    	ModuleManager::registerStdModule('*File', new u_File ());
+    	ModuleManager::registerStdModule('*File', $f);
     }
 }
 
