@@ -24,6 +24,7 @@ class u_Litemark extends StdModule {
     private $blockContent = '';
     private $toc = [];
     private $numParas = 0;
+    private $reader = null;
 
     var $commands = [
 
@@ -60,6 +61,19 @@ class u_Litemark extends StdModule {
     function __construct($flags=[]) {
         $this->flags = $flags;
         $this->flags['html'] = isset($this->flags['html']) && $this->flags['html'];
+        if (isset($flags['reader'])) {
+            $this->reader = $flags['reader'];
+        }
+    }
+
+    function error($msg) {
+        if ($this->reader) {
+            // TODO: try to make this more exact
+            $this->reader->error($msg, '1,0');
+        }
+        else {
+            Tht::error($msg);
+        }
     }
 
     function u_parse_file($file) {
@@ -296,6 +310,7 @@ class u_Litemark extends StdModule {
         return false;
     }
 
+    // TODO: refactor all this
     function parseInline ($line) {
 
         $str = '';
@@ -445,7 +460,7 @@ class u_Litemark extends StdModule {
                     $cmd .= $c;
                     $i += 1;
                     if ($i >= $len) {
-                        Tht::error('Unclosed command tag: `[' . substr($cmd, 0, 10) . "...`");
+                        $this->error('Unclosed command tag: `[' . substr($cmd, 0, 10) . "...`");
                     }
                 }
                 $str .= $cmdOut;
@@ -460,6 +475,13 @@ class u_Litemark extends StdModule {
             }
         }
 
+        $str .= $this->closeInlineTags($tags);
+
+        return $str;
+    }
+
+    function closeInlineTags($tags) {
+        $str = '';
         while (true) {
             if (!count($tags)) { break; }
             $tag = array_pop($tags);
@@ -467,8 +489,8 @@ class u_Litemark extends StdModule {
                 $str .= "</$tag>";
             }
         }
-
         return $str;
     }
+
 }
 
