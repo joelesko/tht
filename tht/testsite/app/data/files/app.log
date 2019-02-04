@@ -849,3 +849,82 @@
 [2019-01-02 10:42:42]  Url `abstractClass.tht` is missing hyphens. Ex: file-name = fileName.tht
 [2019-01-02 17:39:04]  Url `abstractClass.tht` is missing hyphens. Ex: file-name = fileName.tht
 [2019-01-02 17:39:07]  Url `abstractClass.tht` is missing hyphens. Ex: file-name = fileName.tht
+[2019-01-16 10:35:56]  ######### ThtException #########
+
+    Unknown method `join` for class `Map`.
+
+    1116:  t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join');
+
+    --- Trace ---
+
+     0 |  OClass, line 116 - Tht.error()
+     1 |  pages/home.tht, line 1116 - Class.__call()
+     2 |  pages/home.tht, line 38 - pages\home\testStrings()
+     3 |  pages/home.tht, line 7 - pages\home\run()
+     4 |  WebMode, line 244 - call_user_func()
+     5 |  WebMode, line 207 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 127 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 31 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2019-01-16 10:36:05]  ######### ThtException #########
+
+    Unknown method `join` for class `Map`.
+
+    1116:  t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join');
+
+    --- Trace ---
+
+     0 |  OClass, line 116 - Tht.error()
+     1 |  pages/home.tht, line 1116 - Class.__call()
+     2 |  pages/home.tht, line 38 - pages\home\testStrings()
+     3 |  pages/home.tht, line 7 - pages\home\run()
+     4 |  WebMode, line 244 - call_user_func()
+     5 |  WebMode, line 207 - WebMode.callAutoFunction()
+     6 |  WebMode, line 30 - WebMode.executeWebController()
+     7 |  Tht, line 127 - WebMode.main()
+     8 |  Tht, line 68 - Tht.main()
+     9 |  tht, line 31 - Tht.start()
+    10 |  thtApp, line 7 - require_once()
+
+[2019-01-26 00:56:48]  ######### RuntimeError #########
+
+    Rtrim() expects parameter 1 to be string, array given
+
+    115:  $fullUrl = rtrim($u, '/');
+
+    --- Trace ---
+
+     0 |  Web, line 115 - rtrim()
+     1 |  Web, line 50 - Web.parseUrl()
+     2 |  WebMode, line 72 - Web.request()
+     3 |  WebMode, line 53 - WebMode.getScriptPath()
+     4 |  WebMode, line 28 - WebMode.initRoute()
+     5 |  Tht, line 129 - WebMode.main()
+     6 |  Tht, line 70 - Tht.main()
+     7 |  tht, line 31 - Tht.start()
+     8 |  thtApp, line 7 - require_once()
+
+[2019-01-28 19:21:54]  ######### ThtException #########
+
+    Unknown method `tempValidateInput` for module `Web`.
+
+    1873:  return Web.tempValidateInput(v, type)['value']; // FormValidator.validate(v, type)['value'];
+
+    --- Trace ---
+
+     0 |  index, line 35 - Tht.error()
+     1 |  pages/home.tht, line 1873 - StdModule.__call()
+     2 |  pages/home.tht, line 1833 - pages\home\formValidate()
+     3 |  pages/home.tht, line 63 - pages\home\libWeb()
+     4 |  pages/home.tht, line 7 - pages\home\run()
+     5 |  WebMode, line 247 - call_user_func()
+     6 |  WebMode, line 210 - WebMode.callAutoFunction()
+     7 |  WebMode, line 30 - WebMode.executeWebController()
+     8 |  Tht, line 129 - WebMode.main()
+     9 |  Tht, line 70 - Tht.main()
+    10 |  tht, line 31 - Tht.start()
+    11 |  thtApp, line 7 - require_once()
+

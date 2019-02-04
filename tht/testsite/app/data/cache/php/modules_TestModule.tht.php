@@ -1,7 +1,7 @@
 <?php
 
-namespace tht\modules\TestModule;
-\o\ModuleManager::registerUserModule('modules/TestModule.tht','tht\\modules\\TestModule');
+namespace tht\modules\TestModule_x;
+\o\ModuleManager::registerUserModule('modules/TestModule.tht','tht\\modules\\TestModule_x');
 
 \o\v(\o\ModuleManager::getModule('TestModule'))->u_module_var = "mod";
 function u_bare_fun ($u_name)  {

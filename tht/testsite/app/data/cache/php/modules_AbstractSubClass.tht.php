@@ -33,6 +33,11 @@ function u_set_prop ($u_val)  {
  return new \o\ONothing(__METHOD__);
  
 }
+function u_z_on_destroy ()  {
+  \o\OBare::u_print("BYE!");
+ return new \o\ONothing(__METHOD__);
+ 
+}
 
 }
 class u__extra_class extends \o\OClass {
@@ -46,6 +51,6 @@ function u_hey ()  {
 
 
 
-/* SOURCE={"file":"modules\/AbstractSubClass.tht","6":2,"7":4,"8":5,"12":8,"13":10,"14":11,"15":13,"16":16,"19":18,"20":19,"21":20,"22":21,"26":24,"27":25,"31":28,"32":29,"38":33,"39":35,"40":36} */
+/* SOURCE={"file":"modules\/AbstractSubClass.tht","6":2,"7":4,"8":5,"12":8,"13":10,"14":11,"15":13,"16":16,"19":18,"20":19,"21":20,"22":21,"26":24,"27":25,"31":28,"32":29,"36":32,"37":33,"43":37,"44":39,"45":40} */
 
 ?>

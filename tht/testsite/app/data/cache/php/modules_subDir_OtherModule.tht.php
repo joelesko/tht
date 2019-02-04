@@ -1,7 +1,7 @@
 <?php
 
-namespace tht\modules\subDir\OtherModule;
-\o\ModuleManager::registerUserModule('modules/subDir/OtherModule.tht','tht\\modules\\subDir\\OtherModule');
+namespace tht\modules\subDir\OtherModule_x;
+\o\ModuleManager::registerUserModule('modules/subDir/OtherModule.tht','tht\\modules\\subDir\\OtherModule_x');
 
 function u_ok ($u_check)  {
   return \o\Runtime::concat("ok:", $u_check);
