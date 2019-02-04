@@ -49,6 +49,10 @@ class ErrorHandler {
             $phpLine = $trace[0]['line'];
         }
 
+        if (preg_match("/function '(.*?)' not found or invalid function name/i", $message, $m)) {
+                $message = "PHP function `" . $m[1] . "` does not exist.";
+        }
+
         ErrorHandler::printError([
             'type'    => 'RuntimeError',
             'message' => $message,
@@ -62,51 +66,56 @@ class ErrorHandler {
 
         $error = error_get_last();
 
-        if ($error) {
+        if (!$error) {
+            return;
+        }
 
-            $types = [ E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ];
-            if (in_array($error['type'], $types)) {
+        $types = [ E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ];
+        if (!in_array($error['type'], $types)) {
+            return;
+        }
 
-                $error['function'] = '';
-                $trace = [ $error ];
+        $error['function'] = '';
+        $trace = [ $error ];
 
-                preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
-                if ($m) {
-                    $max = Tht::getConfig('memoryLimitMb');
-                    $error['message'] = "Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.";
-                    $error['file'] = null;
-                }
+        preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
+        if ($m) {
+            $max = Tht::getConfig('memoryLimitMb');
+            $error['message'] = "Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.";
+            $error['file'] = null;
+        }
 
-                preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
-                if ($m) {
-                    $max = Tht::getConfig('maxExecutionTimeSecs');
-                    $secs = v('second')->u_plural($max);
-                    $error['message'] = "Max execution time exceeded ($max $secs).  See `maxExecutionTimeSecs` in `app.jcon`.";
-                    $error['file'] = null;
-                }
+        preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
+        if ($m) {
+            $max = Tht::getConfig('maxExecutionTimeSecs');
+            $error['message'] = "Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.";
+            $error['file'] = null;
+        }
 
-                // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false 
-                // PHP 7
-                if (strpos($error['message'], 'ArgumentCountError') !== false) {
+        // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false 
+        // PHP 7
+        if (strpos($error['message'], 'ArgumentCountError') !== false) {
 
-                    // parse stack trace inside of message
-                    preg_match('/Too few arguments to function (.*?),/i', $error['message'], $callee);
-                    preg_match('/#0\s+(.*?)\((\d+)\):/i', $error['message'], $caller);
+            // parse stack trace inside of message
+            preg_match('/Too few arguments to function \\S+\\\\(.*?\\(\\))/i', $error['message'], $callee);
+            preg_match('/passed in (\S+?) on line (\d+)/i', $error['message'], $caller);
 
-                    $error['message'] = 'Not enough arguments to function: `' . $callee[1] . '`';
-                    $error['file'] = $caller[1];
-                    $error['line'] = $caller[2];
-                }
-
-                ErrorHandler::printError([
-                    'type'    => 'RuntimeError',
-                    'message' => $error['message'],
-                    'phpFile' => $error['file'],
-                    'phpLine' => $error['line'],
-                    'trace'   => null
-                ]);
+            if ($caller) {
+                $error['message'] = "Not enough argument passed to `" . $callee[1] . "`";
+                $error['file'] = $caller[1];
+                $error['line'] = $caller[2];
             }
         }
+
+        // TODO: handle data/cache/php filepath if in error message
+
+        ErrorHandler::printError([
+            'type'    => 'RuntimeError',
+            'message' => $error['message'],
+            'phpFile' => $error['file'],
+            'phpLine' => $error['line'],
+            'trace'   => null
+        ]);
     }
 
     // Errors not related to a source file (e.g. config errors)
@@ -199,13 +208,13 @@ class ErrorHandler {
         ]);
     }
 
-    static function handleCompilerError ($msg, $srcToken, $srcFile) {
+    static function handleCompilerError ($msg, $srcToken, $srcFile, $isLineError=false) {
 
         $srcPos = explode(',', $srcToken[TOKEN_POS]);
         $src = [
             'file' => $srcFile,
             'line' => $srcPos[0],
-            'pos'  => $srcPos[1]
+            'pos'  => $isLineError ? -1 : $srcPos[1]
         ];
 
         ErrorHandler::printError([
@@ -270,6 +279,9 @@ class ErrorHandler {
                 Tht::module('Web')->u_send_error(500);
             }
         }
+
+        // $eh->sendErrorToHq($prepError);
+
         exit(1);
     }
 
@@ -358,7 +370,7 @@ class ErrorHandler {
         //     return;
         // }
 
-        $logPath = Tht::getRelativePath('data', Tht::path('logFile') );
+       // $logPath = Tht::getRelativePath('data', Tht::path('logFile') );
 
         // Format heading
         $heading = v(v($error['type'])->u_to_token_case(' '))->u_to_title_case();
@@ -378,7 +390,7 @@ class ErrorHandler {
             $error['context'] = 'See <a href="https://tht.help/reference/format-checker">Format Checker rules</a>.';
         }
 
-        $isLongSrc = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
+        $error['isLongSrc'] = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
 
         // convert backticks to code
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="tht-error-code">$1</span>', $error['message']);
@@ -390,9 +402,16 @@ class ErrorHandler {
         $error['srcLine'] = preg_replace("/\^$/", '</span><span class="tht-caret">&uarr;</span>', $error['srcLine']);
         $error['srcLine'] = '<span class="tht-color-code theme-dark">' . $error['srcLine'];
 
+
+        $this->printWebTemplate($heading, $error);
+
+        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')->u_unlocked();
+        print($colorJs);
+    }
+
+    function printWebTemplate($heading, $error) {
+
         ?>
-
-
 
         <div style='position: fixed; overflow: auto; z-index: 99999; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
             <style scoped>
@@ -425,7 +444,7 @@ class ErrorHandler {
                 <?php } ?>
 
                 <?php if ($error['srcLine']) { ?>
-                <div class='tht-error-srcline <?= $isLongSrc ? 'tht-src-small' : '' ?>'><?= $error['srcLine'] ?></div>
+                <div class='tht-error-srcline <?= $error['isLongSrc'] ? 'tht-src-small' : '' ?>'><?= $error['srcLine'] ?></div>
                 <?php } ?>
 
                 <?php if ($error['trace']) { ?>
@@ -440,10 +459,6 @@ class ErrorHandler {
         </div>
 
         <?php
-
-
-        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')->u_unlocked();
-        print($colorJs);
     }
 
     function printToConsole ($out) {
@@ -513,7 +528,7 @@ class ErrorHandler {
 
         // pos marker
         $marker = "\n";
-        if ($pos !== null && preg_match('/\S/', $line)) {
+        if ($pos !== null && $pos >= $numSpaces && preg_match('/\S/', $line)) {
             $pointerPos = max($pos - ($numSpaces + 1) + strlen($prefix), 0);
             $fmtLine .= "\n";
             $marker = str_repeat(' ', $pointerPos) . '^';
@@ -528,6 +543,9 @@ class ErrorHandler {
         $clean = $raw;
         $clean = $this->cleanVars($clean);
 
+        // Suppress leaked stack trace
+        $clean = preg_replace('/stack trace:.*/is', '', $clean);
+
         // Make PHP error messages easier to read
         $clean = preg_replace('/Call to undefined function (.*)\(\)/', 'Unknown function: `$1`', $clean);
         $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: `$1`', $clean);
@@ -536,8 +554,13 @@ class ErrorHandler {
         $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
 
+        // PHP7 errors
+        $clean = preg_replace('/Uncaught error:\s*/i', '', $clean);
+        $clean = preg_replace('/in .*?.php:\d+/i', '', $clean);
+        $clean = preg_replace('/[a-z_]+\\\\/i', '', $clean);  // namespaces
+        
         if (preg_match('/Syntax error, unexpected \'return\'/i', $clean)) {
-            $clean = 'Invalid statement at end of function.';
+            $clean = 'Invalid statement at end of function.  Missing `return`?';
         }
         
         // Strip root directory from paths
@@ -621,9 +644,22 @@ class ErrorHandler {
     }
 
     function doDisplayWebErrors () {
-
+        $host = Tht::module('Web')->u_request()->url['host'];
+        if ($host == 'localhost') {
+            return true;
+        }
         return Source::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;
     }
+
+    // function sendErrorToHq($error) {
+
+    //     $sendError = [
+    //         'srcLine' => $error['srcLine'],
+    //         'message' => $error['message'],   
+    //         'pos' => $error['src']['pos'] ?: 0,    
+    //     ];
+    //     print_r($sendError);
+    // }
 
 
 }
