@@ -8,21 +8,23 @@ class OClass implements \JsonSerializable {
     private $_fields = [];
     protected $u_state = null;
 
+    protected $suggestMethod = [];
+
     function _init($args) {
 
         $this->u_state = OMap::create([]);
 
         // convert PHP arrays to THT 
-        foreach (get_object_vars($this) as $k => $v) {
-            if (is_array($this->$k)) {
-                if (isset($this->$k['___map'])) {
-                    unset($this->$k['___map']);
-                    $this->$k = OMap::create($this->$k);
-                } else {
-                    $this->$k = OList::create($this->$k);
-                }
-            }
-        }
+        // foreach (get_object_vars($this) as $k => $v) {
+        //     if (is_array($this->$k)) {
+        //         if (isset($this->$k['___map'])) {
+        //             unset($this->$k['___map']);
+        //             $this->$k = OMap::create($this->$k);
+        //         } else {
+        //             $this->$k = OList::create($this->$k);
+        //         }
+        //     }
+        // }
 
         if (method_exists($this, 'u_new')) {
             call_user_func_array([ $this, 'u_new' ], $args);
@@ -106,10 +108,11 @@ class OClass implements \JsonSerializable {
         }
 
         $suggestion = '';
-        if (method_exists($this, 'u_z_suggest_method')) {
-            $suggestion = $this->u_z_suggest_method(unu_($method));
+        if (property_exists($this, 'suggestMethod')) {
+            $umethod = strtolower(unu_($method));
+            $suggestion = isset($this->suggestMethod[$umethod]) ? $this->suggestMethod[$umethod] : '';
         }
-        $suggest = $suggestion ? " Try: `"  . $suggestion . "()`" : '';
+        $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
 
         $c = get_called_class();
 
@@ -117,40 +120,58 @@ class OClass implements \JsonSerializable {
     }
 
     function u_z_call_method($method, $args=[]) {
+        ARGS('sl', func_get_args());
         $uMethod = u_($method);
         return call_user_func_array([ $this, $uMethod ], uv($args));
     }
 
     function u_z_set_field($field, $value) {
+        ARGS('s*', func_get_args());
         $uField = u_($field);
         $this->$uField = $value;
     }
 
     function u_z_get_field($field) {
+        ARGS('s', func_get_args());
         $uField = u_($field);
         return $this->$uField;
     }
 
     function u_z_has_method ($method) {
+        ARGS('s', func_get_args());
         return method_exists($this, u_($method));
     }
 
     function u_z_has_field ($field) {
+        ARGS('s', func_get_args());
         return property_exists($this, u_($field));
     }
 
-    function u_z_fields () {
-        $fields = get_object_vars($this);
-        $uFields = $this->userDefinedElements(array_keys($fields));
-        $fieldMap = [];
-        foreach ($uFields as $f) {
-            $u = u_($f);
-            $fieldMap[$f] = $this->$u; 
+    function u_z_get_fields () {
+        ARGS('', func_get_args());
+
+        // When cast as an array, we can look at the prop keys.
+        // Private and protected keys start with a null \0 character.
+        // Have to do this for runtime reflection.
+        $fields = (array)$this;
+        $uFields = [];
+        foreach ($fields as $k => $v) {
+            if ($k[0] !== "\0" && hasu_($k)) {
+                $uFields[unu_($k)] = $v;
+            }
         }
-        return OMap::create($fieldMap);
+        return OMap::create($uFields);
     }
 
-    function u_z_methods () {
+    function u_z_set_fields ($fieldMap) {
+        ARGS('m', func_get_args());
+        foreach (uv($fieldMap) as $k => $v) {
+            $this->u_z_set_field($k, $v);
+        }
+    }
+
+    function u_z_get_methods () {
+        ARGS('', func_get_args());
         $methods = get_class_methods(get_called_class());
         return $this->userDefinedElements($methods);
     }
