@@ -5,7 +5,16 @@ namespace o;
 class StdModule implements \JsonSerializable {
 
     function __set ($k, $v) {
-        Tht::error("Can't set property '$k' on '" . get_class($this) . "' standard module.");
+        Tht::error("Can't set field `$k` on a standard module.");
+    }
+
+    function __get ($f) {
+        $try = '';
+
+        if (method_exists($this, $f)) {
+            $try = 'Try: `.' . unu_($f) . '()`';
+        }
+        Tht::error("Can't get field `$f` on a standard module. $try");
     }
 
     function __toString() {
@@ -14,6 +23,21 @@ class StdModule implements \JsonSerializable {
 
     function jsonSerialize() {
         return $this->__toString();
+    }
+
+    // TODO: some overlap with OClass
+    function __call ($method, $args) {
+
+        $suggestion = '';
+        if (property_exists($this, 'suggestMethod')) {
+            $umethod = strtolower(unu_($method));
+            $suggestion = isset($this->suggestMethod[$umethod]) ? $this->suggestMethod[$umethod] : '';
+        }
+        $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
+
+        $c = get_called_class();
+
+        Tht::error("Unknown method `$method` for module `$c`. $suggest");
     }
 }
 
@@ -44,6 +68,7 @@ class LibModules {
         'Session',
         'Cache',
         'Net',
+        'MapDb',
     ];
 
     public static function load () {
