@@ -37,9 +37,9 @@ class Parser {
         return $this->symbolTable;
     }
 
-    function error ($msg, $token = null) {
+    function error ($msg, $token = null, $isLineError = false) {
         if (!$token) { $token = $this->symbol->token; }
-        return ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile());
+        return ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile(), $isLineError);
     }
 
 
@@ -159,7 +159,7 @@ class Parser {
         if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TSTRING) { 
             $lineNum = explode(',', $sStatement->token[TOKEN_POS])[0];
             if ($this->prevLineWithStatement == $lineNum) {
-                $this->error('Only one semicolon statement allowed per line.', $sStatement->token); 
+                $this->error('Only one semicolon statement allowed per line.', $sStatement->token, true); 
             }
             $this->prevLineWithStatement = $lineNum;
         }

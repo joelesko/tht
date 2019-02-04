@@ -34,7 +34,7 @@ class Validator {
         $this->scopes []= [ 'exact' => [], 'fuzzy' => [] ];
     }
 
-    function define ($symbol) {
+    function define ($symbol, $allowDupe=false) {
 
         $symbol->setDefined();
         $name = $symbol->getValue();
@@ -42,7 +42,7 @@ class Validator {
         $lowerName = strtolower($name);
 
         $existingName = $this->isDefined($lowerName);
-        if ($existingName) {
+        if ($existingName && !$allowDupe) {
             $this->parser->error("Name `" . $existingName . "` is already defined in this scope.", $token);
         }
         if (OBare::isa($lowerName)) {
@@ -124,9 +124,6 @@ class Validator {
         else if (strlen($name) > ParserData::$MAX_WORD_LENGTH) {
             $this->parser->error("Words must be " . ParserData::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
-        // else if ($name == 'data') {
-        //     $this->parser->error("Word `$name` is meaningless. Try renaming it to describe what kind of data it is.", $token);
-        // }
     }
 
     function setPaused ($isPaused) {

@@ -98,7 +98,7 @@ class LiteTemplateTransformer extends TemplateTransformer {
     }
 
     function onEndString($s) {
-        $str = Tht::module('Litemark')->u_parse($s, ['html' => true])->u_unlocked();
+        $str = Tht::module('Litemark')->u_parse($s, ['html' => true, 'reader' => $this->reader])->u_unlocked();
 
         $str = $this->cleanHtmlSpaces($str);
 
@@ -318,47 +318,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
         }
-
-
-        // slurp in format block contents.  normalize indent & escape
+        
         if ($inFormatBlock) {
-            $b = '';
-            $hasContent = false;
-            while (true) {
-
-                // get indent
-                $indent = $t->slurpChar(' ');
-                $b .= str_repeat(' ', $indent);
-                $t->updateTokenPos();
-
-                if ($indent <= $formatBlockIndent) {
-                    // outdented
-                    if ($t->char() === "\n") {
-                        // blank line
-                        $b .= "\n";
-                        $t->next();
-                        continue;
-                    }
-                    else {
-                        // end of block
-                        break;
-                    }
-                }
-                // get line content
-                $hasContent = true;
-                $line = $t->slurpUntil("\n");
-                $b .= $line . "\n";
-            }
-
-            if (!$hasContent) {
-                $t->error("Content inside of `" . $this->currentTag['name'] . "` must be indented." );
-            }
-            else if ($t->char() !== '<') {
-                $t->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
-            }
-
-            $b = htmlspecialchars($b);
-            $str .= v($b)->u_trim_indent();
+            $str .= $this->readIndentedBlock($t, $formatBlockIndent);
         }
 
         $this->currentTag = null;
@@ -367,6 +329,47 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return $str;
     }
 
+    // slurp in format block contents.  normalize indent & escape
+    function readIndentedBlock($t, $formatBlockIndent) {
+        
+        $b = '';
+        $hasContent = false;
+        while (true) {
+
+            // get indent
+            $indent = $t->slurpChar(' ');
+            $b .= str_repeat(' ', $indent);
+            $t->updateTokenPos();
+
+            if ($indent <= $formatBlockIndent) {
+                // outdented
+                if ($t->char() === "\n") {
+                    // blank line
+                    $b .= "\n";
+                    $t->next();
+                    continue;
+                }
+                else {
+                    // end of block
+                    break;
+                }
+            }
+            // get line content
+            $hasContent = true;
+            $line = $t->slurpUntil("\n");
+            $b .= $line . "\n";
+        }
+
+        if (!$hasContent) {
+            $t->error("Content inside of `" . $this->currentTag['name'] . "` must be indented." );
+        }
+        else if ($t->char() !== '<') {
+            $t->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
+        }
+
+        $b = htmlspecialchars($b);
+        return v($b)->u_trim_indent();
+    }
 
     function getClosingTag ($seeTagName='') {
 

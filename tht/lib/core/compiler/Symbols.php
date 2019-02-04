@@ -2,6 +2,7 @@
 
 namespace o;
 
+
 class Symbol {
 
     var $type = '';
@@ -120,7 +121,7 @@ class Symbol {
 
         $msg = '';
         $what = 'space';
-        if ($require === 'S' && $pos === 'R' && $hasNewline) {
+        if ($require === 'S' && $hasNewline) {
             $msg = 'remove the';
             $what = 'newline';
         } else if ($require === 'B' && !$hasNewline) {
@@ -271,7 +272,7 @@ class S_OpenBracket extends S_Infix {
 
     // List literal.  [ ... ]
     function asLeft($p) {
-        $p->space('*[*')->next();
+        $p->space('*[N')->next();
         $this->updateType(SymbolType::SEQUENCE);
         $els = [];
         while (true) {
@@ -280,13 +281,14 @@ class S_OpenBracket extends S_Infix {
             }
             $els []= $p->parseExpression(0);
             if (!$p->symbol->isValue(',')) {
+                $p->now(']', 'Missed a comma?');
                 break;
             }
             $p->space('x, ');
             $p->next();
         }
 
-        $p->now(']', 'Missed a comma?')->next();
+        $p->space('N]*')->next();
         $this->setKids($els);
         return $this;
     }
@@ -592,7 +594,8 @@ class S_NewVar extends S_Statement {
         $p->validator->setPaused(false);
 
         if ($p->inClass && $p->blockDepth == 1) {
-            $this->updateType(SymbolType::NEW_OBJECT_VAR);
+            //$this->updateType(SymbolType::NEW_OBJECT_VAR);
+            $p->error("Class fields should be defined in the `new` method. e.g. `this.num = 123`");
         }
 
         $p->next();
@@ -610,30 +613,6 @@ class S_NewVar extends S_Statement {
         return $this;
     }
 }
-
-// class S_Qualifier extends S_Statement {
-//     function asStatement($p) {
-        
-//         $quals = [];
-//         while (true) {
-//             $this->space(' keyword ', true);
-//             $s = $p->symbol;
-//             $keyword = $s->token[TOKEN_VALUE];
-//             $p->next();
-//             if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
-//                 $quals []= $keyword;
-//             }
-//             else {
-//                 break;
-//             }
-//         }
-        
-//       //  $this->addKid(implode(' ', $quals));
-//         $this->setKids([$p->parseExpression(0)]);
-
-//         return $this;
-//     }
-// }
 
 class S_If extends S_Statement {
     var $type = SymbolType::OPERATOR;
@@ -665,6 +644,12 @@ class S_If extends S_Statement {
                 $this->addKid($p->parseBlock());
             }
         }
+
+        $nextWord = $p->symbol->token[TOKEN_VALUE];
+        if (in_array($nextWord, ['elseif', 'elif', 'elsif'])) {
+            $p->error("Unknown token: `$nextWord` Try: `else if`");
+        }
+
         return $this;
     }
 }
@@ -695,12 +680,7 @@ class S_For extends S_Statement {
 
         $p->validator->newScope();
 
-        // Optional Parens (disabled)
-        //  $inParens = false;
-        //  if ($p->symbol->isValue('(')) {
-        //    $inParens = true;
-              $p->now('(')->space(' (x', true)->next();
-        //  }
+        $p->now('(')->space(' (x', true)->next();
 
         if ($p->symbol->isValue('let')) {
             $p->error("Unexpected `let`.  Try: `for (item in items) { ... }`");
@@ -731,9 +711,7 @@ class S_For extends S_Statement {
         // Iterator.  for (a in _iterator_) { ... }
         $this->addKid($p->parseExpression(0));
 
-        // if ($inParens) {
-            $p->now(')')->space('x) ', true)->next();
-        // }
+        $p->now(')')->space('x) ', true)->next();
 
         $this->addKid($p->parseBlock());
 
@@ -770,7 +748,7 @@ class S_NewFunction extends S_Statement {
             $sFunName = $p->symbol;
             $sName = $sFunName->token[TOKEN_VALUE];
             if (strlen($sName) < 2) {
-                $p->error("Function name `$sName` should be longer than 1 letter.  Tip: Be more descriptive.");
+                $p->error("Function name `$sName` should be longer than 1 letter.  Try: Be more descriptive.");
             }
             $p->validator->define($p->symbol);
             $sFunName->updateType(SymbolType::USER_FUN);
@@ -790,6 +768,25 @@ class S_NewFunction extends S_Statement {
 
         $p->validator->newScope();
 
+        $this->parseArgs($p, $hasName);
+
+        $closureVars = $this->parseClosureVars($p);
+
+        // block. { ... }
+        $this->addKid($p->parseBlock());
+
+        $p->validator->popScope();
+
+
+        if ($closureVars) {
+            $this->addKid($p->makeSequence(SequenceType::ARGS, $closureVars));
+        }
+
+        return $this;
+    }
+
+    function parseArgs($p, $hasName) {
+
         // List of args.  function foo (_args_) { ... }
         if ($p->symbol->isValue("(")) {
 
@@ -797,34 +794,47 @@ class S_NewFunction extends S_Statement {
             $p->now('(', 'function')->space($space, true)->next();
             $argSymbols = [];
             $hasOptionalArg = false;
+            $seenName = [];
             while (true) {
 
                 if ($p->symbol->isValue(")")) {
                     break;
                 }
 
+                $isSplat = false;
+                if ($p->symbol->token[TOKEN_VALUE] === '...') {
+                    $p->space('*...x');
+                    $p->next();
+                    $isSplat = true;
+                }
+
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
                     $p->error("Expected an argument name.  Ex: `fun myFun (argument) { ... }`");
                 }
 
-                $p->validator->define($p->symbol);
+                $p->validator->define($p->symbol, true);
 
                 $sArg = $p->symbol;
-                $sArg->updateType(SymbolType::FUN_ARG);
+                $sArg->updateType($isSplat ? SymbolType::FUN_ARG_SPLAT : SymbolType::FUN_ARG);
 
+                if (count($argSymbols) > 0 && !$isSplat) {
+                    $p->space('Sarg*');
+                }
+                
                 $sNext = $p->next();
 
                 if ($sNext->isValue('=')) {
+
+                    if ($isSplat) {
+                        $p->error("Spread operator `...` can not have a default value.");
+                    }
+
                     $p->space(' = ');
 
                     // argument with default.
                     // e.g. function foo (a = 1) { ... }
                     $p->next();
                     $sDefault = $p->parseExpression(0);
-                    // $types = [ SymbolType::STRING, SymbolType::NUMBER, SymbolType::FLAG ];
-                    // if (!in_array($sDefault->type, $types)) {
-                    //     $p->error("Argument defaults need to be a String, Number, or Flag.", $sDefault->token);
-                    // }
 
                     $sArg->addKid($sDefault);
                     $hasOptionalArg = true;
@@ -833,13 +843,26 @@ class S_NewFunction extends S_Statement {
                     $p->error("Required arguments should appear before optional arguments.", $sArg->token);
                 }
 
+                // Prevent duplicate arguments
+                $argName = $sArg->token[TOKEN_VALUE];
+                if (isset($seenName[$argName])) {
+                    $p->error("Duplicate argument `$argName`", $sArg->token);
+                }
+                $seenName[$argName] = true;
+
                 $argSymbols []= $sArg;
 
                 if (!$p->symbol->isValue(",")) {
                     break;
                 }
+                $p->space('x,S');
                 $p->next();
             }
+
+            // $maxArgs = ParserData::$MAX_FUN_ARGS;
+            // if (count($argSymbols) > ParserData::$MAX_FUN_ARGS) {
+            //     $p->error("Too many arguments in function (Max: $maxArgs). Try: Take a Map of options as one argument.", [], true);
+            // }
 
             $this->addKid($p->makeSequence(SequenceType::ARGS, $argSymbols));
 
@@ -848,8 +871,11 @@ class S_NewFunction extends S_Statement {
         else {
             $this->addKid($p->makeSequence(SequenceType::ARGS, []));
         }
+    }
 
-        // closure vars. e.g. function foo() keep (varName) { ... }
+    // closure vars. e.g. function foo() keep (varName) { ... }
+    function parseClosureVars($p) {
+        
         $closureVars = [];
         if ($p->symbol->isValue('keep')) {
             $p->next();
@@ -872,16 +898,7 @@ class S_NewFunction extends S_Statement {
             $p->now(')')->space('x) ')->next();
         }
 
-        // block. { ... }
-        $this->addKid($p->parseBlock());
-
-        $p->validator->popScope();
-
-        if ($closureVars) {
-            $this->addKid($p->makeSequence(SequenceType::ARGS, $closureVars));
-        }
-
-        return $this;
+        return $closureVars;
     }
 }
 
@@ -892,96 +909,62 @@ class S_Class extends S_Statement {
     function asStatement ($p) {
 
         // qualifiers and class keyword
-        $quals = [];
-        while (true) {
-            $this->space('*keywordS', true);
-            $s = $p->symbol;
-            $keyword = $s->token[TOKEN_VALUE];
-            if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
-                $quals []= $keyword;
-                $p->next();
-            }
-            else {
-                break;
-            }
-        }
-        $sQuals = $p->makeSymbol(
-            TokenType::WORD,
-            implode(' ', $quals),
-            SymbolType::PACKAGE_QUALIFIER
-        );
-        $this->addKid($sQuals);
+        // $quals = [];
+        // while (true) {
+        //     $this->space('*keywordS', true);
+        //     $s = $p->symbol;
+        //     $keyword = $s->token[TOKEN_VALUE];
+        //     if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
+        //         $quals []= $keyword;
+        //         $p->next();
+        //     }
+        //     else {
+        //         break;
+        //     }
+        // }
+        // $sQuals = $p->makeSymbol(
+        //     TokenType::WORD,
+        //     implode(' ', $quals),
+        //     SymbolType::PACKAGE_QUALIFIER
+        // );
+        // $this->addKid($sQuals);
         
+        $p->next();
 
         // Class name
         $sName = $p->symbol;
         if ($sName->token[TOKEN_TYPE] == TokenType::WORD) {
-                $sName->updateType(SymbolType::PACKAGE);
-                $this->addKid($sName);
+            $this->space('*classS', true);
+            $sName->updateType(SymbolType::PACKAGE);
+            $this->addKid($sName);
         }
         else {
-          //  print_r($sName); exit();
             $p->error("Expected a class name.  Ex: `class User { ... }`");
         }
-
-
-
-        // read in class qualifiers (e.g. abstract) and the package name
-        // while (true) {
-
-        //     $p->next();
-        //     $s = $p->symbol;
-
-        //     if ($s->token[TOKEN_VALUE] == 'abstract' || $s->token[TOKEN_VALUE] == 'final') {
-        //       //  $s->updateType(SymbolType::PACKAGE_QUALIFIER);
-        //       //  $this->addKid($s);
-        //     }
-        //     else if ($s->token[TOKEN_TYPE] == TokenType::WORD) {
-        //         $s->updateType(SymbolType::PACKAGE);
-        //         $this->addKid($s);
-        //         break;
-        //     }
-        //     else {
-        //         $p->error("Expected a class name.  Ex: `class User { ... }`");
-        //     }
-        // }
         
         $p->next();
 
 
-        if ($p->symbol->isValue('extends')) {
-
-            $p->next();
-            $sParentClassName = $p->symbol;
-            if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-                $p->error("Expected a parent class name.  Ex: `class MyClass extends MyParentClass { ... }`");
-            }
-            $sParentClassName->updateType(SymbolType::PACKAGE);
-            $this->addKid($sParentClassName);
-
-            $p->next();
-        }
-        else {
-            $sNull = $p->makeSymbol(
-                TokenType::WORD,
-                '',
-                SymbolType::PACKAGE
-            );
-            $this->addKid($sNull);
-        }
-
-        // // TODO: duplicated code
-        // if ($p->symbol->isValue('implements')) {
+        // if ($p->symbol->isValue('extends')) {
 
         //     $p->next();
         //     $sParentClassName = $p->symbol;
         //     if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-        //         $p->error("Expected an interface name.  Ex: `class MyClass implements MyInterface { ... }`");
+        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends MyParentClass { ... }`");
         //     }
         //     $sParentClassName->updateType(SymbolType::PACKAGE);
         //     $this->addKid($sParentClassName);
-        // }
 
+        //     $p->next();
+        // }
+        // else {
+        //     $sNull = $p->makeSymbol(
+        //         TokenType::WORD,
+        //         '',
+        //         SymbolType::PACKAGE
+        //     );
+        //     $this->addKid($sNull);
+        // }
 
         $p->inClass = true;
         $this->addKid($p->parseBlock());
@@ -1094,8 +1077,25 @@ class S_Return extends S_Command {
             $this->addKid($p->parseExpression(0));
         }
 
-        // don't check for orphan, to support a common debugging pattern of returning early
+        // Don't check for orphan, to support a common debugging pattern of returning early
 
         return $this;
+    }
+}
+
+class S_Unsupported extends Symbol {
+
+    function error($p) {
+        $val = $this->token[TOKEN_VALUE];
+        $try = ParserData::$ALT_TOKENS[$val];
+        $p->error("Unsupported token: `" . $this->token[TOKEN_VALUE] . "` Try: $try");
+    }
+
+    function asStatement ($p) {
+        $this->error($p);
+    }
+
+    function asLeft ($p) {
+        $this->error($p);
     }
 }

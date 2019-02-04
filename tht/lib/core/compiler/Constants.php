@@ -2,8 +2,6 @@
 
 namespace o;
 
-const MAX_LINE_LENGTH = 100;
-
 const TOKEN_TYPE  = 0;
 const TOKEN_POS   = 1;
 const TOKEN_SPACE = 2;
@@ -25,8 +23,8 @@ abstract class TokenType {
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#.';
+    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~.';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
     const BLOCK_COMMENT_START = '/*';
@@ -39,7 +37,7 @@ abstract class Glyph {
     const REGEX_MOD = 'R';
     const LOCK_MOD = 'L';
     const QUOTE = "'";
-    const BACKTICK = '`';
+    const QUOTE_FENCE = "'''";
 }
 
 abstract class SymbolType {
@@ -78,6 +76,7 @@ abstract class SymbolType {
     const BARE_FUN      =  'BARE_FUN';       // print
     const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
     const FUN_ARG       =  'FUN_ARG';        // function foo (arg) {}
+    const FUN_ARG_SPLAT =  'FUN_ARG_SPLAT';  // function foo (...arg) {}
     const USER_FUN      =  'USER_FUN';       // myFunction
     const USER_VAR      =  'USER_VAR';       // myVar
 
@@ -102,7 +101,9 @@ abstract class SequenceType {
 
 class ParserData {
 
+    static public $MAX_LINE_LENGTH = 100;
     static public $MAX_WORD_LENGTH = 40;
+    static public $MAX_FUN_ARGS = 4;
 
     static $LITERAL_TYPES = [
         TokenType::NUMBER  => 1,
@@ -136,9 +137,10 @@ class ParserData {
 
         // prefix
         '!'  => 'S_Prefix',
+        '...'  => 'S_Prefix',
 
         // infix
-        '~'  => 'S_Concat',   // + .
+        '~'  => 'S_Concat',   
         '+'  => 'S_Add',
         '-'  => 'S_Add',
         '*'  => 'S_Multiply',
@@ -151,18 +153,19 @@ class ParserData {
         '<=' => 'S_Compare',
         '>'  => 'S_Compare',
         '>=' => 'S_Compare',
+        '<=>' => 'S_Compare',
         '?'  => 'S_Ternary',
         '||' => 'S_Logic',
         '&&' => 'S_Logic',
         '||:' => 'S_ValGate',
         '&&:' => 'S_ValGate',
 
-        '&&&' => 'S_Bitwise',
-        '|||' => 'S_Bitwise',
-        '^^^' => 'S_Bitwise',
-        '>>>' => 'S_BitShift',
-        '<<<' => 'S_BitShift',
-        '~~~' => 'S_Prefix',
+        '+&' => 'S_Bitwise',
+        '+|' => 'S_Bitwise',
+        '+^' => 'S_Bitwise',
+        '+>' => 'S_BitShift',
+        '+<' => 'S_BitShift',
+        '+~' => 'S_Prefix',
 
         // assignment
         '='   => 'S_Assign',
@@ -199,6 +202,12 @@ class ParserData {
         'return'    => 'S_Return',
         'R'         => 'S_Return',
 
+        'switch'    => 'S_Unsupported',
+        'require'   => 'S_Unsupported',
+        'include'   => 'S_Unsupported',
+        'while'     => 'S_Unsupported',
+        
+
         // oop
         'class'     => 'S_Class',
         'interface' => 'S_Class',
@@ -213,9 +222,10 @@ class ParserData {
     ];
 
     static public $RESERVED_NAMES = [
-        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in', 'extends'
+        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in'
     ];
 
+    // TODO: Refactor. This logic is scattered in a few different places.  
     static public $ALT_TOKENS = [
 
         // glyphs
@@ -224,33 +234,26 @@ class ParserData {
         '=<'  => '<=',
         '=>'  => ">= (comparison) or colon ':' (map)",
         '<>'  => '!=',
-        '>>'  => '>>> (bit shift)',
-        '<<'  => '<<< (bit shift) or #=',
+        '>>'  => '+> (bit shift)',
+        '<<'  => '+< (bit shift) or #=',
         '++'  => '+= 1',
         '--'  => '-= 1',
-        '**'  => 'Math.exp()',
-        '<=>' => 'myVar.compare(otherVar)',
         '->'  => 'dot (.)',
         '$'   => 'remove $ from name',
         '::'  => 'dot (.)',
-        '^'   => '^^^ (bitwise xor)',
-        '&'   => '&& or &&& (bitwise and)',
-        '|'   => '|| or ||| (bitwise or)',
+        '^'   => '+^ (bitwise xor)',
+        '&'   => '&& or +& (bitwise and)',
+        '|'   => '|| or +| (bitwise or)',
+        '#'   => '// line comment',
 
         '"'   => 'single quote (\')',
+        '`'   => 'multi-line quote fence (\'\'\')',
 
-        // other langs
-        'elseif'   => 'else if',
-        'elsif'    => 'else if',
-        'elif'     => 'else if',
-        'require'  => 'import',
-        'include'  => 'import',
-        'var'      => 'let',
-        'const'    => 'let',
-
-        // removed
-        'switch'   => 'if/else, or a Map',
+        // unsupported
+        'switch'   => 'if/else, or a Map, or Meta.callFunction()',
         'while'    => 'for { ... }',
+        'require'  => 'import',    
+        'include'  => 'import',    
 
         // renamed
         'foreach'  => 'for (list as foo) { ... }'

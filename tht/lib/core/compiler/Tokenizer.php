@@ -99,6 +99,12 @@ class Tokenizer extends StringReader {
     private $templateIndent = 0;
     private $templateLineNum = 0;
 
+    private $stats = [
+        'numCommentLines' => 0,
+        'numCodeLines' => 0,
+
+    ];
+
     function error ($msg, $tokenPos=null) {
         if ($tokenPos !== false) {  $this->updateTokenPos();  }
         if (is_string($tokenPos)) {
@@ -111,6 +117,7 @@ class Tokenizer extends StringReader {
     function templateEndError () {
         $this->error("Reached end of file without a closing template brace '}'.");
     }
+
 
     // Main: convert string into tokens
     function tokenize () {
@@ -129,7 +136,7 @@ class Tokenizer extends StringReader {
     function makeToken ($type, $value, $forceSpaceAfter = false) {
 
         $spaceMask = 0;
-
+    
         $nextChar = $this->char();
 
         if ($forceSpaceAfter) {
@@ -139,8 +146,8 @@ class Tokenizer extends StringReader {
         if ($this->prevNewline)    { $spaceMask += 2; }
         else if ($this->prevSpace) { $spaceMask += 1; }
 
-        if ($nextChar === ' ' || $nextChar === "\t") { $spaceMask += 4; }
-        else if ($nextChar === "\n")                 { $spaceMask += 8; }
+        if ($nextChar === ' ')        { $spaceMask += 4; }
+        else if ($nextChar === "\n")  { $spaceMask += 8; }
 
         $pos = $this->tokenPos[0] . ',' . $this->tokenPos[1];
         $token = [$type, $pos, $spaceMask, $value];
@@ -158,9 +165,9 @@ class Tokenizer extends StringReader {
     }
 
     function onNewline() {
-        if ($this->colNum > MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
+        if ($this->colNum > ParserData::$MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
             && !$this->inMultiLineString && !$this->inComment) {
-            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . MAX_LINE_LENGTH . '.');
+            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . ParserData::$MAX_LINE_LENGTH . '.');
         }
     }
 
@@ -176,27 +183,25 @@ class Tokenizer extends StringReader {
             else if ($c <= ' ') {
                 $this->handleWhitespace($c);
             }
-            else {
-
-                if (isset($this->isAlpha[$c])) {
-                    $this->handleWord($c);
-                }
-                else if (isset($this->isDigit[$c])) {
-                    $this->handleNumber($c);
-                }
-                else if ($c === Glyph::QUOTE || $c === Glyph::BACKTICK) {
-                    $this->handleString($c);
-                }
-                else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
-                    $this->handleLineComment($c);
-                }
-                else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
-                    $this->handleBlockComment($c);
-                }
-                else {
-                    $this->handleGlyph($c);
-                }
+            else if (isset($this->isAlpha[$c])) {
+                $this->handleWord($c);
             }
+            else if (isset($this->isDigit[$c])) {
+                $this->handleNumber($c);
+            }
+            else if ($c === Glyph::QUOTE) {
+                $this->handleString($c);
+            }
+            else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
+                $this->handleLineComment($c);
+            }
+            else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
+                $this->handleBlockComment($c);
+            }
+            else {
+                $this->handleGlyph($c);
+            }
+    
 
             if ($this->templateMode === TemplateMode::BODY) {
                 $this->templateMode = $this->handleTemplate();
@@ -247,8 +252,11 @@ class Tokenizer extends StringReader {
                 !in_array($current, $this->ALLOW_NEXT_ADJ_ATOMS)) {
 
                     $prevPos = $this->prevToken[TOKEN_POS];
-                    if ($prev === 'var') {
-                        $this->error("Unknown keyword `var`. Try: `let`", $prevPos);
+                    if (in_array($prev, ['var', 'const', 'constant', 'local'])) {
+                        $this->error("Unknown keyword `$prev`. Try: `let`", $prevPos);
+                    }
+                    if ($prev === 'global') {
+                        $this->error("Unknown keyword `$prev`. Try: `Globals.myVar = 123;`", $prevPos);
                     }
                     if ($current === 'as') {
                         $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
@@ -269,8 +277,7 @@ class Tokenizer extends StringReader {
             }
             $this->templateMode = TemplateMode::BODY;
         }
-
-        if ($this->templateMode === TemplateMode::EXPR && $c === "\n") {
+        else if ($this->templateMode === TemplateMode::EXPR && $c === "\n") {
             $this->updateTokenPos();
             $this->error("Unexpected newline inside of template expression `{{ ... }}`.");
         }
@@ -278,7 +285,7 @@ class Tokenizer extends StringReader {
         if ($c === "\n") {  
             $this->prevNewline = true;
         }
-        else if ($c === ' ' || $c === "\t") {  // $c === "\n" 
+        else if ($c === ' ') {  
             $this->prevSpace = true;
         }
 
@@ -365,7 +372,7 @@ class Tokenizer extends StringReader {
         }
     }
 
-    // e.g. 'hello' or `multiline\nstring`
+    // e.g. 'hello' or '''multiline\nstring'''
     function handleString ($c) {
 
         $str = '';
@@ -374,10 +381,11 @@ class Tokenizer extends StringReader {
         $startPos = $this->getTokenPos();
 
         $this->inMultiLineString = false;
-        if ($c === "`") {
+        if ($this->nextChar(2) == "''") {
+            $this->next(2);
             $this->inMultiLineString = true;
             if ($this->nextChar() !== "\n") {
-                $this->error("Backtick `$c` must be followed by a newline.\n\n"
+                $this->error("Triple-quotes `'''` must be followed by a newline.\n\n"
                     . "Indentation will be trimmed to the left-most character.");
             }
         }
@@ -396,7 +404,7 @@ class Tokenizer extends StringReader {
 
             if ($c === "\n" && !$this->inMultiLineString) {
                 $this->updateTokenPos();
-                $this->error("Unexpected newline. Try: backtick ($c) for a multi-line string.");
+                $this->error("Unexpected newline. Missing quote? Try: triple-quotes `'''` for a multi-line string.");
             }
 
             if ($this->atEndOfFile()) {
@@ -404,8 +412,12 @@ class Tokenizer extends StringReader {
             }
 
             if ($c === $closeQuote) {
-                if ($this->inMultiLineString && !$this->atStartOfLine()) {
-                        $this->error("Closing backtick ($c) must belong on a separate line.");
+                if ($this->inMultiLineString && $this->nextChar(2) == "''") {
+                    if (!$this->atStartOfLine()) {
+                        $this->error("Closing triple-quotes `'''` must belong on a separate line.");
+                    }
+                    $this->next(2);
+                    break;
                 } else {
                     break;
                 }
@@ -460,6 +472,9 @@ class Tokenizer extends StringReader {
                 }
             }
             $this->next();
+            if ($this->char() === "\n") {
+                $this->stats['numCommentLines'] += 1; 
+            }
         }
         $this->inComment = false;
     }
@@ -471,6 +486,8 @@ class Tokenizer extends StringReader {
         $this->inComment = true;
         $this->slurpLine();
         $this->inComment = false;
+
+        $this->stats['numCommentLines'] += 1; 
     }
 
     function handleGlyph ($c) {
@@ -526,10 +543,15 @@ class Tokenizer extends StringReader {
                 if ($this->atEndOfFile()) {
                     $this->error('Unexpected end of file.');
                 }
+                // for e.g. @.method(), don't treat '@.' as one token
+                if (($str == '@' || $str == '@@') && $c == '.') {
+                    break;
+                }
                 if (strpos(Glyph::MULTI_GLYPH_SUFFIX, $c) === false) {
                     break;
                 }
             }
+
         } else {
 
             // single glyph
@@ -537,7 +559,15 @@ class Tokenizer extends StringReader {
             $this->next();
         }
 
-        $this->makeToken(TokenType::GLYPH, $str);
+        $t = $this->makeToken(TokenType::GLYPH, $str);
+        $this->checkAltToken($str, $t);
+    }
+
+    function checkAltToken ($altValue, $token) {
+        if (isset(ParserData::$ALT_TOKENS[$altValue])) {
+            $correct = ParserData::$ALT_TOKENS[$altValue];
+            $this->error("Unknown token: `$altValue`  Try: `$correct`", $token);
+        }
     }
 
     function addTemplateString ($str) {
@@ -569,7 +599,7 @@ class Tokenizer extends StringReader {
             } else if ($this->atStartOfLine() && !$this->isWhitespace($c) && $this->indent <= $this->templateIndent) {
 
                 if (!$this->isGlyph('}')) {
-                    $this->error("Line should be indented inside template `" . $this->templateName . "` starting at Line " .$this->templateLineNum . ".");
+                    $this->error("Line should be indented inside template `" . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
                 }
                 // end of template body '}'
                 $this->currentTemplateTransformer->onEndTemplateBody();

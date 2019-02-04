@@ -26,6 +26,7 @@ class EmitterPHP extends Emitter {
         'TEMPLATE_EXPR'   => 'pTemplateExpr',
         'CLASS'           => 'pClassName',
         'FUN_ARG'         => 'pFunArg',
+        'FUN_ARG_SPLAT'   => 'pFunArgSplat',
         'PACKAGE'         => 'pPackage',
 
         'PAIR'            => 'pPair',
@@ -33,9 +34,11 @@ class EmitterPHP extends Emitter {
         'TRY_CATCH'       => 'pTryCatch',
         'CALL'            => 'pCall',
         'INFIX'           => 'pInfix',
+        'INFIX|<=>'       => 'pSpaceship',
         'BITSHIFT'        => 'pBitwise',
         'BITWISE'         => 'pBitwise',
         'PREFIX'          => 'pPrefix',
+        'PREFIX|...'      => 'pBarePrefix',
         'VALGATE'         => 'pValGate',
         'TERNARY'         => 'pTernary',
 
@@ -50,7 +53,7 @@ class EmitterPHP extends Emitter {
         'NEW_TEMPLATE'    => 'pTemplate',
 		'NEW_CLASS'       => 'pClass',
         'NEW_OBJECT'      => 'pNew',
-        'NEW_OBJECT_VAR'  => 'pNewObjectVar',
+     //   'NEW_OBJECT_VAR'  => 'pNewObjectVar',
 
         'OPERATOR|~'      => 'pConcat',
         'OPERATOR|if'     => 'pIf',
@@ -70,11 +73,11 @@ class EmitterPHP extends Emitter {
     ];
 
     private $bitwiseToPhp = [
-        '&&&' => '&',
-        '|||' => '|',
-        '^^^' => '^',
-        '>>>' => '>>',
-        '<<<' => '<<',
+        '+&' => '&',
+        '+|' => '|',
+        '+^' => '^',
+        '+>' => '>>',
+        '+<' => '<<',
     ];
 
     function emit ($symbolTable, $filePath) {
@@ -230,6 +233,10 @@ class EmitterPHP extends Emitter {
         }
     }
 
+    function pFunArgSplat ($value, $k) {
+        return $this->format('...$###', u_($value));
+    }
+
     function pClassName ($value, $k) {
         $nameSpace = ModuleManager::isStdLib($value) ? '\o\\' : '$';
         return $this->format('######', $nameSpace, u_($value));
@@ -274,16 +281,24 @@ class EmitterPHP extends Emitter {
         return $this->format($t, $k[0], $value, $k[1]);
     }
 
+    function pSpaceship ($value, $k) {
+        return $this->format('\o\Runtime::spaceship(###, ###)', $k[0], $k[1]);
+    }
+
     function pBitwise ($value, $k) {
         $phpOp = $this->bitwiseToPhp[$value];
         return $this->pInfix($phpOp, $k);
     }
 
     function pPrefix ($value, $k) {
-        if ($value == '~~~') {
+        if ($value == '+~') {
             $value = '~';
         }
         return $this->format('(### ###)', $value, $k[0]);
+    }
+
+    function pBarePrefix ($value, $k) {
+        return $this->format('######', $value, $k[0]);
     }
 
     function pQualifier ($value) {
@@ -316,12 +331,12 @@ class EmitterPHP extends Emitter {
         return $this->format('### = ###;', $k[0], $k[1]);
     }
 
-    function pNewObjectVar ($value, $k) {
-        $this->isPhpLiteral = true;
-        $out = $this->format('private ### = ###;', $k[0], $k[1]);
-        $this->isPhpLiteral = false;
-        return $out;
-    }
+    // function pNewObjectVar ($value, $k) {
+    //     $this->isPhpLiteral = true;
+    //     $out = $this->format('private ### = ###;', $k[0], $k[1]);
+    //     $this->isPhpLiteral = false;
+    //     return $out;
+    // }
 
     function pAssign ($value, $k) {
         if ($value === '~=') {
@@ -420,10 +435,11 @@ class EmitterPHP extends Emitter {
         preg_match('/(' . ParserData::$TEMPLATE_TYPES .')$/i', $k[0]['value'], $m);
         $templateType = $m[1];
 
-        return $this->format('function ### (###) ### {' .
-                              '$t = \o\Runtime::openTemplate("###");###' .
-                              '\o\Runtime::closeTemplate();return $t->getString();}',
-                               $k[0], $k[1], $closure, $templateType, $this->out($k[2], true));
+        $template = 'function ### (###) ### {' .
+                    '$t = \o\Runtime::openTemplate("###");###' .
+                    '\o\Runtime::closeTemplate();return $t->getString();}';
+
+        return $this->format($template, $k[0], $k[1], $closure, $templateType, $this->out($k[2], true));
     }
 
 
@@ -455,16 +471,11 @@ class EmitterPHP extends Emitter {
     }
 
 	function pClass ($value, $k) {
-        $quals = $k[0]['value'];
-        $className = $k[1]['value'];
-        $parent = $k[2]['value'] ? ModuleManager::getNamespacedPackage($k[2]['value']) : '\o\OClass';
-        $block = $k[3];
-		$c = $this->format('### ### extends ### {###}', $quals, u_($className), $parent, $this->out($block, true));
-     //   $c .= $this->format('$### = __NAMESPACE__ . "\###";', u_($className), u_($className));
+        $className = $k[0]['value'];
+        $block = $k[1];
+		$c = $this->format('class ### extends \o\OClass {###}', u_($className), $this->out($block, true));
         return $c;
 	}
-
-
 
 	function pTryCatch ($value, $k) {
 		$s = $this->format('try {###} catch (\Exception ###) {###}', $k[0], $k[1], $k[2]);
