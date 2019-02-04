@@ -17,16 +17,15 @@ class OBare {
         foreach ($parts as $a) {
 
             if (is_string($a)) {
-                $a = preg_replace("/<<<(.*?)>>>/", '<$1>', $a);
                 if ($a === '') {
                     $a = '(nothing)';
                 }
             }
             else {
-                $a = Tht::module('Json')->u_format(json_encode($a, JSON_UNESCAPED_UNICODE));
-                $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
+                $a = Tht::module('Json')->u_format($a);
             }
             
+            $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
             if (Tht::isMode('web')) {
                 $a = htmlentities($a);
             }
