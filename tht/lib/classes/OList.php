@@ -6,6 +6,20 @@ class OList extends OBag {
 
     protected $hasNumericKeys = true;
 
+    protected $suggestMethod = [
+        'shift'   => 'remove(0)',
+        'unshift' => 'insert(0)',
+        'count'   => 'length()',
+        'size'    => 'length()',
+        'empty'   => 'isEmpty()',
+        'delete'  => 'remove()',
+        'splice'  => 'remove(pos, num = 1) & insertAll(pos, items)',
+        'find'    => 'indexOf(item) or contains(item)',
+        'random'  => 'shuffle()',
+        'merge'   => 'pushAll(items)',
+        'append'  => 'pushAll(items)',
+    ];
+
     static function create ($a) {
         $l = new OList ();
         $l->val = $a;
@@ -13,21 +27,23 @@ class OList extends OBag {
     }
 
     function u_copy() {
+        ARGS('', func_get_args());
         // php apparently copies the array when assigned to a new var
         $a = $this->val;
         return OList::create($a);
     }
 
     function u_is_empty () {
+        ARGS('', func_get_args());
         return count($this->val) === 0;
     }
-
 
 
     //// GETTERS
 
 
     function u_contains ($v) {
+        ARGS('*', func_get_args());
         return in_array($v, $this->val, true);
     }
 
@@ -60,11 +76,13 @@ class OList extends OBag {
     }
 
     function u_index_of($v) {
+        ARGS('*', func_get_args());
         $i = array_search($v, $this->val, true);
         return ($i === false) ? -1 : $i;
     }
 
     function u_last_index_of($v) {
+        ARGS('*', func_get_args());
         $len = count($this->val);
         for ($i = 0; $i < $len; $i += 1) {
             if ($this->val[$i] === $v) {
@@ -74,7 +92,7 @@ class OList extends OBag {
         return -1;
     }
 
-    function u_sublist($pos, $len=-1) {
+    function u_slice($pos, $len=-1) {
         ARGS('nn', func_get_args());
         $vlen = count($this->val);
         if ($pos < 0) {
@@ -114,6 +132,7 @@ class OList extends OBag {
     }
 
     function u_pop () {
+        ARGS('', func_get_args());
         return array_pop($this->val);
     }
 
@@ -187,18 +206,28 @@ class OList extends OBag {
 
 
 
-    // ORDER
+    // ORDER / FILTER
 
     function u_reverse () {
+        ARGS('', func_get_args());
         return OList::create(array_reverse($this->val));
     }
 
     function u_shuffle () {
+        ARGS('', func_get_args());
         shuffle($this->val);
         return $this;
     }
 
+    function u_random () {
+        ARGS('', func_get_args());
+        $i = array_rand($this->val);
+        return $this->val[$i];
+    }
+
     function u_sort ($fnOrArgs=false) {
+
+        ARGS('*', func_get_args());
 
         if (is_callable($fnOrArgs)) {
             usort($this->val, $fnOrArgs);
@@ -241,7 +270,7 @@ class OList extends OBag {
         return $this;
     }
 
-    function u_sort_by_key ($key, $isDesc=false) {
+    function u_sort_table ($key, $isDesc=false) {
 
         ARGS('sf', func_get_args());
 
@@ -256,39 +285,65 @@ class OList extends OBag {
         return $this;
     }
 
+    function u_unique () {
+        ARGS('', func_get_args());
+        return OList::create(array_unique($this->val));
+    }
+
+
+
+    // MISC
+
     function u_join ($delim='') {
         ARGS('s', func_get_args());
         return implode($this->val, $delim);
     }
 
+    function u_to_map() {
+        ARGS('', func_get_args());
+        
+        if (count($this->val) % 2 !== 0) {
+            Tht::error('List.toMap() requires an even number of elements (key/value pairs).');
+        }
+        $out = [];
+        for ($i = 1; $i < count($this->val); $i += 2) {
+            $k = $this->val[i];
+            $v = $this->val[i + 1];
+            $out[$k] = $v;
+        }
+        return OMap::create($v);
+    }
 
 
-    // function u_unique () {
-    //     return array_unique($this->val);
-    // }
+
+
 
     // TODO: fill with default. aka pad, fill
     // function u_resize ($size, $default='') {
     //     return array_splice($this->val, $size);
     // }
 
-    // function u_to_args () {
-    //     return new ArgList ($this->val);
-    // }
+    function u_flat ($maxDepth = 999) {
+        ARGS('n', func_get_args());
+        return $this->flat($this, 0, $maxDepth);
+    }
 
-    // function u_flatten ($array) {
-    //     $flat = [];
-    //     $stack = array_values($array);
-    //     while ($stack)  {
-    //         $value = array_shift($stack);
-    //         if (is_array($value)) {
-    //             $stack = array_merge(array_values($value), $stack);
-    //         } else  {
-    //            $flat []= $value;
-    //         }
-    //     }
-    //     return $flat;
-    // }
+    function flat($list, $depth, $maxDepth) {
+        $result = [];
+        if ($depth >= $maxDepth) {
+            return $list;
+        }
+        $depth += 1;
+        foreach ($list as $a) {
+            if (!OList::isa($a)) {
+                $result []= $a;
+            } 
+            else {
+                $result = array_merge($result, uv($this->flat($a, $depth, $maxDepth)));
+            }
+        }
+        return OList::create($result);
+    }
 
 
     // TABLE
@@ -312,18 +367,18 @@ class OList extends OBag {
 
     // Functional Programming
     //
-    // function u_map ($fn) {
-    //     return array_map($fn, $this->val);
-    // }
-    //
-    // function u_reduce ($fn, $initial=null) {
-    //     return array_reduce($this->val, $fn, $initial);
-    // }
-    //
-    // function u_filter ($fn) {
-    //     return array_filter($this->val, $fn);
-    // }
-    //
+    function u_map ($fn) {
+        return OList::create(array_map($fn, $this->val));
+    }
+    
+    function u_reduce ($fn, $initial) {
+        return array_reduce($this->val, $fn, $initial);
+    }
+    
+    function u_filter ($fn) {
+        $a = array_values(array_filter($this->val, $fn));
+        return OList::create($a);
+    }
 
     //
     // function u_all ($fn) {
