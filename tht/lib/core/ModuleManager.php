@@ -29,12 +29,13 @@ class ModuleManager {
     	$ns = $relPath;
 		$ns = str_replace('/', '\\', $ns);
     	$ns = str_replace('.tht', '', $ns);
-    	$ns = 'tht\\' . $ns;
+    	$ns = 'tht\\' . $ns . '_x'; // work around reserved PHP words
     	return $ns;
     }
 
     static function namespaceToModulePath($ns) {
     	$path = $ns;
+        $path = str_replace('_x', '', $path);
     	$path = preg_replace('#.*tht\\\\modules\\\\#', '', $path);
     	$path = str_replace('\\', '/', $path);
     	$parts = explode('/', $path);
@@ -76,6 +77,8 @@ class ModuleManager {
     }
 
     static function getModule ($modName) {
+
+        $modName = preg_replace('/_x$/', '', $modName);
 
         // Already loaded user module
         $cacheKey = 'u//' . $modName;
@@ -148,8 +151,8 @@ class ModuleManager {
 		    	self::loadUserModule(self::namespaceToModulePath($aclass));
 
 		    } else {
-
-		        Tht::error("Can not autoload PHP class: `$aclass`");
+		        // Tht::error("Can not autoload PHP class: `$aclass`");
+                // UPDATE: Allow pass through for PHP intrerop 
 		    }
 
 		});
