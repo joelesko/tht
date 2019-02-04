@@ -20,17 +20,62 @@ class WebMode {
 
     static public function main() {
 
+        self::hitCounter();
+
         Security::initResponseHeaders();
 
         if (Tht::getConfig('downtime')) {
-            WebMode::downtimePage(Tht::getConfig('downtime'));
+            self::downtimePage(Tht::getConfig('downtime'));
         }
-        $controllerFile = WebMode::initRoute();
+        $controllerFile = self::initRoute();
         if ($controllerFile) {
-            WebMode::executeWebController($controllerFile);
+            self::executeWebController($controllerFile);
         }
 
-        WebMode::flushWebPrintBuffer();
+        self::flushWebPrintBuffer();
+    }
+
+    // Hit Counter - no significant performance hit
+    static private function hitCounter() {
+
+        if (!Tht::getConfig('hitCounter')) {
+            return;
+        } 
+
+        $req = uv(Tht::module('Web')->u_request());
+
+        // skip bots
+        $botRx = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
+        if (preg_match($botRx, $req['userAgent'])) { return; }
+
+        $counterDir = DATA_ROOT . '/counter';
+
+        // date counter - 1 byte per hit
+        $date = strftime('%Y%m%d');
+        $dateLogPath = $counterDir . '/date/' . $date . '.txt';
+        file_put_contents($dateLogPath, '+', FILE_APPEND|LOCK_EX);
+
+        // page counter - 1 byte per hit
+        $page = $req['url']['path'];
+        if (strpos($page, '.') !== false) { return; }
+
+        $page = preg_replace('#/+#', '__', $page);
+        $page = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $page);
+        $page = trim($page, '_') ?: 'home';
+
+        $pageLogPath = $counterDir . '/page/' . $page . '.txt';
+        file_put_contents($pageLogPath, '+', FILE_APPEND|LOCK_EX);
+
+        // referrer log - 1 line per external referrer
+        $ref = isset($req['referrer']) ? $req['referrer'] : '';
+        if ($ref) { 
+            if (stripos($ref, $req['url']['host']) === false) {
+                $fileDate = strftime('%Y%m');
+                $lineDate = strftime('%Y-%m-%d');
+                $referrerLogPath = $counterDir . '/referrer/' . $fileDate . '.txt';
+                file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $req['url']['relative'] . "\n", FILE_APPEND|LOCK_EX);
+            }
+        }
     }
 
     static private function downtimePage($file) {
@@ -50,9 +95,9 @@ class WebMode {
 
         Tht::module('Perf')->u_start('tht.route');
 
-        $path = WebMode::getScriptPath();
+        $path = self::getScriptPath();
 
-        $controllerFile = WebMode::getControllerForPath($path);
+        $controllerFile = self::getControllerForPath($path);
 
         Tht::module('Perf')->u_stop();
 
@@ -86,7 +131,7 @@ class WebMode {
 
     static private function getControllerForPath($path) {
 
-        $routes = Tht::getTopConfig(WebMode::$SETTINGS_KEY_ROUTE);
+        $routes = Tht::getTopConfig(self::$SETTINGS_KEY_ROUTE);
 
         if (defined('BASE_URL') ) {
             $path = preg_replace('#' . BASE_URL . '#', '', $path);
@@ -98,8 +143,8 @@ class WebMode {
             return Tht::path('pages', $routes[$path]);
         }
         else {
-            $c = WebMode::getDynamicController($routes, $path);
-            return $c === false ? WebMode::getPublicController($path) : $c;
+            $c = self::getDynamicController($routes, $path);
+            return $c === false ? self::getPublicController($path) : $c;
         }
     }
 
@@ -145,14 +190,14 @@ class WebMode {
                 }
 
                 if ($isMatch) {
-                    WebMode::$routeParams = $params;
+                    self::$routeParams = $params;
                     return Tht::path('pages', $controllerPath);
                 }
             }
         }
 
         $camelPath = strtolower(v($path)->u_to_camel_case());
-        if (isset($routeTargets[$camelPath]) || $camelPath == '/' . WebMode::$ROUTE_HOME) {
+        if (isset($routeTargets[$camelPath]) || $camelPath == '/' . self::$ROUTE_HOME) {
             Tht::errorLog("Direct access to route not allowed: `$path`");
             Tht::module('Web')->u_send_error(404);
         }
@@ -164,7 +209,7 @@ class WebMode {
 
         $apath = '';
         if ($path === '/') {
-            $apath = WebMode::$ROUTE_HOME;
+            $apath = self::$ROUTE_HOME;
         }
         else {
             // convert dash-case URL to camelCase file path
@@ -180,8 +225,11 @@ class WebMode {
         $thtPath = Tht::path('pages', Tht::getThtFileName($apath));
 
         if (!file_exists($thtPath)) {
-            Tht::errorLog("Entry file not found for path: `$path`");
-            Tht::module('Web')->u_send_error(404);
+            $thtPath = Tht::path('pages', Tht::getThtFileName('default'));
+            if (!file_exists($thtPath)) {
+                Tht::errorLog("Entry file not found for path: `$path`");
+                Tht::module('Web')->u_send_error(404);
+            }
         }
 
         return $thtPath; 
@@ -204,7 +252,7 @@ class WebMode {
 
         Source::process($controllerFile, true);
         
-        WebMode::callAutoFunction($controllerFile, $userFunction);
+        self::callAutoFunction($controllerFile, $userFunction);
 
         Tht::module('Perf')->u_stop();
     }
@@ -261,29 +309,29 @@ class WebMode {
     }
 
     static function getWebRouteParam ($key) {
-        if (!isset(WebMode::$routeParams[$key])) {
+        if (!isset(self::$routeParams[$key])) {
             throw new ThtException ("Route param '$key' does not exist.");
         }
-        return WebMode::$routeParams[$key];
+        return self::$routeParams[$key];
     }
 
     static public function queuePrint($s) {
-        WebMode::$printBuffer []= $s;
+        self::$printBuffer []= $s;
     }
 
     // Send the output of all print() statements
     static private function flushWebPrintBuffer() {
-        if (!count(WebMode::$printBuffer)) { return; }
+        if (!count(self::$printBuffer)) { return; }
 
         $zIndex = 99998;  //  one less than error page
 
         echo "<style>\n";
-        echo ".tht-print { white-space: pre; border: 0; border-left: solid 16px #787fff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . u_Css::u_monospace_font() ."; }\n";
+        echo ".tht-print { white-space: pre; border: 0; border-left: solid 16px #60adff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . u_Css::u_monospace_font() ."; }\n";
         echo ".tht-print-panel { position: fixed; top: 0; left: 0; z-index: $zIndex; width: 100%; padding: 24px 32px 24px; font-size: 18px; background-color: rgba(255,255,255,0.98);  -webkit-font-smoothing: antialiased; color: #222; box-shadow: 0 4px 4px rgba(0,0,0,0.15); max-height: 400px; overflow: auto;  }\n";
         echo "</style>\n";
 
         echo "<div class='tht-print-panel'>\n";
-        foreach (WebMode::$printBuffer as $b) {
+        foreach (self::$printBuffer as $b) {
             echo "<div class='tht-print'>" . $b . "</div>\n";
         }
         echo "</div>";
