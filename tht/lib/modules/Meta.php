@@ -29,6 +29,13 @@ class u_Meta extends StdModule {
         return call_user_func_array($fullFn, uv($params));
     }
 
+    function u_new_object($cls, $params=[]) {
+        ARGS('sl', func_get_args());
+        $o = \o\ModuleManager::newObject($cls, uv($params));
+
+        return $o;
+    }
+
     function u_parse ($source) {
         ARGS('s', func_get_args());
         return Source::safeParseString($source);
