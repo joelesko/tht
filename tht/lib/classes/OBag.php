@@ -5,8 +5,6 @@ namespace o;
 class OBag extends OVar implements \ArrayAccess, \Iterator {
 
     public $val = [];
-    private $iKeys = [];
-    private $iNumKeys = 0;
     private $iPos = 0;
     protected $default = null;
     protected $hasLockedKeys = false;
@@ -43,19 +41,6 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
 
     function setVal ($v) {
         $this->val = $v;
-        $this->iKeys = array_keys($v);
-        $this->iNumKeys = count($v);
-    }
-
-    function u_lock_keys ($isLocked) {
-        ARGS('f', func_get_args());
-        $this->hasLockedKeys = $isLocked;
-        return $this;
-    }
-
-    function u_default ($d) {
-        $this->default = $d;
-        return $this;
     }
 
 
@@ -69,15 +54,6 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
             if (!is_int($k)) {
                 Tht::error("List keys must be numeric.  Saw `$k` instead.");
             }
-            // else if ($k > $this->iNumKeys - 1) {
-            //     Tht::error("List index ($k) out of bounds.  Size is: " . $this->iNumKeys, $this->val);
-            // }
-            // else if ($k < 0) {
-            //     $endKey = $this->iNumKeys + $k;
-            //     if ($endKey < 0) {
-            //         Tht::error("Negative list index ($k) out of bounds.  Size is: " . $this->iNumKeys);
-            //     }
-            // }
         }
     }
 
@@ -85,6 +61,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         $this->checkKey($k);
         if ($k < 0) { $k = count($this->val) + $k; }
         if (!isset($this->val[$k])) {
+            // soft get
             return is_null($this->default) ? '' : $this->default;
         } else {
             return $this->val[$k];
@@ -93,15 +70,22 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
 
     function offsetSet ($k, $v) {
         $this->checkKey($k);
-        if ($k < 0) { $k = $this->iNumKeys + $k; }
+
+        // negative index counts from the end
+        if ($k < 0 && $this->hasNumericKeys) { 
+            $k = count($this->val) + $k; 
+        }
+        
         if (is_null($k)) {
-            $this->val []= $v;
+            if ($this->hasNumericKeys) {
+                $this->val []= $v;
+            }
+            else {
+                Tht::error("Can't append item to Map.");
+            }
         } else {
             $this->val[$k] = $v;
         }
-
-        //$this->iKeys = array_keys($this->val);
-        //$this->iNumKeys = count($this->val);
     }
 
     function offsetExists ($k) {
@@ -141,6 +125,17 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         return count(array_values($this->val));
     }
 
+    function u_lock_keys ($isLocked) {
+        ARGS('f', func_get_args());
+        $this->hasLockedKeys = $isLocked;
+        return $this;
+    }
+
+    function u_default ($d) {
+        $this->default = $d;
+        return $this;
+    }
+
     function u_get ($args, $default=null) {
         if (! \o\v($args)->u_is_list()) {
             $args = [ $args ];
@@ -150,27 +145,14 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         $obj = $this->getDeep($args);
         if ($obj === null) {
             if ($default === null) {
-                if (!is_null($this->default)) {
-                    return $this->default;
-                } else {
-                    return '';
-                }
-                // $key = implode(', ', $args);
-                // Tht::error("Missing value for key '$key'", [ 'elements' => $this->val ]);
+                // soft get
+                return s_null($this->default) ? '' : $this->default;
             } else {
                 return $default;
             }
         }
         return $obj;
     }
-
-    // function u_slice ($keys) {
-    //     $out = [];
-    //     foreach ($keys as $k) {
-    //         $out []= $this->getOne($k);
-    //     }
-    //     return $obj;
-    // }
 
     function getDeep ($ary) {
         $obj = $this;
@@ -189,7 +171,5 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         }
         return $this->val[$key];
     }
-
-
 }
 
