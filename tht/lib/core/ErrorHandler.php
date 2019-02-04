@@ -411,9 +411,11 @@ class ErrorHandler {
 
     function printWebTemplate($heading, $error) {
 
+        $zIndex = 99998;  // one less than print layer
+
         ?>
 
-        <div style='position: fixed; overflow: auto; z-index: 99999; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
+        <div style='position: fixed; overflow: auto; z-index: $zIndex; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
             <style scoped>
                 a { color: #ffd267; text-decoration: none; }
                 a:hover { text-decoration: underline;  }
@@ -455,6 +457,8 @@ class ErrorHandler {
                 <div class='tht-error-context'><?= $error['context'] ?></div>
                 <?php } ?>
 
+                <?php self::printPrintBuffer() ?>
+
             </div>
         </div>
 
@@ -466,6 +470,13 @@ class ErrorHandler {
         print $out;
     }
 
+    function printPrintBuffer() {
+        if (WebMode::hasPrintBuffer()) {
+            WebMode::flushWebPrintBuffer(true);
+            print "<style> .tht-print-panel { color: inherit; width: auto; box-shadow: none; background-color: #282828; position: relative; } </style>";
+        }
+        
+    }
 
 
 

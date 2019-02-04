@@ -319,11 +319,15 @@ class WebMode {
         self::$printBuffer []= $s;
     }
 
-    // Send the output of all print() statements
-    static private function flushWebPrintBuffer() {
-        if (!count(self::$printBuffer)) { return; }
+    static function hasPrintBuffer() {
+        return count(self::$printBuffer) > 0;
+    }
 
-        $zIndex = 99998;  //  one less than error page
+    // Send the output of all print() statements
+    static function flushWebPrintBuffer() {
+        if (!self::hasPrintBuffer()) { return; }
+
+        $zIndex = 100000;
 
         echo "<style>\n";
         echo ".tht-print { white-space: pre; border: 0; border-left: solid 16px #60adff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . u_Css::u_monospace_font() ."; }\n";
@@ -335,6 +339,7 @@ class WebMode {
             echo "<div class='tht-print'>" . $b . "</div>\n";
         }
         echo "</div>";
+
     }
 
 }
