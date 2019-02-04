@@ -8,10 +8,36 @@ class OString extends OVar implements \ArrayAccess {
     public $val = '';
     private $encoding = 'UTF-8';
 
+    protected $suggestMethod = [
+        'count'   => 'length()',
+        'size'    => 'length()',
+        'explode' => 'split(delimiter)',
+        'find'    => 'indexOf(item) or contains(item)',
+
+        'upper'   => 'toUpperCase()',
+        'toupper' => 'toUpperCase()',
+        'lower'   => 'toLowerCase()',
+        'tolower' => 'toLowerCase()',
+
+        'ltrim'     => 'trimLeft()',
+        'rtrim'     => 'trimRight()',
+        'lefttrim'  => 'trimLeft()',
+        'righttrim' => 'trimRight()',
+
+        'leftpad'   => 'padLeft()',
+        'lpad'      => 'padLeft()',
+        'rightpad'  => 'padRight()',
+        'rpad'      => 'padRight()',
+
+        'substr'    => 'substring()',
+        'slice'     => 'substring()',
+    ];
+
+
     // Indexing
 
     function offsetGet ($k) {
-        if ($k < 0) { $k = strlen($this->val) + $k; }
+        if ($k < 0) { $k = mb_strlen($this->val) + $k; }
         return $this->val[$k];
     }
 
@@ -484,7 +510,7 @@ class OString extends OVar implements \ArrayAccess {
     function u_limit ($numChars, $end='...') {
         ARGS('ns', func_get_args());
         $s = $this->val;
-        if (strlen($s) > $numChars) {
+        if (mb_strlen($s) > $numChars) {
             $s = mb_substr($s, 0, $numChars);
             $s = rtrim($s, '?!.;,');
             $s = $s . $end;
@@ -635,7 +661,7 @@ class OString extends OVar implements \ArrayAccess {
 
         if ($v[0] === '"' || $v[0] === "'" || $v[0] === '`') {
             // trim surrounding quotes
-            if ($v[strlen($v) - 1] === $v[0]) {
+            if ($v[mb_strlen($v) - 1] === $v[0]) {
                 $v = trim($v, $v[0]);
             }
             return $v;
@@ -682,7 +708,7 @@ class OString extends OVar implements \ArrayAccess {
         $numCaps = count($matches[0]);
 
         $alphaOnly = preg_replace("/[^a-zA-Z]/", "", $s);
-        $numAlpha = strlen($alphaOnly);
+        $numAlpha = mb_strlen($alphaOnly);
 
         if ($numAlpha > 16) {
             $maxCaps = floor($numAlpha * 0.5);
