@@ -6,12 +6,17 @@ class Parser {
 
     var $symbol = null;
     var $inTernary = false;
+    var $inClass = false;
+    var $blockDepth = 0;
     var $expressionDepth = 0;
     var $foreverDepth = 0;
     var $symbolTable = null;
     var $prevToken = null;
     var $validator = null;
     var $foreverBreaks = [];
+
+    var $prevLineWithStatement = -1;
+    var $prevLineStatement = null;
 
     private $tokenNum = 0;
     private $tokenStream = null;
@@ -32,15 +37,15 @@ class Parser {
         return $this->symbolTable;
     }
 
-    function error ($msg, $token = null) {
+    function error ($msg, $token = null, $isLineError = false) {
         if (!$token) { $token = $this->symbol->token; }
-        return ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile());
+        return ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile(), $isLineError);
     }
 
 
 
     ///
-    /// Parsing Methods  (Block > Statement(s) > Expression(s))
+    ///  Parsing Methods  (Block > Statement(s) > Expression(s))
     ///
 
 
@@ -56,6 +61,7 @@ class Parser {
             }
             $sStatement = $this->parseStatement();
             if ($sStatement) {
+                $this->validateOneStatementPerLine($sStatement);
                 $sStatements []= $sStatement;
             }
         }
@@ -71,6 +77,8 @@ class Parser {
 
         $this->now('{')->space(' { ', true)->next();
 
+        $this->blockDepth += 1;
+
         while (true) {
             $s = $this->symbol;
             if ($s->isValue('}')) {
@@ -83,16 +91,21 @@ class Parser {
             }
             $sStatement = $this->parseStatement();
             if ($sStatement) {
+                $this->validateOneStatementPerLine($sStatement);
                 $sStatements []= $sStatement;
             }
         }
 
         $this->validator->popScope();
 
+        $this->blockDepth -= 1;
+
+        $this->prevLineWithStatement = -1;
+
         return $this->makeSequence(SequenceType::BLOCK, $sStatements);
     }
 
-    // A Statements is a tree of Expressions.
+    // A Statement is a tree of Expressions.
     function parseStatement () {
 
         Tht::devPrint("START STATEMENT:\n");
@@ -105,11 +118,15 @@ class Parser {
         }
         else {
             $st = $this->parseExpression(0);
-            // don't allow commas to separate top-level expressions
-            // e.g. a = 1, b = 2;
-            if ($this->prevToken[TOKEN_VALUE] === ',') {
-                $this->error("Unexpected comma `,`");
+
+            // Expressions-as-statements must end in a semicolon
+            if ($this->symbol->token[TOKEN_VALUE] === ';') {
+                $this->next();
             }
+            else if ($this->prevToken[TOKEN_VALUE] !== ';') {
+                $this->error('Missing semicolon `;` after statement', $this->prevToken);
+            }
+
         }
 
         return $st;
@@ -125,7 +142,8 @@ class Parser {
 
         Tht::devPrint("START EXPRESSION bp=$baseBindingPower d=" . $this->expressionDepth . " :\n");
 
-        $left = $this->symbol->asLeft($this);
+        $s = $this->symbol;
+        $left = $s->asLeft($this);
         while (true) {
             if (!($this->symbol->bindingPower > $baseBindingPower)) { break; }
             $left = $this->symbol->asInner($this, $left);
@@ -134,6 +152,17 @@ class Parser {
         $this->expressionDepth -= 1;
 
         return $left;
+    }
+
+    // TODO: probably need to refactor duplication between parseMain & parseBlock
+    function validateOneStatementPerLine($sStatement) {
+        if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TSTRING) { 
+            $lineNum = explode(',', $sStatement->token[TOKEN_POS])[0];
+            if ($this->prevLineWithStatement == $lineNum) {
+                $this->error('Only one semicolon statement allowed per line.', $sStatement->token, true); 
+            }
+            $this->prevLineWithStatement = $lineNum;
+        }
     }
 
 
@@ -161,7 +190,7 @@ class Parser {
         $this->symbol = $this->tokenToSymbol($token);
 
         if ($token[TOKEN_TYPE] === TokenType::GLYPH) {
-            if ($token[TOKEN_VALUE] === ';' || $token[TOKEN_VALUE] === ',') {
+            if ($token[TOKEN_VALUE] === ',' || $token[TOKEN_VALUE] === ';') {
                 $this->space('x, ');
             }
         }

@@ -63,10 +63,5 @@ class OVar extends OClass implements \JsonSerializable {
     function u_is_map () {
         return \get_called_class() === 'o\OMap';
     }
-
-    function u_compare_to ($a) {
-        if ($this->val === $a) {  return 0;  }
-        return $this->val > $a ? 1 : -1;
-    }
 }
 

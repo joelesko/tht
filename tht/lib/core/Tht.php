@@ -11,7 +11,7 @@ class Tht {
 
     static private $data = [
         'phpGlobals'     => [],
-        'settings'       => [],
+        'config'         => [],
         'memoryBuffer'   => ''
     ];
 
@@ -30,15 +30,17 @@ class Tht {
         'app'       => 'app',
         'pages'     =>   'pages',
         'modules'   =>   'modules',
-        'settings'  =>   'settings',
-        'scripts'   =>   'scripts',
-        'localTht'  =>   '.tht', 
-        // 'phpLib'    =>   'php',
+        'config'    =>   'config',
 
+        'misc'      =>   'misc',
+        'phpLib'      =>   'php',
+        'scripts'     =>   'scripts',
+
+        'localTht'  =>   '.tht', 
+        
         'data'      => 'data',
         'db'        =>   'db',
         'sessions'  =>   'sessions',
-        'uploads'   =>   'uploads',
         'files'     =>   'files',
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
@@ -78,11 +80,14 @@ class Tht {
     // TODO: put all these in one registry function/file?
     static private function includeLibs() {
         
-        Tht::loadLib('Utils.php');
+        Tht::loadLib('utils/Utils.php');
+        Tht::loadLib('utils/StringReader.php');
+        Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
+
         Tht::loadLib('ErrorHandler.php');
         Tht::loadLib('Source.php');
-        Tht::loadLib('StringReader.php');
         Tht::loadLib('Runtime.php');
+        Tht::loadLib('ModuleManager.php');
         Tht::loadLib('Security.php');
 
         Tht::loadLib('../classes/_index.php');
@@ -101,6 +106,9 @@ class Tht {
             // See: https://github.com/joelesko/tht/issues/2
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
             if ($_SERVER["REQUEST_URI"] !== "/" && file_exists($path)) {
+                if (is_dir($path)) {
+                    throw new StartupException ("Path `$path` can not be a directory under Document Root.");
+                }
                 return false;
             }
         }
@@ -134,6 +142,7 @@ class Tht {
 
     static public function handleShutdown() {
         Tht::clearMemoryBuffer();
+        Tht::module('Web')->endGzip();
     }
 
     static private function init () {
@@ -234,9 +243,10 @@ class Tht {
 
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
 
-        // Set paths for 'app' and 'data'
-        foreach (['app', 'data'] as $topDir) {
+        // Set paths for 'app'
+        foreach (['app'] as $topDir) {
 
+            // Read APP_ROOT & DATA_ROOT
             $globalConstant = strtoupper($topDir . '_root'); 
 
             if (defined($globalConstant)) {
@@ -255,20 +265,23 @@ class Tht {
             }
 
             if (!Tht::$paths[$topDir]) {
-                Tht::startupError("Can't find app directory `$topDir`.\n\n"
+                throw new StartupException ("Can't find app directory `$topDir`.\n\n"
                     . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory\nto create a new app.\n\n");
             }
         }
 
         
         // app subdirs
+        Tht::$paths['data']      = Tht::path('app', Tht::$APP_DIR['data']);
         Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
         Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
-        Tht::$paths['settings']  = Tht::path('app', Tht::$APP_DIR['settings']);
-        Tht::$paths['scripts']   = Tht::path('app', Tht::$APP_DIR['scripts']);
+        Tht::$paths['config']    = Tht::path('app', Tht::$APP_DIR['config']);
         Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
-        // Tht::$paths['phpLib']    = Tht::path('app', Tht::$APP_DIR['phpLib']);
+        Tht::$paths['misc']      = Tht::path('app', Tht::$APP_DIR['misc']);
 
+        // misc subdirs
+        Tht::$paths['scripts']   = Tht::path('misc', Tht::$APP_DIR['scripts']);
+        Tht::$paths['phpLib']    = Tht::path('misc', Tht::$APP_DIR['phpLib']);
 
         // data subdirs
         Tht::$paths['db']          = Tht::path('data',    Tht::$APP_DIR['db']);
@@ -281,9 +294,8 @@ class Tht {
         Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
         Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
 
-
         // file paths
-        Tht::$paths['configFile']         = Tht::path('settings', Tht::$APP_FILE['configFile']);
+        Tht::$paths['configFile']         = Tht::path('config',   Tht::$APP_FILE['configFile']);
         Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$APP_FILE['appCompileTimeFile']);
         Tht::$paths['logFile']            = Tht::path('files',    Tht::$APP_FILE['logFile']);
 
@@ -312,17 +324,22 @@ class Tht {
         $def = Tht::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
-                Tht::configError("Unknown settings key `$mainKey.$k` in `" . Tht::$paths['configFile'] . "`.");
+                Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['configFile'] . "`.");
             }
         }
 
-        Tht::$data['settings'] = $appConfig;
+        Tht::$data['config'] = $appConfig;
 
         Tht::module('Perf')->u_stop();
     }
 
     // [security] clear out super globals
     static private function initPhpGlobals () {
+
+        // Avoid timezone warning
+        if (!ini_get('date.timezone')) {
+            date_default_timezone_set('UTC');
+        }
 
         Tht::$data['phpGlobals'] = [
             'get'    => $_GET,
@@ -401,8 +418,9 @@ class Tht {
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
-            "compressOutput"       => true,
+            "compressOutput"       => true, 
             "sessionDurationMins"  => 120,
+            'hitCounter'           => true,
 
             // security
             "allowFileAccess"         => false,
@@ -410,6 +428,9 @@ class Tht {
             "contentSecurityPolicy"   => '',
             "showErrorPageForMins"    => 30,
             "dangerDangerAllowJsEval" => false,
+
+            // misc
+            "cacheGarbageCollectRate" => 100,
 
             // resource limits
             "maxPostSizeMb"        => 2,
@@ -547,10 +568,6 @@ class Tht {
         return $fileBaseName . '.' . Tht::$SRC_EXT;
     }
 
-    static function getNamespace($relPath) {
-        return 'tht' . md5($relPath);
-    }
-
 
 
     // MISC GETTERS
@@ -563,7 +580,7 @@ class Tht {
     static function getTopConfig() {
         $args = func_get_args();
         if (is_array($args[0])) { $args = $args[0]; }
-        $val = Tht::searchConfig(Tht::$data['settings'], $args);
+        $val = Tht::searchConfig(Tht::$data['config'], $args);
         if ($val === null) {
             $val = Tht::searchConfig(Tht::getDefaultConfig(), $args);
             if ($val === null) {
@@ -592,7 +609,7 @@ class Tht {
     }
 
     static function getAllConfig () {
-        return Tht::$data['settings'];
+        return Tht::$data['config'];
     }
 
     static function getPhpGlobal ($g, $key, $def='') {
@@ -619,7 +636,21 @@ class Tht {
     }
 
     static function module ($name) {
-        return Runtime::getModule('', $name);
+        return ModuleManager::getModule($name);
+    }
+
+    // TODO: this is a bit messy, and user module names have duplication
+    static function cleanPackageName($p) {
+        $p = preg_replace('/\\\\+/', '/', $p);
+       
+        $parts = explode('/', $p);
+        $name = array_pop($parts);
+        $name = unu_($name);
+        $parts []= ucfirst($name);
+        $p = implode('/', $parts);
+        $p = str_replace('o/', 'std/', $p);
+        $p = str_replace('tht/', '', $p);
+        return $p;
     }
 }
 

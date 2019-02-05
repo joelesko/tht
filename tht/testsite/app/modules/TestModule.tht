@@ -10,7 +10,7 @@ F testGlobal() {
 }
 
 F testModuleVar() {
-	return 'moduleVar:' ~ TestModule.moduleVar;
+    return 'moduleVar:' ~ TestModule.moduleVar;
 }
 
 

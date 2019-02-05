@@ -1,0 +1,14 @@
+
+Php.require('vendor/autoload.php');
+
+let faker = Php.call('Faker/Factory::create', true);
+
+print(faker.name, faker.address);
+print(faker.numerify('Hello ###'));
+
+
+let res = Php.call('Requests::get', 'http://tht.help');
+print(res.body);
+
+
+

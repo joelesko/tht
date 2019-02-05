@@ -1,5 +1,7 @@
 import('subDir/OtherClass');
 
+@@.moduleVar = 122;
+
 F factory() {
 
     return new TestClass('factory', 99);
@@ -7,63 +9,60 @@ F factory() {
 
 class TestClass {
 
-    F new(name, num) {
+    F new(name, id) {
 
         @.name = name;
-        @.num = num;
-
-        @.state['hiddenChar'] = 'x';
         @.state = {
-            hiddenNum: 0
+            id: id
         };
 
-        @.dep = new OtherClass();
+        @.publicField = 'abc';
 
-        return @;
+        @.dep = new OtherClass({ foo: 1, bar: 2 });
     }
 
-    F dependency() {
-        return @.dep.ok();
+    F getModVar {
+        @@.moduleVar += 1;
+        R @@.moduleVar;
     }
 
-    F getHidden() {
-        return @.state.hiddenNum;
+    F dependency {
+        R @.dep.ok();
     }
 
-    F setHidden(num) {
-        @.state.hiddenNum = num;
+    F getId {
+        R @.state.id;
     }
 
-    F allState() {
-        return @.state;
+    F setId(id) {
+        @.state.id = id;
     }
 
-    F getName() {
-        print('get name');
-        return @.name ~ '!';
+    F getFullName() {
+        R @.name ~ ':' ~ @.id;
     }
 
-    F test() {
-        return 'class:' ~ @.name ~ @.num;
+    F zToString {
+        R @.getFullName();
     }
 
     F zDynamicGet(field) {
         if (field == 'okField') {
-            return Result.ok('dynamic:' ~ field);
+            R Result.ok('dynamic:' ~ field);
         }
         else {
-            return Result.fail();
+            R Result.fail();
         }
     }
 
     F zDynamicCall(methodName, args) {
         if (methodName == 'getSecretNumber') {
-            return Result.ok(42);
+            R Result.ok(42);
         }
-        return Result.fail();
+        R Result.fail();
     }
 
-    T html() {
+    T html {
 
         <b>Hello</>
 

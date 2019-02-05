@@ -9,16 +9,12 @@ class Security {
 	static private $CSP_NONCE = '';
 	static private $CSRF_TOKEN_LENGTH = 64;
 	static private $NONCE_LENGTH = 40;
-    // static private $MIN_FORM_SUBMIT_TIME_SECS = 2;
 
 	static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
     static private $isCrossOrigin = null;
     static private $isCsrfTokenValid = null;
-    // static private $isFormSubmittedByHuman = null;
-
-    static private $isOpenFileSandbox = false;
 
     static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
 
@@ -50,8 +46,6 @@ class Security {
         'unserialize',
         'url_exec',
     ];
-
-    
 
 	static function createPassword ($plainText) {
 		return new OPassword ($plainText);
@@ -136,42 +130,32 @@ class Security {
         return self::$isCsrfTokenValid;
 	}
 
-    // static function isFormSubmittedByHuman() {
-
-    //     if (!is_null(self::$isFormSubmittedByHuman)) {
-    //         return self::$isFormSubmittedByHuman;
-    //     }
-
-    //     self::$isFormSubmittedByHuman = false;
-
-    //     // Client (human) should take longer than 2 seconds before submitting
-    //     $formLoadTime = Tht::module('Session')->u_get('formLoadTime', 0);
-    //     if (time() >= $formLoadTime + self::$MIN_FORM_SUBMIT_TIME_SECS) {
-    //         self::$isFormSubmittedByHuman = true;
-    //     }
-
-    //     return self::$isFormSubmittedByHuman;
-    // }
-
 	static function validatePhpFunction($func) {
-		if (in_array(strtolower($func), self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
+        $func = strtolower($func);
+        $func = preg_replace('/^\\\\/', '', $func);
+		if (in_array($func, self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
             Tht::error("PHP function is blacklisted: `$func`");
         }
 	}
 
-    static function validatePath ($path, $checkSandbox=true) {
+    static function validateFilePath ($path, $checkSandbox=true) {
 
         $path = str_replace('\\', '/', $path);
+        $path = preg_replace('#/{2,}#', '/', $path);
+
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
         if (!strlen($path)) {
             Tht::error("File path cannot be empty: `$path`");
         }
-        if (v('' . $path)->u_is_url()) {
+        if (v($path)->u_is_url()) {
             Tht::error("Remote URL not allowed: `$path`");
         }
 		if (strpos($path, '..') !== false) {
             Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+        }
+        if (strpos($path, './') !== false) {
+            Tht::error("Dot directory `.` not allowed in path: `$path`");
         }
 
         if ($checkSandbox && Tht::isMode('fileSandbox')) {
@@ -196,6 +180,7 @@ class Security {
         }
     }
 
+    // TODO: Validate that form is submit by human?
     static function isCrossOrigin () {  
 
         if (!is_null(self::$isCrossOrigin)) {
@@ -268,7 +253,11 @@ class Security {
         ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
         ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
 
+        self::validatePhpIni();
+    }
 
+    static function validatePhpIni() {
+        
         // Configs that are only set in .ini or .htaccess
         // Trigger an error if PHP is more strict than Tht.
         $thtMaxPostSize = intval(Tht::getConfig('maxPostSizeMb'));
@@ -293,15 +282,10 @@ class Security {
 
     // Register an un-sandboxed version of File, for internal use.
     static function registerInternalFileModule() {
-    	self::$isOpenFileSandbox = true;
-    	Runtime::registerStdModule('*File', new u_File ());  
-    	self::$isOpenFileSandbox = false;
+        $f = new u_File ();
+        $f->dangerDangerDisableSandbox();
+    	ModuleManager::registerStdModule('*File', $f);
     }
-
-    static function isOpenFileSandbox() {
-    	return self::$isOpenFileSandbox;
-    }
-
 }
 
 // Wrapper for incoming passwords to prevent leakage of plaintext
@@ -318,16 +302,20 @@ class OPassword {
  		return '[Password]';
  	}
 
- 	function hash() {
+ 	function u_hash() {
  		if (!$this->hash) {
  			$this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
  		}
  		return $this->hash;
  	}
 
- 	function u_is_correct($otherPasswordHash) {
- 		return password_verify($this->plainText, $otherPasswordHash);
+ 	function u_is_correct($correctHash) {
+ 		return password_verify($this->plainText, $correctHash);
  	}
+
+    function u_danger_danger_plain_text() {
+        return $this->plainText;
+    }
 }
 
 

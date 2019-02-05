@@ -1,16 +1,16 @@
-
 // Test Suite
 
 function main() {
 
     let test = Test.new();
-    run(test);
 
+    run(test); 
     Web.sendHtml(html(test.resultsHtml()));
+
 }
 
 template html(results) {
-
+    
     <!-- this is a comment -->
     <html>
         <head>
@@ -21,22 +21,23 @@ template html(results) {
             <main>
                 <h1>> THT Unit Tests
 
-                    <a href="#test-results">> Skip to Results
+                <a href="#test-results" style="font-weight: bold">> Skip to Results
 
-                    {{ results }}
+                <p style="font-size: 100%; margin-top: 3rem">> <b>Perf:</> When measuring raw execution speed of this page, set <code>_disablePhpCache: false</> in <code>app.jcon</>.  Then take Server Response Time and subtract <code>System.sleep</> and <code>Net.httpRequest</>.
 
-            </main>
-        </body>
-    </html>
+                {{ results }}
+
+            </>
+        </>
+    </>
 
 }
-
-
 
 function run(t) {
 
     testMathAndLogic(t);
     testStrings(t);
+    testBitwise(t);
     testControlFlow(t);
     testLists(t);
     testMaps(t);
@@ -44,6 +45,7 @@ function run(t) {
     testTypes(t);
     testMisc(t);
     testTemplates(t);
+    testOop(t);
 
     runtimeErrors(t);
     compileErrors(t);
@@ -56,45 +58,40 @@ function run(t) {
     libJson(t);
     libLitemark(t);
     libMath(t);
-  //  libMeta(t);
+    libMeta(t);
     libPerf(t);
     libPhp(t);
     libWeb(t);
     libGlobal(t);
-    libSettings(t);  
+    libSettings(t);
    // libMapDb(t);  
     libSession(t);
     libCache(t);
     libNet(t);
 }
 
-
 function runtimeErrors(t) {
 
     t.section('Runtime Errors');
 
-    t.dies(function () { 'abc'.sdf() }, 'non-existent method');
-    t.dies(function () { 'abc {1}'.fill(['foo']) }, 'bad fill value');
+    t.dies(F { 'abc'.sdf(); }, 'non-existent method');
 
-    t.dies(function () {
-        { a: 1 }.sdfsdf();
-    }, 'invalid method');
+    t.dies(F { 'abc {1}'.fill(['foo']); }, 'bad fill value');
 
-    t.dies(function () {
-         let a = 'sdf'.reverse;
-    }, 'missing parens in method call');
+    t.dies(F { { a: 1 }.sdfsdf(); }, 'invalid method');
 
-    let funFor = function () {
-        for (foo in 2) { }
-    };
+    t.dies(F { let a = 'sdf'.reverse; }, 'missing parens in method call');
+
+    let funFor = F { for (foo in 2) { } };
 
     t.dies(funFor, 'Invalid argument');
 
-    t.dies(function () { return 'abc'.length; }, 'length()');
-
+    t.dies(F {  return 'abc'.length; }, 'length()');
+    
 }
 
 function compileErrors(t) {
+
 
     t.section('Parser');
 
@@ -132,14 +129,28 @@ function compileErrors(t) {
     t.section('Parser Errors - Aliases');
 
     t.parserError('var a = 3;', 'try: \`let\`');
+    t.parserError('const a = 3;', 'try: \`let\`');
+    t.parserError('global a = 3;', 'try: \`Globals');
     t.parserError('foreach (ary as a) { }', 'try: \`for\`');
     t.parserError('let ary = [];\nfor (ary as a) { }', 'item in list');
     t.parserError('$foo = 123',  'remove $ from name');
+    t.parserError('let a = 1 ^ 2',  '+^');
+    t.parserError('let a = 1 & 2',  '+&');
+    t.parserError('let a = 1 | 2',  '+|');
+    t.parserError('let a = 1 >> 2',  '+>');
+    t.parserError('let a = 1 << 2',  '+<');
+    t.parserError('let a = 1++;',  '+= 1');
+    t.parserError('if (true) { } elif (false) {}',  'else if');
+    t.parserError('if (true) { } elsif (false) {}',  'else if');
+    t.parserError('if (true) { } elseif (false) {}',  'else if');
+    t.parserError('switch() {}',  'try: if/else');
+    t.parserError('require();',  'try: import');    
+    t.parserError('while () {}',  'try: for { ... }');
 
 
     t.section('Parser Errors - Misc');
 
-    t.parserError('asdasd', 'unknown variable', '');
+    t.parserError('asdasd;', 'unknown variable', '');
     t.parserError('if (a = 3) { }', 'assignment', 'if, missing paren');
     t.parserError('break;\nlet a = 3;', 'unreachable');
     t.parserOk('return;\nlet a = 3;', 'may return early');
@@ -147,8 +158,7 @@ function compileErrors(t) {
     t.parserOk('function foo() { return 1; }', 'newline not needed for one-line fun');
     t.parserError('let a = `hello', 'unexpected newline');
     t.parserError('for (a) {}', 'expected `in`');
-    t.parserOk('\t let a\t=\t1;', 'tabs');
-    t.parserError('for (let i = 0; i < 10; i++) {}', 'unexpected `let`');
+    t.parserError('for (let i = 0; i < 10; i += 1) {}', 'unexpected `let`');
     t.parserError('1 ? 2 ? 3 : 4 : 5', 'nested ternary');
     t.parserError('let a = E`foo`;', 'string modifier');
     t.parserError('let a = l`foo`;', 'uppercase');
@@ -163,21 +173,21 @@ function compileErrors(t) {
     t.parserError('let a = { FOO: `bar` };', 'camelCase');
     t.parserError('let a = { foo: `bar`, foo: 1 };', 'duplicate key');
     t.parserError('if (true) return;',   'Expected `{`');
-    t.parserError('print(`a`), print(`b`);', 'comma');
+    t.parserError('print(`a`), print(`b`);', 'Missing semicolon');
     t.parserError('let a = 1, b = 2;', 'Missing semicolon', '');
     t.parserError('let a = (1 + );', 'incomplete');
     t.parserError('let a = 2 + (1 * ) + 1;', 'incomplete');
     t.parserError('<?', 'Unexpected symbol `<`');
     t.parserError('?>', 'Unexpected symbol `?`');
     t.parserError('`hello`[] = `a`;', 'Assignment can not');
+    t.parserError('function test(tma1, tma1) {\n}', 'Duplicate argument');
+    t.parserError('function test(tma1, tma1 = 2) {\n}', 'Duplicate argument');
+    t.parserError('function test(tma1,\ntma2) {\n}', 'Newline');
+    t.parserError('function test(tma1, \ntma2) {\n}', 'Newline');
+    t.parserError('let a = 1;;', 'Unexpected semicolon');
+    t.parserError('let a = [1,, ];', 'Unexpected comma');
+    t.parserError('let a = [,, 1];', 'Unexpected comma');
 
-
-
-    // t.dies(function () {
-    //      let a = true;
-    //      print(a[1]);
-    //  },
-    //  'Flag as array');
 
 
     t.section('Parser Errors - Adjacent Tokens');
@@ -195,13 +205,27 @@ function compileErrors(t) {
 
     t.section('Parser Errors - Newlines');
 
-    t.parserError('let a = ``` sdf', 'newline');
-    t.parserError('let a = ```\ndfg ```;', 'triple-quote');
     t.parserError('let a = 1; /*\n', 'separate line');
     t.parserError('/*\nsdf\n*/ d', 'missing newline');
     t.parserError('/*\nsdf', 'unclosed comment');
     t.parserError('template fooText() {\n};', 'missing newline'); // after }
+    t.parserOk('if (true)\n{ }',            'newline after `)`');
+    t.parserError('if\n(true)\n{ } ',       'newline after `if`');
+    t.parserError('let\na = 1;',            'newline after `let`');
+    t.parserError('for\n(el in list)',      'newline after `for`');
+    t.parserError('function\nfoo()',        'newline after `function`');
+    t.parserError('class\nFoo {}',          'newline after `class`');
+    t.parserError('let a = new\nFoo()',     'newline after `new`');   
+    t.parserOk('if (true) {\n}\nelse\n{ }', 'newline after `else`');
+    t.parserOk('for (a in [`a`])\n{ }',     'newline after `)`');
+    t.parserOk('function fn()\n{ }',        'newline after `)`');
 
+    t.parserError('let a = 1;  let b = 2;',  'Only one semicolon statement');
+    t.parserError('let a = 1; a = 2;',  'Only one semicolon statement');
+    t.parserOk('let a = b(F { c(); });',  'Statement in anon function');
+    t.parserError('let a = b(F { c(); d(); });',  'Only one semicolon statement');
+    t.parserOk('if (true) { b(); }',  'Statement in conditional block');
+    t.parserError('if (true) { b(); c(); }',  'Only one semicolon statement');
 
 
     t.section('Parser Errors - Spaces');
@@ -216,7 +240,7 @@ function compileErrors(t) {
     t.parserError('( a + 1)',             'space after `(`');
     t.parserOk('let a = (\n1 +\n2\n);',    'space after `(`');
     t.parserError('foo( );',              'space after `(`');
-    t.parserError('let a = [ ]',          'space after `[`');
+   // t.parserError('let a = [ ]',          'space after `[`');
     t.parserError('let a = { }',          'space after `{`');
     t.parserOk('let a = [\n];',            'space after `[`');
     t.parserOk('let a = {\n};',            'space after `{`');
@@ -242,11 +266,17 @@ function compileErrors(t) {
     t.parserError('a ? 1 :2;',            'space after `:`');
     t.parserError('let a = 1;let a = 2;', 'space after `;`');
 
-    t.parserOk('if (true)\n{ }',            'newline after `)`');
-    t.parserOk('else if (true)\n{ }',       'newline after `)`');
-    t.parserOk('if (true) {\n}\nelse\n{ }', 'newline after `else`');
-    t.parserOk('for (a in [`a`])\n{ }',     'newline after `)`');
-    t.parserOk('function fn()\n{ }',        'newline after `)`');
+    t.parserOk('let a = [1, 2, 3];', 'no padding inside `[...]`');
+    t.parserError('let a = [ 1, 2, 3 ];', 'space after `[`');
+    t.parserError('let a = [1, 2, ];', 'space before `]`');
+    t.parserOk('let a = [\n   1, 2,\n];', 'newline before `]`');
+
+    t.parserError('String .random(4);', 'space before `.`');
+    t.parserError('String. random(4);', 'space after `.`');
+    t.parserError('String.\n    random(4);', 'space after `.`');
+    t.parserOk('String\n    .random(4);', 'newline before `.`');
+
+
 
 
     t.section('Parser Errors - Templates');
@@ -263,6 +293,10 @@ function compileErrors(t) {
     t.parserError('template fHtml() {\n  <b>Hi</b></b>',  'extra closing tag');
     t.parserError('function fHtml() {\n  <',              'unexpected `<`', '');
     t.parserError('template foo() {\n',                   'missing type');
+
+    t.parserError('template fHtml() {\nTest\n}', 'should be indented');
+    t.parserOk('template fHtml() {\n\tTest\n}', 'tab indent');
+    t.parserOk('  template fHtml() {\n\tTest\n}', 'tab indent(4) vs space(2)');
 
 
     t.section('Parser Errors - Assignment as Expression');
@@ -285,9 +319,8 @@ function compileErrors(t) {
     t.parserError('let a = 1;\nif (a == 1) {\n let a = 2;\n}', 'already defined');
     t.parserError('if (true) {\n let a = 1;\n let a = 2;\n}', 'already defined');
     t.parserOk('if (true) {\n let a = 1; }\nif (true) { let a = 2;\n }', 'already defined');
-    t.parserError('let a = 1;\nfunction foo(a) {}', 'already defined');
-    t.parserError('function foo(a, a) {}', 'already defined');
-    t.parserError('function foo(a = 1, a) {}', 'already defined');
+ //   t.parserError('let a = 1;\nfunction foo(a) {}', 'already defined');
+    
     t.parserError('function foo() { }\nfunction foo() { }', 'already defined');
     t.parserError('function foo() { }\nfunction fOo() { }', 'already defined');
     t.parserError('let a = 1;\nfor (a in ary) {}', 'already defined');
@@ -359,56 +392,71 @@ function testMisc(t) {
     import('subDir/OtherModule');
     t.ok(OtherModule.ok('Joe') == 'ok:Joe', 'import from subfolder');
 
+}
 
 
+function testOop(t) {
+    
     t.section('Classes (OOP)'); 
 
     let tc = new TestClass('green', 123);
 
-    t.ok(tc.test() == 'class:green123', 'new object');
-    t.ok(tc.name == 'green', 'get property');
+    t.ok(tc.getFullName() == 'green:123', 'get property');
     t.ok(tc.html().unlocked() == '<b>Hello</b>\n', 'object template');
 
-    t.ok(tc.getHidden() == 0, 'get state');
-    tc.setHidden(345)
-    t.ok(tc.getHidden() == 345, 'set state');
-    t.ok(tc.allState()['hiddenNum'] == 345, 'all state');
+    t.ok(tc.getModVar() == 123, 'Module variable');
+    t.dies(F { return tc.xField; }, 'No access to private field');
 
-    t.ok(tc.dependency() == 'other', 'dependency')
+    t.ok(tc.getId() == 123, 'getter method');
+    t.ok(tc.id == 123, 'magic getter');
+    tc.setId(345);
+    t.ok(tc.id == 345, 'setter');
 
-    t.dies(F { tc.state['abc'] = 123;  }, 'private state')
+    t.ok(tc.dependency() == 'other', 'dependency');
+    t.ok(tc.dep.foo == 1, 'dependency dynamic field');
+    t.ok(tc.dep.bar == 2, 'dependency dynamic field');
 
     t.dies(F { tc.foo = 123; }, 'Fields locked after construction');
-
-    t.ok(TestClass.factory().name == 'factory', 'module factory');
-
-    t.ok(tc.zMethods().contains('getHidden'), 'zMethods');
-    t.ok(tc.zFields().name == 'green', 'zFields');
-
-    t.ok(tc.zGetField('num') == 123, 'zGetField');
-    tc.zSetField('name', 'blue');
-    t.ok(tc.name == 'blue', 'zSetField');
-
-    tc.zCallMethod('setHidden', [789]);
-    t.ok(tc.zCallMethod('getHidden') == 789, 'zCallMethod')
+    t.ok(TestClass.factory().getFullName() == 'factory:99', 'module factory');
+    t.ok(tc.zGetMethods().contains('getFullName'), 'zMethods');
+    tc.zCallMethod('setId', [789]);
+    t.ok(tc.zCallMethod('getId') == 789, 'zCallMethod');
 
     t.ok(tc.okField == 'dynamic:okField', 'zDynamicGet ok');
-    t.dies(F { tc.badField = 1 }, 'zDynamicGet fail');
+    t.dies(F { tc.badField = 1; }, 'zDynamicGet fail');
 
     t.ok(tc.getSecretNumber() == 42, 'zDynamicCall');
 
-    t.ok(tc.zHasMethod('setHidden'), 'zHasMethod true');
-    t.ok(!tc.zHasMethod('sethidden'), 'zHasMethod false');
+    t.ok(tc.zHasMethod('setId'), 'zHasMethod true');
+    t.ok(!tc.zHasMethod('xyz'), 'zHasMethod false');
 
-    t.ok(tc.zHasField('num'), 'zHasField true');
-    t.ok(!tc.zHasField('Num'), 'zHasField false');
+    t.ok(tc.zHasField('publicField'), 'zHasField true');
+    t.ok(!tc.zHasField('xyz'), 'zHasField false');
+
+    t.ok(tc.dep.zGetFields().keys().join(':') == 'foo:bar', 'zGetFields');
+    
+    let meths = tc.zGetMethods();
+    t.ok(meths.contains('getId') && meths.contains('getFullName'), 'zGetMethods()');
+
+    t.dies(F { print(Php.version); }, 'version()');
+
+    t.ok(Php.functionExists('strpos'), 'function exists');
+    t.ok(!Php.functionExists('strposxx'), 'function exists (not)');
+    t.ok(Php.classExists('DateTime'), 'class exists');
+    t.ok(!Php.classExists('FooBar'), 'class exists (not)');
+    t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)');
+
+
 
     import('subDir/OtherClass');
-    let oc = new OtherClass();
+    let oc = new OtherClass({ a1: 1, a2: 2 });
 
     t.ok(oc.ok() == 'other', 'OtherClass');
+    t.ok(oc.a1 == 1 && oc.a2 == 2, 'zSetFields');
 
+    t.ok(Meta.newObject('TestClass', ['green', 123]), 'Meta.new');
 }
+
 
 function testTypes(t) {
 
@@ -559,15 +607,14 @@ function testFunctions(t) {
     t.dies(F () { t.checkArgsMap(true); }, 'Expect map. Got Flag');
 
     t.ok(t.checkArgsString(123), 'Number as string');
-    t.dies(F () { t.checkArgsNumber('123') }, 'String as number');
+    t.dies(F () { t.checkArgsNumber('123'); }, 'String as number');
 
     t.dies(F () { t.checkArgsMulti(true, 123, []); }, 'Multi (snl): bad #1');
     t.dies(F () { t.checkArgsMulti('', '123', []); }, 'Multi (snl): bad #2');
     t.dies(F () { t.checkArgsMulti('', 123, 'x'); }, 'Multi (snl): bad #3');
 
-
-
-
+    let a = [1, 2, 3];
+    t.ok(spread(...a) == '1:2:3', 'spread operator (...)');
 }
 
 
@@ -602,7 +649,7 @@ function testMaps(t) {
     t.section('Maps - dot access');
 
     t.ok(user.name == 'Drac', 'dot access');
-    t.dies(function () keep (user) { print(user.nameX) }, 'dot access - missing field dies');
+    t.dies(function () keep (user) { print(user.nameX); }, 'dot access - missing field dies');
 
 
     t.section('Maps - Missing values');
@@ -660,17 +707,24 @@ function testMaps(t) {
     t.ok(flipped['2'] == 'b', 'reverse');
     t.ok(flipped.length() == 2, 'reverse length');
 
+    // slice
+    map = { a: 1, b: 2, c: 3 };
+    t.ok(map.slice(Q[b c]).c == 3, 'slice()');
+    t.ok(map.slice(Q[b c]).keys().join(':') == 'b:c', 'slice() keys');
+    t.ok(map.slice(Q[a z]).z == '', 'slice() with missing key');
 
-    t.section('Maps - Size Errors');
+
+    t.section('Maps - Misc Errors');
 
     t.dies(F { {}.remove('Z'); }, 'Map key not found');
     t.dies(F { {}.getKey('VAL'); }, 'Map value not found');
 
+    t.dies(F { {}.getKey(false); }, 'Map.getKey(<flag>);');
+    t.dies(F { {}.merge(['a']); }, 'Map.merge(<list>);');
 
 }
 
 function testMathAndLogic(t) {
-
 
     t.section('Math operators');
 
@@ -705,13 +759,25 @@ function testMathAndLogic(t) {
     t.dies(F { R 'a' % 2; }, 'Modulo string');
     t.dies(F { R true + 2; }, 'Add flag to number');
     t.dies(F { R {} + 2; }, 'Add Map to number');
-    t.dies(F { let aa = 1; aa += 'v'; }, '+= string');
+    t.dies(F { 
+        let aa = 1; 
+        aa += 'v'; }, '+= string');
     t.dies(F { R 1 > 'a'; }, 'number > string');
     t.dies(F { R 1 >= 'a'; }, 'number >= string');
     t.dies(F { R 1 < 'a'; }, 'number < string');
     t.dies(F { R 1 <= 'a'; }, 'number <= string');
     t.dies(F { R 2 ** 'a'; }, 'number ** string');
     t.dies(F { R 2 / 0; }, 'divide by zero');
+
+
+    t.section('Hex & Binary Numbers');
+
+    t.ok(0b10111 == 23, 'binary');
+    t.ok(0b10111 * 2 == 46, 'binary * dec');
+
+    t.ok(0x1f == 31, 'hex');
+    t.ok(0x1f * 2 == 62, 'hex * dec');
+
 
 
     t.section('Truth');
@@ -743,15 +809,21 @@ function testMathAndLogic(t) {
     t.ok(3 >= 3, '>= eq');
     t.ok(3 <= 3, '<= eq');
 
-    let num = 5;
-    t.ok(num.compareTo(10) == -1, 'compare num -');
-    t.ok(num.compareTo(-5) ==  1, 'compare num +');
-    t.ok(num.compareTo(5)  ==  0, 'compare num =');
+    t.ok((4 <=> 2) == 1, '<=> = 1');
+    t.ok((2 <=> 4) == -1, '<=> = -1');
+    t.ok((2 <=> 2) == 0, '<=> = 0');
+    t.ok((2.1 <=> 2.0) == 1, '<=> float = 1');
+    t.ok((2.0 <=> 2.1) == -1, '<=> float = -1');
+    t.ok((2.0 <=> 2.0) == 0, '<=> float = 0');
 
     let str = 'moo';
-    t.ok(str.compareTo('zoo')    == -1, 'compare string -');
-    t.ok(str.compareTo('abcdef') ==  1, 'compare string +');
-    t.ok(str.compareTo('moo')    ==  0, 'compare string =');
+    t.ok(str <=> 'zoo'    == -1, '<=> string -');
+    t.ok(str <=> 'abcdef' ==  1, '<=> string +');
+    t.ok(str <=> 'moo'    ==  0, '<=> string =');
+
+
+
+
 
 
     t.section('Math Assignment');
@@ -771,7 +843,7 @@ function testMathAndLogic(t) {
 
     t.section('Number Methods');
 
-    num = 1234.56;
+    let num = 1234.56;
     t.ok(num.format() == '1,235', 'format');
     t.ok(num.format(1) == '1,234.6', 'format - numDecimals');
     t.ok(num.format(2, '') == '1234.56', 'format - blank sep');
@@ -783,6 +855,13 @@ function testMathAndLogic(t) {
     t.ok((0).toFlag() == false, 'toFlag - false');
     t.ok((-1).toFlag() == true, 'toFlag - negative');
     t.ok((0.1).toFlag() == true, 'toFlag - float');
+
+
+    t.section('Float & Ints');
+
+    t.ok(5 == 5.0, '5 == 5.0');
+    t.ok(1.0 + 2.0 == 3.0, '1.0 + 2.0 == 3.0');
+
 }
 
 
@@ -860,7 +939,7 @@ function testControlFlow(t) {
     t.ok(a == 5, '&&= true');
     a = 0;
     a &&= 3;
-    t.ok(a == 0, '&&= false')
+    t.ok(a == 0, '&&= false');
     a = 0;
     a ||= 2;
     t.ok(a == 2, '||= true');
@@ -872,10 +951,10 @@ function testControlFlow(t) {
 
     a = 1;
 
-    if (true) { a = 2 }
+    if (true) { a = 2; }
     t.ok(a == 2, 'if true');
 
-    if (false) { a = 3 }
+    if (false) { a = 3; }
     t.ok(a == 2, 'if false');
 
     if (false) {
@@ -949,6 +1028,9 @@ function testStrings(t) {
 
     let stra = '456789';
     t.ok(stra[-1] == '9', 'substring index');
+
+    t.section('Multiline Strings');
+
     let ml = '''
         this is a
         multiline
@@ -956,6 +1038,9 @@ function testStrings(t) {
     ''';
     t.ok(ml.contains('multiline\nstring'), 'multiline with indent');
 
+    t.parserError('let a = ``` sdf', 'newline');
+    t.parserError('let a = ```\ndfg ```;', 'separate line');
+    t.parserError('let a = ```\ndfg ', 'unclosed');
 
     t.section('String Concatenation');
 
@@ -984,11 +1069,11 @@ function testStrings(t) {
     t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode');
 
 
-    t.ok('false'.toFlag() == false, 'toFlag - false');
+    t.ok(''.toFlag() == false, 'toFlag - empty string');
+    t.ok('0'.toFlag() == true, 'toFlag - 0');
+    t.ok('false'.toFlag() == true, 'toFlag - false');
     t.ok('true'.toFlag() == true, 'toFlag - true');
-    t.ok('0'.toFlag() == false, 'toFlag - 0');
-    t.ok('null'.toFlag() == false, 'toFlag - null');
-
+    
     t.ok('123'.toNumber() == 123, 'toNumber');
     t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
 
@@ -1212,7 +1297,7 @@ function testStrings(t) {
 
     t.ok(hi.split(R'\s')[1] == 'World!', 'split regex');
     t.ok(hi.match(R'(\w+)!$')[1] == 'World', 'regex with dollar');
-    t.dies(F { 'longstringlongstring'.find(R'(?:\D+|<\d+>)*[!?]') }, 'regex error');
+    t.dies(F { 'longstringlongstring'.find(R'(?:\D+|<\d+>)*[!?]'); }, 'regex error');
 
     let multi = 'one\ntwo\nthree';
     t.ok(multi.split(R'\s').length() == 3, 'Newline regex');
@@ -1263,7 +1348,9 @@ function testLists(t) {
     t.ok(ary[1] == 2, 'direct');
     t.ok(ary.join(':') == '1:2:3:4:5', 'join');
     t.ok(ary.reverse().join(':') == '5:4:3:2:1', 'reverse');
-    let aryExtraComma = [6, 7, 8, 9, ];
+    let aryExtraComma = [
+        6, 7, 8, 9, 
+    ];
     t.ok(aryExtraComma.join(':') == '6:7:8:9', 'trailing comma');
     t.ok(ary[-2] == 4, 'negative index');
 
@@ -1321,10 +1408,10 @@ function testLists(t) {
     t.ok(ary.length() == 5 && ary[2] == 10 && ary.last() == 3, 'insertAll - negative');
 
 
-    // sublist
-    t.ok([0, 1, 2, 3].sublist(1).join('|') == '1|2|3', 'sublist');
-    t.ok([0, 1, 2, 3].sublist(-2).join('|') == '2|3', 'sublist -2');
-    t.ok([0, 1, 2, 3].sublist(1, 2).join('|') == '1|2', 'sublist w length');
+    // slice
+    t.ok([0, 1, 2, 3].slice(1).join('|') == '1|2|3', 'slice');
+    t.ok([0, 1, 2, 3].slice(-2).join('|') == '2|3', 'slice -2');
+    t.ok([0, 1, 2, 3].slice(1, 2).join('|') == '1|2', 'slice w length');
 
 
     // Quoted Lists
@@ -1345,7 +1432,7 @@ function testLists(t) {
     t.ok(['a', 'b', 'c'].sort().join('|') == 'a|b|c', 'sort');
     t.ok(['1', '2', '10'].sort().join('|') == '1|2|10', 'sort numeric strings');
 
-    let list = ['a', 'b', 'c'].sort(F (a, b) { R b.compareTo(a); });
+    let list = ['a', 'b', 'c'].sort(F (a, b) { R b <=> a; });
     t.ok(list.join('|') == 'c|b|a', 'sort function');
 
     list = [1, 3, 2].sort({ reverse: true });
@@ -1360,7 +1447,7 @@ function testLists(t) {
     list = ['a1', 'a10', 'a2'].sort({ type: 'regular' });
     t.ok(list.join('|') == 'a1|a10|a2', 'regular sort');
 
-    t.dies(F { ['a'].sort({ type: 'nope' }) }, 'unknown sort type');
+    t.dies(F { ['a'].sort({ type: 'nope' }); }, 'unknown sort type');
 
     list = ['a1', 'A2', 'a3', 'A4'].sort({ type: 'stringCase' });
     t.ok(list.join('|') == 'A2|A4|a1|a3', 'case sensitive');
@@ -1375,6 +1462,34 @@ function testLists(t) {
     t.dies(F { [1].last(2); }, 'first');
 
 
+    t.section('Lists - Misc');
+
+    t.ok(Q[a a b c d d].unique().join(':') == 'a:b:c:d', 'unique');
+
+    let defaultList = ['a', 'b'].default('Z');
+    t.ok(defaultList[0] == 'a', 'default, normal');
+    t.ok(defaultList[99] == 'Z', 'default, missing');
+
+
+    t.section('Lists - Functional');
+
+    t.ok([1, 2, 3].map(F (a) { R a * 2 }).join(':') == '2:4:6', 'map');
+    t.ok([1, 2, 3].reduce(F (a, i) { R i + a }, 3) == 9, 'reduce');
+    t.ok([1, 2, 3, 4].filter(F (a) { R a % 2 }).join(':') == '1:3', 'filter');
+
+    let mdl = [1, 2, [], [3, 4], [[5, 6], [7, 8]]];
+    t.ok(mdl.flat(99).join('') == '12345678', 'flat');
+    t.ok([1, [2, [3]]].flat().length() == 3, 'flat(1)');
+
+    let table = [{ a: 20 }, { a: 70 }, { a: -30 }];
+    let tableVals = table.sortTable('a').map(F (a) { R a.a }).join(',');
+    t.ok(tableVals == '-30,20,70', 'tableSort by map');
+
+    table = [[1, 50], [2, -30], [3, 10]];
+    tableVals = table.sortTable(1).map(F (a) { R a[1] }).join(',');
+    t.ok(tableVals == '-30,10,50', 'tableSort by index');
+    tableVals = table.sortTable(1, true).map(F (a) { R a[1] }).join(',');
+    t.ok(tableVals == '50,10,-30', 'tableSort by index (DESC)');
 }
 
 function testTemplates(t) {
@@ -1386,10 +1501,7 @@ function testTemplates(t) {
     htmlUsers = templateHtml(['Frodo', '<b>Sam</b>', 'Gandalf']);
     t.ok(htmlUsers.unlocked().contains('&lt;b&gt;Sam'), 'template with html escapes');
 
-    let p = Web.parseHtml(L'''
-        <h1>> Hello
-        <.abc>> 123
-    ''');
+    let p = Web.parseHtml(L'<h1>> Hello\n<.abc>> 123');
     p = p.unlocked();
     t.ok(p.contains('<h1>Hello</h1>'), 'parse html string - double arrow');
     t.ok(p.contains('<div class=\'abc\'>123</div>'), 'parse html string - dotted');
@@ -1424,6 +1536,24 @@ function testTemplates(t) {
    // print(tagsHtml(entHtml()).unlock());
 }
 
+function testBitwise(t) {
+
+    t.section('Bitwise Operators');
+
+    t.ok((1 +| 2) == 3, 'bitwise OR (+|)');
+    t.ok((2 +& 3) == 2, 'bitwise AND (+&)');
+    t.ok((1 +^ 2) == 3, 'bitwise XOR (+^)');
+
+    t.ok(+~5 == -6, 'bitwise NOT (+~)');
+
+    t.ok((3 +< 2) == 12, 'bitwise shift LEFT (+<)');
+    t.ok((13 +> 2) == 3, 'bitwise shift RIGHT (+>)');
+
+    t.ok((0b100 +| 0b010) == 0b110, 'OR (+|) with binary number');
+    t.ok((0b100 +& 0b110) == 0b100, 'AND (+&) with binary number');
+    t.ok((0b100 +^ 0b110) == 0b010, 'XOR (+^) with binary number');
+    t.ok((+~0b110) == -7, 'NOT (+~) with binary number');
+}
 
     
 function libFile(t) {
@@ -1446,18 +1576,23 @@ function libFile(t) {
     File.makeDir(d);
     t.ok(File.isDir(d), 'make dir');
     
-    let p = File.joinPath([d, f]);
+    let p = File.joinPath(d, f);
 
     File.write(p, '12345');
     t.ok(File.getSize(p) == 5, 'File size');
     t.ok(File.exists(p), 'File exists');
     t.ok(File.isFile(p), 'File is file');
 
-    let info = File.pathInfo(p);
+    let info = File.parsePath(p);
+
     t.ok(info.dirList.last() == d, 'Path info dirList has parent dir');
     t.ok(info.fileExt == 'txt', 'Path info extension');
     t.ok(info.fileName == 'testFile.txt', 'Path info fileName');
     t.ok(info.fileNameShort == 'testFile', 'Path info shortFileName');
+    
+    t.ok(File.parsePath('././profile.png').dirList.length() == 0, 'remove . from path');
+
+
     File.delete(p);
     t.ok(!File.exists(p), 'File deleted');
 
@@ -1486,6 +1621,7 @@ function libDb(t) {
 
     t.section('Module: Db');
 
+    Db.query(L'CREATE TABLE IF NOT EXISTS test (key, value);');
     Db.query(L'delete from test');
 
     let key = 'test' ~ Math.random(0, 1000);
@@ -1560,7 +1696,7 @@ function libJs(t) {
 
     t.ok(Js.plugin('colorCode').unlocked().contains('highlight'), 'colorCode');
     t.ok(Js.plugin('lazyLoadImages').unlocked().contains('img'), 'lazyLoadImages');
-    t.ok(Js.minify('/* comment */\n\nhello\n    \n') == 'hello', 'minify');
+    t.ok(Js.minify('/* comment */\n\nlet a = `//`;\n   // line  \n') == 'let a=`//`;', 'minify');
 }
 
 function libJson(t) {
@@ -1594,11 +1730,14 @@ function libMath(t) {
 
     let rand = Math.random(6, 8);
     t.ok(rand >= 6 && rand <= 8, 'random');
+    t.ok(Math.floor(rand) == rand, 'random is int');
 
     let rnd = Math.random();
     t.ok(rnd >= 0.0 && rnd < 1.0, 'random float');
 
     t.ok(Math.round(Math.pi(), 2) == 3.14, 'rounded pi');
+    t.ok(Math.round(2.6) == 3, 'round up to int');
+    t.ok(Math.round(2.4) == 2, 'round down to int');
 
     t.ok(Math.clamp(5, 1, 10) == 5, 'clamp in boundary');
     t.ok(Math.clamp(20, 1, 10) == 10, 'clamp max');
@@ -1613,6 +1752,23 @@ function libMath(t) {
     t.ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin');
     t.ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec');
 
+    // t.ok(Math.peg(123, 100) == 100, 'peg(123, 100)');
+    // t.ok(Math.peg(200, 200) == 200, 'peg(200, 200)');
+    // t.ok(Math.peg(-23,  10) == -30, 'peg(-23, 10)');
+    // t.ok(Math.peg(-23, -10) == -20, 'peg(-23, -10)');
+
+    // t.ok(Math.peg(23, [10, 20, 30]) == 20, 'peg(23, [10, 20, 30])');
+    // t.ok(Math.peg(23, [-10, -20, -30]) == -10, 'peg(23, [-10, -20, -30])');
+
+    // let letterGrades = {
+    //     90: 'A',
+    //     80: 'B',
+    //     70: 'C',
+    //     60: 'D',
+    //     0:  'F',
+    // };
+    // t.ok(Math.peg(74, letterGrades) == 70, 'peg with Map');
+
 }
 
 function libMeta(t) {
@@ -1620,11 +1776,13 @@ function libMeta(t) {
 
       t.ok(Meta.functionExists('libMeta'), 'functionExists');
       t.ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments');
-      t.ok(Meta.noTemplateMode(), 'noTemplateMode ok');
-      t.dies(function () { failModeHtml(); }, 'noTemplateMode fail');
+
+ // TODO: templateMode spills over after error
+ //     t.ok(Meta.noTemplateMode(), 'noTemplateMode ok');
+ //     t.dies(function () { failModeHtml(); }, 'noTemplateMode fail');
 
       t.ok(Meta.functionExists('dynamicFunction'), 'dynamic function exists');
-      t.ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
+      t.ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function');
 }
 
 function metaCallMe() {
@@ -1666,20 +1824,30 @@ function libPhp(t) {
 
     t.section('Module: Php');
 
+    t.ok(Php.version().match(R'\d+\.\d+\.\d+'), 'PHP version');
+
     let fl = Php.options(['PATHINFO_FILENAME', 'PATHINFO_BASENAME']);
     t.ok(fl == 10, 'PHP - constant flags');
 
-    t.ok(Php.call(L'strrev', ['abcdef']) == 'fedcba', 'call');
-    t.dies(F () { Php.call(L'nonexistent', [1, 2]) }, 'Non-existent PHP call');
-    t.dies(F () { Php.call(L'eval', ['print("hi");']); }, 'stop blacklisted function - by name');
-    t.dies(F () { Php.call(L'ini_set', ['x', 'y']); }, 'stop blacklisted function - by match');
+    t.ok(Php.call('strrev', 'abcdef') == 'fedcba', 'call');
+    t.dies(F () { Php.call('nonexistent', 1, 2); }, 'Non-existent PHP call');
+    t.dies(F () { Php.call('eval', 'print("hi");'); }, 'stop blacklisted function - by name');
+    t.dies(F () { Php.call('ini_set', 'x', 'y'); }, 'stop blacklisted function - by match');
 
 
-    // TODO: add test
-    // let img = Php.wrap('image', 'createtruecolor', [200, 200]);
-    // let red = img.colorallocate(255, 0, 0);
-    // img.arc(100, 200, 200, 200, 0, 360, red);
-    // img.destroy();
+    Php.require('vendor/testVendorClass.php');
+    
+    let vc = Php.new('Abc/VendorClass');
+    t.ok(vc.takeArray([1, 2, 3]) == 1, 'Vendor class - take array');
+    t.ok(vc.returnArray([1, 2, 3])[0] == 'a', 'Vendor class - return array');
+    t.ok(vc.returnRecords().remove(0)['color'] == 'Red', 'Vendor class - recursive arrays');
+    t.ok(vc.returnObject().callMe() == 'abc', 'Vendor subClass');
+
+    t.ok(vc.zSet('ALL_CAP_FIELD', 789), 'Vendor class - ALL_CAP_FIELD');
+    t.ok(vc.zGet('ALL_CAP_FIELD') == 789, 'Vendor class - ALL_CAP_FIELD');
+    t.ok(vc.zCall('ALL_CAP_METHOD') == 'FOO', 'Vendor class - ALL_CAP_METHOD');
+
+
 }
 
 function libTest(t) {
@@ -1702,6 +1870,14 @@ function setGlobals() {
 function libWeb(t) {
 
     t.section('Module: Web');
+
+    print(Web.parseQuery('foo=1&bar=2&bar=3', ['bar']));
+
+    // %5B0%5D   nane[0]=val
+    print(Web.stringifyQuery({ foo: 2, bar: 3, baz: [4, 5] }));
+
+    return;
+
 
     t.dies(function () {  Web.redirect('http://google.com'); }, 'redirect - normal');
     t.dies(function () {  Web.redirect('mailto:google.com'); }, 'redirect - mailto');
@@ -1964,5 +2140,9 @@ F testDefaultList(xlist = ['a', 'b', 'c']) {
 F testDefaultMaps(m1 = { a: 'aa' }, m2 = { b: 'bb' }) {
     m1['m2'] = m2;
     return m1;
+}
+
+F spread(...args) {
+    return args.join(':');
 }
 

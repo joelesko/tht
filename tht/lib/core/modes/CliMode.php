@@ -54,8 +54,9 @@ class CliMode {
         echo "Version: " . Tht::getThtVersion() . "\n\n";
         echo "Usage: tht [command]\n\n";
         echo "Commands:\n\n";
-        echo "  new       create an app in the current dir\n";
-        echo "  server    start the local test server\n";
+        echo "  new             create an app in the current dir\n";
+        echo "  server          start the local test server (port: 8888)\n";
+        echo "  server <port>   start the local test server on a custom port\n";
      // echo "tht run <filename>   (run script in scripts directory)\n";
         echo "\n";
         exit(0);
@@ -136,7 +137,7 @@ class CliMode {
             // TODO: don't overwrite previous
             CliMode::writeSetupFile('.htaccess', "
 
-                # THT App
+                ### THT APP
 
                 DirectoryIndex index.html index.php thtApp.php
                 Options -Indexes
@@ -150,8 +151,24 @@ class CliMode {
                 # Uncomment to redirect to HTTPS
                 # RewriteCond %{HTTPS} off
                 # RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+                ### END THT APP
+
             ");
 
+            // We are doing compression for THT-processed files
+            //
+            // # Compression 
+            // <IfModule mod_deflate.c>
+            //     <IfModule mod_filter.c>
+            //         AddOutputFilterByType DEFLATE 
+            //           \"application/javascript\" \
+            //           \"application/json\" \
+            //           \"text/css\" \
+            //           \"text/html\" \
+            //           \"text/javascript\" \
+            //     </IfModule>
+            // </IfModule>
 
             // Starter App
             $exampleFile = 'home.tht';

@@ -2,6 +2,7 @@
 
 namespace o;
 
+
 class Symbol {
 
     var $type = '';
@@ -72,26 +73,27 @@ class Symbol {
     // Whitespace rule for this token (before and after).
     // The middle symbol(s) are arbitrary.  Only the left and right have meaning.
     // Examples:
-    // ' | ' = space required before & after
-    // 'x| ' = space not allowed before, required after
-    // '*| ' = anything before, space required after
-    // '*|n' = anything before, newline or non-space after
+    // ' | ' = whitespace required before & after
+    // 'x| ' = space not allowed before, whitespace required after
+    // '*| ' = anything before, whitespace required after
+    // '*|N' = anything before, newline or non-space after
+    // '*|B' = anything before, newline required (hard break) after
+    // '*|S' = anything before, space (not newline) required after
     function space ($pattern, $isHard=false) {
 
-        if (Tht::getConfig('disableFormatChecker') && !$isHard) {
-            return $this;
-        }
+        // if (Tht::getConfig('disableFormatChecker') && !$isHard) {
+        //     return $this;
+        // }
 
-        $this->spacePos($isHard, 'L', $pattern[0]);
-        $this->spacePos($isHard, 'R', $pattern[strlen($pattern) - 1]);
+        $this->spacePos('L', $pattern[0]);
+        $this->spacePos('R', $pattern[strlen($pattern) - 1]);
 
         return $this;
     }
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
-    // TODO: refactor. log is a little hairy
-    function spacePos ($isHard, $pos, $require) {
+    function spacePos ($pos, $require) {
 
         if ($require == '*') { return; }
 
@@ -99,13 +101,17 @@ class Symbol {
         $t = $this->token;
 
         $isRequired = ($require === ' ' || $require === 'S');
-        $allowNewline = ($require === 'N');
+        $allowNewline = ($require === 'N' || $require === 'B');
 
-        $lrBit = $pos === 'L' ? 1 : 2;
         $cSpace = $t[TOKEN_SPACE];
-        $hasNewline = $cSpace & 4;
-        $hasSpace = ($cSpace & $lrBit);
-        if ($hasNewline && $pos === 'R' && $require !== 'S') {
+
+        $bitHasSpace = $pos === 'L' ? 1 : 4;
+        $hasSpace = ($cSpace & $bitHasSpace);
+
+        $bitHasNewline = $pos === 'L' ? 2 : 8;
+        $hasNewline = ($cSpace & $bitHasNewline);
+        
+        if ($hasNewline && $require !== 'S') {
             $hasSpace = true;
         }
 
@@ -115,9 +121,12 @@ class Symbol {
 
         $msg = '';
         $what = 'space';
-        if ($require === 'S' && $pos === 'R' && $hasNewline) {
+        if ($require === 'S' && $hasNewline) {
             $msg = 'remove the';
             $what = 'newline';
+        } else if ($require === 'B' && !$hasNewline) {
+            $msg = 'add a';
+            $what = 'newline';  
         } else if ($hasSpace && !$isRequired) {
             $msg = 'remove the';
         }
@@ -141,7 +150,7 @@ class Symbol {
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 
             $fullMsg = 'Please ' . $msg . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
-            if (!$isHard) { $fullMsg = '(Format Checker) ' . $fullMsg; }
+            $fullMsg = '(Format Checker) ' . $fullMsg; 
 
             $p->error($fullMsg, $t);
         }
@@ -209,7 +218,6 @@ class S_Prefix extends Symbol {
 }
 
 
-
 //===================================
 //              INFIX
 //===================================
@@ -273,13 +281,14 @@ class S_OpenBracket extends S_Infix {
             }
             $els []= $p->parseExpression(0);
             if (!$p->symbol->isValue(',')) {
+                $p->now(']', 'Missed a comma?');
                 break;
             }
             $p->space('x, ');
             $p->next();
         }
 
-        $p->now(']', 'Missed a comma?')->next();
+        $p->space('N]*')->next();
         $this->setKids($els);
         return $this;
     }
@@ -291,7 +300,7 @@ class S_Dot extends S_Infix {
     // Dot member.  foo.bar
     function asInner ($p, $objName) {
         $p->next();
-        $this->space('x.x', true);
+        $this->space('N.x', true);
         $sMember = $p->symbol;
         if ($sMember->token[TOKEN_TYPE] !== TokenType::WORD) {
             $p->error('Expected a field name.  Ex: `user.name`');
@@ -314,7 +323,7 @@ class S_Dot extends S_Infix {
 //===================================
 
 
-// Infix with lower binding power
+// Infix, but with a lower binding power
 class S_InfixRight extends Symbol {
     var $type = SymbolType::INFIX;
     var $isAssignment = false;
@@ -331,21 +340,19 @@ class S_InfixRight extends Symbol {
     }
 }
 
-class S_Assign extends S_InfixRight {
-    // =, +=, etc.
-    var $type = SymbolType::ASSIGN;
-    var $bindingPower = 10;
-    var $isAssignment = true;
-}
+// Precendence
+// 50  infix 
+// 45  bitshift
+// 40  compare
+// 30  bitwise
+// 20  logic
+// 10  assignment
 
-class S_Logic extends S_InfixRight {
-    // e.g. ||, &&
-    var $bindingPower = 30;
-}
 
-class S_Compare extends S_InfixRight {
-    // e.g. !=, ==
-    var $bindingPower = 40;
+class S_BitShift extends S_InfixRight {
+    // e.g. +>, +<
+    var $type = SymbolType::BITSHIFT;
+    var $bindingPower = 45;
 }
 
 class S_ValGate extends S_InfixRight {
@@ -353,6 +360,32 @@ class S_ValGate extends S_InfixRight {
     var $type = SymbolType::VALGATE;
     var $bindingPower = 41;
 }
+
+class S_Compare extends S_InfixRight {
+    // e.g. !=, ==
+    var $bindingPower = 40;
+}
+
+class S_Bitwise extends S_InfixRight {
+    // e.g. +&, +|
+    var $type = SymbolType::BITWISE;
+    var $bindingPower = 30;
+}
+
+class S_Logic extends S_InfixRight {
+    // e.g. ||, &&
+    var $bindingPower = 20;
+}
+
+class S_Assign extends S_InfixRight {
+    // =, +=, etc.
+    var $type = SymbolType::ASSIGN;
+    var $bindingPower = 10;
+    var $isAssignment = true;
+}
+
+
+
 
 
 
@@ -504,7 +537,7 @@ class S_New extends Symbol {
     // e.g. new Foo()
     function asLeft ($p) {
 
-        $p->space('*new ', true);
+        $p->space('*newS', true);
 
         $p->next();
 
@@ -512,7 +545,7 @@ class S_New extends Symbol {
         if (! $sClassName->token[TOKEN_TYPE] === TokenType::WORD) {
             $p->error("Expected a class name.  Ex: `new User()`");
         }
-        $p->space(' classNamex', true);
+        $p->space('SclassNamex', true);
         $sClassName->updateType(SymbolType::PACKAGE);
         $this->addKid($sClassName);
         $p->next();
@@ -551,12 +584,19 @@ class S_NewVar extends S_Statement {
     // e.g. let a = 1;
     function asStatement ($p) {
 
+        $this->space('*letS');
+
         // var name
         $p->validator->setPaused(true);
         $p->next();
         $sNewVarName = $p->symbol;
         $this->addKid($sNewVarName);
         $p->validator->setPaused(false);
+
+        if ($p->inClass && $p->blockDepth == 1) {
+            //$this->updateType(SymbolType::NEW_OBJECT_VAR);
+            $p->error("Class fields should be defined in the `new` method. e.g. `this.num = 123`");
+        }
 
         $p->next();
         $p->now('=')->space(' = ')->next();
@@ -580,14 +620,14 @@ class S_If extends S_Statement {
     // if / else
     function asStatement ($p) {
 
-        $this->space('*if ');
+        $this->space('*ifS');
 
         $p->next();
 
         $p->expressionDepth += 1;  // prevent assignment
 
         // conditional. if (...)
-        $p->now('(', 'if')->space(' (x', true)->next();
+        $p->now('(', 'if')->space('S(x', true)->next();
         $this->addKid($p->parseExpression(0));
         $p->now(')', 'if')->space('x) ', true)->next();
 
@@ -604,6 +644,12 @@ class S_If extends S_Statement {
                 $this->addKid($p->parseBlock());
             }
         }
+
+        $nextWord = $p->symbol->token[TOKEN_VALUE];
+        if (in_array($nextWord, ['elseif', 'elif', 'elsif'])) {
+            $p->error("Unknown token: `$nextWord` Try: `else if`");
+        }
+
         return $this;
     }
 }
@@ -613,6 +659,8 @@ class S_For extends S_Statement {
 
     // for (...) { ... }
     function asStatement ($p) {
+
+        $this->space('*forS');
 
         $p->expressionDepth += 1; // prevent assignment
 
@@ -632,12 +680,7 @@ class S_For extends S_Statement {
 
         $p->validator->newScope();
 
-        // Optional Parens (disabled)
-        //  $inParens = false;
-        //  if ($p->symbol->isValue('(')) {
-        //    $inParens = true;
-              $p->now('(')->space(' (x', true)->next();
-        //  }
+        $p->now('(')->space(' (x', true)->next();
 
         if ($p->symbol->isValue('let')) {
             $p->error("Unexpected `let`.  Try: `for (item in items) { ... }`");
@@ -668,9 +711,7 @@ class S_For extends S_Statement {
         // Iterator.  for (a in _iterator_) { ... }
         $this->addKid($p->parseExpression(0));
 
-        // if ($inParens) {
-            $p->now(')')->space('x) ', true)->next();
-        // }
+        $p->now(')')->space('x) ', true)->next();
 
         $this->addKid($p->parseBlock());
 
@@ -697,7 +738,7 @@ class S_NewFunction extends S_Statement {
     function asStatement ($p) {
 
         $p->next();
-        $this->space('*function ', true);
+        $this->space('*functionS', true);
 
         $hasName = false;
 
@@ -707,7 +748,7 @@ class S_NewFunction extends S_Statement {
             $sFunName = $p->symbol;
             $sName = $sFunName->token[TOKEN_VALUE];
             if (strlen($sName) < 2) {
-                $p->error("Function name `$sName` should be longer than 1 letter.  Tip: Be more descriptive.");
+                $p->error("Function name `$sName` should be longer than 1 letter.  Try: Be more descriptive.");
             }
             $p->validator->define($p->symbol);
             $sFunName->updateType(SymbolType::USER_FUN);
@@ -727,6 +768,25 @@ class S_NewFunction extends S_Statement {
 
         $p->validator->newScope();
 
+        $this->parseArgs($p, $hasName);
+
+        $closureVars = $this->parseClosureVars($p);
+
+        // block. { ... }
+        $this->addKid($p->parseBlock());
+
+        $p->validator->popScope();
+
+
+        if ($closureVars) {
+            $this->addKid($p->makeSequence(SequenceType::ARGS, $closureVars));
+        }
+
+        return $this;
+    }
+
+    function parseArgs($p, $hasName) {
+
         // List of args.  function foo (_args_) { ... }
         if ($p->symbol->isValue("(")) {
 
@@ -734,34 +794,47 @@ class S_NewFunction extends S_Statement {
             $p->now('(', 'function')->space($space, true)->next();
             $argSymbols = [];
             $hasOptionalArg = false;
+            $seenName = [];
             while (true) {
 
                 if ($p->symbol->isValue(")")) {
                     break;
                 }
 
+                $isSplat = false;
+                if ($p->symbol->token[TOKEN_VALUE] === '...') {
+                    $p->space('*...x');
+                    $p->next();
+                    $isSplat = true;
+                }
+
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
                     $p->error("Expected an argument name.  Ex: `fun myFun (argument) { ... }`");
                 }
 
-                $p->validator->define($p->symbol);
+                $p->validator->define($p->symbol, true);
 
                 $sArg = $p->symbol;
-                $sArg->updateType(SymbolType::FUN_ARG);
+                $sArg->updateType($isSplat ? SymbolType::FUN_ARG_SPLAT : SymbolType::FUN_ARG);
 
+                if (count($argSymbols) > 0 && !$isSplat) {
+                    $p->space('Sarg*');
+                }
+                
                 $sNext = $p->next();
 
                 if ($sNext->isValue('=')) {
+
+                    if ($isSplat) {
+                        $p->error("Spread operator `...` can not have a default value.");
+                    }
+
                     $p->space(' = ');
 
                     // argument with default.
                     // e.g. function foo (a = 1) { ... }
                     $p->next();
                     $sDefault = $p->parseExpression(0);
-                    // $types = [ SymbolType::STRING, SymbolType::NUMBER, SymbolType::FLAG ];
-                    // if (!in_array($sDefault->type, $types)) {
-                    //     $p->error("Argument defaults need to be a String, Number, or Flag.", $sDefault->token);
-                    // }
 
                     $sArg->addKid($sDefault);
                     $hasOptionalArg = true;
@@ -770,13 +843,26 @@ class S_NewFunction extends S_Statement {
                     $p->error("Required arguments should appear before optional arguments.", $sArg->token);
                 }
 
+                // Prevent duplicate arguments
+                $argName = $sArg->token[TOKEN_VALUE];
+                if (isset($seenName[$argName])) {
+                    $p->error("Duplicate argument `$argName`", $sArg->token);
+                }
+                $seenName[$argName] = true;
+
                 $argSymbols []= $sArg;
 
                 if (!$p->symbol->isValue(",")) {
                     break;
                 }
+                $p->space('x,S');
                 $p->next();
             }
+
+            // $maxArgs = ParserData::$MAX_FUN_ARGS;
+            // if (count($argSymbols) > ParserData::$MAX_FUN_ARGS) {
+            //     $p->error("Too many arguments in function (Max: $maxArgs). Try: Take a Map of options as one argument.", [], true);
+            // }
 
             $this->addKid($p->makeSequence(SequenceType::ARGS, $argSymbols));
 
@@ -785,8 +871,11 @@ class S_NewFunction extends S_Statement {
         else {
             $this->addKid($p->makeSequence(SequenceType::ARGS, []));
         }
+    }
 
-        // closure vars. e.g. function foo() keep (varName) { ... }
+    // closure vars. e.g. function foo() keep (varName) { ... }
+    function parseClosureVars($p) {
+        
         $closureVars = [];
         if ($p->symbol->isValue('keep')) {
             $p->next();
@@ -809,16 +898,7 @@ class S_NewFunction extends S_Statement {
             $p->now(')')->space('x) ')->next();
         }
 
-        // block. { ... }
-        $this->addKid($p->parseBlock());
-
-        $p->validator->popScope();
-
-        if ($closureVars) {
-            $this->addKid($p->makeSequence(SequenceType::ARGS, $closureVars));
-        }
-
-        return $this;
+        return $closureVars;
     }
 }
 
@@ -828,32 +908,68 @@ class S_Class extends S_Statement {
     // e.g. class Foo { ... }
     function asStatement ($p) {
 
-        $p->space(' class ', true);
-
+        // qualifiers and class keyword
+        // $quals = [];
+        // while (true) {
+        //     $this->space('*keywordS', true);
+        //     $s = $p->symbol;
+        //     $keyword = $s->token[TOKEN_VALUE];
+        //     if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
+        //         $quals []= $keyword;
+        //         $p->next();
+        //     }
+        //     else {
+        //         break;
+        //     }
+        // }
+        // $sQuals = $p->makeSymbol(
+        //     TokenType::WORD,
+        //     implode(' ', $quals),
+        //     SymbolType::PACKAGE_QUALIFIER
+        // );
+        // $this->addKid($sQuals);
+        
         $p->next();
 
-        $sClassName = $p->symbol;
-        if ($sClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-			$p->error("Expected a class name.  Ex: `class User { ... }`");
-		}
-
-        $sClassName->updateType(SymbolType::PACKAGE);
-        $this->addKid($sClassName);
+        // Class name
+        $sName = $p->symbol;
+        if ($sName->token[TOKEN_TYPE] == TokenType::WORD) {
+            $this->space('*classS', true);
+            $sName->updateType(SymbolType::PACKAGE);
+            $this->addKid($sName);
+        }
+        else {
+            $p->error("Expected a class name.  Ex: `class User { ... }`");
+        }
+        
         $p->next();
+
 
         // if ($p->symbol->isValue('extends')) {
 
         //     $p->next();
         //     $sParentClassName = $p->symbol;
         //     if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends ParentClass { ... }`");
+        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends MyParentClass { ... }`");
         //     }
         //     $sParentClassName->updateType(SymbolType::PACKAGE);
         //     $this->addKid($sParentClassName);
+
         //     $p->next();
         // }
+        // else {
+        //     $sNull = $p->makeSymbol(
+        //         TokenType::WORD,
+        //         '',
+        //         SymbolType::PACKAGE
+        //     );
+        //     $this->addKid($sNull);
+        // }
 
+        $p->inClass = true;
         $this->addKid($p->parseBlock());
+        $p->inClass = false;
+
 
         return $this;
     }
@@ -865,7 +981,7 @@ class S_TryCatch extends S_Statement {
     // try { ... } catch (e) { ... }
     function asStatement ($p) {
 
-        $p->space(' try ', true);
+        $p->space(' tryS', true);
 
         $p->next();
 
@@ -873,7 +989,7 @@ class S_TryCatch extends S_Statement {
         $this->addKid($p->parseBlock());
 
         // catch
-        $p->now('catch')->space(' catch ', true)->next();
+        $p->now('catch')->space(' catchS', true)->next();
 
         // exception var
         $p->now('(', 'try/catch')->next();
@@ -956,13 +1072,30 @@ class S_Return extends S_Command {
     function asStatement ($p) {
         $p->next();
         if (!$p->symbol->isValue(';')) {
-            $this->space('*| ', true);
+            $this->space('*returnS', true);
             $p->expressionDepth += 1; // prevent assignment
             $this->addKid($p->parseExpression(0));
         }
 
-        // don't check for orphan, to support a common debugging pattern of returning early
+        // Don't check for orphan, to support a common debugging pattern of returning early
 
         return $this;
+    }
+}
+
+class S_Unsupported extends Symbol {
+
+    function error($p) {
+        $val = $this->token[TOKEN_VALUE];
+        $try = ParserData::$ALT_TOKENS[$val];
+        $p->error("Unsupported token: `" . $this->token[TOKEN_VALUE] . "` Try: $try");
+    }
+
+    function asStatement ($p) {
+        $this->error($p);
+    }
+
+    function asLeft ($p) {
+        $this->error($p);
     }
 }

@@ -2,6 +2,20 @@
 
 
 /*
+    most common fields
+    - userName
+    - password
+    - passwordConfirm
+
+    - email
+    - emailConfirm
+
+    - comment
+
+    - auto-forms: login, register
+
+    ------
+
     new 
         userName
         password
@@ -33,26 +47,23 @@
 
     validators
     
-        optional
-        different:field
-        same:field
+        X optional
+        X different:field
+        X same:field
 
         unique: table.column
 
-        in:list...
-        notIn:list...
+        X in:list...
+        X notIn:list...
 
-        notRegex:pattern
-        regex:pattern
+        XnotRegex:pattern
+        Xregex:pattern
 
         between:min,max
         min
         max
 
         allowHtml
-
-        after:date ?   (or equal)
-        before:date
 
 
     meta
@@ -72,7 +83,9 @@ namespace o;
 
 class u_FormValidator extends StdModule {
 
-    function u_validate($val, $sRules) {
+    private $data = [];
+
+    function u_is_ok($val, $sRules) {
 
         ARGS('ss', func_get_args());
 
@@ -85,10 +98,12 @@ class u_FormValidator extends StdModule {
 
     function validateFields($data, $schema) {
 
+        $this->data = $data;
+
     	$allFieldsOk = true;
     	$errors = [];
 
-    	foreach ($schema as $fieldName => $fieldSchema) {
+    	foreach (uv($schema) as $fieldName => $fieldSchema) {
     		
     		if (!isset($data[$fieldName])) {
     			Tht::error("Missing form data for field: `$fieldName`");
@@ -110,18 +125,23 @@ class u_FormValidator extends StdModule {
     	];
     }
 
-	// TODO: optionals
 	// TODO: validation order
     function validateField($fieldName, $val, $schema) {
 
         $rules = $schema['rule'];
 
+
         if (!is_array($rules)) {
         	$rules = explode('|', $rules);
         }
-        
+
         if (!count($rules)) {
-        	Tht::error("No validation rules provided for field: `$fieldName`");
+        	return [
+                'field' => $fieldName,
+                'ok'    => false,
+                'value' => '',
+                'error' => 'No validation rules provided.',
+            ];
         }
 
         $allRulesOk = true;
@@ -130,16 +150,20 @@ class u_FormValidator extends StdModule {
 
         // TODO: disallow HTML tags
 
-        foreach ($rules as $r) {
-            $result = $this->validateRule($cleanValue, $r);
+        if (in_array('optional', $rules) && !$cleanValue) {
+            // skip validation
+        } else {
+            foreach ($rules as $r) {
+                $result = $this->validateRule($cleanValue, $r);
 
-            if (!$result['ok']) {
-            	$cleanValue = '';
-    			$allRulesOk = false;
-    			$error = $result['error'];
-    			break;
-    		} 
-    		$cleanValue = $result['cleanValue'];
+                if (!$result['ok']) {
+                    $cleanValue = '';
+                    $allRulesOk = false;
+                    $error = $result['error'];
+                    break;
+                } 
+                $cleanValue = $result['cleanValue'];
+            }
         }
 
         return [
@@ -154,20 +178,21 @@ class u_FormValidator extends StdModule {
 
         $rule = trim($rule);
         $arg = '';
-        if (strpos($rule, ':')) {
-        	list($rule, $arg) = explode($rule, ':', 2);
-        	$rule = trim($rule);
-        	$arg = trim($arg);
+        if (strpos($rule, ':') !== false) {
+        	$parts = explode(':', $rule, 2);
+        	$rule = trim($parts[0]);
+        	$arg = trim($parts[1]);
         }
 
         $fnValidate = 'validate_' . strtolower($rule);
 
+        $result = [];
         if (preg_match('/[^a-zA-Z]/', $rule) || !method_exists($this, $fnValidate)) {
-            Tht::error("Unknown validation rule: `$rule`");
+            $result = ["Unknown validation rule: `$rule`"];
+        } else {
+            $result = call_user_func([$this, $fnValidate], $val, $arg);
         }
   
-        $result = call_user_func([$this, $fnValidate], $val, $arg);
-
         $isOk = !is_array($result);
         return [
             'ok' => $isOk,
@@ -177,7 +202,11 @@ class u_FormValidator extends StdModule {
     }
 
     function lengthError($num) {
-		return ['Must be $num letters or less.'];
+		return ["Field must be $num letters or less."];
+    }
+
+    function minLengthError($num) {
+        return ["Field must be $num letters or more."];
     }
 
 
@@ -192,27 +221,23 @@ class u_FormValidator extends StdModule {
 
     // By Type
 
-    // TODO: negatives
     // TODO: floating point
-    // TODO: min/max 
+    // TODO: min/max (negatives)
+    // TODO: list
+    // TODO: allowHtml for text/textarea
+    // default min/max by type
     function validate_number($val) {
         
     	// remove thousand separators
         $val = preg_replace('/[,\']/', '', $val);
 
         if (preg_match('/[^0-9]/', $val)) {
-            return ['Must be all digits.'];
-        }
-        if (intval($val) > 1000000) {
-            return ['Must be less than 1000000'];
+            return ['Please provide a valid number:'];
         }
         return intval($val);
     }
 
     function validate_flag($val) {
-        if ($val !== 'true' && $val !== 'false' && $val !== '1' && $val !== '0') {
-            return ['Invalid flag'];
-        }
         return ($val === 'true' || $val === '1');
     }
 
@@ -233,12 +258,28 @@ class u_FormValidator extends StdModule {
         return $val;
     }
 
+    // By Constraint
+
+    function validate_min($val, $arg) {
+        if (strlen($val) < $arg) {
+            return $this->minLengthError($arg);
+        }
+        return $val;
+    }
+
+    function validate_max($val, $arg) {
+        if (strlen($val) > $arg) {
+            return $this->lengthError($arg);
+        }
+        return $val;
+    }
+
 
     // By Rule
 
     function validate_id($val) {
         if (preg_match('/[^a-zA-Z0-9_\.\-]/', $val)) {
-            return ['Invalid character'];
+            return ['Only letters, numbers, and dashes are allowed:'];
         }
         if (strlen($val) > 100) {
             return $this->lengthError(100);
@@ -249,10 +290,10 @@ class u_FormValidator extends StdModule {
     function validate_username($val) {
         
         if (!preg_match('/^[a-zA-Z0-9]+$/', $val)) {
-            return ['Only letters and numbers are allowed'];
+            return ['Only letters & numbers are allowed:'];
         }
         if (!preg_match('/^[^a-zA-Z]/', $val)) {
-            return ['Must start with a letter'];
+            return ['Must start with a letter:'];
         }
         if (strlen($val) > 20) {
             return $this->lengthError(20);
@@ -262,10 +303,10 @@ class u_FormValidator extends StdModule {
 
     function validate_url($val) {
         if (!preg_match('/^https?://\S+$/', $val)) {
-            return ['Invalid URL'];
+            return ['Please re-check this field:'];
         }
-        if (strlen($val) > 100) {
-            return $this->lengthError(100);
+        if (strlen($val) > 200) {
+            return $this->lengthError(200);
         }
         $val = preg_replace('/[\'\"]/', $val);
         return $val;
@@ -273,7 +314,7 @@ class u_FormValidator extends StdModule {
 
     function validate_email($val) {
         if (!preg_match('/^\S+?@[^@\s]+\.\S+$/', $val)) {
-            return ['Invalid email.'];
+            return ['Please re-check this field:'];
         }
         if (strlen($val) > 100) {
             return $this->lengthError(100);
@@ -283,8 +324,8 @@ class u_FormValidator extends StdModule {
         return strtolower($val);
     }
 
-    function validate_password($val) {
-        return new OPassword ($val);
+    function validate_optional($val) {
+        return $val;
     }
 
     function validate_accepted($val) {
@@ -292,7 +333,7 @@ class u_FormValidator extends StdModule {
         if ($val === true) {
         	return true;
         } else {
-        	return ['Must be accepted'];
+        	return ['Please accept this field:'];
         }
     }
 
@@ -301,7 +342,7 @@ class u_FormValidator extends StdModule {
         $val = preg_replace('/\s+/', ' ', $val);
 
         if (preg_match('/[^0-9\(\)\.\-\+ext ]/', $val)) {
-            return ['Invalid character'];
+            return ['Please check this field:'];
         }
         if (strlen($val) > 30) {
             return $this->lengthError(30);
@@ -309,4 +350,105 @@ class u_FormValidator extends StdModule {
         return $val;
     }
 
+    function validate_digits($val) {
+        if (preg_match('/[^0-9]/', $val)) {
+            return ['Please only use digits in field:'];
+        }
+        if (strlen($val) > 20) {
+            return $this->lengthError(20);
+        }
+        return $val;
+    }
+
+    function validate_same($val, $arg) {
+        if (!isset($this->data[$arg])) {
+            return ["RULE ERROR: 'same:$arg'."];
+        }
+        if (trim($val) !== trim($this->data[$arg])) {
+            $arg = ucfirst($arg);
+            return ["Please make sure this matches '$arg':"];
+        }
+        return $val;
+    }
+
+    function validate_different($val, $arg) {
+        if (!isset($this->data[$arg])) {
+            return ["RULE ERROR: 'different:$arg'."];
+        }
+        if (trim($val) === trim($this->data[$arg])) {
+            $arg = ucfirst($arg);
+            return ["Please make this field different than '$arg':"];
+        }
+        return $val;
+    }
+
+    function validate_password($val) {
+
+        if (!$this->passwordStrengthOk($val)) {
+            return ["Please pick a more difficult password:"];
+        }
+        if (strlen($val) < 8) {
+            return $this->minLengthError(8);
+        }
+        return new \o\OPassword ($val);
+    }
+
+    // Most common password mistakes
+    function passwordStrengthOk($val) {
+        // all same character
+        if (preg_match("/^(.)\\\\1{1,}$/", $val)) {
+            return false;
+        }
+        // all digits
+        if (preg_match("/^\\d+$/", $val)) {
+            return false;
+        }
+        // most common patterns
+        if (preg_match("/^(abcd|abc1|qwer|asdf|1qaz|passw|admin|login|welcome|access)/i", $val)) {
+            return false;
+        }
+        // most common passwords
+        if (preg_match("/^(football|baseball|princess|starwars|trustno1|superman|iloveyou)$/i", $val)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    function validate_in($val, $arg) {
+        $ary = preg_split('/\s*,\s*/', $arg);
+        if (!in_array($val, $ary)) {
+            return ['Please double-check this field.'];
+        }
+        return $val;
+    }
+
+    function validate_notin($val, $arg) {
+        $ary = preg_split('/\s*,\s*/', $arg);
+        if (!in_array($val, $ary)) {
+            return ['Please double-check this field.'];
+        }
+        return $val;
+    }
+
+    function validate_regex($val, $arg) {
+        $val = str_replace(':OR:', '|', $val);
+        if (!preg_match($arg, $val)) {
+            return ['Please double-check this field.'];
+        }
+        return $val;
+    }
+
+    function validate_notregex($val, $arg) {
+        $val = str_replace(':OR:', '|', $val);
+        if (preg_match($arg, $val)) {
+            return ['Please double-check  this field.'];
+        }
+        return $val;
+    }
+
 }
+
+
+
+

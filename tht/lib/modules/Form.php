@@ -10,7 +10,7 @@ class u_Form extends StdModule {
     private $doJsValidation = true;
     private $validationResult = [];
 
-    private $includedFormJs = false;
+    static private $includedFormJs = false;
 
     private $data = [];
     private $schema = [];
@@ -25,54 +25,66 @@ class u_Form extends StdModule {
         'firstSelectOption' => 'Select...'
     ];
 
-    function __construct($schema, $formId) {
+    function __construct($formId, $schema) {
 
-        $this->schema = uv($schema);
+        $this->schema = $schema;
         $this->formId = $formId;
 
-        // $web = Tht::module('Web');
-
-        // $rules = [];
-        // foreach ($this->schema as $k => $v) {
-        //     $rules[$k] = isset($v['rule']) ? $v['rule'] : '';
-        // }
-       // $this->u_reader($rules, $formId);
+        if (preg_match('/[^a-zA-Z0-9\-]/', $formId)) {
+            Tht::error('formId should contain only letters, numbers, and dashes.');
+        }
     }
 
 
 
     // Data getters
 
-    function u_validate () {
-
-        $web = Tht::module('Web');
-
-        if ($web->u_request()['method'] === 'post') {
-            $this->validateRequest();
-
-            $postData = Tht::getPhpGlobal('post', '*');
-            $this->validationResult = Tht::module('FormValidator')->validateFields($postData, $this->schema);
-
-            return $this->validationResult['ok'];
+    function u_done() {
+        if (Tht::module('Session')->u_get_flash('form:' . $this->formId) == 'done') {
+            return true;
         }
-
         return false;
     }
 
-    function u_go_fail () {
-        Tht::module('Web')->u_send_json(OMap::create([
-            'status' => 'fail',
-            'fields' => []
-        ]));
+    function u_is_ok () {
+
+        $web = Tht::module('Web');
+
+        if ($web->u_request()['method'] !== 'post') {
+            return false;
+        }
+
+        $this->validateRequest();
+
+        $postData = Tht::getPhpGlobal('post', '*');
+
+        if ($postData['formId'] !== $this->formId) {
+            return false;
+        }
+        if (!isset($postData['formId'])) {
+            Tht::error('Missing formId in form data.');
+        }
+
+        $this->validationResult = Tht::module('FormValidator')->validateFields($postData, $this->schema);
+        
+        if ($this->validationResult['ok']) {
+            return true;
+        } 
+        else {
+            Tht::module('Web')->u_send_json(OMap::create([
+                'status' => 'fail',
+                'errors' => $this->validationResult['errors'],
+            ]));
+            return false;
+        }
     }
 
-    function u_go_next ($nextPage) {
-
+    function u_redirect($next) {
+        Tht::module('Session')->u_set_flash('form:' . $this->formId, true);
         Tht::module('Web')->u_send_json(OMap::create([
-            'ok' => 'ok',
-            'next' => $nextPage
+            'status' => 'ok',
+            'next' => $next,
         ]));
-
     }
 
     function validateRequest() {
@@ -87,34 +99,34 @@ class u_Form extends StdModule {
         // }
     }
 
-    // function u_data($fieldName=null) {
+    function u_data($fieldName=null) {
 
-    //     ARGS('s', func_get_args());
+        ARGS('s', func_get_args());
 
-    //     if (!$this->u_ok()) {
-    //         return is_null($fieldName) ? OMap::create([]) : '';
-    //     }
+        // if (!$this->u_ok()) {
+        //     return is_null($fieldName) ? OMap::create([]) : '';
+        // }
 
-    //     if (!is_null($fieldName)) {
-    //         if (!isset($this->schema[$fieldName])) {
-    //             Tht::error("Unknown form field name: `" . $fieldName . "`");
-    //         }
-    //         return $this->getFieldData($fieldName);
-    //     }
-    //     else {
-    //         $data = [];
-    //         foreach ($this->schema as $name => $s) {
-    //             $data[$name] = $this->getFieldData($name);
-    //         }
-    //         return OMap::create($data);
-    //     }
-    // }
+        if (!is_null($fieldName)) {
+            if (!isset($this->schema[$fieldName])) {
+                Tht::error("Unknown form field name: `" . $fieldName . "`");
+            }
+            return $this->getFieldData($fieldName);
+        }
+        else {
+            $data = [];
+            foreach ($this->schema as $name => $s) {
+                $data[$name] = $this->getFieldData($name);
+            }
+            return OMap::create($data);
+        }
+    }
 
     function getFieldData($name) {
         $val = Tht::getPhpGlobal('post', $name);
         $schema = $this->schema[$name];    
     
-        if ($schema['type'] == 'password') {
+        if (isset($schema['type']) && $schema['type'] == 'password') {
             return Security::createPassword($val);
         }
 
@@ -213,7 +225,7 @@ class u_Form extends StdModule {
     function u_tags($tags=null) { 
 
         if (is_null($tags)) {
-            $tags = array_keys($this->schema);
+            $tags = $this->schema->u_keys();
         }
 
         ARGS('l', func_get_args());
@@ -256,15 +268,12 @@ class u_Form extends StdModule {
             $atts['method'] = 'POST'; 
         }
 
-        if (isset($atts['jsValidation'])) {
-            if (!$atts['jsValidation']) {
-                $this->doJsValidation = false;
-            }
-            unset($atts['jsValidation']);
-        }
         $atts['id'] = $this->formId; 
-
+ 
         $formTag = $this->openTag('form', $atts, true);
+
+        // Always include formId
+        $formTag .= '<input type="hidden" name="formId" value="' . htmlspecialchars($this->formId) . '">';
 
         $html = new HtmlLockString ($formTag);
 
@@ -284,7 +293,7 @@ class u_Form extends StdModule {
         $web = Tht::module('Web');
         $nonce = $web->u_nonce();
 
-        $formJs = $this->u_form_js($this->formId, $this->doJsValidation)->u_unlocked();
+        $formJs = $this->formJs($this->formId)->u_unlocked();
         
         $valJsTag = "<script nonce='$nonce'>" . $formJs . "</script>";
         $errorMsgTag = '<div class="form-error-message"></div>';
@@ -320,7 +329,9 @@ class u_Form extends StdModule {
         foreach ($params as $k => $v) {
             if ($v === true) { $v = $k; }
             if ($v === false) { $v = ''; }
-            $paramsOut []= $k . '="' . htmlspecialchars($v) . '"';
+            if ($v !== '') {
+                $paramsOut []= $k . '="' . htmlspecialchars($v) . '"';
+            }  
         }
         $inner = implode(' ', $paramsOut);
         $inner .= ($name == 'input') ? ' /' : '';
@@ -345,7 +356,7 @@ class u_Form extends StdModule {
 
     function inputTag($type, $name, $atts=[]) {
         $atts = uv($atts);
-        $atts['id'] = 'field_' . $name;
+        $atts['id'] = ($type == 'checkbox' || $type == 'radio') ? '' : $this->getFieldId($name);
         $atts['name'] = $name;
         $atts['value'] = isset($atts['value']) ? $atts['value'] : $this->getDefaultValue($name);
         $atts['type'] = $type;
@@ -361,7 +372,7 @@ class u_Form extends StdModule {
 
     function textareaTag($name, $atts=[]) {
         $atts = uv($atts);
-        $atts['id'] = 'field_' . $name;
+        $atts['id'] = $this->getFieldId($name);
         $atts['name'] = $name;
         $val = $this->getDefaultValue($name);
 
@@ -372,7 +383,7 @@ class u_Form extends StdModule {
 
     function labelTag($name, $text, $atts=[]) {
         $atts = uv($atts);
-        $atts['for'] = 'field_' . $name;
+        $atts['for'] = $this->getFieldId($name);
         $html = $this->openTag('label', $atts, true) . $text . '</label>';
         return new HtmlLockString ($html);
     }
@@ -387,6 +398,10 @@ class u_Form extends StdModule {
         ';
     }
 
+    function getFieldId($fieldName) {
+        return 'field_' . $this->formId . '_' . $fieldName;
+    }
+
 
     /////////////////////////
 
@@ -394,6 +409,7 @@ class u_Form extends StdModule {
     // Select Tag
 
     function selectTag($name, $schema, $atts=[]) {
+
         $atts = uv($atts);
         $atts['name'] = $name;
 
@@ -412,14 +428,13 @@ class u_Form extends StdModule {
         return new HtmlLockString ($html);
     }
 
-    function optionTags($items1, $default=null, $key=null, $value=null) {
-        $items = uv($items1);
-        if ($items1->u_is_map()) {
-            return $this->options_from_map($items, $default);
+    function optionTags($items, $default=null, $key=null, $value=null) {
+        if ($items->u_is_map()) {
+            return $this->options_from_map(uv($items), $default);
         } else if (!is_null($key)) {
-            return $this->options_from_rows($items, $default, $key, $value);
+            return $this->options_from_rows(uv($items), $default, $key, $value);
         } else {
-            return $this->options_from_list($items, $default);
+            return $this->options_from_list(uv($items), $default);
         }
     }
 
@@ -453,7 +468,6 @@ class u_Form extends StdModule {
     }
 
     function options($items, $def=null, $keyName=null, $valName=null) {
-        $html = '';
         foreach ($items as $i) {
             $i = uv($i);
             $op = isset($i['atts']) ? $i['atts'] : [];
@@ -480,12 +494,14 @@ class u_Form extends StdModule {
 
         $isChecked = $this->initCheckableDefaultMap($def);
 
+        $html = '<div class="form-field-options">';
         foreach ($schema['options'] as $o) {
             if (isset($isChecked[$o]) && $isChecked[$o]) {
 
             }
             $html .= $this->checkableTag($type, $name, $o, $o, $def, $atts);
         }
+        $html .= '</div>';
 
         return new HtmlLockString ($html);
     }
@@ -517,292 +533,220 @@ class u_Form extends StdModule {
     }
 
 
-
-
-
     /////////////////////////
 
 
 
-
-
-    function u_form_js($formId="defaultForm", $doValidation=true) {
+    function formJs() {
 
         ARGS('sf', func_get_args());
 
         $CSRF_TOKEN = Tht::module('Web')->u_csrf_token();
-        $FORM_ID = $formId;
-        $DO_VALIDATION = $doValidation ? 'true' : 'false';
+        $FORM_ID = $this->formId;
 
-        // TODO: validate/sanitize formId
-
-        $formRegisterJs = "FormValidator.registerForm('$FORM_ID', {});\n";
+        
+        $fieldToRule = [];
+        foreach ($this->schema as $k => $r) {
+            $fieldToRule[$k] = $r['rule'];
+        }
+        $rules = json_encode($fieldToRule);
+        $formRegisterJs = "FormValidator.registerForm('$FORM_ID', $rules);\n";
 
         // About 2kb gzipped
-        $formJs = $this->includedFormJs ? '' : <<<EOJS
+        $formJs = self::$includedFormJs ? '' : <<<EOJS
 
-            (function(){
+    (function(){
 
-                addFormStyles();
-                listen();
+        addFormStyles();
+        listen();
 
-                function listen() {
-                    document.addEventListener('submit', function(e){ 
-                        e.preventDefault(); 
-                        FormValidator.submitFormIfOk(e.target);
-                        return false; 
-                    });
-                }
+        function listen() {
+            document.addEventListener('submit', function(e){ 
+                e.preventDefault(); 
+                FormValidator.submitFormIfOk(e.target);
+                return false; 
+            });
+        }
 
-                function addFormStyles() {
-                    
-                    var css = '@keyframes submit-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(359deg); } }\\n';
-                    css += '.form-spinner { display: inline-block; vertical-align: text-top; height: 1.2em; width: 1.2em; border-radius: 50%; border: solid 0.2em rgba(0,0,0,0.2); border-right-color: rgba(0,0,0,0.4); animation: submit-spin 600ms linear 0s infinite }\\n';
-                    css += '.button-primary .form-spinner { border-color: rgba(255,255,255,0.5); border-right-color: rgba(255,255,255,0.8); }\\n';
-                    css += 'form .form-field-invalid, form .form-field-invalid:focus { outline: 2px solid #e33; }\\n';
-                    css += '.form-error-message { margin-top: 1em; color: #e33; }\\n';
+        function addFormStyles() {
+            
+            var css = '@keyframes submit-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(359deg); } }\\n';
+             css += '.form-spinner { display: inline-block; vertical-align: text-top; height: 1.2em; width: 1.2em; border-radius: 50%; border: solid 0.2em rgba(0,0,0,0.2); border-right-color: rgba(0,0,0,0.4); animation: submit-spin 600ms linear 0s infinite }\\n';
+            css += '.button-primary .form-spinner { border-color: rgba(255,255,255,0.5); border-right-color: rgba(255,255,255,0.8); }\\n';
+            css += 'form .form-field-invalid, form .form-field-invalid:focus { outline: 2px dashed #ff9900; }\\n';
+            css += '.form-error-message { display: none; padding: 1rem 2rem; background-color: #fff2cc; margin: 1em 0; font-weight: bold; color: #222; }\\n';
 
-                    var style = document.createElement('style');
-                    style.innerHTML = css;
-                    document.getElementsByTagName('head')[0].appendChild(style);
-                }
+            var style = document.createElement('style');
+            style.innerHTML = css;
+            document.getElementsByTagName('head')[0].appendChild(style);
+        }
 
-                window.FormValidator = (function() {
+        window.FormValidator = (function() {
 
-                    var STATE = {};
-                    var FORMS = {};
+            var STATE = {};
+            var FORMS = {};
 
-                    var CSRF_TOKEN = '$CSRF_TOKEN';
-                    var DO_VALIDATION = $DO_VALIDATION;
+            var CSRF_TOKEN = '$CSRF_TOKEN';
 
-                    return {
+            return {
 
-                        registerForm: function(formId, fieldRules) {
-                            if (!FORMS[formId]) {
-                                FORMS[formId] = fieldRules;
-                            } 
-                        },
+                registerForm: function(formId, fieldRules) {
+                    if (!FORMS[formId]) {
+                        FORMS[formId] = fieldRules;
+                    } 
+                },
 
-                        submitFormIfOk: function(form) {
-                            if (STATE.isSubmitting) {
-                                return false;
-                            }
+                submitFormIfOk: function(form) {
+                    if (STATE.isSubmitting) {
+                        return false;
+                    }
+                    if (this.validateForm(form)) {
+                        this.submitForm(form);
+                    }
+                },
 
-                            if (this.validateForm(form)) {
-                                this.submitForm(form);
-                            }
-                        },
+                validateForm: function(form) {
+                    this.form = form;
+                    var fields = form.querySelectorAll('*[name]');
+                    for (var i=0; i < fields.length; i++) {
+                        if (!this.validateField(fields[i])) {
+                            return false;
+                        }
+                    }
+                    return true;
+                },
 
-                        validateForm: function(form) {
+                validateField: function(elField) {
 
-                            if (!DO_VALIDATION) { return true; }
+                    if (elField.type == 'hidden') { return true; }
+                    var fieldRules = FORMS[this.form.id][elField.name];
+                    var isRequired = !fieldRules || fieldRules.indexOf('optional') == -1;
+                    var isOk = true;
+                    if (isRequired && !this.validateRequiredField(elField)) {
+                        isOk = false;
+                    }
+                    this.updateErrorState(elField, isOk, 'Please fill out this field:');
+                    return isOk;
+                },  
 
-                            var formId = form.id;
-                            var fields = form.querySelectorAll('*[name]');
-                            for (var i=0; i < fields.length; i++) {
-                                var field = fields[i];
-                                if (!this.validateField(form, formId, field)) {
-                                    return false;
-                                }
-                            }
+                validateRequiredField: function(elField){
+                    if (elField.type == 'checkbox') {
+                        if (!elField.checked) { return false; }
+                    }
+                    else if (elField.value.trim() == '') {
+                        return false;
+                    }
+                    return true;
+                },
 
-                            return true;
-                        },
+                updateErrorState: function(elField, isOk, errorMessage) {
+                    elField.classList.toggle('form-field-invalid', !isOk);
+                    if (errorMessage) { errorMessage = errorMessage + ' &nbsp;' + elField.name.toUpperCase() }
+                    var elMsg = this.form.querySelector('.form-error-message');
+                    elMsg.innerHTML = errorMessage || '';
+                    elMsg.style.display = isOk ? 'none' : 'block';
+                },
 
-                        submitForm: function(form) {
-                            STATE.isSubmitting = true;
-                            var hasSpinner = this.addSpinner(form);
-                            this.setCsrfToken(form);
+                clearErrors: function() {
+                    var invalidFields = this.form.querySelectorAll('.form-field-invalid');
+                    for (var i=0; i < invalidFields.length; i += 1) {
+                        invalidFields[i].classList.toggle('form-field-invalid', false);
+                    }
+                },
 
-                            var minTimeMs = 600;
-                            var startTime = Date.now();
-                   
-                            var formData = new FormData(form);
-                            this.callAjax(form.action, formData, function(res){
-                                var elapsed = Date.now() - startTime;
-                                setTimeout(function(){
-                                    if (res.status == 'ok') {
-                                        if (res['next']) {
-                                            location.href = res['next'];
-                                        } else {
-                                            form.dispatchEvent('submitComplete', res);
-                                        } 
-                                    }
-                                    else {
-                                        form.dispatchEvent('submitComplete', res);
-                                    }
-                                }, elapsed < minTimeMs ? minTimeMs - elapsed : 1);
-                            });
-                        },
-
-                        setCsrfToken: function(form) {
-                            var csrfField = document.createElement('input'); 
-                            csrfField.type = 'hidden';
-                            csrfField.name = 'csrfToken';
-                            csrfField.value = CSRF_TOKEN;
-                            form.appendChild(csrfField);
-                        },
-
-                        validateRequiredField: function(elField){
-                            if (elField.type == 'checkbox') {
-                                if (!elField.checked) {
-                                    return false;
-                                }
-                            }
-                            else if (elField.value.trim() == '') {
-                                return false;
-                            }
-                            return true;
-                        },
-
-                        validateFieldRule: function(elField, rule) {
-
-                            var value = elField.value.trim();
-
-                            if (RULE_PATTERNS[rule] && value !== '') {
-                                var re = new RegExp(RULE_PATTERNS[rule]);
-                                if (!value.match(re)) {
-                                    return false;
-                                }
-                            }
-                            else if (rule.indexOf(':') !== -1) {
-                                var pair = rule.split(':');
-                                if (pair[0] == 'min' && value.length < 0 + pair[1]) {
-                                    return false;
-                                } 
-                                else if (pair[0] == 'max' && value.length > 0 + pair[1]) {
-                                    return false;
-                                } 
-                            }
-                            return true;
-                        },
-
-                        validateField: function(form, formId, elField) {
-
-                            if (elField.type == 'hidden') {
-                                return true;
-                            }
-
-                            var isOk = true;
-                            var isRequired = true;
-                            var errorMessage = '';
-
-                            var fieldRules = FORMS[formId][elField.name];
-
-                            var rules = fieldRules.split(/\\s*\\|\\s*/);
-                            for (var i=0; i < rules.length; i++) {
-                                var rule = rules[i];
-                                if (rule === 'optional') {
-                                    isRequired = false;
-                                }
-                                else if (!this.validateFieldRule(elField, rule)) {
-                                    isOk = false;
-                                }
-                            }
-
-                            if (elField.type == 'password') {
-                                if (!this.passwordStrengthOk(elField.value)) {
-                                    errorMessage = 'Please use a stronger password.';
-                                    isOk = false;
-                                }
-                                if (!this.validateFieldRule(elField, 'min:8')) {
-                                    errorMessage = 'Please use a longer password. (8+ letters)';
-                                    isOk = false;
-                                }
-                            }
-
-                            if (isRequired && !this.validateRequiredField(elField)) {
-                                errorMessage = 'Please fill the required field.'; 
-                                isOk = false;
-                            }
-
-                            if (!isOk) {
-
-                                if (!elField.instantValidate) {
-                                    elField.instantValidate = true;
-                                    var self = this;
-                                    elField.addEventListener('keyup', function(){
-                                        self.validateField(form, formId, elField);
-                                    });
-                                    elField.addEventListener('change', function(){
-                                        self.validateField(form, formId, elField);
-                                    });
-                                }
-                                elField.focus();
-                            }
-
-                            elField.classList.toggle('form-field-invalid', !isOk);
-                            if (!isOk && !errorMessage) { errorMessage = 'Please check the highlighted field.'; }
-                            form.querySelector('.form-error-message').innerText = errorMessage;
-
-                            return isOk;
-                        },  
-
-                        passwordStrengthOk: function(v) {
-
-                            v = v.trim();
-
-                            // all same character
-                            if (v.match(/^(.)\\1{1,}$/)) {
-                                return false;
-                            }
-                            // all digits
-                            if (v.match(/^\d+$/)) {
-                                return false;
-                            }
-                            // most common patterns
-                            if (v.match(/^(abcd|abc1|qwer|asdf|1qaz|passw|admin|login|welcome|access)/i)) {
-                                return false;
-                            }
-                            // most common passwords
-                            if (v.match(/^(football|baseball|princess|starwars|trustno1|superman|iloveyou)$/i)) {
-                                return false;
-                            }
+                addSpinnerToButton: function() {
+                    var button = this.form.querySelector('*[type="submit"]');
+                    if (!button) { return; }
                             
-                            return true;
-                        },
+                    var rect = button.getBoundingClientRect();
+                    let initialValue = button.tagName == 'input' ? button.value : button.innerHTML;
+                    button.innerHTML = '';
+                    button.value = '';
+                    button.setAttribute('data-value', initialValue);
+                    button.style.width = (Math.floor((rect.right - rect.left) / 2) * 2) + 'px';
 
-                        addSpinner: function(form) {
-                            var submit = form.querySelector('*[type="submit"]');
-                            if (!submit) { return false; }
-                                    
-                            var rect = submit.getBoundingClientRect();
-                            submit.innerHTML = '';
-                            submit.style.width = (Math.floor((rect.right - rect.left) / 2) * 2) + 'px';
+                    var spinner = document.createElement('div');
+                    spinner.classList.add('form-spinner');
+                    button.appendChild(spinner);
+                },
 
-                            var spinner = document.createElement('div');
-                            spinner.classList.add('form-spinner');
-                            submit.appendChild(spinner);
+                removeSpinner: function() {
+                    var button = this.form.querySelector('*[type="submit"]');
+                    if (!button) { return; }
 
-                            return true;
-                        },
+                    let prop = button.tagName == 'input' ? 'value' : 'innerHTML';
+                    button[prop] = button.getAttribute('data-value');
+                },
 
-                        callAjax: function(url, data, cb) {
-                            var xhr = new XMLHttpRequest();
-                            xhr.onreadystatechange = function() {
-                                if (xhr.readyState == 4) {
-                                   if (xhr.status == 200) {
-                                        var res = JSON.parse(xhr.responseText);
-                                        cb(res);
-                                    } else {
-                                        console.error('AJAX server error', url, data);
-                                    }
-                                }
-                            };
-                            xhr.open('POST', url, true);
-                            xhr.setRequestHeader('X-Requested-With', 'XmlHttpRequest');
-                            xhr.send(data);
+                submitForm: function() {
+
+                    STATE.isSubmitting = true;
+                    this.addSpinnerToButton();
+                    this.setCsrfToken();
+
+                    var formData = new FormData(this.form);
+                    var minTimeMs = 600;
+                    var startTime = Date.now();
+                    var self = this;
+
+                    this.callAjax(this.form.action, formData, function(res){
+                        var elapsed = Date.now() - startTime;
+                        setTimeout(function(){
+                            self.ajaxResponse(res);
+                        }, elapsed < minTimeMs ? minTimeMs - elapsed : 1);
+                    });
+                },
+
+                ajaxResponse: function(res) {
+                    if (res.status == 'ok') {
+                        if (res['next']) {
+                            location.href = res['next'];
+                        }
+                    } else {
+                        var firstError = res['errors'].shift();
+                        this.clearErrors();
+
+                        this.updateErrorState(this.form.querySelector('#field_' + this.form.id + '_' + firstError.field), false, firstError.error);
+                        this.removeSpinner(); 
+                        STATE.isSubmitting = false;
+                    }
+                },
+
+                setCsrfToken: function() {
+                    var f = document.createElement('input'); 
+                    f.type = 'hidden';
+                    f.name = 'csrfToken';
+                    f.value = CSRF_TOKEN;
+                    this.form.appendChild(f);
+                },
+
+                callAjax: function(url, data, cb) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState == 4) {
+                           if (xhr.status == 200) {
+                                var res = JSON.parse(xhr.responseText);
+                                cb(res);
+                            } else {
+                                console.error('AJAX server error', url, data);
+                            }
                         }
                     };
-                })();
-
-            })();
+                    xhr.open('POST', url, true);
+                    xhr.setRequestHeader('X-Requested-With', 'XmlHttpRequest');
+                    xhr.send(data);
+                }
+            };
+        })();
+    })();
 
 EOJS;
 
-        $this->includedFormJs = true;
+        self::$includedFormJs = true;
 
-        return new JsLockString($formJs . $formRegisterJs);
+        $js = Tht::module('Js')->u_minify($formJs . $formRegisterJs);
+
+        return new JsLockString($js);
 
     }
 

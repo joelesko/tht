@@ -44,6 +44,9 @@ class u_Test extends StdModule {
         } catch (\Exception $e) {
             $ex = true;
         }
+         catch (\TypeError $e) {
+            $ex = true;
+        }
 
         $trapped = ErrorHandler::endTrapErrors();
 
@@ -83,7 +86,7 @@ class u_Test extends StdModule {
             $dies = true;
             $err = $e->getMessage();
         }
-        $msg = str_replace("\n", "\\n", $code) . ' | ' . $msg;
+        $msg = str_replace("\n", "\\n", $code) . ' | ok: ' . $msg;
         if ($dies) {
             $msg .= " | GOT: " . $err;
         }

@@ -45,7 +45,6 @@ class u_Db extends StdModule {
     }
 
     function u_use ($dbId) {
-        $this->u_get_database_config($dbId);
         $dbh = new u_Db ();
         $dbh->dbId = $dbId;
         $dbh->connect();

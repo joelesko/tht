@@ -5,7 +5,6 @@ namespace o;
 class u_Php extends StdModule {
 
     private $isRequired = [];
-
     private $phpFunctionOk = [];
 
     function checkPhpFunction ($func) {
@@ -16,8 +15,11 @@ class u_Php extends StdModule {
 
         Security::validatePhpFunction($func);
 
-        if (!function_exists($this->name($func))) {
-            Tht::error("PHP function does not exist: `$func`");
+        if (strpos($func, '::') !== false) {
+            // TODO: validate method_exists
+        }
+        else if (!function_exists($this->name($func))) {
+            Tht::error("PHP function does not exist: `" . $this->name($func) . "`");
         }
 
         $this->phpFunctionOk[$func] = true;
@@ -29,19 +31,27 @@ class u_Php extends StdModule {
         return '\\' . $n;
     }
 
-    function u_call ($func, $args=[]) {
-        Tht::module('Meta')->u_no_template_mode();
-        $func = OLockString::getUnlocked($func);
+    function u_version() {
+        return phpversion();
+    }
 
-        // TODO: recursive unwrap
+    function u_call () {
+        Tht::module('Meta')->u_no_template_mode();
+
+        $args = func_get_args();
+        $func = array_shift($args);
+
         $args = uv($args);
         
         $this->checkPhpFunction($func);
 
         $ret = call_user_func_array($this->name($func), $args);
 
-        // TODO: wrap args
-        return is_null($ret) ? false : $ret;
+        if (is_object($ret)) {
+            return new PhpObject ($ret); 
+        }
+
+        return convertReturnValue($ret);
     }
 
     function u_options($options) {
@@ -53,109 +63,126 @@ class u_Php extends StdModule {
         return $n;
     }
 
-    // function u_require($phpFile) {
-    //     Tht::module('Meta')->u_no_template_mode();
-    //     if (!isset($this->isRequired[$phpFile])) {
-    //         try {
-    //             require_once(Tht::path('phpLib', $phpFile));
-    //         } catch (Exception $e) {
-    //             Tht::error("Can not require PHP file: `$phpFile`");
-    //         }
-    //         $this->isRequired[$phpFile] = true;
-    //     }
-    // }
+    function u_require($phpFile) {
+        Tht::module('Meta')->u_no_template_mode();
+        if (!isset($this->isRequired[$phpFile])) {
+            try {
+                require_once(Tht::path('phpLib', $phpFile));
+            } catch (Exception $e) {
+                Tht::error("Can not require PHP file: `$phpFile`");
+            }
+            $this->isRequired[$phpFile] = true;
+        }
+    }
 
-    // function u_new($cls, $args=null) {
+    function u_new($cls) {
 
-    //     Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_no_template_mode();
 
-    //     if (!class_exists($cls, false) && !isset($this->isRequired[$cls])) {
-    //         try {
-    //             $fileClass = str_replace('\\', '/', $cls);
-    //             require_once(Tht::path('phpLib', $fileClass . ".php"));
+        $cls = str_replace('/', '\\', $cls);
 
-    //         } catch (Exception $e) {
-    //             Tht::error("Can not autoload PHP class: `$cls`");
-    //         }
-    //         $this->isRequired[$cls] = true;
-    //     }
+        if (!class_exists($cls, false)) {
+            $fileClass = str_replace('\\', '/', $cls) . '.php';
+            if (!isset($this->isRequired[$cls])) {
+                $this->u_require($fileClass);
+            }
+        }
 
-    //     $obj = new $cls (uv($args));
-    //     return new PhpObject ($obj);
-    // }
+        $args = func_get_args();
+        array_shift($args);
 
-    // function u_object($obj) {
-    //     return new PhpObject ($obj); 
-    // }
+        $or = new \ReflectionClass($cls);
+        $obj = $or->newInstanceArgs($args);
 
-    // function u_auto($cls, $args=null) {
-    //     $obj = new $cls (uv($args));
-    //     return new PhpObject ($obj);
-    // }
+        return new PhpObject ($obj);
+    }
 
-    // function u_array($v) {
-    //     return uv($v);
-    // }
+    function u_wrap_object($obj) {
+        return new PhpObject ($obj); 
+    }
+
+    function u_function_exists($f) {
+        $f = str_replace('/', '\\', $f);
+        return function_exists($f);
+    }
+
+    function u_class_exists($c) {
+        $c = str_replace('/', '\\', $c);
+        return class_exists($c);
+    }
 }
 
+class PhpObject {
 
-// class PhpObject {
+    private $obj = null;
 
-//     private $obj = null;
+    function __construct ($obj) {
+        $this->obj = $obj;
+    }
 
-//     function __construct ($obj) {
-//         $this->obj = $obj;
-//     }
+    function __call ($rawFuncName, $args) {
+        $funcName = unu_($rawFuncName); 
+        return $this->u_z_call($funcName, $args);
+    }
 
-//     // call function using object as 1st argument
-//     function __call ($rawFuncName, $args) {
-//         $funcName = unu_($rawFuncName); 
-
-//         // if (!method_exists($this->obj, $funcName)) {
-//         //     Tht::error("Method does not exist: `$funcName`");
-//         // }
-//         $ret = call_user_func_array([$this->obj, $funcName], uv($args));
-
-//         return is_null($ret) ? false : v($ret);
-//     }
-
-//     function __get ($field) {
-//         $plainField = unu_($field); 
-//         return $this->u_get($plainField);
-//     }
+    function __get ($field) {
+        $rawField = unu_($field); 
+        return $this->u_z_get($rawField);
+    }
     
-//     function __set ($field, $value) {
-//         $plainField = unu_($field); 
-//         return $this->u_set($plainField, $value);
-//     }
+    function __set ($field, $value) {
+        $rawField = unu_($field); 
+        return $this->u_z_set($rawField, $value);
+    }
 
-//     // TODO: fix this
-//     function u_getX($field) {
-//         $props = get_object_vars($this->obj);
-//         if (!isset($props[$field])) {
-//             Tht::error("Unknown field: `$field`");
-//         }
-//         return is_null($props[$field]) ? false : $props[$field];
-//     }
+    function u_z_get($rawField) {
+        $v = $this->obj->$rawField;
+        return convertReturnValue($v);
+    }
 
-//     function u_set($field, $val) {
-//         $props = get_object_vars($this->obj);
-//         if (!isset($props[$field])) {
-//             Tht::error("Unknown field: `$field`");
-//         }
-//         $this->obj->$field = $val;
-//     }
+    function u_z_set($rawField, $value) {
+        $this->obj->$rawField = $value;
+        return $value;
+    }
 
-//     function u_call() {
-//         Tht::module('Meta')->u_no_template_mode();
-//         $args = func_get_args();
-//         $funcName = array_shift($args);
-//         if (!method_exists($this->obj, $funcName)) {
-//             Tht::error("Method does not exist: `$funcName`");
-//         }
-//         $ret = call_user_func_array([$this->obj, $funcName], uv($args));
+    function u_z_call($rawFuncName, $args=[]) {
+        foreach ($args as $k => $v) {
+            $args[$k] = uv($v);
+        }
+        $ret = call_user_func_array([$this->obj, $rawFuncName], $args);
 
-//         return is_null($ret) ? false : v($ret);
-//     }
-// }
+        return convertReturnValue($ret);
+    }
+}
+
+function convertReturnValue($val) {
+
+    $phpType = gettype($val);
+
+    if ($phpType == 'array') {
+        
+        if (count($val) > 0) {
+            
+            foreach ($val as $k => $v) {
+                $val[$k] = convertReturnValue($v);
+            }
+
+            // Naive (but fast) way to check that an array is associative or sequential.
+            // If first key is 0, then we assume it is sequential.
+            reset($val);
+            if (key($val) !== 0) {
+                return OMap::create($val);
+            } else {
+                return OList::create($val);
+            }
+        }
+
+    } else if ($phpType == 'object') {
+        return new PhpObject ($val);
+    } else if (is_null($val)) {
+        return false;
+    } else {
+        return $val;
+    }
+}
 

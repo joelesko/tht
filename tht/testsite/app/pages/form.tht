@@ -1,16 +1,87 @@
 
+Web.form('testForm', {
+    name: {
+        label: 'Name',
+        type: 'text',
+        rule: 'text'
+    },
+    // sameName: {
+    //     label: 'Same Name',
+    //     type: 'text',
+    //     rule: 'text|same:name'
+    // },
+    // differentName: {
+    //     label: 'Different Name',
+    //     type: 'text',
+    //     rule: 'text|different:name'
+    // },
+    email: {
+        label: 'Email',
+        rule: 'email',
+        value: 'a@b.com',
+        help: 'Make sure it is valid!'
+    },
+    // zip: {
+    //     label: 'Zip Code',
+    //     rule: 'optional|digits|min:5|max:10'
+    // },
+    color: {
+        label: 'Color',
+        type: 'text',
+        rule: 'in:red,green,blue',
+    },
+    // money: {
+    //     label: 'Money',
+    //     type: 'text',
+    //     rule: 'regex:/\\$\\d+\\.\\d+/',
+    // },
+    toppings: {
+        label: 'Toppings',
+        type: 'radio',
+        rule: 'id',
+        help: 'Choose one!',
+        options: Q[ Pepperoni Pineapple Anchovies ]
+    },
+    accept: {
+        type: 'checkbox',
+        rule: 'accept',
+        options: ['I accept this thing.'],
+    },
+    // state: {
+    //     label: 'State',
+    //     type: 'select',
+    //     options: {
+    //         wi: 'Wisconsin',
+    //         fl: 'Florida',
+    //         ca: 'California'
+    //     }
+    // },
+});
+
+
+Web.form('otherForm', {
+    userName: {
+        label: 'Username',
+        type: 'text',
+        rule: 'text'
+    },
+    password: {
+        label: 'Password',
+        type: 'password',
+        rule: 'password'
+    },
+});
 
 F main() {
 
-    let html = '';
+    let form = Web.form('testForm');
 
-    if (Web.tempGetInput('get', 'done')) {
-        html = L'Thanks!';
+    let html = '';
+    if (Web.query('done')) {
+        let latest = MapDb.selectMaps('testForm', '', 20);
+        html = thanksHtml(latest);
     }
     else {
-
-        let form = getForm();
-    
         html = formHtml(form);
     }
 
@@ -22,35 +93,28 @@ F main() {
 }
 
 F ajax() {
-
-    let form = getForm();
-    if (!form.validate()) {
-        form.goFail();
+    let form = Web.form('testForm');
+    if (form.isOk()) {
+        // Save form
+        let id = MapDb.insertMap('testForm', 'name', form.data());
+        form.redirect('?done=1');
     }
 
-    form.goNext('?done=1');
+    let form2 = Web.form('otherForm');
+    if (form2.isOk()) {
+        form.redirect('?login=1');
+    }
 }
 
-F getForm() {
-
-    let form = Web.form({
-        name: {
-            label: 'Name',
-            type: 'text',
-            rule: 'text'
-        }
-    });
-
-    return form;
-}
-
-T thanksHtml(d) {
+T thanksHtml(latest) {
 
     <.row><.col>
 
         <h1>> Success
 
         <p>> Thanks!
+
+        <pre>> {{ Json.format(latest) }}
 
         </></>
 }
@@ -72,7 +136,7 @@ T formHtml(form) {
 
         :: let f = form;
 
-        {{ f.open('', { jsValidation: false }) }}
+        {{ f.open('') }}
 
             {{ f.tags() }}
 
@@ -81,6 +145,17 @@ T formHtml(form) {
         {{ f.close() }}
 
 
+
+        :: let form2 = Web.form('otherForm');
+
+        {{ form2.open('') }}
+
+            {{ form2.tags() }}
+
+            {{ form2.submit('Submit') }}
+
+        {{ form2.close() }}
+
     </></>
 
 
@@ -88,7 +163,7 @@ T formHtml(form) {
 
 
 
-/*
+
     // form.setFields({
     //     userName: 'jlesko',
     //     color: 'Green',
@@ -98,15 +173,7 @@ T formHtml(form) {
 
 
         // TODO
-        // users: {
-        //     label: 'User',
-        //     type: 'select',
-        //     options: [
-        //         { userId: 1, name: 'Bob' },
-        //         { userId: 2, name: 'Alice' },
-        //         { userId: 3, name: 'Charlie' }
-        //     ]
-        // }
+
 
     // let loginForm = Web.form({
     //     userName: {
@@ -118,78 +185,78 @@ T formHtml(form) {
     //         type: 'password',
     //     }
     // }, 'loginForm');
-        userName: {
-            label: 'User Name',
-            rule: 'min:4'
-        },
-        email: {
-            label: 'Email',
-            rule: 'email',
-            value: 'a@b.com',
-            help: 'Make sure it is valid!'
-        },
-        zip: {
-            label: 'Zip Code',
-            rule: 'optional|digits'
-        },
-        password: {
-            label: 'Password',
-            type: 'password',
-        },
-        comment: {
-            label: 'Comment',
-            type: 'textarea'
-        },
-        secret: {
-            type: 'hidden',
-            value: '12345',
-        },
-        state: {
-            label: 'State',
-            type: 'select',
-            options: {
-                wi: 'Wisconsin',
-                fl: 'Florida',
-                ca: 'California'
-            }
-        },
-        color: {
-            label: 'Color',
-            type: 'radio',
-            options: Q[ Red Blue Green ],
-        },
-        toppings: {
-            label: 'Toppings',
-            type: 'checkbox',
-            options: Q[ Pepperoni Pineapple Anchovies ]
-        },
-        {{ loginForm.open('/login', { id: 'loginForm' }) }}
+    //     userName: {
+    //         label: 'User Name',
+    //         rule: 'min:4'
+    //     },
+    //     email: {
+    //         label: 'Email',
+    //         rule: 'email',
+    //         value: 'a@b.com',
+    //         help: 'Make sure it is valid!'
+    //     },
+    //     zip: {
+    //         label: 'Zip Code',
+    //         rule: 'optional|digits'
+    //     },
+    //     password: {
+    //         label: 'Password',
+    //         type: 'password',
+    //     },
+    //     comment: {
+    //         label: 'Comment',
+    //         type: 'textarea'
+    //     },
+    //     secret: {
+    //         type: 'hidden',
+    //         value: '12345',
+    //     },
+    //     state: {
+    //         label: 'State',
+    //         type: 'select',
+    //         options: {
+    //             wi: 'Wisconsin',
+    //             fl: 'Florida',
+    //             ca: 'California'
+    //         }
+    //     },
+    //     color: {
+    //         label: 'Color',
+    //         type: 'radio',
+    //         options: Q[ Red Blue Green ],
+    //     },
+    //     toppings: {
+    //         label: 'Toppings',
+    //         type: 'checkbox',
+    //         options: Q[ Pepperoni Pineapple Anchovies ]
+    //     },
+    //     {{ loginForm.open('/login', { id: 'loginForm' }) }}
 
-            {{ loginForm.tag('userName') }}
-            {{ loginForm.tag('password') }}
+    //         {{ loginForm.tag('userName') }}
+    //         {{ loginForm.tag('password') }}
           
-            {{ loginForm.submit('Login', { class: 'button-large button-primary' }) }}
+    //         {{ loginForm.submit('Login', { class: 'button-large button-primary' }) }}
 
-        {{ loginForm.close() }}
+    //     {{ loginForm.close() }}
 
 
-    {{ Web.validateJs() }}
+    // {{ Web.validateJs() }}
 
   
 
-        {{ Form.select('num', 'Select a Number', getOptions()) }}
-        {{ Form.select('year', 'Select a Year', range(1950, Date.format('%Y').toNumber())) }}
+    //     {{ Form.select('num', 'Select a Number', getOptions()) }}
+    //     {{ Form.select('year', 'Select a Year', range(1950, Date.format('%Y').toNumber())) }}
 
-        <fieldset>
-        {{ Form.checkbox('accept', '1', 'I accept this form.') }}
-        </>
+    //     <fieldset>
+    //     {{ Form.checkbox('accept', '1', 'I accept this form.') }}
+    //     </>
 
-        <fieldset>
-        {{ Form.radio('hey', '1', 'Option 1', { on: true }) }}
-        {{ Form.radio('hey', '2', 'Option 2') }}
-        {{ Form.radio('hey', '3', 'Option 3') }}
-        </>
+    //     <fieldset>
+    //     {{ Form.radio('hey', '1', 'Option 1', { on: true }) }}
+    //     {{ Form.radio('hey', '2', 'Option 2') }}
+    //     {{ Form.radio('hey', '3', 'Option 3') }}
+    //     </>
 
 
-*/
+
 

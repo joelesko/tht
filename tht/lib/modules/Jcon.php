@@ -24,7 +24,11 @@ class u_Jcon extends StdModule {
 
         $cacheKey = 'jcon:' . $file;
 
-        $path = Tht::path('settings', $file);
+        $path = Tht::path('config', $file);
+
+        if (!file_exists($path)) {
+            Tht::error("JCON file not found: '$path'");
+        }
 
         $cached = Tht::module('Cache')->u_get_sync($cacheKey, filemtime($path));
         if ($cached) {
@@ -36,8 +40,6 @@ class u_Jcon extends StdModule {
         $data = $this->start($text, $file);
 
         Tht::module('Cache')->u_set($cacheKey, $data, 0);
-
-//        print_r($data);  exit();
 
         return $data;
     }

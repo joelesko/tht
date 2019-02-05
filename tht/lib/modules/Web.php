@@ -9,6 +9,8 @@ class u_Web extends StdModule {
     private $request;
     private $isCrossOrigin = null;
     private $includedFormJs = false;
+    private $forms = [];
+    private $gzipBufferOpen = false;
 
 
     // REQUEST
@@ -39,6 +41,7 @@ class u_Web extends StdModule {
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
                 'headers'     => OMap::create(WebMode::getWebRequestHeaders()),
+                'url'         => '',  // see below
             ];
 
             $relativeUrl = $this->relativeUrl();
@@ -47,13 +50,6 @@ class u_Web extends StdModule {
             $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
             $r['url'] = $this->u_parse_url($fullUrl);
-
-            $fullUrl = rtrim($fullUrl, '/');
-            $r['url']['full'] = $fullUrl;
-            $r['url']['relative'] = $relativeUrl;
-
-            $urlParts = explode('/', $r['url']['path']);
-            $r['url']['page'] = end($urlParts);
 
             $this->request = OMap::create($r);
         }
@@ -115,33 +111,54 @@ class u_Web extends StdModule {
 
     function u_parse_url ($url) {
         ARGS('s', func_get_args());
-        return OMap::create(parse_url($url));
+
+        $u = parse_url($url);
+
+        $fullUrl = rtrim($url, '/');
+        $u['full'] = $fullUrl;
+
+        $relativeUrl = preg_replace('#^.*?//.*?/#', '/', $fullUrl);
+        $u['relative'] = $relativeUrl;
+
+        $pathParts = explode('/', ltrim($u['path'], '/'));
+        $u['pathParts'] = $pathParts;
+        $u['page'] = end($pathParts);
+
+        if (!isset($u['query'])) {
+            $u['query'] = '';
+        }
+
+        if (!isset($u['port']) && isset($u['scheme'])) {
+            $u['port'] = ($u['scheme'] == 'https') ? 443 : 80;
+        }
+
+        return OMap::create($u);
     }
 
-    function u_unparse_url($u) {
-        ARGS('s', func_get_args());
+    function u_stringify_url($u) {
+        ARGS('m', func_get_args());
 
         $u = uv($u);
         $parts = [
-            $this->unparseVal($u, 'scheme',   '__://'),
-            $this->unparseVal($u, 'host',     '__'),
-            $this->unparseVal($u, 'port',     ':__'),
-            $this->unparseVal($u, 'path',     '__'),
-            $this->unparseVal($u, 'query',    '?__'),
-            $this->unparseVal($u, 'fragment', '#__'),
+            $this->stringifyPart($u, 'scheme',   '__://'),
+            $this->stringifyPart($u, 'host',     '__'),
+            $this->stringifyPart($u, 'port',     ':__'),
+            $this->stringifyPart($u, 'path',     '__'),
+            $this->stringifyPart($u, 'query',    '?__'),
+            $this->stringifyPart($u, 'fragment', '#__'),
         ];
         return implode('', $parts);
     }
 
-    function unparseVal($u, $k, $template) {
+    function stringifyPart($u, $k, $template) {
         if (!isset($u[$k])) { return ''; }
         return str_replace('__', $u[$k], $template);
     }
 
-
     function u_parse_query ($s, $multiKeys=[]) {
 
         ARGS('sl', func_get_args());
+        $multiKeys = uv($multiKeys);
 
         $ary = [];
         $pairs = explode('&', $s);
@@ -149,8 +166,8 @@ class u_Web extends StdModule {
         foreach ($pairs as $i) {
             list($name, $value) = explode('=', $i, 2);
             if (in_array($name, $multiKeys)) {
-                if (!array_key_exists($ary[$name])) {
-                    $ary[$name] = [];
+                if (!isset($ary[$name])) {
+                    $ary[$name] = OList::create([]);
                 }
                 $ary[$name] []= $value;
             }
@@ -161,8 +178,8 @@ class u_Web extends StdModule {
         return OMap::create($ary);
     }
 
-    function query ($params) {
-        return http_build_query($params);
+    function u_stringify_query ($params) {
+        return http_build_query(uv($params));
     }
 
 
@@ -205,10 +222,12 @@ class u_Web extends StdModule {
     }
 
     function u_nonce () {
+        ARGS('', func_get_args());
         return Security::getNonce();
     }
 
     function u_csrf_token() {
+        ARGS('', func_get_args());
         return Security::getCsrfToken();
     }
 
@@ -224,6 +243,11 @@ class u_Web extends StdModule {
     //     ]);
     // }
 
+    function output($out) {
+        $this->startGzip();
+        print $out;
+    }
+
     function sendByType($lout) {
         $type = $lout->u_get_string_type();
 
@@ -235,11 +259,25 @@ class u_Web extends StdModule {
         }
     }
 
+    function renderChunks($chunks) {
+
+        // Normalize. Could be a single LocKString, OList, or a PHP array
+        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
+            $chunks = OList::create([ $chunks ]); 
+        }
+
+        $out = '';
+        foreach ($chunks->val as $c) {
+            $out .= OLockString::getUnlocked($c);
+        }
+        return $out;
+    }
+
     function u_send_json ($map) {
         ARGS('m', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/json');
-        u_Web::sendGzip(new \o\OLockString (json_encode(uv($map))));
+        $this->output(json_encode(uv($map)));
     }
 
     function u_send_text ($text) {
@@ -247,7 +285,7 @@ class u_Web extends StdModule {
 
         $this->u_set_header('Content-Type', 'text/plain');
 
-        u_Web::sendGzip(new \o\OLockString ($text));
+        $this->output($text);
     }
 
     function u_send_css ($chunks) {
@@ -256,14 +294,9 @@ class u_Web extends StdModule {
 
         $this->u_set_header('Content-Type', 'text/css');
         $this->u_set_cache_header();
-        $this->startGzip();
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]); // todo make a List
-        }
-        foreach ($chunks->val as $c) {
-            print OLockString::getUnlocked($c);
-        }
-        $this->endGzip();
+
+        $out = $this->renderChunks($chunks);
+        $this->output($out);
     }
 
     function u_send_js ($chunks) {
@@ -273,21 +306,16 @@ class u_Web extends StdModule {
         $this->u_set_header('Content-Type', 'application/javascript');
         $this->u_set_cache_header();
 
-        $this->startGzip();
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]);
-        }
-        print "(function(){\n";
-        foreach ($chunks->val as $c) {
-            print OLockString::getUnlocked($c);
-        }
-        print "\n})();";
-        $this->endGzip();
+        $out = "(function(){\n";
+        $out .= $this->renderChunks($chunks);
+        $out .= "\n})();";
+
+        $this->output($out);
     }
 
     function u_send_html ($html) {
-        OLockString::getUnlocked($html);
-        u_Web::sendGzip($html);
+        $html = OLockString::getUnlocked($html);  
+        $this->output($html);
     }
 
     function u_danger_danger_send ($s) {
@@ -337,7 +365,8 @@ class u_Web extends StdModule {
         $title = $doc['title'];
         $description = isset($doc['description']) ?: '';
 
-        // TODO: get updateTime of the files, allow base64 urls
+        // TODO: get updateTime of the files
+        // TODO: allow base64 urls
         // $cacheTag = '?cache=' . Source::getAppCompileTime();
         $cacheTag = '';
 
@@ -349,7 +378,7 @@ class u_Web extends StdModule {
         $bodyClass = implode(' ', $bodyClasses);
         $bodyClass = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $bodyClass); // TODO: call a lib to untaint instead
 
-        $this->startGzip();
+        
 
         $comment = '';
         if (isset($doc['comment'])) {
@@ -360,33 +389,22 @@ class u_Web extends StdModule {
 <!doctype html>
 $comment
 <html>
-    <head>
-        <title>$title</title>
-        <meta name="description" content="$description"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <meta property="og:title" content="$title"/>
-        <meta property="og:description" content="$description"/>
-        $image $icon $css
-    </head>
-    <body class="$bodyClass">
-        $body
-        $js
-    </body>
+<head>
+<title>$title</title>
+<meta name="description" content="$description"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta property="og:title" content="$title"/>
+<meta property="og:description" content="$description"/>
+$image $icon $css
+</head>
+<body class="$bodyClass">
+$body
+$js
+</body>
 </html>
 HTML;
 
-       print $out;
-
-       $this->endGzip();
-       flush();
-
-       $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
-
-       if ($cacheTag && isset($doc['staticCache']) && $doc['staticCache']) {
-           $cacheFile = md5(Tht::module('Web')->u_request()['url']['relative']);
-           $cachePath = Tht::path('cache', 'html/' . $cacheTag . '_' . $cacheFile . '.html');
-           file_put_contents($cachePath, $out);
-       }
+        $this->output($out);
     }
 
     function u_send_error ($code, $title='') {
@@ -453,6 +471,9 @@ HTML;
                 } else {
                     // Link to asset, with cache time set to file modtime
                     $basePath = preg_replace('/\?.*/', '', $path);
+                    if (defined('BASE_URL')) {
+                        $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
+                    }
                     $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
                     $cacheTag = strpos($path, '?') === false ? '?' : '&';
                     $cacheTag .= 'cache=' . filemtime($filePath);
@@ -472,28 +493,19 @@ HTML;
     }
 
 
-
-
-    // GZIP
-    // --------------------------------------------
-
-    function sendGzip ($xOut) {
-        $out = OLockString::getUnlocked($xOut);
-        $this->startGzip(true);
-        print $out;
-        $this->endGzip(true);
-        flush();
-    }
-
     function startGzip ($forceGzip=false) {
+        if ($this->gzipBufferOpen) { return; }
         if ($forceGzip || Tht::getConfig('compressOutput')) {
             ob_start("ob_gzhandler");
         }
+        $this->gzipBufferOpen = true;
     }
 
     function endGzip ($forceGzip=false) {
         if ($forceGzip || Tht::getConfig('compressOutput')) {
-            ob_end_flush();
+            if ($this->gzipBufferOpen) {
+                ob_end_flush();
+            }
         }
     }
 
@@ -592,10 +604,10 @@ HTML;
             'wideChevronUp'    => '<polyline points="-5,60 50,30 105,60"/>',
             'wideChevronDown'  => '<polyline points="-5,40 50,70 105,40"/>',
 
-            'caretLeft'   => '<path class="fill" d="M60,20 30,50 60,80z"/>',
-            'caretRight'  => '<path class="fill" d="M40,20 70,50 40,80z"/>',
-            'caretUp'     => '<path class="fill" d="M20,60 50,30 80,60z"/>',
-            'caretDown'   => '<path class="fill" d="M20,40 50,70 80,40z"/>',
+            'caretLeft'   => '<path class="svgfill" d="M60,20 30,50 60,80z"/>',
+            'caretRight'  => '<path class="svgfill" d="M40,20 70,50 40,80z"/>',
+            'caretUp'     => '<path class="svgfill" d="M20,60 50,30 80,60z"/>',
+            'caretDown'   => '<path class="svgfill" d="M20,40 50,70 80,40z"/>',
 
             'menu'         => '<path d="M0,20H100zM0,50H100zM0,80H100z"/>',
             'plus'         => '<path d="M15,50H85zM50,15V85z"/>',
@@ -603,15 +615,15 @@ HTML;
             'cancel'       => '<path d="M20,20 80,80z M80,20 20,80z"/>',
             'check'        => '<polyline points="15,45 40,70 85,15"/>',
 
-            'home'   => '<path class="fill" d="M0,50 50,15 100,50z"/><rect class="fill" x="15" y="50" height="40" width="25" /><rect class="fill" x="60" y="50" height="40" width="25" /><rect class="fill" x="40" y="50" height="15" width="40" /><rect class="fill" x="70" y="20" height="20" width="15" />',
-            'download' => '<path class="fill" d="M10,40 50,75 90,40z"/><rect class="fill" x="35" y="0" height="42" width="30" /><rect class="fill" x="0" y="88" height="12" width="100" />',
-            'upload'   => '<path class="fill" d="M10,35 50,0 90,35z"/><rect class="fill" x="35" y="33" height="40" width="30" /><rect class="fill" x="0" y="88" height="12" width="100" />',
+            'home'   => '<path class="svgfill" d="M0,50 50,15 100,50z"/><rect class="svgfill" x="15" y="50" height="40" width="25" /><rect class="svgfill" x="60" y="50" height="40" width="25" /><rect class="svgfill" x="40" y="50" height="15" width="40" /><rect class="svgfill" x="70" y="20" height="20" width="15" />',
+            'download' => '<path class="svgfill" d="M10,40 50,75 90,40z"/><rect class="svgfill" x="35" y="0" height="42" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
+            'upload'   => '<path class="svgfill" d="M10,35 50,0 90,35z"/><rect class="svgfill" x="35" y="33" height="40" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
             'search'    => '<circle cx="45" cy="45" r="30"/><path d="M95,95 65,65z"/>',
-            'lock'      => '<rect class="fill" x="15" y="35" height="50" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="7" height="50" width="38" rx="15" rx="15" />',
-            'heart'     => '<path class="fill" d="M90,45 50,85 10,45z"/><rect class="fill" x="48" y="43" height="4" width="4"/><circle class="fill" cx="29" cy="31" r="23"/><circle class="fill" cx="71" cy="31" r="23"/>',
+            'lock'      => '<rect class="svgfill" x="15" y="35" height="50" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="7" height="50" width="38" rx="15" rx="15" />',
+            'heart'     => '<path class="svgfill" d="M90,45 50,85 10,45z"/><rect class="svgfill" x="48" y="43" height="4" width="4"/><circle class="svgfill" cx="29" cy="31" r="23"/><circle class="svgfill" cx="71" cy="31" r="23"/>',
 
             // generated from $this->starIcon(50,50,55,22)
-            'star'     => '<path class="fill" d="M102.38,33.22 70.89,56.89 82.14,94.63 49.91,72.00 17.49,94.36 29.05,56.71 -2.24,32.79 37.14,32.15 50.23,-5.00 63.01,32.26z"/>',
+            'star'     => '<path class="svgfill" d="M102.38,33.22 70.89,56.89 82.14,94.63 49.91,72.00 17.49,94.36 29.05,56.71 -2.24,32.79 37.14,32.15 50.23,-5.00 63.01,32.26z"/>',
 
             'twitter' => '<svg class="ticonx" viewBox="0 0 33 33"><g><path d="M 32,6.076c-1.177,0.522-2.443,0.875-3.771,1.034c 1.355-0.813, 2.396-2.099, 2.887-3.632 c-1.269,0.752-2.674,1.299-4.169,1.593c-1.198-1.276-2.904-2.073-4.792-2.073c-3.626,0-6.565,2.939-6.565,6.565 c0,0.515, 0.058,1.016, 0.17,1.496c-5.456-0.274-10.294-2.888-13.532-6.86c-0.565,0.97-0.889,2.097-0.889,3.301 c0,2.278, 1.159,4.287, 2.921,5.465c-1.076-0.034-2.088-0.329-2.974-0.821c-0.001,0.027-0.001,0.055-0.001,0.083 c0,3.181, 2.263,5.834, 5.266,6.438c-0.551,0.15-1.131,0.23-1.73,0.23c-0.423,0-0.834-0.041-1.235-0.118 c 0.836,2.608, 3.26,4.506, 6.133,4.559c-2.247,1.761-5.078,2.81-8.154,2.81c-0.53,0-1.052-0.031-1.566-0.092 c 2.905,1.863, 6.356,2.95, 10.064,2.95c 12.076,0, 18.679-10.004, 18.679-18.68c0-0.285-0.006-0.568-0.019-0.849 C 30.007,8.548, 31.12,7.392, 32,6.076z"></path></g></svg>',
 
@@ -634,7 +646,7 @@ HTML;
             return new \o\HtmlLockString($icons[$id]);
         }
 
-        return new \o\HtmlLockString('<svg class="ticon" viewBox="0,0,100,100">' . $icons[$id] . '</svg>');
+        return new \o\HtmlLockString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
     }
 
 
@@ -677,22 +689,27 @@ HTML;
     // --------------------------------------------
 
 
-    function u_form ($schema, $formId='defaultForm') {
-        return new u_Form ($schema, $formId);
+    function u_form ($formId, $schema=null) {
+        if (is_null($schema)) {
+            if (isset($this->forms[$formId])) {
+                return $this->forms[$formId];
+            }
+            else {
+                Tht::error("Unknown formId `$formId`");
+            }
+        }
+
+        $f = new u_Form ($formId, $schema);
+        $this->forms[$formId] = $f;
+        return $f;
     }
 
-    // function u_query($name, $sRules='id') {
+    function u_query($name, $sRules='id') {
+        ARGS('ss', func_get_args());
+        return $this->u_input('get', $name, $sRules);
+    }
 
-    //     ARGS('ss', func_get_args());
-
-    //     $rawVal = trim(Tht::getPhpGlobal('get', $name, false));
-
-    //     $validated = $this->u_temp_validate_input($val, $type);
-
-    //     return $validated['value'];
-    // }
-
-    function u_temp_get_input($method, $name, $type='id') {
+    function u_input($method, $name, $sRules='id') {
 
         ARGS('sss', func_get_args());
 
@@ -710,79 +727,13 @@ HTML;
             $method = 'post';
         }
 
-        $val = trim(Tht::getPhpGlobal($method, $name, false));
-        $validated = $this->u_temp_validate_input($val, $type);
+        $rawVal = trim(Tht::getPhpGlobal($method, $name, false));
+        
+        $schema = ['rule' => $sRules];
+        $validator = new u_FormValidator ();
+        $validated = $validator->validateField($name, $rawVal, $schema);
 
         return $validated['value'];
-    }
-
-    function u_temp_validate_input($val, $type='id') {
-
-        $isFail = false;
-        if ($type === 'id') {
-            if (preg_match('/[^a-zA-Z0-9_]/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 64) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'number') {
-            $val = preg_replace("/[',]/", '', $val);
-            if (preg_match('/[^0-9]/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 8) {
-                $isFail = true;
-            }
-            $val = intval($val);
-        }
-        else if ($type === 'numberAny') {
-            $val = preg_replace("/[',]/", '', $val);
-            if (preg_match('/[^0-9\.\-]/', $val)) {
-                $isFail = true;
-            }
-            $val = strpos($val, '.') !== false ? floatval($val) : intval($val);
-        }
-        else if ($type === 'flag') {
-            if ($val !== 'true' && $val !== 'false' && $val !== '1' && $val !== '0') {
-                $isFail = true;
-            }
-            $val = ($val === 'true' || $val === '1');
-        }
-        else if ($type === 'email') {
-            if (!preg_match('/^\S+?@[^@\s]+\.\S+$/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 80) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'text') {
-            // one line of text
-            $val = preg_replace('/\s+/', ' ', $val);
-            $val = preg_replace('/<.*?>/', '', $val);
-            if (strlen($val) > 120) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'textarea') {
-            // multiline text
-            $val = preg_replace('/<.*?>/', '', $val);
-            $val = preg_replace('/ +/', ' ', $val);
-            $val = preg_replace('/\n{2,}/', "\n\n", $val);
-            $val = trim($val);
-        }
-        else if ($type === 'dangerDangerRaw') {
-            // pass through as-is
-        }
-        else {
-            Tht::error("Unknown input type: `$type`");
-        }
-        return OMap::create([
-            'value' => $isFail ? '' : $val,
-            'ok' => !$isFail
-        ]);
     }
 
 }

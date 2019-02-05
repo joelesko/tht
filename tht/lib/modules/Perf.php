@@ -121,16 +121,20 @@ class u_Perf extends StdModule {
                 .bench-result th { text-align: left; padding: 8px 12px; border-bottom: solid 1px #ccc; }
                 .bench-result td:nth-child(4) { font-size: 80%;  }
                 .bench-compiled { background-color: #a33; color: #fff; padding: 16px 0; font-weight: bold; margin-top: 36px; text-align: center; }
+
                 #perfScoreTotal { font-weight: bold; }
-                #perfScoreTotalLabel { margin-right: 24px; font-size: 90%; }
+                #perfScoreTotalLabel { margin-right: 24px; font-size: 100%; font-weight: bold; }
                 #perfTotals { width: 350px; margin: 48px auto; }
                 #perfTotals div { margin-bottom: 12px; }
                 #perfTotals span { font-weight: bold; }
                 #perfHeader { font-size: 30px; font-weight: bold; text-align: center; letter-spacing: -2px }
+                #perfHelp { font-size: 20px; margin-top: 14px;  text-align: center; letter-spacing: -1px;  }
             </style>
             <div id="perf-score-container">
 
-                <div id='perfHeader'>Perf Score: <span id='perfScoreTotalLabel'></span> <span id='perfScoreTotal'></span></div>
+                <div id='perfHeader'>Perf Score: <span id='perfScoreTotalLabel'></span><span id='perfScoreTotal'></span></div>
+                
+                <div id="perfHelp"><a href="<?= $thtDocLink ?>" style="font-weight:bold">About This Score &raquo;</a></div>
 
                 <?= $compileMessage ?>
 
@@ -143,7 +147,6 @@ class u_Perf extends StdModule {
 
                 <div style='text-align:center; margin-top:48px;'>
                     <p style="font-size: 80%"> Sub-task time is not included in parent tasks.</p>
-                    <a href="<?= $thtDocLink ?>">See Perf Help &raquo;</a>
                 </div>
 
             </div>
@@ -163,11 +166,10 @@ class u_Perf extends StdModule {
                     var serverScore = Math.max(stats.server - 100, 0) * 0.1;
                     var totalTime = stats.client + stats.server;
 
-                    var grade = { label: '<b>D</b> (Slow)', color: '#933' };
-                    if (totalTime <= 200) { grade = { label: '<b>A+</b> (Excellent!)', color: '#3a3' }; }
-                    else if (totalTime <= 500) { grade = { label: '<b>A</b> (Great!)', color: '#3a3' }; }
-                    else if (totalTime <= 1000) { grade = { label: '<b>B</b> (Good)', color: '#94c114' }; }
-                    else if (totalTime <= 2000) { grade = { label: '<b>C</b> (Okay)', color: '#dc7434' }; }
+                    var grade = { label: 'VERY SLOW', color: '#d80000' };
+                    if (totalTime <= 1000) { grade = { label: 'FAST', color: '#3a3' }; }
+                    else if (totalTime <= 2000) { grade = { label: 'OK', color: '#e26c00' }; }
+                    else if (totalTime <= 4000) { grade = { label: 'SLOW', color: '#e6544a' }; }
 
                     var getId = document.getElementById.bind(document);
 

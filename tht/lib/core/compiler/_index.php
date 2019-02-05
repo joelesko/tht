@@ -11,7 +11,7 @@ class ThtLib {
         'Parser',
         'Validator',
         'Emitter',
-        'EmitterPHP'
+        'EmitterPHP',
     ];
 
     static public function load () {

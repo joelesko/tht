@@ -15,25 +15,21 @@ class OBare {
 
         $outs = [];
         foreach ($parts as $a) {
-            if (is_object($a) || is_array($a)) {
-                if ($a instanceof ONothing) {
+
+            if (is_string($a)) {
+                if ($a === '') {
                     $a = '(nothing)';
-                } else if ($a instanceof OLockString) {
-                    $a = $a->__toString();
-                } else if ($a instanceof ORegex) {
-                    $a = $a->__toString();
-                } else if ($a instanceof OPassword) {
-                    $a = $a->__toString();
-                } else {
-                    $a = Tht::module('Json')->u_format($a);
                 }
             }
-            if ($a === true)  { $a = 'true'; }
-            if ($a === false) { $a = 'false'; }
+            else {
+                $a = Tht::module('Json')->u_format($a);
+            }
+            
+            $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
             if (Tht::isMode('web')) {
                 $a = htmlentities($a);
             }
-            if ($a === '' || $a === null) { $a = '(nothing)'; }
+
             $outs []= $a;
         }
 
@@ -51,11 +47,11 @@ class OBare {
             echo $out, "\n";
         }
 
-        return Runtime::void('print');
+        return new \o\ONothing('print');
     }
 
-    static function u_import ($localNs, $relPath) {
-        Runtime::loadUserModule($localNs, $relPath);
+    static function u_import ($relPath) {
+        ModuleManager::loadUserModule($relPath);
     }
 
     static function u_range ($start, $end, $step=1) {

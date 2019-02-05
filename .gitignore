@@ -2,8 +2,9 @@
 
 # ...
 
-tht/testsite/data/*
-
+**/app/data/cache/**
+**/app/data/counter/**
+**/app/data/sessions/**
 
 ### Common
 

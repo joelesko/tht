@@ -2,7 +2,7 @@
 
 namespace o;
 
-
+// TODO: replace with CURL
 class u_Net extends StdModule {
 
 	function u_http_get($lUrl, $headers=[]) {

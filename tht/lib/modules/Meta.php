@@ -10,7 +10,7 @@ class u_Meta extends StdModule {
 
     function getCallerNamespace () {
         $trace = debug_backtrace(0, 2);
-        $nameSpace = Runtime::getNameSpace(Tht::getThtPathForPhp($trace[1]['file']));
+        $nameSpace = ModuleManager::getNamespace(Tht::getThtPathForPhp($trace[1]['file']));
         return $nameSpace;
     }
 
@@ -27,6 +27,13 @@ class u_Meta extends StdModule {
             Tht::error("Function does not exist: `$fullFn`");
         }
         return call_user_func_array($fullFn, uv($params));
+    }
+
+    function u_new_object($cls, $params=[]) {
+        ARGS('sl', func_get_args());
+        $o = \o\ModuleManager::newObject($cls, uv($params));
+
+        return $o;
     }
 
     function u_parse ($source) {
