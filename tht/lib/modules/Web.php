@@ -9,6 +9,8 @@ class u_Web extends StdModule {
     private $request;
     private $isCrossOrigin = null;
     private $includedFormJs = false;
+    private $forms = [];
+    private $gzipBufferOpen = false;
 
 
     // REQUEST
@@ -39,6 +41,7 @@ class u_Web extends StdModule {
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
                 'headers'     => OMap::create(WebMode::getWebRequestHeaders()),
+                'url'         => '',  // see below
             ];
 
             $relativeUrl = $this->relativeUrl();
@@ -47,13 +50,6 @@ class u_Web extends StdModule {
             $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
             $r['url'] = $this->u_parse_url($fullUrl);
-
-            $fullUrl = rtrim($fullUrl, '/');
-            $r['url']['full'] = $fullUrl;
-            $r['url']['relative'] = $relativeUrl;
-
-            $urlParts = explode('/', $r['url']['path']);
-            $r['url']['page'] = end($urlParts);
 
             $this->request = OMap::create($r);
         }
@@ -115,33 +111,54 @@ class u_Web extends StdModule {
 
     function u_parse_url ($url) {
         ARGS('s', func_get_args());
-        return OMap::create(parse_url($url));
+
+        $u = parse_url($url);
+
+        $fullUrl = rtrim($url, '/');
+        $u['full'] = $fullUrl;
+
+        $relativeUrl = preg_replace('#^.*?//.*?/#', '/', $fullUrl);
+        $u['relative'] = $relativeUrl;
+
+        $pathParts = explode('/', ltrim($u['path'], '/'));
+        $u['pathParts'] = $pathParts;
+        $u['page'] = end($pathParts);
+
+        if (!isset($u['query'])) {
+            $u['query'] = '';
+        }
+
+        if (!isset($u['port']) && isset($u['scheme'])) {
+            $u['port'] = ($u['scheme'] == 'https') ? 443 : 80;
+        }
+
+        return OMap::create($u);
     }
 
-    function u_unparse_url($u) {
-        ARGS('s', func_get_args());
+    function u_stringify_url($u) {
+        ARGS('m', func_get_args());
 
         $u = uv($u);
         $parts = [
-            $this->unparseVal($u, 'scheme',   '__://'),
-            $this->unparseVal($u, 'host',     '__'),
-            $this->unparseVal($u, 'port',     ':__'),
-            $this->unparseVal($u, 'path',     '__'),
-            $this->unparseVal($u, 'query',    '?__'),
-            $this->unparseVal($u, 'fragment', '#__'),
+            $this->stringifyPart($u, 'scheme',   '__://'),
+            $this->stringifyPart($u, 'host',     '__'),
+            $this->stringifyPart($u, 'port',     ':__'),
+            $this->stringifyPart($u, 'path',     '__'),
+            $this->stringifyPart($u, 'query',    '?__'),
+            $this->stringifyPart($u, 'fragment', '#__'),
         ];
         return implode('', $parts);
     }
 
-    function unparseVal($u, $k, $template) {
+    function stringifyPart($u, $k, $template) {
         if (!isset($u[$k])) { return ''; }
         return str_replace('__', $u[$k], $template);
     }
 
-
     function u_parse_query ($s, $multiKeys=[]) {
 
         ARGS('sl', func_get_args());
+        $multiKeys = uv($multiKeys);
 
         $ary = [];
         $pairs = explode('&', $s);
@@ -149,8 +166,8 @@ class u_Web extends StdModule {
         foreach ($pairs as $i) {
             list($name, $value) = explode('=', $i, 2);
             if (in_array($name, $multiKeys)) {
-                if (!array_key_exists($ary[$name])) {
-                    $ary[$name] = [];
+                if (!isset($ary[$name])) {
+                    $ary[$name] = OList::create([]);
                 }
                 $ary[$name] []= $value;
             }
@@ -161,8 +178,8 @@ class u_Web extends StdModule {
         return OMap::create($ary);
     }
 
-    function query ($params) {
-        return http_build_query($params);
+    function u_stringify_query ($params) {
+        return http_build_query(uv($params));
     }
 
 
@@ -205,10 +222,12 @@ class u_Web extends StdModule {
     }
 
     function u_nonce () {
+        ARGS('', func_get_args());
         return Security::getNonce();
     }
 
     function u_csrf_token() {
+        ARGS('', func_get_args());
         return Security::getCsrfToken();
     }
 
@@ -225,6 +244,7 @@ class u_Web extends StdModule {
     // }
 
     function output($out) {
+        $this->startGzip();
         print $out;
     }
 
@@ -369,31 +389,22 @@ class u_Web extends StdModule {
 <!doctype html>
 $comment
 <html>
-    <head>
-        <title>$title</title>
-        <meta name="description" content="$description"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <meta property="og:title" content="$title"/>
-        <meta property="og:description" content="$description"/>
-        $image $icon $css
-    </head>
-    <body class="$bodyClass">
-        $body
-        $js
-    </body>
+<head>
+<title>$title</title>
+<meta name="description" content="$description"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta property="og:title" content="$title"/>
+<meta property="og:description" content="$description"/>
+$image $icon $css
+</head>
+<body class="$bodyClass">
+$body
+$js
+</body>
 </html>
 HTML;
 
         $this->output($out);
-     
-       
-        $cacheTag = defined('STATIC_CACHE_TAG') ? constant('STATIC_CACHE_TAG') : '';
-        if ($cacheTag && isset($doc['staticCache']) && $doc['staticCache']) {
-            $cacheFile = md5(Tht::module('Web')->u_request()['url']['relative']);
-            $cachePath = Tht::path('cache', 'html/' . $cacheTag . '_' . $cacheFile . '.html');
-            file_put_contents($cachePath, $out);
-        }
-
     }
 
     function u_send_error ($code, $title='') {
@@ -482,31 +493,21 @@ HTML;
     }
 
 
+    function startGzip ($forceGzip=false) {
+        if ($this->gzipBufferOpen) { return; }
+        if ($forceGzip || Tht::getConfig('compressOutput')) {
+            ob_start("ob_gzhandler");
+        }
+        $this->gzipBufferOpen = true;
+    }
 
-    // TODO: Removed for now.  Letting webserver handle this.
-
-    // GZIP
-    // --------------------------------------------
-
-    // function sendGzip ($xOut) {
-    //     $out = OLockString::getUnlocked($xOut);
-    //     $this->startGzip(true);
-    //     print $out;
-    //     $this->endGzip(true);
-    //     flush();
-    // }
-
-    // function startGzip ($forceGzip=false) {
-    //     if ($forceGzip || Tht::getConfig('compressOutput')) {
-    //         ob_start("ob_gzhandler");
-    //     }
-    // }
-
-    // function endGzip ($forceGzip=false) {
-    //     if ($forceGzip || Tht::getConfig('compressOutput')) {
-    //         ob_end_flush();
-    //     }
-    // }
+    function endGzip ($forceGzip=false) {
+        if ($forceGzip || Tht::getConfig('compressOutput')) {
+            if ($this->gzipBufferOpen) {
+                ob_end_flush();
+            }
+        }
+    }
 
 
 
@@ -688,22 +689,27 @@ HTML;
     // --------------------------------------------
 
 
-    function u_form ($schema, $formId='defaultForm') {
-        return new u_Form ($schema, $formId);
+    function u_form ($formId, $schema=null) {
+        if (is_null($schema)) {
+            if (isset($this->forms[$formId])) {
+                return $this->forms[$formId];
+            }
+            else {
+                Tht::error("Unknown formId `$formId`");
+            }
+        }
+
+        $f = new u_Form ($formId, $schema);
+        $this->forms[$formId] = $f;
+        return $f;
     }
 
-    // function u_query($name, $sRules='id') {
+    function u_query($name, $sRules='id') {
+        ARGS('ss', func_get_args());
+        return $this->u_input('get', $name, $sRules);
+    }
 
-    //     ARGS('ss', func_get_args());
-
-    //     $rawVal = trim(Tht::getPhpGlobal('get', $name, false));
-
-    //     $validated = $this->u_temp_validate_input($val, $type);
-
-    //     return $validated['value'];
-    // }
-
-    function u_temp_get_input($method, $name, $type='id') {
+    function u_input($method, $name, $sRules='id') {
 
         ARGS('sss', func_get_args());
 
@@ -721,79 +727,13 @@ HTML;
             $method = 'post';
         }
 
-        $val = trim(Tht::getPhpGlobal($method, $name, false));
-        $validated = $this->u_temp_validate_input($val, $type);
+        $rawVal = trim(Tht::getPhpGlobal($method, $name, false));
+        
+        $schema = ['rule' => $sRules];
+        $validator = new u_FormValidator ();
+        $validated = $validator->validateField($name, $rawVal, $schema);
 
         return $validated['value'];
-    }
-
-    function u_temp_validate_input($val, $type='id') {
-
-        $isFail = false;
-        if ($type === 'id') {
-            if (preg_match('/[^a-zA-Z0-9_]/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 64) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'number') {
-            $val = preg_replace("/[',]/", '', $val);
-            if (preg_match('/[^0-9]/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 8) {
-                $isFail = true;
-            }
-            $val = intval($val);
-        }
-        else if ($type === 'numberAny') {
-            $val = preg_replace("/[',]/", '', $val);
-            if (preg_match('/[^0-9\.\-]/', $val)) {
-                $isFail = true;
-            }
-            $val = strpos($val, '.') !== false ? floatval($val) : intval($val);
-        }
-        else if ($type === 'flag') {
-            if ($val !== 'true' && $val !== 'false' && $val !== '1' && $val !== '0') {
-                $isFail = true;
-            }
-            $val = ($val === 'true' || $val === '1');
-        }
-        else if ($type === 'email') {
-            if (!preg_match('/^\S+?@[^@\s]+\.\S+$/', $val)) {
-                $isFail = true;
-            }
-            if (strlen($val) > 80) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'text') {
-            // one line of text
-            $val = preg_replace('/\s+/', ' ', $val);
-            $val = preg_replace('/<.*?>/', '', $val);
-            if (strlen($val) > 120) {
-                $isFail = true;
-            }
-        }
-        else if ($type === 'textarea') {
-            // multiline text
-            $val = preg_replace('/<.*?>/', '', $val);
-            $val = preg_replace('/ +/', ' ', $val);
-            $val = preg_replace('/\n{2,}/', "\n\n", $val);
-            $val = trim($val);
-        }
-        else if ($type === 'dangerDangerRaw') {
-            // pass through as-is
-        }
-        else {
-            Tht::error("Unknown input type: `$type`");
-        }
-        return OMap::create([
-            'value' => $isFail ? '' : $val,
-            'ok' => !$isFail
-        ]);
     }
 
 }
