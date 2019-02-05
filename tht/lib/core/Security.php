@@ -138,9 +138,11 @@ class Security {
         }
 	}
 
-    static function validatePath ($path, $checkSandbox=true) {
+    static function validateFilePath ($path, $checkSandbox=true) {
 
         $path = str_replace('\\', '/', $path);
+        $path = preg_replace('#/{2,}#', '/', $path);
+
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
         if (!strlen($path)) {
@@ -151,6 +153,9 @@ class Security {
         }
 		if (strpos($path, '..') !== false) {
             Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+        }
+        if (strpos($path, './') !== false) {
+            Tht::error("Dot directory `.` not allowed in path: `$path`");
         }
 
         if ($checkSandbox && Tht::isMode('fileSandbox')) {
@@ -278,7 +283,7 @@ class Security {
     // Register an un-sandboxed version of File, for internal use.
     static function registerInternalFileModule() {
         $f = new u_File ();
-        $f->u_danger_danger_no_sandbox();
+        $f->dangerDangerDisableSandbox();
     	ModuleManager::registerStdModule('*File', $f);
     }
 }
