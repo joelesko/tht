@@ -7,73 +7,30 @@ class u_Css extends StdModule {
 
     private $included = [];
 
-    // Very simple minification
-    // http://stackoverflow.com/questions/15195750/minify-compress-css-with-regex
-    function u_minify ($str1) {
+    function wrap($str) {
+        $nonce = Tht::module('Web')->u_nonce();
+        $min = $this->u_minify($str);
+        return "<style nonce=\"$nonce\">$min</style>";
+    }
+
+    function u_minify ($str) {
 
         ARGS('s', func_get_args());
 
-        $cacheKey = 'css:' . md5($str1);
+        $cacheKey = 'min_css_' . md5($str);
         $cache = Tht::module('Cache');
         if ($cache->u_has($cacheKey)) {
             return $cache->u_get($cacheKey);
         }
 
+        $min = new Minifier($str);
+        $minStr = $min->minify("/\s*([\\(\\):{\},]+)\s*/");
 
-        // remove '//' line comments
-        $str1 = preg_replace("#(\n|^)\s*//[^!]?[^\n]*#", '', $str1);
+        $cache->u_set($cacheKey, $minStr, Tht::module('Date')->u_hours(24));
 
-        $re1 = <<<'EOS'
-    (?sx)
-      # quotes
-      (
-        "(?:[^"\\]++|\\.)*+"
-      | '(?:[^'\\]++|\\.)*+'
-      )
-    |
-      /\*(?!!)(?> .*? \*/ )
-EOS;
-
-        $re2 = <<<'EOS'
-    (?six)
-      (
-        "(?:[^"\\]++|\\.)*+"
-      | '(?:[^'\\]++|\\.)*+'
-      )
-    |
-      \s*+ ; \s*+ ( } ) \s*+
-    |
-      \s*+ ( [*$~^|]?+= | [{};,>~+-] | !important\b ) \s*+
-    |
-      ( [[(:] ) \s++
-    |
-      \s++ ( [])] )
-    |
-      \s++ ( : ) \s*+
-      (?!
-        (?>
-          [^{}"']++
-        | "(?:[^"\\]++|\\.)*+"
-        | '(?:[^'\\]++|\\.)*+'
-        )*+
-        {
-      )
-    |
-      ^ \s++ | \s++ \z
-    |
-      (\s)\s+
-EOS;
-
-        Tht::module('Perf')->u_start('Css.minify', $str1);
-        $str2 = preg_replace("%$re1%", '$1', $str1);
-        $str2 = preg_replace("%$re2%", '$1$2$3$4$5$6$7', $str2);
-
-        $cache->u_set($cacheKey, $str2, 60 * 60 * 24 * 30);
-
-        Tht::module('Perf')->u_stop();
-
-        return $str2;
+        return $minStr;
     }
+
 
     static function u_sans_serif_font () {
         return 'helvetica neue, helvetica, arial, sans-serif';
@@ -126,8 +83,6 @@ EOCSS;
         return new \o\CssLockString ($css);
     }
 
-
-    // TODO: pre-minify this.  Takes 3-4 ms to process. 
     function inc_base ($nSizeX=0, $breakCss=null) {
 
         ARGS('n*', func_get_args());
@@ -462,6 +417,14 @@ EOCSS;
             line-height: 1.25;
         }
 
+        .form-field-options {
+            max-width: 400px;
+            background-color: #f5f5f5;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1.5rem;
+        }
+
 
         /* Form Labels
         ---------------------------------------------------------- */
@@ -490,15 +453,31 @@ EOCSS;
         }
 
         /* help text */
-        input + small, select + small {
+        input + small, select + small, .form-field-options + small {
             margin-top: -1rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            margin-left: 1rem;
             display: block;
-            color: #999;
+            font-size: 90%;
+            color: #777;
         }
 
         label.checkable-option {
             display: block;
+        }
+
+        .inline-label-field label {
+            display: block;
+            margin: 0;
+            line-height: 0;
+            top: 1.8rem;
+            left: 1rem;
+            position: relative;
+        }
+
+        .inline-label-field input {
+            height: 6.5rem;
+            padding-top: 3rem;
         }
 
 
@@ -703,7 +682,7 @@ EOCSS;
         }
 EOCSS;
 
-        return new \o\CssLockString ($css);
+        return new \o\CssLockString ($this->u_minify($css));
 
     }
 
@@ -735,7 +714,7 @@ EOCSS;
 
 EOCSS;
 
-        return new \o\CssLockString ($css);
+        return new \o\CssLockString ($this->u_minify($css));
     }
 
     function u_parse($str) {
