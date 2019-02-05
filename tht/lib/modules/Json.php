@@ -5,7 +5,11 @@ namespace o;
 class u_Json extends StdModule {
 
     static function u_encode ($v) {
-        return json_encode($v, JSON_UNESCAPED_UNICODE);
+        $json = json_encode($v, JSON_UNESCAPED_UNICODE);
+
+        // TODO: this is duplicated in u_format()
+        $json = str_replace("'{EMPTY_MAP}'", '{}', $json);
+        return $json;
     }
 
     static function u_decode ($v) {
@@ -28,8 +32,9 @@ class u_Json extends StdModule {
     static function deepSortKeys ($obj) {
         ksort($obj);
         foreach ($obj as $key => $value) {
-            if (is_array($obj[$key])) {
-                $obj[$key] = u_Json::deepSortKeys($obj[$key]);
+            $uvObj = uv($obj[$key]);
+            if (is_array($uvObj)) {
+                $obj[$key] = u_Json::deepSortKeys($uvObj);
             }
         }
         return $obj;
@@ -53,11 +58,11 @@ class u_Json extends StdModule {
         if (is_string($obj)) {
             $obj = json_decode($obj);
         }
-        else if (is_array($obj)) {
-            $obj = u_Json::deepSortKeys($obj);
+        else if (is_array(uv($obj))) {
+            $obj = u_Json::deepSortKeys(uv($obj));
         }
 
-        $rawJson = json_encode($obj);
+        $rawJson = self::u_encode($obj);
 
         $len = strlen($rawJson);
         for ($i = 0; $i < $len; $i++) {
@@ -101,6 +106,7 @@ class u_Json extends StdModule {
         $out = preg_replace('/\[\s+\]/', '[]', $out);
 
         $out = preg_replace('!\\\\/!', '/', $out);
+        $out = str_replace("'{EMPTY_MAP}'", '{}', $out);
 
         return $out;
     }
