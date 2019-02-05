@@ -429,6 +429,9 @@ class Tht {
             "showErrorPageForMins"    => 30,
             "dangerDangerAllowJsEval" => false,
 
+            // misc
+            "cacheGarbageCollectRate" => 100,
+
             // resource limits
             "maxPostSizeMb"        => 2,
             "memoryLimitMb"        => 16,

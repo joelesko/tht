@@ -37,6 +37,9 @@ class u_Cache extends StdModule {
     }
 
     function u_set($k, $v, $ttlSecs) {
+        if (rand(1, Tht::getConfig('cacheGarbageCollectRate')) == 1) {
+            $this->driver->garbageCollect();
+        }
         return $this->driver->set($k, $v, $ttlSecs);
     }
 
@@ -133,7 +136,7 @@ class CacheDriver {
     }
 
     function normalKey($k) {
-        return preg_replace('/[^a-zA-Z0-9]/', '_', trim($k));
+        return preg_replace('/[^a-zA-Z0-9]/', '_', trim(strtolower($k)));
     }
 
     // TODO: figure out how to cleanly support user TTL
@@ -145,8 +148,9 @@ class CacheDriver {
         $this->set($k, $v, $ttlSecs);  
         return $v;
     }
-}
 
+    function garbageCollect() {}
+}
 
 class FileCacheDriver extends CacheDriver {
 
@@ -164,8 +168,12 @@ class FileCacheDriver extends CacheDriver {
     }
 
     function set($k, $v, $ttlSecs) {
-        $path = $this->path($k);
+        $path = $this->path($k, $ttlSecs);
         file_put_contents($path, $this->serialize($v, $ttlSecs));
+
+        $gcTtl = $ttlSecs > 0 ? $ttlSecs : Tht::module('Date')->u_days(30);
+
+        touch($path, time() + $gcTtl);
     }
 
     function delete($k) {
@@ -173,5 +181,21 @@ class FileCacheDriver extends CacheDriver {
         if (file_exists($path)) {
             unlink($path);
         }
+    }
+
+    // The GC only looks at the modtime of the file, which is forced to the expiry date.
+    function garbageCollect() {
+        $now = time();
+        $numDeleted = 0;
+        Tht::module('*File')->u_for_files(Tht::path('kvCache'), function($f) use ($now, $numDeleted){
+            if (filemtime($f['path']) <= $now) {
+                unlink($f['path']);
+                $numDeleted += 1;
+                if ($numDeleted == 100) {
+                    return true;
+                }
+            }
+        });
+        return $numDeleted;
     }
 }
