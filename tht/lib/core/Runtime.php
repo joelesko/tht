@@ -15,7 +15,7 @@ class Runtime {
         'null'    => 'ONothing',
         'double'  => 'ONumber',
         'integer' => 'ONumber',
-        'Closure' => 'OFunction'
+        'Closure' => 'OFunction',
     ];
 
     static $MODE_TO_TEMPLATE = [
@@ -33,7 +33,7 @@ class Runtime {
         's' => 'string',
         'f' => 'flag',
         'l' => 'list',
-        'm' => 'map'
+        'm' => 'map',
     ];
 
     static $SINGLE = [];
