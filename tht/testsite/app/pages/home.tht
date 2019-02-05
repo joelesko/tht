@@ -397,8 +397,6 @@ function testMisc(t) {
 
 function testOop(t) {
     
-    print([1, 2, 3].filter(F (a) { R a >= 2 }));
-
     t.section('Classes (OOP)'); 
 
     let tc = new TestClass('green', 123);
@@ -1585,11 +1583,16 @@ function libFile(t) {
     t.ok(File.exists(p), 'File exists');
     t.ok(File.isFile(p), 'File is file');
 
-    let info = File.pathInfo(p);
+    let info = File.parsePath(p);
+
     t.ok(info.dirList.last() == d, 'Path info dirList has parent dir');
     t.ok(info.fileExt == 'txt', 'Path info extension');
     t.ok(info.fileName == 'testFile.txt', 'Path info fileName');
     t.ok(info.fileNameShort == 'testFile', 'Path info shortFileName');
+    
+    t.ok(File.parsePath('././profile.png').dirList.length() == 0, 'remove . from path');
+
+
     File.delete(p);
     t.ok(!File.exists(p), 'File deleted');
 
@@ -1866,9 +1869,15 @@ function setGlobals() {
 
 function libWeb(t) {
 
+    t.section('Module: Web');
+
+    print(Web.parseQuery('foo=1&bar=2&bar=3', ['bar']));
+
+    // %5B0%5D   nane[0]=val
+    print(Web.stringifyQuery({ foo: 2, bar: 3, baz: [4, 5] }));
+
     return;
 
-    t.section('Module: Web');
 
     t.dies(function () {  Web.redirect('http://google.com'); }, 'redirect - normal');
     t.dies(function () {  Web.redirect('mailto:google.com'); }, 'redirect - mailto');
