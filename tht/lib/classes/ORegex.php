@@ -10,7 +10,7 @@ class ORegex extends OVar {
         return $this->getPattern();
     }
 
-    function __construct ($pat, $flags='x') {
+    function __construct ($pat, $flags='') {
         $pat = str_replace('\\$', '$', $pat);  // unescape dollar from tokenizer
 
         $this->pattern = $pat;
