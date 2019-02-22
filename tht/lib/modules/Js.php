@@ -7,9 +7,32 @@ class u_Js extends StdModule {
     private $jsData = [];
     private $included = [];
 
+    function u_data($key, $data) {
+        $this->jsData[$key] = $data;
+    }
+
+    function escape($v) {
+        if (is_bool($v)) {
+            return $v ? 'true' : 'false';
+        } else if (is_object($v)) {
+            return json_encode($v->val);
+        } else if (is_array($v)) {
+            return json_encode($v);
+        } else if (is_numeric($v)) {
+            return $v;
+        } else {
+            $v = '' . $v;
+            $v = str_replace('"', '\\"', $v);
+            $v = str_replace("\n", '\\n', $v);
+            return "\"$v\"";
+        }
+    }
+
     function u_minify ($str) {
 
         ARGS('s', func_get_args());
+
+        if (!trim($str)) { return ''; }
 
         $cacheKey = 'min_js_' . md5($str);
         $cache = Tht::module('Cache');
@@ -18,7 +41,7 @@ class u_Js extends StdModule {
         }
 
         $min = new Minifier($str);
-        $minStr = $min->minify("/\s*([\\(\\)<>=!\\?:\\.;\+\-\{\},\|]+)\s*/");
+        $minStr = $min->minify("/\s*([\\(\\)<>=!\\?:\\.;\+\-\{\},\|\*]+)\s*/");
 
         $cache->u_set($cacheKey, $minStr, Tht::module('Date')->u_hours(24));
 
@@ -36,18 +59,41 @@ class u_Js extends StdModule {
         if ($id == 'lazyLoadImages') {
             return $this->incLazyLoadImages();
         }
+        if ($id == 'jsData') {
+            return $this->incJsData();
+        }
 
-        Tht::error("Unknown JS plugin: `$id`. Supported plugins: `colorCode`, `lazyLoadImages`");
+        Tht::error("Unknown JS plugin: `$id`. Supported plugins: `colorCode`, `lazyLoadImages`, `jsData`");
     }
 
-    function wrap($str) {
+    function incJsData () {
+        if (isset($this->included['jsData'])) { return ''; }
+        if (!count($this->jsData)) { return ''; }
+        $data = json_encode($this->jsData);
         $nonce = Tht::module('Web')->u_nonce();
-        $min = $this->u_minify($str);
-        return "<script nonce=\"$nonce\">(function(){ $min })();</script>";
+        $min = $this->u_minify("
+            return {
+                has: function (key) {
+                    return data.hasOwnProperty(key);
+                },
+                get: function (key, def) {
+                    if (locked[key]) {
+                        throw 'Can only retrieve JsData key=`' + key + '` one time.';
+                    }
+                    if (!this.has(key)) {
+                        if (typeof def !== 'undefined') {  return def;  }
+                        throw 'JsData key=`'+ key +'` does not exist.';
+                    }
+                    locked[key] = true;
+                    return data[key];
+                }
+            };
+        ");
+
+        return new JsLockString("window.JsData=(function(){var data=$data;var locked={}; $min })();");
     }
 
     function incLazyLoadImages () {
-
 
         $css = <<<EOLAZY
 
@@ -107,10 +153,7 @@ EOLAZY;
 
 EOLAZY;
 
-        $js = $this->wrap($js);
-        $css = Tht::module('Css')->wrap($css);
-        return new OLockString ($css . $js);
-
+        return OList::create([new CssLockString($css), new JsLockString($js)]);
     }
 
     function getArg($args, $i, $def) {
@@ -198,34 +241,34 @@ EOCSS;
                 classes.add(hiClass);
                 if (!classes.contains('theme-light') && !classes.contains('theme-dark')) {
                     classes.add(themeClass);
-                }         
+                }
 
                 var c = block.innerHTML;
 
                 // keywords
-                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)sh-keyword(qq)>$1</span>$2');  
+                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)sh-keyword(qq)>$1</span>$2');
 
                 // HTML tags
-                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)sh-tag(qq)>$1</span>');        
+                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)sh-tag(qq)>$1</span>');
 
-                // numbers       
-                c = c.replace(/([^a-zA-Z\\d])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>'); 
+                // numbers
+                c = c.replace(/([^a-zA-Z\\d])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>');
 
                 // flags
-                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');      
+                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');
 
-                // strings      
-                c = c.replace(/("(.*?)")/g, '<span class=(qq)sh-value(qq)>$1</span>');                      
-                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)sh-value(qq)>$1</span>'); 
+                // strings
+                c = c.replace(/("(.*?)")/g, '<span class=(qq)sh-value(qq)>$1</span>');
+                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)sh-value(qq)>$1</span>');
 
-                // command prompt ($ or %)      
-                c = c.replace(/(^|\\n)(\\$|\\%)(\s+)/gi, '<span class=(qq)sh-prompt(qq)>$1$2$3</span>');    
+                // command prompt ($ or %)
+                c = c.replace(/(^|\\n)(\\$|\\%)(\s+)/gi, '<span class=(qq)sh-prompt(qq)>$1$2$3</span>');
 
                 // block comments
-                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)sh-comment(qq)>$1</span>');  
+                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)sh-comment(qq)>$1</span>');
 
                 // single-line comments
-                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)sh-comment(qq)>$2</span>'); 
+                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)sh-comment(qq)>$2</span>');
 
                 // replace quotes
                 c = c.replace(/\(qq\)/g, '"');
@@ -238,10 +281,7 @@ EOCSS;
 
 EOSYNTAX;
 
-        $js = $this->wrap($js);
-        $css = Tht::module('Css')->wrap($css);
-        
-        return new OLockString ($css . $js);
+        return OList::create([new CssLockString($css), new JsLockString($js)]);
     }
 }
 
