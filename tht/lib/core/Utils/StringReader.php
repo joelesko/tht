@@ -123,9 +123,9 @@ class StringReader {
                 $this->indent += 1;
             } else {
                 $this->startOfLine = false;
-            }    
+            }
         }
-        
+
         if ($c === "\n") {
 
             $this->onNewline();
@@ -148,7 +148,7 @@ class StringReader {
         $numIndent = 0;
         while (true) {
             $c = $this->char1;
-            
+
             if ($c === ' ' && $isIndent) {
                 $numIndent += 1;
                 $this->next();
