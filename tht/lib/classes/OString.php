@@ -118,8 +118,13 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_contains($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
-        return $this->_strpos($s, $ignoreCase) !== false;
+        ARGS('*f', func_get_args());
+        if (ORegex::isa($s)) {
+            return $this->u_match($s)->u_length() > 0;
+        }
+        else {
+            return $this->_strpos($s, $ignoreCase) !== false;
+        }
     }
 
     function u_starts_with($s, $ignoreCase=false) {
@@ -143,12 +148,14 @@ class OString extends OVar implements \ArrayAccess {
 
 
     // Just for convenience if mixing and matching with OLockStrings
-    function u_unlocked () {
+    function u_stringify () {
+        ARGS('', func_get_args());
         return $this->val;
     }
 
-    function u_danger_danger_lock () {
-        return OLockString::create('o\OLockString', $this->val);
+    function u_danger_danger_lock ($type) {
+        ARGS('s', func_get_args());
+        return OLockString::create($this->val, $type);
     }
 
 
@@ -159,7 +166,7 @@ class OString extends OVar implements \ArrayAccess {
         return array_flip(get_defined_constants(true)['pcre'])[preg_last_error()];
     }
 
-    function u_match ($match, $offset=0) {
+    function u_match ($match) {
         ARGS('*n', func_get_args());
         if (ORegex::isa($match)) {
             $found = preg_match($match->getPattern(), $this->val, $matches);
@@ -167,10 +174,12 @@ class OString extends OVar implements \ArrayAccess {
                 Tht::error('Error in match: ' . $this->pregErrorMessage(), [
                     'var' => $this->val,
                     'pattern' => $match,
-                    'offset' => $offset
                 ]);
             }
             return $found === 1 ? $matches : [];
+        }
+        else {
+            Tht::error("Argument 1 must be a Regex string `r'...'`");
         }
     }
 
@@ -179,6 +188,9 @@ class OString extends OVar implements \ArrayAccess {
             preg_match_all($match->getPattern(), $this->val, $matches);
             // TODO: recursively wrap nested results
             return $matches;
+        }
+        else {
+            Tht::error("Argument 1 must be a Regex string `r'...'`");
         }
     }
 
@@ -192,7 +204,6 @@ class OString extends OVar implements \ArrayAccess {
             return str_replace($find, $replace, $this->val, $limit);
         }
     }
-
 
     function u_remove_left($s, $ignoreCase=false) {
         ARGS('sf', func_get_args());
@@ -256,6 +267,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_split_chars() {
+        ARGS('', func_get_args());
         preg_match_all('/./us', $this->val, $chars);
         return $chars[0];
     }
@@ -286,6 +298,7 @@ class OString extends OVar implements \ArrayAccess {
     // Transforms
 
     function u_reverse () {
+        ARGS('', func_get_args());
         preg_match_all('/./us', $this->val, $chars);
         return implode(array_reverse($chars[0]));
     }
@@ -301,11 +314,13 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_upper_case_first () {
+        ARGS('', func_get_args());
         $first = mb_strtoupper(mb_substr($this->val, 0, 1));
         return $first . mb_substr($this->val, 1);
     }
 
     function u_to_lower_case_first () {
+        ARGS('', func_get_args());
         $first = mb_strtolower(mb_substr($this->val, 0, 1));
         return $first . mb_substr($this->val, 1);
     }
@@ -401,6 +416,8 @@ class OString extends OVar implements \ArrayAccess {
 
 	function pad ($padLen, $padStr = ' ', $dir = 'right') {
 
+        ARGS('nss', func_get_args());
+
         $str = $this->val;
 
         $padLeft  = $dir === 'both' || $dir === 'left';
@@ -453,6 +470,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_trim_lines () {
+        ARGS('', func_get_args());
 
         $trimmed = rtrim($this->val);
 
@@ -470,6 +488,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_trim_indent () {
 
+        ARGS('', func_get_args());
         $minIndent = 999;
         $trimmed = $this->u_trim_lines();
         if (!strlen($trimmed)) { return ''; }
@@ -564,26 +583,32 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_decode_html () {
+        ARGS('', func_get_args());
         return htmlspecialchars_decode($this->val, ENT_QUOTES);
     }
 
     function u_encode_url () {
+        ARGS('', func_get_args());
         return rawurlencode($this->val);
     }
 
     function u_decode_url () {
+        ARGS('', func_get_args());
         return rawurldecode($this->val);
     }
 
     function u_encode_base64 () {
+        ARGS('', func_get_args());
         return base64_encode($this->val);
     }
 
     function u_decode_base64 () {
+        ARGS('', func_get_args());
         return base64_decode($this->val);
     }
 
     function u_escape_regex () {
+        ARGS('', func_get_args());
         return preg_quote($this->val, '`');
     }
 
@@ -591,42 +616,52 @@ class OString extends OVar implements \ArrayAccess {
     // Checks
 
     function u_is_upper_case() {
+        ARGS('', func_get_args());
         return $this->u_has_upper_case() && !$this->u_has_lower_case();
     }
 
     function u_has_upper_case() {
+        ARGS('', func_get_args());
         return mb_ereg_match('.*[[:upper:]]', $this->val);
     }
 
     function u_is_lower_case() {
+        ARGS('', func_get_args());
         return $this->u_has_lower_case() && !$this->u_has_upper_case();
     }
 
     function u_has_lower_case() {
+        ARGS('', func_get_args());
         return mb_ereg_match('.*[[:lower:]]', $this->val);
     }
 
     function u_is_space() {
+        ARGS('', func_get_args());
         return mb_ereg_match('^[[:space:]]+$', $this->val);
     }
 
     function u_has_space() {
+        ARGS('', func_get_args());
         return mb_ereg_match('.*[[:space:]]', $this->val);
     }
 
     function u_is_alpha() {
+        ARGS('', func_get_args());
         return mb_ereg_match('^[[:alpha:]]+$', $this->val);
     }
 
     function u_is_alpha_numeric() {
+        ARGS('', func_get_args());
         return mb_ereg_match('^[[:alnum:]]+$', $this->val);
     }
 
     function u_is_number() {
+        ARGS('', func_get_args());
         return mb_ereg_match('^-?[[:digit:]]+\.?[[:digit:]]*$', $this->val);
     }
 
     function u_is_ascii() {
+        ARGS('', func_get_args());
         return mb_ereg_match('^[[:ascii:]]*$', $this->val);
     }
 
@@ -637,6 +672,7 @@ class OString extends OVar implements \ArrayAccess {
     // Casting
 
     function u_to_number () {
+        ARGS('', func_get_args());
         $f = floatval($this->val);
         $i = intval($this->val);
 
@@ -644,6 +680,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_flag () {
+        ARGS('', func_get_args());
         $v = trim($this->val);
         if ($v === '') {
             return false;
@@ -652,10 +689,13 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_string () {
+        ARGS('', func_get_args());
         return $this->val;
     }
 
     function u_to_value () {
+        ARGS('', func_get_args());
+
         $v = trim($this->val);
         if ($v === '') { return ''; }
 
@@ -683,6 +723,11 @@ class OString extends OVar implements \ArrayAccess {
         }
     }
 
+    function u_to_url () {
+        ARGS('', func_get_args());
+        return OLockString::create('url', $this->val);
+    }
+
 
     // Checks
 
@@ -700,27 +745,7 @@ class OString extends OVar implements \ArrayAccess {
 
     // Utils
 
-    // TODO: don't affect URLs
-    function removeCaps($s, $maxCaps) {
 
-        // prevent ALL CAPS
-        preg_match_all("/([A-Z])/", $s, $matches);
-        $numCaps = count($matches[0]);
-
-        $alphaOnly = preg_replace("/[^a-zA-Z]/", "", $s);
-        $numAlpha = mb_strlen($alphaOnly);
-
-        if ($numAlpha > 16) {
-            $maxCaps = floor($numAlpha * 0.5);
-        }
-
-        if ($numCaps >= $maxCaps) {
-            $s = strtolower($s);
-            $s = ucfirst($s);
-        }
-
-        return $s;
-    }
 
     function u_civilize_title() {
 
@@ -731,88 +756,169 @@ class OString extends OVar implements \ArrayAccess {
         // if (m = text.match(/^'(.*)'$/))  text = m[1];
 
         // Title case.  remove end periods.  Keep one ! or ?
-
-
     }
 
+    static function truncateLongString ($raw) {
+        if (preg_match("/http/i", $raw[1])) {
+            # preserve URLs
+            return $raw[1];
+        }
+        else {
+            return substr($raw[1], 0, 30);
+        }
+    }
 
+    static function capsCase ($raw) {
+        return ucfirst(strtolower($raw[1]));
+    }
 
+    // prevent ALL CAPS
+    function removeAllCaps($s) {
 
+        $alphaOnly = preg_replace("/[^a-zA-Z]/", "", $s);
+        $numAlpha = mb_strlen($alphaOnly);
 
+        $capsOnly = preg_replace("/([^A-Z])/", '', $alphaOnly);
+        $numCaps = mb_strlen($capsOnly);
 
+        $maxCaps = floor($numAlpha * 0.6);
+
+        if ($numCaps >= $maxCaps) {
+            $s = strtolower($s);
+            $s = ucfirst($s);
+        }
+
+        return $s;
+    }
+
+    // TODO: leave code samples alone
+    // TODO: retain first cap in typo fixes
+    // TODO: register as 'civilize' input filter
+    // Slow-ish due to so many regexes, but this will only be called on inbound user data.
+    // Not on every output.
     function u_civilize () {
 
-        $s = $this->val;
+        ARGS('', func_get_args());
+        $s = trim($this->val);
 
-        // TODO: trim and squeeze spaces
+        // trim and squeeze spaces
+        $s = preg_replace('/\n{2,}/', "\n\n", $s);
+        $s = preg_replace('/ {3,}/', "  ", $s);
 
-        $s = $this->removeCaps($s);
+        $s = $this->removeAllCaps($s);
 
-        function truncateLongString ($raw) {
-            if (preg_match("/http|\.com/", $raw[1])) {
-                # preserve URLs
-                return $raw[1];
-            }
-            else {
-                return substr($raw[1], 0, 30);
+        // truncate repeated characters
+        $s = preg_replace("/(\.|,){3,}/", "...", $s);
+        $s = preg_replace("/!{2,}/", "!", $s);
+        $s = preg_replace('/\?{2,}/', "?", $s);
+        $s = preg_replace('/[\?!]{2,}/', "?!", $s);
+        $s = preg_replace("/(.)\\1{3,}/i", '\\1\\1\\1', $s);
+        $s = preg_replace_callback("/([^\s]{30,})/", '\o\OString::truncateLongString', $s);
+
+        // Fix CAse problem
+        $s = preg_replace_callback('/\b([A-Z]{2,}[a-z])/', '\o\OString::capsCase', $s);
+
+        // remove spaces before punctuation.  add a space after.
+        $s = preg_replace("/\s+([\.\,\?!])/", '$1', $s);
+        $s = preg_replace("/([\.\,\?!]+)/", '$1 ', $s);
+
+        // TODO: replace with callback and map lookup, will cut time roughly in half
+        $typos = [
+            "\bteh\b" => "the",
+            "\bpls\b" => "please",
+            "\bthx\b" => "thanks",
+            "\bot\b" => "to",
+            "\bu r\b" => "you are",
+            "\br u\b" => "are you",
+            "\bur\b" => "you're",
+            "\bi m\b" => "I am",
+            "\by " => "why ",
+            '\bi ' => 'I ',
+            '\bu(?!\.)\b' => 'you',
+            "\btaht\b" => "that",
+            "\badn\b" => "and",
+            '\bect\b' => "etc",
+            '\bwether\b' => "whether",
+            "\buntill\b" => "until",
+            "\bniether\b" => "neither",
+            "beleiv" => "believ",
+            "\bbeliv" => "believ",
+            "\bfreind" => "friend",
+            "\bwierd" => "weird",
+            "\brember" => "remember",
+            "\bremeber" => "remember",
+            "\bsuprise" => "surprise",
+            "\bthier\b" => "their",
+            "\breciev" => "receiv",
+            "\brealy\b" => "really",
+            "\ballmost\b" => "almost",
+            "\bthru\b" => "through",
+            "\bwich\b" => "which",
+            "\banyways\b" => "anyway",
+            "\btom+or+ow\b" => "tomorrow",
+            "\bdefinate" => "definite",
+            "\bseperate" => "separate",
+            "\balot\b" => "a lot",
+            "\bwont (?!to)" => "won't",
+            "\b(could|should|would) of\b" => "$1 have",
+            "\bits (the|in|a|for)\b" => "it's $1",
+            "\byour (the|in|a)\b" => "you're $1",
+            "\btheir (the|in|a)\b" => "they're $1",
+        ];
+
+        $apos = [
+            'didnt', 'doesnt', 'wouldnt', 'couldnt', 'shouldnt', 'cant', 'isnt', 'arent', 'aint',
+            'whats', 'wheres', 'hows', 'whens', 'whys', 'thats',
+            'im', 'hes', 'shes'
+        ];
+        foreach ($apos as $a) {
+            $fix = substr($a, 0, strlen($a) - 1) . "'" . substr($a, strlen($a) - 1);
+            $typos["\b$a\b"] = $fix;
+        }
+
+        foreach ($typos as $pattern => $replace) {
+            $s = preg_replace("#$pattern#i", $replace, $s);
+        }
+
+        $s = trim($s);
+
+        return $s;
+    }
+
+    function profanity() {
+
+        function fuzzyToken($s) {
+            $pr = strtolower($s);
+            $pr = str_replace(
+                ['0', '1', '!', '^', '4', '@', '&', '$', '5', 'z', 'ph', 'ck'],
+                ['o', 'i', 'i', 'a', 'a', 'a', 'a', 's', 's', 's', 'f', 'k'],
+                $pr);
+            $pr = preg_replace('/[^a-z\s]/', '', $pr);
+            $pr = preg_replace('/\s+/', ' ', $pr);
+            $pr = preg_replace("/(.)\\1{2,}/", '\\1', $pr); // shrink repeats
+
+            return $pr;
+        }
+
+        // "softer" profznity is replaced.
+        $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);
+     //   $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);  f u c k (complete spellings only)
+
+        // Highly charged words null the entire message.
+        // No need to hear from this person.
+
+        // fukishima, nigeria, Fager
+
+        $profanity = [
+            'niger', 'fag', 'fagot', 'fagit', 'faget', 'fuk',
+        ];
+        foreach ($profanity as $p) {
+            if (strpos($p, $s) !== false) {
+                return '(profanity removed)';
             }
         }
 
-        // truncate repeated characters
-        $s = preg_replace("/!{2,}/", "!", $s);
-        $s = preg_replace("/\.\.\.\.+/", "...", $s);
-        $s = preg_replace("/\?{2,}/", "?", $s);
-        $s = preg_replace("/[?!]{2,}/", "?!", $s);
-        $s = preg_replace("/(.)\\1{4,}/", '\\1\\1\\1\\1\\1', $s);
-
-        $com = preg_replace_callback("/([^\s]{30,})/", "truncateLongString" , $com);
-
-
-
-
-
-        // List of potential typos to fix:
-
-        // space after|no space before:   . , ? ! : ;
-
-        // ect => etc
-        // isnt, aint = isn't, ain't
-        // im -> I'm
-        // trailing comma or ...
-        // ,,+ => ,
-        // .. => .
-        // whats, hows, where, whens, whys, thats
-        //   its|your|their => it's the|in|a|by|in
-        // u r
-        // niether
-        // taht, adn, teh, ot (or)
-        // wether
-        // anyways
-        // alot
-        // could of, would of should of
-        // Definately
-        // wierd
-        // thier
-        // reciev
-        // realy
-        // allmost
-        // didnt, doesnt, wouldnt, couldnt, shouldnt, cant, wont
-        // seperate, definate, reciev, alot
-        // could of, would of, should of
-        // thier, wierd, untill, beleive, belive, freind
-        // rember, remeber, suprise
-        // wich, tommorow, tommorrow
-
-
-        // Fix accidental CAse problem
-        // text = text.replace(/\b([A-Z][A-Z][a-z])/g, title_case);
-        //
-        // // Fix accidental > instead of ?
-        // if (! text.match(/[<>].*>$/))  text = text.replace(/>$/, '?');
-        //
-        // // Fix accidental / instead of ?
-        // if (! text.match(/\/.*\/$/))  text = text.replace(/\/$/, '?');
-
+        // 'bitch', 'ass', 'arse', 'shit', 'fuck'
     }
 }
 
