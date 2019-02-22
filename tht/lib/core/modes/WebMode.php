@@ -20,8 +20,6 @@ class WebMode {
 
     static public function main() {
 
-        self::hitCounter();
-
         Security::initResponseHeaders();
 
         if (Tht::getConfig('downtime')) {
@@ -33,6 +31,8 @@ class WebMode {
         }
 
         self::flushWebPrintBuffer();
+
+        self::hitCounter();
     }
 
     // Hit Counter - no significant performance hit
@@ -40,7 +40,7 @@ class WebMode {
 
         if (!Tht::getConfig('hitCounter')) {
             return;
-        } 
+        }
 
         $req = uv(Tht::module('Web')->u_request());
 
@@ -56,9 +56,8 @@ class WebMode {
         file_put_contents($dateLogPath, '+', FILE_APPEND|LOCK_EX);
 
         // page counter - 1 byte per hit
-        $page = $req['url']['path'];
+        $page = $req['url']->u_parts()['path'];
         if (strpos($page, '.') !== false) { return; }
-
         $page = preg_replace('#/+#', '__', $page);
         $page = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $page);
         $page = trim($page, '_') ?: 'home';
@@ -68,8 +67,13 @@ class WebMode {
 
         // referrer log - 1 line per external referrer
         $ref = isset($req['referrer']) ? $req['referrer'] : '';
-        if ($ref) { 
-            if (stripos($ref, $req['url']['host']) === false) {
+        if ($ref) {
+            if (stripos($ref, $req['url']->u_parts()['host']) === false) {
+                // format search query
+                if (preg_match('/(google|bing|yahoo|duckduckgo|ddg)\./i', $ref) && strpos('q=', $ref) !== false) {
+                    preg_match('/q=(.*)(&|$)/', $m);
+                    $ref = 'search:"' . str_replace('"', '', urldecode($m[1])) . '"';
+                }
                 $fileDate = strftime('%Y%m');
                 $lineDate = strftime('%Y-%m-%d');
                 $referrerLogPath = $counterDir . '/referrer/' . $fileDate . '.txt';
@@ -88,7 +92,7 @@ class WebMode {
             $font = Tht::module('Css')->u_sans_serif_font();
             echo "<div style='padding: 2rem; text-align: center; font-family: $font'><h1>Temporarily Down for Maintenance</h1><p>Sorry for the inconvenience.  We'll be back soon.</p></div>";
         }
-        exit(0);
+        Tht::exitScript(0);
     }
 
     static private function initRoute () {
@@ -109,12 +113,12 @@ class WebMode {
         if (!isset($routes[$route])) { return false; }
         $file = Tht::path('pages', $routes[$route]);
         Tht::executeWebController($file);
-        exit(0);
+        Tht::exitScript(0);
     }
 
     static private function getScriptPath() {
 
-        $path = Tht::module('Web')->u_request()['url']['path'];
+        $path = Tht::module('Web')->u_request()['url']->u_parts()['path'];
 
         // Validate route name
         // all lowercase, no special characters, hyphen separators, no trailing slash
@@ -178,9 +182,9 @@ class WebMode {
                             Tht::configError("Route placeholder `{$token}` should only"
                                 . " contain letters and numbers (no spaces).");
                         }
-                        $val = preg_replace(self::$DISALLOWED_PATH_CHARS_REGEX, '', $pathParts[$i]); 
+                        $val = preg_replace(self::$DISALLOWED_PATH_CHARS_REGEX, '', $pathParts[$i]);
                         $params[$token] = $val;
-                    } 
+                    }
                     else {
                         if ($mPart !== $pathParts[$i]) {
                             $isMatch = false;
@@ -232,7 +236,7 @@ class WebMode {
             }
         }
 
-        return $thtPath; 
+        return $thtPath;
     }
 
     static private function executeWebController ($controllerName) {
@@ -251,7 +255,7 @@ class WebMode {
         }
 
         Source::process($controllerFile, true);
-        
+
         self::callAutoFunction($controllerFile, $userFunction);
 
         Tht::module('Perf')->u_stop();
@@ -330,7 +334,7 @@ class WebMode {
         $zIndex = 100000;
 
         echo "<style>\n";
-        echo ".tht-print { white-space: pre; border: 0; border-left: solid 16px #60adff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . u_Css::u_monospace_font() ."; }\n";
+        echo ".tht-print { white-space: pre; border: 0; border-left: solid 16px #60adff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . Tht::module('Css')->u_monospace_font() ."; }\n";
         echo ".tht-print-panel { position: fixed; top: 0; left: 0; z-index: $zIndex; width: 100%; padding: 24px 32px 24px; font-size: 18px; background-color: rgba(255,255,255,0.98);  -webkit-font-smoothing: antialiased; color: #222; box-shadow: 0 4px 4px rgba(0,0,0,0.15); max-height: 400px; overflow: auto;  }\n";
         echo "</style>\n";
 
