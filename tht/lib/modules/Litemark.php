@@ -84,7 +84,7 @@ class u_Litemark extends StdModule {
     }
 
     function u_parse ($raw, $flags=[]) {
-        $raw = \o\OLockString::getUnlocked($raw, true);
+        $raw = \o\OLockString::getUnlockedNoError($raw);
         Tht::module('Perf')->u_start('Litemark.parse', $raw);
 
         $this->flags = $flags;
