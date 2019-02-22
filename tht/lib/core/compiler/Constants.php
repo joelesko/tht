@@ -12,9 +12,9 @@ define('TOKEN_SEP', '┃');  // unicode vertical line
 abstract class TokenType {
     const NUMBER   = 'NUMBER';    // 123
     const STRING   = 'STRING';    // 'hello'
-    const LSTRING  = 'LSTRING';   // L'hello'
+    const LSTRING  = 'LSTRING';   // sql'hello'
     const TSTRING  = 'TSTRING';   // (template)
-    const RSTRING  = 'RSTRING';   // R'\w+'
+    const RSTRING  = 'RSTRING';   // r'\w+'
     const GLYPH    = 'GLYPH';     // +=
     const WORD     = 'WORD';      // myVar
     const NEWLINE  = 'NEWLINE';   // \n
@@ -32,10 +32,10 @@ abstract class Glyph {
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
     const TEMPLATE_CODE_LINE = '::';
-    const STRING_MODS = 'RL';
+    const STRING_MODS = 'r';
     const LIST_MOD = 'Q';
-    const REGEX_MOD = 'R';
-    const LOCK_MOD = 'L';
+    const REGEX_MOD = 'r';
+  //  const LOCK_MOD = 'L';
     const QUOTE = "'";
     const QUOTE_FENCE = "'''";
 }
@@ -48,9 +48,9 @@ abstract class SymbolType {
     const SEQUENCE      =  'SEQUENCE';   // (list of symbols)
 
     const STRING        =  'STRING';     // 'hello'
-    const LSTRING       =  'LSTRING';    // L'hello'
+    const LSTRING       =  'LSTRING';    // sql'hello'
     const TSTRING       =  'TSTRING';    // tem { ... }
-    const RSTRING       =  'RSTRING';    // R'...'
+    const RSTRING       =  'RSTRING';    // r'...'
     const KEYWORD       =  'KEYWORD';
     const NUMBER        =  'NUMBER';     // 123
     const CONSTANT      =  'CONSTANT';   // this
@@ -140,7 +140,7 @@ class ParserData {
         '...'  => 'S_Prefix',
 
         // infix
-        '~'  => 'S_Concat',   
+        '~'  => 'S_Concat',
         '+'  => 'S_Add',
         '-'  => 'S_Add',
         '*'  => 'S_Multiply',
@@ -188,11 +188,11 @@ class ParserData {
         '{{'  => 'S_TemplateExpr',
 
         // keywords
-        'let'       => 'S_NewVar',
-        'function'  => 'S_NewFunction',
-        'F'         => 'S_NewFunction',
-        'template'  => 'S_NewTemplate',
-        'T'         => 'S_NewTemplate',
+        'let'       => 'S_Var',
+        'function'  => 'S_Function',
+        'F'         => 'S_Function',
+        'template'  => 'S_Template',
+        'T'         => 'S_Template',
         'new'       => 'S_New',
         'if'        => 'S_If',
         'for'       => 'S_For',
@@ -206,7 +206,7 @@ class ParserData {
         'require'   => 'S_Unsupported',
         'include'   => 'S_Unsupported',
         'while'     => 'S_Unsupported',
-        
+
 
         // oop
         'class'     => 'S_Class',
@@ -225,7 +225,7 @@ class ParserData {
         'if', 'else', 'try', 'catch', 'finally', 'keep', 'in'
     ];
 
-    // TODO: Refactor. This logic is scattered in a few different places.  
+    // TODO: Refactor. This logic is scattered in a few different places.
     static public $ALT_TOKENS = [
 
         // glyphs
@@ -252,8 +252,8 @@ class ParserData {
         // unsupported
         'switch'   => 'if/else, or a Map, or Meta.callFunction()',
         'while'    => 'for { ... }',
-        'require'  => 'import',    
-        'include'  => 'import',    
+        'require'  => 'import',
+        'include'  => 'import',
 
         // renamed
         'foreach'  => 'for (list as foo) { ... }'
