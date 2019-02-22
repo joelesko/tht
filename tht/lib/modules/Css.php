@@ -2,7 +2,6 @@
 
 namespace o;
 
-
 class u_Css extends StdModule {
 
     private $included = [];
@@ -13,9 +12,15 @@ class u_Css extends StdModule {
         return "<style nonce=\"$nonce\">$min</style>";
     }
 
+    function escape($v) {
+        return preg_replace('/[:;\{\}]/', '', $v);
+    }
+
     function u_minify ($str) {
 
         ARGS('s', func_get_args());
+
+        if (!trim($str)) { return ''; }
 
         $cacheKey = 'min_css_' . md5($str);
         $cache = Tht::module('Cache');
@@ -24,7 +29,7 @@ class u_Css extends StdModule {
         }
 
         $min = new Minifier($str);
-        $minStr = $min->minify("/\s*([\\(\\):{\},]+)\s*/");
+        $minStr = $min->minify("/\s*([\\(\\):{\},;]+)\s*/");
 
         $cache->u_set($cacheKey, $minStr, Tht::module('Date')->u_hours(24));
 
@@ -32,15 +37,15 @@ class u_Css extends StdModule {
     }
 
 
-    static function u_sans_serif_font () {
+    function u_sans_serif_font () {
         return 'helvetica neue, helvetica, arial, sans-serif';
     }
 
-    static function u_serif_font () {
+    function u_serif_font () {
         return 'georgia, times new roman, serif';
     }
 
-    static function u_monospace_font () {
+    function u_monospace_font () {
         return 'menlo, consolas, monospace';
     }
 
@@ -54,7 +59,7 @@ class u_Css extends StdModule {
         $this->included[$id] = true;
 
         if ($id === 'base') {
-            return $this->inc_base($arg1, $arg2); 
+            return $this->inc_base($arg1, $arg2);
         }
         if ($id === 'reset') {
             return $this->inc_reset();
@@ -90,9 +95,9 @@ EOCSS;
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
 
-        $css = OLockString::getUnlocked($this->inc_reset());
+        $css = OLockString::getUnlocked($this->inc_reset(), 'css');
 
-        $gridCss = $this->inc_grid($nSizeX, $breakCss)->u_unlocked();
+        $gridCss = $this->inc_grid($nSizeX, $breakCss)->u_stringify();
 
         $css .= <<<EOCSS
 
@@ -404,11 +409,24 @@ EOCSS;
         input[type="radio"] {
             display: inline;
             margin-bottom: 0rem;
+            margin-top: -0.3em;
+            vertical-align: middle;
         }
 
-        input[readonly], textarea[readonly], select[readonly],
+        .checkable-option {
+            cursor: pointer;
+        }
+
         input[disabled], textarea[disabled], select[disabled] {
-            background-color: #eee;
+            background-color: #f6f6f6;
+            color: #666;
+            border: 0;
+        }
+        input[readonly], textarea[readonly], select[readonly]{
+            background: none;
+            border: 0;
+            padding: 0;
+            margin-top: -1rem;
         }
         textarea {
             resize: vertical;
@@ -417,43 +435,49 @@ EOCSS;
             line-height: 1.25;
         }
 
-        .form-field-options {
+        fieldset {
             max-width: 400px;
             background-color: #f5f5f5;
             padding: 1rem;
             border-radius: 0.25rem;
             margin-bottom: 1.5rem;
+            border: 0;
         }
 
 
         /* Form Labels
         ---------------------------------------------------------- */
 
-        label[disabled], input[disabled] + label { color: #999; }
-        fieldset {
-            min-width: 0;
-            padding: 0;
-            margin: 0 0 2rem;
-            border: 0;
+        label[disabled], fieldset input[disabled] + label { color: #999; }
+
+        fieldset > label {
+            display: block;
+            cursor: pointer;
+            margin-bottom: 0;
         }
-        legend { font-weight: bold; }
         label {
             display: inline-block;
             margin-bottom: .5rem;
             user-select: none;
         }
-        label > input { 
-            margin-right: 1rem; 
+        label > input {
+            margin-right: 1rem;
+        }
+        input[type=radio] + label,
+        input[type=checkbox] + label {
+            margin-left: 1rem;
+            margin-bottom: 0;
+            cursor: pointer;
         }
 
         /* optional text */
-        label + small { 
-            margin-left: 1rem; 
+        label + small {
+            margin-left: 1rem;
             color: #999;
         }
 
         /* help text */
-        input + small, select + small, .form-field-options + small {
+        input + small, select + small, fieldset + small {
             margin-top: -1rem;
             margin-bottom: 1.5rem;
             margin-left: 1rem;
@@ -544,11 +568,11 @@ EOCSS;
             margin-bottom: 2rem;
         }
 
-        .panel *:first-child {
+        .panel > *:first-child {
             margin-top: 0;
         }
 
-        .panel *:last-child {
+        .panel > *:last-child {
             margin-bottom: 0;
         }
 
@@ -616,9 +640,9 @@ EOCSS;
 EOCSS;
 
         $icons = $this->inc_icons();
-        $css .= $icons->u_unlocked();
+        $css .= $icons->u_stringify();
 
-        $css = u_Css::u_minify($css);
+        $css = self::u_minify($css);
 
         return new \o\CssLockString ($css);
 
