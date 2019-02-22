@@ -3,7 +3,7 @@
 namespace o;
 
 class ModuleManager {
-	
+
 	static $fileToNameSpace = [];
     static $moduleRegistry = [];
 
@@ -19,7 +19,7 @@ class ModuleManager {
     static function getNamespace($relPath) {
     	$relPath = Tht::getRelativePath('app', $relPath);
         if (!isset(self::$fileToNameSpace[$relPath])) {
-        	self::$fileToNameSpace[$relPath] = self::pathToNamespace($relPath);  
+        	self::$fileToNameSpace[$relPath] = self::pathToNamespace($relPath);
         }
         return self::$fileToNameSpace[$relPath];
     }
@@ -54,7 +54,7 @@ class ModuleManager {
     static function getNamespacedPackage ($relPath) {
         // todo: handle subdirs
         return '\\' . self::getNamespace('modules/' . $relPath) . '\\' . u_($relPath);
-    }   
+    }
 
 	static function registerUserModule ($file, $nameSpace) {
         $relPath = Tht::getRelativePath('app', $file);
@@ -88,8 +88,8 @@ class ModuleManager {
         // Built-in module
         else if (isset(self::$moduleRegistry[$modName])) {
             return self::loadBuiltinModule($modName);
-        } 
-        
+        }
+
         // User module
         return self::loadUserModule($modName);
     }
@@ -125,7 +125,7 @@ class ModuleManager {
     // Entry point for `new Object ()`
     static function newObject($className, $args) {
         $mod = self::getModule($className);
-        return $mod->newObject($className, $args);   
+        return $mod->newObject($className, $args);
     }
 
     static function initAutoloading() {
@@ -152,7 +152,7 @@ class ModuleManager {
 
 		    } else {
 		        // Tht::error("Can not autoload PHP class: `$aclass`");
-                // UPDATE: Allow pass through for PHP intrerop 
+                // UPDATE: Allow pass through for PHP intrerop
 		    }
 
 		});
