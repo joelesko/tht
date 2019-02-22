@@ -87,7 +87,7 @@ class EmitterPHP extends Emitter {
         $php = $this->out($symbolTable->getFirst());
 
         $relPath = Tht::getRelativePath('app', $filePath);
-        $nameSpace = ModuleManager::getNamespace($relPath); 
+        $nameSpace = ModuleManager::getNamespace($relPath);
         $escNamespace = str_replace('\\', '\\\\', $nameSpace);
         $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\ModuleManager::registerUserModule('$relPath','$escNamespace');\n";
 
@@ -141,13 +141,15 @@ class EmitterPHP extends Emitter {
     function pLString ($value, $k) {
         $value = str_replace('$', '\\$', $value);
         $value = str_replace('"', '\\"', $value);
-        return $this->format('new \o\OLockString ("###")', $value);
+        list($type, $str) = explode('::', $value, 2);
+        //if ($type == 'text') { $type = 'O'; }
+        return $this->format('\\o\\OLockString::create("###", "###")', $type, $str);
     }
 
     function pRString ($value, $k) {
         $value = str_replace('$', '\\$', $value);
         $value = str_replace('"', '\\"', $value);
-        return $this->format('new \o\ORegex ("###")', $value);
+        return $this->format('new \o\ORegex("###")', $value);
     }
 
     function pTString ($value, $k) {
@@ -163,7 +165,7 @@ class EmitterPHP extends Emitter {
 
 
     function pTemplateExpr ($value, $k) {
-        return $this->format('$t->addDynamic(###);', $k[0]);
+        return $this->format('$t->addDynamic(###, ###);', $k[0], $k[1]);
     }
 
 
@@ -417,7 +419,7 @@ class EmitterPHP extends Emitter {
             else {
                 $objectWrappers .= "$varName = is_object($varName) ? $varName : \o\OList::create($varName);\n";
             }
-        } 
+        }
         $this->constantValues = [];
         $out = preg_replace('/%%%/', $objectWrappers, $out, 1);
 
@@ -450,10 +452,10 @@ class EmitterPHP extends Emitter {
         if (count($k) === 1) {
             return $this->format('while (true) {###}', $this->out($k[0], true));
         } else if (count($k) === 4) {
-            return $this->format('foreach (\o\uv(###) as ### => ###) {###}', $k[2], $k[0], $k[1], $this->out($k[3], true));
+            return $this->format('foreach (### as ### => ###) {###}', $k[2], $k[0], $k[1], $this->out($k[3], true));
         }
         else {
-            return $this->format('foreach (\o\uv(###) as ###) {###}', $k[1], $k[0], $this->out($k[2], true));
+            return $this->format('foreach (### as ###) {###}', $k[1], $k[0], $this->out($k[2], true));
         }
     }
 
