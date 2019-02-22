@@ -41,7 +41,9 @@ class u_Perf extends StdModule {
             'value' => $value,
             'startTime' => microtime(true),
             'subTaskTime' => 0,
-            'subs' => []
+            'subs' => [],
+            'peakMemoryMb' => memory_get_peak_usage(false),
+            'memoryMb' => 0,
         ];
     }
 
@@ -60,8 +62,10 @@ class u_Perf extends StdModule {
         if ($task['value']) {
             $result['value'] = $this->cleanValue($task['value']);
         }
+
         $result['durationMs'] = round($elapsed * 1000, 2);
-        $result['peakMemoryMb'] = round(Tht::module('System')->u_peak_memory_usage(), 1);
+        $memDelta = memory_get_peak_usage(false) - $task['peakMemoryMb'];
+        $result['memoryMb'] = round($memDelta / 1048576, 1);
         $this->results []= $result;
 
         foreach ($this->tasks as &$t) {
@@ -106,20 +110,20 @@ class u_Perf extends StdModule {
         } else {
             $nonce = Tht::module('Web')->u_nonce();
             $table = OLockString::getUnlocked(
-                Tht::module('Web')->u_table($this->results,
-                    [ 'task', 'durationMs', 'peakMemoryMb', 'value' ],
-                    [ 'Task', 'Duration (ms)', 'Peak Memory (mb)', 'Detail' ],
+                Tht::module('Web')->u_table(OList::create($this->results),
+                    OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
+                    OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Detail' ]),
                     'bench-result'
-                )
-            );
+            ), 'html');
+
             $compileMessage = Source::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
 
             ?><style>
-            #perf-score-container { background-color: #f6f6f6; border-top: solid 2px #ddd; color: #111; font: 18px <?= u_Css::u_monospace_font() ?>; padding: 32px 32px 64px; }
+            #perf-score-container { background-color: #f6f6f6; border-top: solid 2px #ddd; color: #111; font: 18px <?= Tht::module('Css')->u_monospace_font() ?>; padding: 32px 32px 64px; }
                 .bench-result { font-size: 14px; border-collapse: collapse; margin: 32px auto; }
                 .bench-result td,
                 .bench-result th { text-align: left; padding: 8px 12px; border-bottom: solid 1px #ccc; }
-                .bench-result td:nth-child(4) { font-size: 80%;  }
+                .bench-result td:nth-child(2), .bench-result td:nth-child(3) { text-align: right;  }
                 .bench-compiled { background-color: #a33; color: #fff; padding: 16px 0; font-weight: bold; margin-top: 36px; text-align: center; }
 
                 #perfScoreTotal { font-weight: bold; }
@@ -133,7 +137,7 @@ class u_Perf extends StdModule {
             <div id="perf-score-container">
 
                 <div id='perfHeader'>Perf Score: <span id='perfScoreTotalLabel'></span><span id='perfScoreTotal'></span></div>
-                
+
                 <div id="perfHelp"><a href="<?= $thtDocLink ?>" style="font-weight:bold">About This Score &raquo;</a></div>
 
                 <?= $compileMessage ?>
