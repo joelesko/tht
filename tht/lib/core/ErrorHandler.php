@@ -11,13 +11,6 @@ class ThtException extends \Exception {
 class StartupException extends \Exception {
 }
 
-// Need a bare function as an entry, because it seems the
-// static method requires too much memory to call?
-function handleShutdown() {
-    Tht::handleShutdown();
-    ErrorHandler::handleShutdown();
-}
-
 class ErrorHandler {
 
     /// Handlers
@@ -92,7 +85,7 @@ class ErrorHandler {
             $error['file'] = null;
         }
 
-        // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false 
+        // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false
         // PHP 7
         if (strpos($error['message'], 'ArgumentCountError') !== false) {
 
@@ -107,10 +100,8 @@ class ErrorHandler {
             }
         }
 
-        // TODO: handle data/cache/php filepath if in error message
-
         ErrorHandler::printError([
-            'type'    => 'RuntimeError',
+            'type'    => 'ThtRuntimeError',
             'message' => $error['message'],
             'phpFile' => $error['file'],
             'phpLine' => $error['line'],
@@ -163,7 +154,8 @@ class ErrorHandler {
         preg_match("/with message '(.*)' in \//i", $message, $match);
         $msg = (isset($match[1]) ? $match[1] : $message);
 
-        print '<h2>Startup Error</h2>' . $message; exit();
+        print '<h2>Startup Error</h2>' . $message;
+        Tht::exitScript(1);
     }
 
     // PHP exception - in theory, this should never leak through to end users
@@ -274,7 +266,6 @@ class ErrorHandler {
             } else {
                 if (!$logOut) { $logOut = $plainOut; }
                 $eh->printToLog($logOut);
-                // print to console
                 file_put_contents('php://stderr', $plainOut . "\n\n");
                 Tht::module('Web')->u_send_error(500);
             }
@@ -282,7 +273,7 @@ class ErrorHandler {
 
         // $eh->sendErrorToHq($prepError);
 
-        exit(1);
+        Tht::exitScript(1);
     }
 
     function prepError($error) {
@@ -402,16 +393,19 @@ class ErrorHandler {
         $error['srcLine'] = preg_replace("/\^$/", '</span><span class="tht-caret">&uarr;</span>', $error['srcLine']);
         $error['srcLine'] = '<span class="tht-color-code theme-dark">' . $error['srcLine'];
 
-
         $this->printWebTemplate($heading, $error);
 
-        $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')->u_unlocked();
-        print($colorJs);
+        // TODO: wrap in tags
+        // $colorCss = Tht::module('Js')->u_plugin('colorCode', 'dark')[0]->u_stringify();
+        // print($colorCss);
+        // $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')[1]->u_stringify();
+        // print($colorJs);
     }
 
     function printWebTemplate($heading, $error) {
 
         $zIndex = 99998;  // one less than print layer
+        $cssMod = Tht::module('Css');
 
         ?>
 
@@ -421,16 +415,16 @@ class ErrorHandler {
                 a:hover { text-decoration: underline;  }
                 .tht-error-header { font-weight: bold; margin-bottom: 40px; font-size: 150%; border-bottom: solid 12px #ecc25f; padding-bottom: 12px;  }
                 .tht-error-message { margin-bottom: 40px; }
-                .tht-error-content { font: 22px <?= u_Css::u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
+                .tht-error-content { font: 22px <?= $cssMod->u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
                 .tht-error-hint {   margin-top: 80px; line-height: 2; opacity: 0.5; font-size: 80%; }
-                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 20px; padding: 30px 30px 30px; background-color: #282828; white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; overflow: auto; }
+                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 20px; padding: 30px 30px 30px; background-color: #282828; white-space: pre; font-family: <?= $cssMod->u_monospace_font() ?>; overflow: auto; }
                 .tht-src-small { font-size: 65%; }
-                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 20px; padding: 20px 30px; background-color: #282828; white-space: pre; font-family: <?= u_Css::u_monospace_font() ?>; }
+                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 20px; padding: 20px 30px; background-color: #282828; white-space: pre; font-family: <?= $cssMod->u_monospace_font() ?>; }
                 .tht-caret { color: #eac222; font-size: 30px; position: relative; left: -3px; top: 2px; line-height: 0; }
                 .tht-src-small .tht-caret { font-size: 24px; }
                 .tht-error-file { font-size: 90%; margin-bottom: 40px;  }
                 .tht-error-file span { margin-right: 40px; margin-left: 5px; font-size: 105%; font-weight: bold; color: inherit; }
-                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= u_Css::u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2 8px; }
+                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= $cssMod->u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2 8px; }
             </style>
 
             <div class='tht-error-content'>
@@ -475,7 +469,7 @@ class ErrorHandler {
             WebMode::flushWebPrintBuffer(true);
             print "<style> .tht-print-panel { color: inherit; width: auto; box-shadow: none; background-color: #282828; position: relative; } </style>";
         }
-        
+
     }
 
 
@@ -518,8 +512,8 @@ class ErrorHandler {
         $line = (count($lines) > $srcLineNum) ? $lines[$srcLineNum] : '';
 
         // have to convert to spaces for pointer to line up
-        $line = preg_replace('/\t/', '    ', $line);  
-        
+        $line = preg_replace('/\t/', '    ', $line);
+
         // trim indent
         preg_match('/^(\s*)/', $line, $matches);
         $numSpaces = strlen($matches[1]);
@@ -569,11 +563,11 @@ class ErrorHandler {
         $clean = preg_replace('/Uncaught error:\s*/i', '', $clean);
         $clean = preg_replace('/in .*?.php:\d+/i', '', $clean);
         $clean = preg_replace('/[a-z_]+\\\\/i', '', $clean);  // namespaces
-        
+
         if (preg_match('/Syntax error, unexpected \'return\'/i', $clean)) {
             $clean = 'Invalid statement at end of function.  Missing `return`?';
         }
-        
+
         // Strip root directory from paths
         $clean = str_replace(Tht::path('files') . '/', '', $clean);
         $clean = str_replace(Tht::path('app') . '/', '', $clean);
@@ -655,7 +649,7 @@ class ErrorHandler {
     }
 
     function doDisplayWebErrors () {
-        $host = Tht::module('Web')->u_request()->url['host'];
+        $host = Tht::module('Web')->u_request()->url->u_parts()['host'];
         if ($host == 'localhost') {
             return true;
         }
@@ -666,8 +660,8 @@ class ErrorHandler {
 
     //     $sendError = [
     //         'srcLine' => $error['srcLine'],
-    //         'message' => $error['message'],   
-    //         'pos' => $error['src']['pos'] ?: 0,    
+    //         'message' => $error['message'],
+    //         'pos' => $error['src']['pos'] ?: 0,
     //     ];
     //     print_r($sendError);
     // }
