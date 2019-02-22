@@ -12,6 +12,11 @@ At this early stage, I am mainly open to the following contributions:
 - Security testing & feedback. Most sensitive operations are in the `Security.php` module.
 - Windows support
 
+## Bug Reports & Feedback
+
+https://github.com/joelesko/tht/issues
+
+
 ## New Features
 I want to lead design and implementation of new features for now, so that the core direction is consistent.
 
@@ -31,23 +36,33 @@ In rough order of priority:
 - Can't Please Everyone.  Programmers are an opinionated lot, and there are an infinite number of things to criticize in any programming language.  We can make good decisions and move things forward without getting bogged down in analysis paralysis or heated arguments.
 
 
-## Compiler
+## Execution Flow
 
 The main files are (in rough order of execution):
 
-- thtApp.php - the entry point in Document Root
-- Tht - overall logic & setup
-- WebMode - determine which page to execute based on the rourte
-- Source - compile the page or if it isn't cached
-- Tokenizer - break source into tokens, apply template function transforms (e.g. HTML)
-- Parser - convert the symbols into an AST
-- Symbols - the parser logic for each symbol
-- EmitterPhp - convert the AST to a PHP file
-- ErrorHandler - all errors (php & tht) are routed here
+- thtApp.php - The entry point in Document Root
+- Tht - Overall logic & setup
+- WebMode - Determine which page to execute based on the URL route
+- Source - Compile the page if it isn't cached.  Execute the transpiled PHP.
+- Tokenizer - Break THT source into tokens, apply template function transforms (e.g. HTML)
+- Parser - Convert the tokens into an AST
+- Symbols - The parser logic for each symbol
+- EmitterPhp - Convert the AST to a PHP file
+- ErrorHandler - All errors (php & tht) are routed here
 
 
-The parser uses "Top Down Operator Precedence" aka "Pratt Parser", as described here:
+## Parser
+
+The parser uses "Top Down Operator Precedence" aka "Pratt Parsing", as described here:
 http://crockford.com/javascript/tdop/tdop.html
+
+Each symbol can have one or more of the following methods, based on its position in the source:
+
+- asStatement: the start of a complete statement (a tree of expressions). e.g. `return`, `if`
+- asLeft: at the start of an expression. e.g. `{`, `[`
+- asInner: in the middle of an expression. e.g. `+`, `.`
+
+For example, `-` (minus) can have `asLeft` (prefix, e.g. '-123') and `asInner` (infix, e.g. '45 - 23').
 
 
 ## Performance
