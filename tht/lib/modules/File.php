@@ -5,7 +5,7 @@ namespace o;
 // TODO: test all on Windows (path separator)
 
 // Not implemented. No plans to, unless necessary:
-//   chdir, getcwd, is_link, 
+//   chdir, getcwd, is_link,
 
 // TODO:
 //   is_readable, is_writeable, is_executable
@@ -18,14 +18,14 @@ class u_File extends StdModule {
         'open' => 'read',
     ];
 
-    private $isSandboxDisabled = false; 
+    private $isSandboxDisabled = false;
 
     function _call ($fn, $args=[], $validationList='', $checkReturn=true) {
 
         Tht::module('Meta')->u_no_template_mode();
 
         // validate each argument against a validation pattern
-        $validationPatterns = explode("|", $validationList); 
+        $validationPatterns = explode("|", $validationList);
         $fargs = [];
         foreach ($args as $a) {
             $fargs []= $this->checkArg($a, array_shift($validationPatterns));
@@ -37,7 +37,7 @@ class u_File extends StdModule {
 
         // Die on a false return value
         if ($checkReturn && $returnVal === false) {
-            $relevantFile = ''; 
+            $relevantFile = '';
             if (isset($fargs[0])) { $relevantFile = $fargs[0]; }
             Tht::error("File function failed on `" . $relevantFile . "`");
         }
@@ -68,7 +68,7 @@ class u_File extends StdModule {
             // a path
             // TODO: check is_dir or is_file
             $a = $this->validatePath($a, !$this->isSandboxDisabled);
-            
+
         }
         if (strpos($pattern, 'exists') !== false) {
             // path must exist
@@ -162,7 +162,7 @@ class u_File extends StdModule {
         if (!$this->u_is_dir($parentPath)) {
             Tht::error("Parent dir does not exist: `$parentPath`");
         }
-    
+
         $arg = $mode == 'append' ? LOCK_EX|FILE_APPEND : LOCK_EX;
         return $this->_call('file_put_contents', [$filePath, $data, $arg], 'path|*|*');
     }
@@ -200,7 +200,7 @@ class u_File extends StdModule {
 
         $dirPath = implode('/', $dirList);
 
-        return OList::create([
+        return OMap::create([
             'dirList'       => $dirList,
             'dirPath'       => $dirPath,
             'fileNameShort' => $info['filename'],
@@ -299,14 +299,22 @@ class u_File extends StdModule {
     // TODO: bounds check
     function u_parent_dir($p) {
         ARGS('s', func_get_args());
+        $p = rtrim($p, '/');
         $p = $this->validatePath($p, false);
         $parentPath = preg_replace('~/.*?$~', '', $p);
         return strlen($parentPath) ? $parentPath : '/';
     }
 
-    function u_app_dir() {
+    function u_app_root() {
         ARGS('', func_get_args());
+        Tht::module('Meta')->u_no_template_mode();
         return Tht::path('app');
+    }
+
+    function u_document_root() {
+        ARGS('', func_get_args());
+        Tht::module('Meta')->u_no_template_mode();
+        return Tht::path('docRoot');
     }
 
 
@@ -317,7 +325,7 @@ class u_File extends StdModule {
         ARGS('s', func_get_args());
         if (is_dir($filePath)) {
             Tht::error("Argument 1 for `delete` must not be a directory: `$filePath`.  Suggestion: `File.deleteDir()`");
-        } 
+        }
         return $this->_call('unlink', [$filePath], 'file');
     }
 
@@ -326,7 +334,7 @@ class u_File extends StdModule {
         $checkPath = $this->validatePath($dirPath, !$this->isSandboxDisabled);
         if (is_dir($checkPath)) {
             $this->deleteDirRecursive($dirPath);
-        } 
+        }
         else {
             Tht::error("Argument 1 for `deleteDir` is not a directory: `$dirPath`");
         }
@@ -362,7 +370,7 @@ class u_File extends StdModule {
         ARGS('ss', func_get_args());
         if (is_dir($source)) {
             Tht::error("Argument 1 for `copy` must not be a directory: `$source`.  Suggestion: `File.copyDir()`");
-        } 
+        }
         return $this->_call('copy', [$source, $dest], 'file,exists|path');
     }
 
@@ -370,7 +378,7 @@ class u_File extends StdModule {
         ARGS('ss', func_get_args());
         if (is_dir($source)) {
             $this->copyDirRecursive($source, $dest);
-        } 
+        }
         else {
             Tht::error("Argument 1 for `copyDir` is not a directory: `$source`");
         }
@@ -414,6 +422,7 @@ class u_File extends StdModule {
         return $this->_call('file_exists', [$path], 'path', false);
     }
 
+    // TODO: no path?
     function u_find ($pattern, $dirOnly=false) {
         ARGS('sf', func_get_args());
         $flags = $dirOnly ? GLOB_BRACE|GLOB_ONLYDIR : GLOB_BRACE;
@@ -456,11 +465,11 @@ class u_File extends StdModule {
         }
 
         $files = $this->_call('scandir', [$d], 'dir,exists');
-      
+
             $filteredFiles = [];
             foreach ($files as $f) {
-                if ($f === '.' || $f === '..' || $f === '.DS_Store') { 
-                    continue; 
+                if ($f === '.' || $f === '..' || $f === '.DS_Store') {
+                    continue;
                 }
 
                 if ($filter && $filter !== 'none') {
@@ -476,7 +485,7 @@ class u_File extends StdModule {
                 }
             }
             $files = $filteredFiles;
-    
+
         return $files;
     }
 
