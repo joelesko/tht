@@ -82,8 +82,7 @@ class Runtime {
             if (!($sa && $sb)) {
                 Tht::error("Can't combine (~) a LockString with a non-LockString.");
             }
-            $combined = OLockString::getUnlocked($a) . OLockString::getUnlocked($b);
-            return OLockString::create(get_class($a), $combined);
+            return OLockString::concat($a, $b);
         } else {
             return Runtime::concatVal($a) . Runtime::concatVal($b);
         }
