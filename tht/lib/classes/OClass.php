@@ -14,7 +14,7 @@ class OClass implements \JsonSerializable {
 
         $this->u_state = OMap::create([]);
 
-        // convert PHP arrays to THT 
+        // convert PHP arrays to THT
         // foreach (get_object_vars($this) as $k => $v) {
         //     if (is_array($this->$k)) {
         //         if (isset($this->$k['___map'])) {
@@ -54,6 +54,10 @@ class OClass implements \JsonSerializable {
         }
     }
 
+    function u_get_type() {
+        return str_replace('o\O', '', get_called_class());
+    }
+
     // TODO: toJson
 
     function __get ($field) {
@@ -64,13 +68,13 @@ class OClass implements \JsonSerializable {
         if (method_exists($this, $autoGetter)) {
             return $this->$autoGetter();
         }
-            
+
         if (method_exists($this, 'u_z_dynamic_get')) {
             $result = $this->u_z_dynamic_get($field);
             if ($result->u_ok()) {
                 return $result->u_get();
             }
-        } 
+        }
 
         $suggestion = '';
         if (method_exists($this, 'u_z_suggest_field')) {
