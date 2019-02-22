@@ -5,13 +5,12 @@ namespace o;
 class OBag extends OVar implements \ArrayAccess, \Iterator {
 
     public $val = [];
-    private $iPos = 0;
     protected $default = null;
     protected $hasLockedKeys = false;
     protected $hasNumericKeys = false;
 
     function __get ($field) {
-        
+
         $plainField = unu_($field);
         $meth = 'u_get' . ucfirst($plainField);
 
@@ -72,10 +71,10 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         $this->checkKey($k);
 
         // negative index counts from the end
-        if ($k < 0 && $this->hasNumericKeys) { 
-            $k = count($this->val) + $k; 
+        if ($k < 0 && $this->hasNumericKeys) {
+            $k = count($this->val) + $k;
         }
-        
+
         if (is_null($k)) {
             if ($this->hasNumericKeys) {
                 $this->val []= $v;
@@ -99,23 +98,23 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
     //// Iterator
 
     function rewind () {
-        $this->iPos = 0;
+        return reset($this->val);
     }
 
     function current () {
-        return $this->val[$this->key()];
+        return current($this->val);
     }
 
     function key () {
-        return $this->iPos;
+        return key($this->val);
     }
 
     function next () {
-        $this->iPos += 1;
+        return next($this->val);
     }
 
     function valid () {
-        return isset($this->val[$this->iPos]);
+        return isset($this->val[key($this->val)]);
     }
 
 
