@@ -5,9 +5,13 @@ namespace o;
 class Tht {
 
     static private $VERSION = '0.2.0 - Beta';
+    static private $VERSION_TOKEN = '000200';
+
     static private $SRC_EXT = 'tht';
 
     static private $THT_SITE = 'https://tht.help';
+
+    static private $startTime = 0;
 
     static private $data = [
         'phpGlobals'     => [],
@@ -36,8 +40,8 @@ class Tht {
         'phpLib'      =>   'php',
         'scripts'     =>   'scripts',
 
-        'localTht'  =>   '.tht', 
-        
+        'localTht'  =>   '.tht',
+
         'data'      => 'data',
         'db'        =>   'db',
         'sessions'  =>   'sessions',
@@ -70,7 +74,7 @@ class Tht {
             return Tht::main();
         }
         catch (StartupException $e) {
-           ErrorHandler::handleStartupException($e);
+            ErrorHandler::handleStartupException($e);
         }
         catch (\Exception $e) {
             ErrorHandler::handlePhpLeakedException($e);
@@ -79,7 +83,7 @@ class Tht {
 
     // TODO: put all these in one registry function/file?
     static private function includeLibs() {
-        
+
         Tht::loadLib('utils/Utils.php');
         Tht::loadLib('utils/StringReader.php');
         Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
@@ -96,20 +100,26 @@ class Tht {
 
     static private function main () {
 
+        Tht::$startTime = microtime(true);
+
         Tht::includeLibs();
 
         Tht::initMode();
 
-        // Serve static file directly and exit
+        // Serve directly if requested a static file in testServer mode
         if (Tht::isMode('testServer')) {
             // Need to construct path manually.
             // See: https://github.com/joelesko/tht/issues/2
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
-            if ($_SERVER["REQUEST_URI"] !== "/" && file_exists($path)) {
+            if ($_SERVER['SCRIPT_NAME'] !== '/' && file_exists($path)) {
                 if (is_dir($path)) {
-                    throw new StartupException ("Path `$path` can not be a directory under Document Root.");
+                    // just a warning
+                    throw new StartupException ("Path `$path` can not be a page and also a directory under Document Root.");
                 }
-                return false;
+                // is a static file
+                if (!is_dir($path)) {
+                    return false;
+                }
             }
         }
 
@@ -122,7 +132,7 @@ class Tht {
             Tht::$mode['fileSandbox'] = false;
         }
         else {
-            
+
             Tht::loadLib('modes/WebMode.php');
             Tht::init();
 
@@ -131,17 +141,29 @@ class Tht {
             Tht::$mode['fileSandbox'] = false;
         }
 
-        Tht::endScript();
+        Tht::printPerf();
 
         return true;
     }
 
-    static private function endScript () {
-        Tht::module('Perf')->printResults();
+    static private function printPerf () {
+        if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
+            if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
+                $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
+                print("\n<!-- Page Speed: $duration ms -->\n");
+            }
+            Tht::module('Perf')->printResults();
+        }
+    }
+
+    static public function exitScript($code) {
+        self::printPerf();
+        exit($code);
     }
 
     static public function handleShutdown() {
         Tht::clearMemoryBuffer();
+        ErrorHandler::handleShutdown();
         Tht::module('Web')->endGzip();
     }
 
@@ -222,7 +244,7 @@ class Tht {
 
     static private function initErrorHandler () {
         set_error_handler("\\o\\ErrorHandler::handlePhpRuntimeError");
-        register_shutdown_function('\\o\\handleShutdown');
+        register_shutdown_function('\o\Tht::handleShutdown');
     }
 
     // TODO: public to allow Cli access.  Revisit this.
@@ -247,7 +269,7 @@ class Tht {
         foreach (['app'] as $topDir) {
 
             // Read APP_ROOT & DATA_ROOT
-            $globalConstant = strtoupper($topDir . '_root'); 
+            $globalConstant = strtoupper($topDir . '_root');
 
             if (defined($globalConstant)) {
                 $constantPath = constant($globalConstant);
@@ -270,7 +292,7 @@ class Tht {
             }
         }
 
-        
+
         // app subdirs
         Tht::$paths['data']      = Tht::path('app', Tht::$APP_DIR['data']);
         Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
@@ -415,10 +437,11 @@ class Tht {
 
             // features
             "showPerfScore"        => false,
+            "showPerfComment"      => true,
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
-            "compressOutput"       => true, 
+            "compressOutput"       => true,
             "sessionDurationMins"  => 120,
             'hitCounter'           => true,
 
@@ -461,7 +484,7 @@ class Tht {
     }
 
     static function parseTemplateString ($type, $lRawText) {
-        $rawText = OLockString::getUnlocked($lRawText);
+        $rawText = OLockString::getUnlocked($lRawText, $type);
         $tsr = new TemplateStringReader ($type, $rawText);
         return $tsr->parse();
     }
@@ -520,7 +543,7 @@ class Tht {
     static function validatePath($path) {
         if (strpos('..', $path) !== false) {
             Tht::error("Parent shortcut `..` not allowed in path: `$path`");
-        } 
+        }
         return true;
     }
 
@@ -554,10 +577,11 @@ class Tht {
     static function getPhpPathForTht ($thtFile) {
         $relPath = Tht::module('File')->u_relative_path($thtFile, Tht::$paths['app']);
         $cacheFile = preg_replace('/[\\/]/', '_', $relPath);
-        return Tht::path('phpCache', $cacheFile . '.php');
+        return Tht::path('phpCache', Tht::getThtVersion(true) . '_' . $cacheFile . '.php');
     }
 
     static function getThtPathForPhp ($phpPath) {
+        $phpPath = preg_replace('!\d{6}_!', '', $phpPath);
         $f = basename($phpPath);
         $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
@@ -625,14 +649,14 @@ class Tht {
             }
             $val = $val[$key];
         }
-         
+
         $val = Security::sanitizeString($val);
 
         return $val;
     }
 
-    static function getThtVersion() {
-        return Tht::$VERSION;
+    static function getThtVersion($token=false) {
+        return $token ? Tht::$VERSION_TOKEN : Tht::$VERSION;
     }
 
     static function module ($name) {
@@ -642,7 +666,7 @@ class Tht {
     // TODO: this is a bit messy, and user module names have duplication
     static function cleanPackageName($p) {
         $p = preg_replace('/\\\\+/', '/', $p);
-       
+
         $parts = explode('/', $p);
         $name = array_pop($parts);
         $name = unu_($name);
