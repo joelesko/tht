@@ -111,11 +111,11 @@ EOCSS;
         @-ms-viewport { width: device-width; }
 
         main {
-        	width: 100%;
-        	max-width: ${sizeX};
+            width: 100%;
+            max-width: ${sizeX};
             min-height: 70vh;
             padding: 0 2rem;
-        	margin: 0 auto;
+            margin: 0 auto;
             padding-top: 2rem;
         }
 
@@ -314,25 +314,25 @@ EOCSS;
             background-color: #f9f9f9;
             outline: none;
         }
-    	.button-primary, input.button-primary {
+        .button-primary, input.button-primary {
             color: #fff;
-    		background-color: #3388E2;
-    	}
+            background-color: #3388E2;
+        }
         .button-primary:hover, .button-primary:focus,
         input.button-primary:hover, input.button-primary:focus {
             background-color: #2376CE;
         }
-    	.button-large, input.button-large {
+        .button-large, input.button-large {
             padding: 0rem 4rem;
             font-size: 2rem;
             line-height: 5rem;
             border-radius: 3px;
-    	}
-    	.button-small, input.button-small {
+        }
+        .button-small, input.button-small {
             padding: 1rem 1.8rem;
             font-size: 1.4rem;
             line-height: 1rem;
-    	}
+        }
 
 
         /* Forms
@@ -694,10 +694,10 @@ EOCSS;
         .w12 { flex: 0 0 100% }
 
         @media screen and (max-width: $breakX) {
-        	.row { min-width: 0; width: 100%; }
+            .row { min-width: 0; width: 100%; }
             .col { margin: 0 0 1rem; flex: 0 0 100%; }
             .no-margin-on-mobile { margin-bottom: 0 !important; }
-        	.hide-on-mobile { display: none !important; }
+            .hide-on-mobile { display: none !important; }
             .wide-on-mobile { display: block !important; max-width: 100%; }
             .center-on-mobile { text-align: center; margin-left: auto; margin-right: auto; }
             main pre, main .pre { font-size: 3vw; }

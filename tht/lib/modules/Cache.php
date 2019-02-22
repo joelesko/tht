@@ -7,12 +7,12 @@ class u_Cache extends StdModule {
     private $driver;
 
     function __construct() {
-    	// TODO: support memcache, etc.
+        // TODO: support memcache, etc.
         $this->driver = new FileCacheDriver ();
     }
 
     function u_has($k) {
-    	Tht::module('Perf')->start('Cache.has', $k);
+        Tht::module('Perf')->start('Cache.has', $k);
         $v = $this->driver->has($k);
         Tht::module('Perf')->u_stop();
         return $v;
@@ -20,7 +20,7 @@ class u_Cache extends StdModule {
 
     function u_get($k, $default='') {
 
-    	Tht::module('Perf')->start('Cache.get', $k);
+        Tht::module('Perf')->start('Cache.get', $k);
         $v = $this->driver->get($k, -1, $default);
         Tht::module('Perf')->u_stop();
 
@@ -29,10 +29,10 @@ class u_Cache extends StdModule {
 
     function u_get_sync($k, $syncFileTime, $default='') {
 
-    	Tht::module('Perf')->start('Cache.getSync', $k);
+        Tht::module('Perf')->start('Cache.getSync', $k);
         $v = $this->driver->get($k, $syncFileTime, $default);
         Tht::module('Perf')->u_stop();
-        
+
         return $v;
     }
 
@@ -44,7 +44,7 @@ class u_Cache extends StdModule {
     }
 
     function u_delete($k) {
-    	$this->driver->clearPrev($k);
+        $this->driver->clearPrev($k);
         return $this->driver->delete($k);
     }
 
@@ -57,81 +57,81 @@ class u_Cache extends StdModule {
 
 class CacheDriver {
 
-	// Most recent key/value.  
-	// Perf improvement for calling has(), followed by get()
+    // Most recent key/value.
+    // Perf improvement for calling has(), followed by get()
     private $prevKey = '';
     private $prevValue = '';
 
     function setPrev($k, $v) {
-    	$this->prevKey = $k;
-    	$this->prevValue = $v;
+        $this->prevKey = $k;
+        $this->prevValue = $v;
     }
 
     function clearPrev($k) {
-    	if ($k === $this->prevKey) {
-    		$this->prevKey = '';
-    		$this->prevValue = '';
-    	}	
+        if ($k === $this->prevKey) {
+            $this->prevKey = '';
+            $this->prevValue = '';
+        }
     }
 
     function getPrev($k) {
-    	if ($this->prevKey === $k) {
-    		return $this->prevValue;
-    	} else {
-    		return null;
-    	}
+        if ($this->prevKey === $k) {
+            return $this->prevValue;
+        } else {
+            return null;
+        }
     }
 
-	function has($k) {
-		return !is_null($this->get($k, -1, null));
-	}
+    function has($k) {
+        return !is_null($this->get($k, -1, null));
+    }
 
-	function get($k, $syncFileTime, $default) {
-		
-		$prevValue = $this->getPrev($k);
-    	if (!is_null($prevValue)) { return $prevValue; }
+    function get($k, $syncFileTime, $default) {
 
-		$json = $this->fetch($k);
-		
-		$v = $default;
+        $prevValue = $this->getPrev($k);
+        if (!is_null($prevValue)) { return $prevValue; }
 
-		if (!is_null($json)) {
+        $json = $this->fetch($k);
 
-			$r = unserialize($json);
+        $v = $default;
 
-			$v = $r['v'];
+        if (!is_null($json)) {
 
-			if (!isset($r['v']) || !isset($r['ttl']) || !isset($r['c'])) {
-				$v = $default;
-			}
-	        else if ($syncFileTime >= 0) {
-	        	// synced file was updated
-	        	if ($syncFileTime > ceil($r['c'] / 1000)) {
-	        		$v = $default;
-	        	}                
-	        } 
-	        else {
-	        	// check standard expiry
-	        	$expiry = $r['c'] + $r['ttl'];
-		        if ($r['ttl'] > 0 && Tht::module('Date')->u_now(true) > $expiry) {
-		        	$v = $default;
-		        }  
-	        }
-		}
+            $r = unserialize($json);
 
-		if (!is_null($v)) {  
-			$this->setPrev($k, $v);
-		}
+            $v = $r['v'];
+
+            if (!isset($r['v']) || !isset($r['ttl']) || !isset($r['c'])) {
+                $v = $default;
+            }
+            else if ($syncFileTime >= 0) {
+                // synced file was updated
+                if ($syncFileTime > ceil($r['c'] / 1000)) {
+                    $v = $default;
+                }
+            }
+            else {
+                // check standard expiry
+                $expiry = $r['c'] + $r['ttl'];
+                if ($r['ttl'] > 0 && Tht::module('Date')->u_now(true) > $expiry) {
+                    $v = $default;
+                }
+            }
+        }
+
+        if (!is_null($v)) {
+            $this->setPrev($k, $v);
+        }
 
         return $v;
-	}
+    }
 
     function serialize($v, $ttlSecs) {
-    	$record = [
-    		'v' => $v, 
-    		'c' => Tht::module('Date')->u_now(true), 
-    		'ttl' => ceil($ttlSecs * 1000)
-    	];
+        $record = [
+            'v' => $v,
+            'c' => Tht::module('Date')->u_now(true),
+            'ttl' => ceil($ttlSecs * 1000)
+        ];
         return serialize($record);
     }
 
@@ -145,7 +145,7 @@ class CacheDriver {
         $v += $delta;
         if ($v < 0) { $v = 0; }
         $ttlSecs = (60 * 60 * 24 * 30); // 30 days
-        $this->set($k, $v, $ttlSecs);  
+        $this->set($k, $v, $ttlSecs);
         return $v;
     }
 
@@ -159,11 +159,11 @@ class FileCacheDriver extends CacheDriver {
     }
 
     function fetch($k) {
-    	 $path = $this->path($k);
-    	 if (file_exists($path)) {
+         $path = $this->path($k);
+         if (file_exists($path)) {
             return file_get_contents($path);
          } else {
-         	return null;
+             return null;
          }
     }
 

@@ -414,7 +414,7 @@ class OString extends OVar implements \ArrayAccess {
         return $this->pad($padLen, $padStr, 'right');
     }
 
-	function pad ($padLen, $padStr = ' ', $dir = 'right') {
+    function pad ($padLen, $padStr = ' ', $dir = 'right') {
 
         ARGS('nss', func_get_args());
 
@@ -434,7 +434,7 @@ class OString extends OVar implements \ArrayAccess {
         $right = $padRight ? mb_substr($repeatedString, 0, ceil($targetLen)) : '';
 
         return $left . $str . $right;
-	}
+    }
 
     function u_trim ($mask=null) {
         ARGS('s', func_get_args());

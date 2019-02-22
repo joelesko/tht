@@ -64,7 +64,7 @@ class u_Web extends StdModule {
         $https = Tht::getPhpGlobal('server', 'HTTPS', '');
         $port = Tht::getPhpGlobal('server', 'SERVER_PORT');
 
-		return (!empty($https) && $https !== 'off') || intval($port) === 443;
+        return (!empty($https) && $https !== 'off') || intval($port) === 443;
     }
 
     function isAjax () {
@@ -147,7 +147,7 @@ class u_Web extends StdModule {
 
 
 
-	// RESPONSE
+    // RESPONSE
     // --------------------------------------------
 
     function u_redirect ($lUrl, $code=303) {

@@ -4,12 +4,12 @@ namespace o;
 
 class ModuleManager {
 
-	static $fileToNameSpace = [];
+    static $fileToNameSpace = [];
     static $moduleRegistry = [];
 
     static function init() {
-    	self::initAutoloading();
-		LibModules::load();
+        self::initAutoloading();
+        LibModules::load();
     }
 
     static function isStdLib ($lib) {
@@ -17,38 +17,38 @@ class ModuleManager {
     }
 
     static function getNamespace($relPath) {
-    	$relPath = Tht::getRelativePath('app', $relPath);
+        $relPath = Tht::getRelativePath('app', $relPath);
         if (!isset(self::$fileToNameSpace[$relPath])) {
-        	self::$fileToNameSpace[$relPath] = self::pathToNamespace($relPath);
+            self::$fileToNameSpace[$relPath] = self::pathToNamespace($relPath);
         }
         return self::$fileToNameSpace[$relPath];
     }
 
     static function pathToNamespace($path) {
-    	$relPath = Tht::getRelativePath('app', $path);
-    	$ns = $relPath;
-		$ns = str_replace('/', '\\', $ns);
-    	$ns = str_replace('.tht', '', $ns);
-    	$ns = 'tht\\' . $ns . '_x'; // work around reserved PHP words
-    	return $ns;
+        $relPath = Tht::getRelativePath('app', $path);
+        $ns = $relPath;
+        $ns = str_replace('/', '\\', $ns);
+        $ns = str_replace('.tht', '', $ns);
+        $ns = 'tht\\' . $ns . '_x'; // work around reserved PHP words
+        return $ns;
     }
 
     static function namespaceToModulePath($ns) {
-    	$path = $ns;
+        $path = $ns;
         $path = str_replace('_x', '', $path);
-    	$path = preg_replace('#.*tht\\\\modules\\\\#', '', $path);
-    	$path = str_replace('\\', '/', $path);
-    	$parts = explode('/', $path);
-    	$mod = array_pop($parts);
+        $path = preg_replace('#.*tht\\\\modules\\\\#', '', $path);
+        $path = str_replace('\\', '/', $path);
+        $parts = explode('/', $path);
+        $mod = array_pop($parts);
 
-    	// remove redundant filename in namespace
-    	array_pop($parts);
+        // remove redundant filename in namespace
+        array_pop($parts);
 
-    	$mod = ucfirst(unu_($mod));
-    	$path = implode('/', $parts);
-    	$path .= '/' . $mod;
+        $mod = ucfirst(unu_($mod));
+        $path = implode('/', $parts);
+        $path .= '/' . $mod;
 
-    	return $path;
+        return $path;
     }
 
     static function getNamespacedPackage ($relPath) {
@@ -56,7 +56,7 @@ class ModuleManager {
         return '\\' . self::getNamespace('modules/' . $relPath) . '\\' . u_($relPath);
     }
 
-	static function registerUserModule ($file, $nameSpace) {
+    static function registerUserModule ($file, $nameSpace) {
         $relPath = Tht::getRelativePath('app', $file);
         self::$fileToNameSpace[$relPath] = $nameSpace;
         self::registerModule($nameSpace, $relPath);
@@ -95,7 +95,7 @@ class ModuleManager {
     }
 
     static function loadBuiltinModule($modName) {
-    	if (self::$moduleRegistry[$modName] === -1) {
+        if (self::$moduleRegistry[$modName] === -1) {
             // triggers auto-load
             $modClass = '\\o\\u_' . $modName;
             self::$moduleRegistry[$modName] = new $modClass ();
@@ -130,33 +130,33 @@ class ModuleManager {
 
     static function initAutoloading() {
 
-		// Lazy Load.  Saves ~250kb
-		spl_autoload_register(function ($aclass) {
+        // Lazy Load.  Saves ~250kb
+        spl_autoload_register(function ($aclass) {
 
-		    $class = str_replace('o\\u_', '', $aclass);
+            $class = str_replace('o\\u_', '', $aclass);
 
-		    if (LibModules::isa($class)) {
+            if (LibModules::isa($class)) {
 
-		        if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
+                if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
 
-		        if ($class == 'System') {
-		            $class = 'SystemX';
-		        }
-		        Tht::loadLib('../modules/' . $class . '.php');
+                if ($class == 'System') {
+                    $class = 'SystemX';
+                }
+                Tht::loadLib('../modules/' . $class . '.php');
 
-		        if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
+                if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
 
-		    } else if (strpos($aclass, 'tht\\') === 0) {
+            } else if (strpos($aclass, 'tht\\') === 0) {
 
-		    	self::loadUserModule(self::namespaceToModulePath($aclass));
+                self::loadUserModule(self::namespaceToModulePath($aclass));
 
-		    } else {
-		        // Tht::error("Can not autoload PHP class: `$aclass`");
+            } else {
+                // Tht::error("Can not autoload PHP class: `$aclass`");
                 // UPDATE: Allow pass through for PHP intrerop
-		    }
+            }
 
-		});
-	}
+        });
+    }
 
 }
 

@@ -51,7 +51,7 @@ class EmitterPHP extends Emitter {
         'NEW_VAR'         => 'pNewVar',
         'NEW_FUN'         => 'pFunction',
         'NEW_TEMPLATE'    => 'pTemplate',
-		'NEW_CLASS'       => 'pClass',
+        'NEW_CLASS'       => 'pClass',
         'NEW_OBJECT'      => 'pNew',
      //   'NEW_OBJECT_VAR'  => 'pNewObjectVar',
 
@@ -472,20 +472,20 @@ class EmitterPHP extends Emitter {
         return $out . "\n";
     }
 
-	function pClass ($value, $k) {
+    function pClass ($value, $k) {
         $className = $k[0]['value'];
         $block = $k[1];
-		$c = $this->format('class ### extends \o\OClass {###}', u_($className), $this->out($block, true));
+        $c = $this->format('class ### extends \o\OClass {###}', u_($className), $this->out($block, true));
         return $c;
-	}
+    }
 
-	function pTryCatch ($value, $k) {
-		$s = $this->format('try {###} catch (\Exception ###) {###}', $k[0], $k[1], $k[2]);
+    function pTryCatch ($value, $k) {
+        $s = $this->format('try {###} catch (\Exception ###) {###}', $k[0], $k[1], $k[2]);
         if (isset($k[3])) {
             $s .= $this->format(" finally {###}", $k[3]);
         }
         return $s . "\n";
-	}
+    }
 
     function pNew ($value, $k) {
         $className = $k[0]['value'];

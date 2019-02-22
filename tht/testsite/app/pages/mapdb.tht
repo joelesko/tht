@@ -9,35 +9,35 @@ Global.users = Q[aa bb cc dd ee ff gg hh ii jj kk ll mm nn oo pp];
 
 F writes() {
 
-	let numRuns = 10000;
-	let runs = range(1, numRuns);
+    let numRuns = 10000;
+    let runs = range(1, numRuns);
 
-	let start = Date.now(true);
+    let start = Date.now(true);
 
-	for (i in runs) {
-		let uName = Global.users.random();
-		let map = {
-			userId: Math.random(1, 10000),
-			userName: uName,
-			bio: String.random(80),
-		};
-	    MapDb.insertMap('testBucket', uName, map);
-	}
+    for (i in runs) {
+        let uName = Global.users.random();
+        let map = {
+            userId: Math.random(1, 10000),
+            userName: uName,
+            bio: String.random(80),
+        };
+        MapDb.insertMap('testBucket', uName, map);
+    }
 
-	let elapsed = Date.now(true) - start;
-	print(elapsed, Math.round(elapsed / numRuns, 2));
+    let elapsed = Date.now(true) - start;
+    print(elapsed, Math.round(elapsed / numRuns, 2));
 
 }
 
 
 F reads() {
-	let start = Date.now(true);
+    let start = Date.now(true);
 
-	for (i in range(1, 1000)) {
-	    MapDb.selectMaps('testBucket', Global.users.random());
-	}
-	let elapsed = Date.now(true) - start;
-	print(elapsed, Math.round(elapsed / 1000, 2));
+    for (i in range(1, 1000)) {
+        MapDb.selectMaps('testBucket', Global.users.random());
+    }
+    let elapsed = Date.now(true) - start;
+    print(elapsed, Math.round(elapsed / 1000, 2));
 }
 
 // writes();

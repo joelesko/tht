@@ -14,14 +14,14 @@ class Minifier extends StringReader {
         $b = $this->buffer;
         $b = preg_replace("/\s+/", ' ', $b);
         $b = preg_replace($this->crunchRegex, '$1', $b);
-        
+
         $this->out .= $b;
         $this->buffer = '';
     }
 
     function minify($crunchRegex) {
 
-    	$this->crunchRegex = $crunchRegex;
+        $this->crunchRegex = $crunchRegex;
 
         Tht::module('Perf')->u_start('js.minify', $this->fullText);
 
@@ -32,22 +32,22 @@ class Minifier extends StringReader {
                 break;
             }
             else if (!$this->inString && $c === '/' && $this->nextChar() === '/') {
-            	// line comment
+                // line comment
                 $this->slurpLine();
             }
             else if (!$this->inString && $c === '/' && $this->nextChar() === '*') {
-            	// block comment
+                // block comment
                 $this->slurpUntil('*/');
             }
             else if ($c === "'" || $c === '"' || $c === '`') {
-            	// beginning or end of string
+                // beginning or end of string
                 if (!$this->inString) {
-                	$this->buffer .= $c;
+                    $this->buffer .= $c;
                     $this->minifyBuffer();
                     $this->inString = true;
                     $this->stringDelim = $c;
                 } else if ($c === $this->stringDelim){
-                	$this->out .= $c;
+                    $this->out .= $c;
                     $this->inString = false;
                     $this->stringDelim = '';
                 }

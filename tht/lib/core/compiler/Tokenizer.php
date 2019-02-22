@@ -504,7 +504,7 @@ class Tokenizer extends StringReader {
 
     function handleGlyph ($c) {
 
-		$this->updateTokenPos();
+        $this->updateTokenPos();
 
         if ($this->prevToken && $this->prevToken[TOKEN_VALUE] === '{') {
             if (strpos('<#.', $c) !== false) {

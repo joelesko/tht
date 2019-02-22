@@ -100,38 +100,38 @@ class u_FormValidator extends StdModule {
 
         $this->data = $data;
 
-    	$allFieldsOk = true;
-    	$errors = [];
+        $allFieldsOk = true;
+        $errors = [];
 
-    	foreach (uv($schema) as $fieldName => $fieldSchema) {
+        foreach (uv($schema) as $fieldName => $fieldSchema) {
 
-    		if (!isset($data[$fieldName])) {
-    			Tht::error("Missing form data for field: `$fieldName`");
-    		}
+            if (!isset($data[$fieldName])) {
+                Tht::error("Missing form data for field: `$fieldName`");
+            }
 
-    		$val = $data[$fieldName];
+            $val = $data[$fieldName];
 
-    		$result = $this->validateField($fieldName, $val, $fieldSchema);
+            $result = $this->validateField($fieldName, $val, $fieldSchema);
 
-    		if (!$result['ok']) {
-    			$allFieldsOk = false;
-    			$errors []= $result;
-    		}
-    	}
+            if (!$result['ok']) {
+                $allFieldsOk = false;
+                $errors []= $result;
+            }
+        }
 
-    	return [
-    		'ok' => $allFieldsOk,
-    		'errors' => $errors,
-    	];
+        return [
+            'ok' => $allFieldsOk,
+            'errors' => $errors,
+        ];
     }
 
-	// TODO: validation order
+    // TODO: validation order
     function validateField($fieldName, $val, $schema) {
 
         $rules = isset($schema['rule']) ? $schema['rule'] : 'id';
 
         if (!is_array($rules)) {
-        	$rules = explode('|', $rules);
+            $rules = explode('|', $rules);
         }
 
         $allRulesOk = true;
@@ -157,10 +157,10 @@ class u_FormValidator extends StdModule {
         }
 
         return [
-        	'field' => $fieldName,
-        	'ok'    => $allRulesOk,
-        	'value' => $cleanValue,
-        	'error' => $error,
+            'field' => $fieldName,
+            'ok'    => $allRulesOk,
+            'value' => $cleanValue,
+            'error' => $error,
         ];
     }
 
@@ -169,9 +169,9 @@ class u_FormValidator extends StdModule {
         $rule = trim($rule);
         $arg = '';
         if (strpos($rule, ':') !== false) {
-        	$parts = explode(':', $rule, 2);
-        	$rule = trim($parts[0]);
-        	$arg = trim($parts[1]);
+            $parts = explode(':', $rule, 2);
+            $rule = trim($parts[0]);
+            $arg = trim($parts[1]);
         }
 
         $fnValidate = 'validate_' . strtolower($rule);
@@ -192,7 +192,7 @@ class u_FormValidator extends StdModule {
     }
 
     function lengthError($num) {
-		return ["Field must be $num letters or less."];
+        return ["Field must be $num letters or less."];
     }
 
     function minLengthError($num) {
@@ -218,7 +218,7 @@ class u_FormValidator extends StdModule {
     // default min/max by type
     function validate_number($val) {
 
-    	// remove thousand separators
+        // remove thousand separators
         $val = preg_replace('/[,\']/', '', $val);
 
         if (preg_match('/[^0-9]/', $val)) {
@@ -333,10 +333,10 @@ class u_FormValidator extends StdModule {
     function validate_accept($val) {
         $val = $this->validate_flag($val);
         if ($val === true) {
-        	return true;
+            return true;
         }
         else {
-        	return ['Please accept this field:'];
+            return ['Please accept this field:'];
         }
     }
 

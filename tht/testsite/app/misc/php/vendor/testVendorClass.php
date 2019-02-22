@@ -3,48 +3,48 @@
 namespace Abc;
 
 class VendorClass {
-	
-	var $ALL_CAP_FIELD = 123;
 
-	function takeArray ($ary) {
-		return array_shift($ary);
-	}
+    var $ALL_CAP_FIELD = 123;
 
-	function returnArray () {
-		return ['a', 'b', 'c'];
-	}
+    function takeArray ($ary) {
+        return array_shift($ary);
+    }
 
-	function takeMap ($ary) {
-		return $ary['red'];
-	}
+    function returnArray () {
+        return ['a', 'b', 'c'];
+    }
 
-	function returnMap () {
-		return [ 'id' => 123, 'color' => 'Red' ];
-	}
+    function takeMap ($ary) {
+        return $ary['red'];
+    }
 
-	function returnObject() {
-		return new VendorSubClass ();
-	}
+    function returnMap () {
+        return [ 'id' => 123, 'color' => 'Red' ];
+    }
 
-	function returnRecords () {
+    function returnObject() {
+        return new VendorSubClass ();
+    }
 
-		return [
-			[ 'id' => 123, 'color' => 'Red'   ],
-			[ 'id' => 124, 'color' => 'Green' ],
-			[ 'id' => 125, 'color' => 'Blue'  ],
-		];
-	}
+    function returnRecords () {
 
-	function ALL_CAP_METHOD() {
-		return 'FOO';
-	}
+        return [
+            [ 'id' => 123, 'color' => 'Red'   ],
+            [ 'id' => 124, 'color' => 'Green' ],
+            [ 'id' => 125, 'color' => 'Blue'  ],
+        ];
+    }
+
+    function ALL_CAP_METHOD() {
+        return 'FOO';
+    }
 
 }
 
 class VendorSubClass {
 
-	function callMe() {
-		return 'abc';
-	}
+    function callMe() {
+        return 'abc';
+    }
 
 }

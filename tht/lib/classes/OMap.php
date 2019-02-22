@@ -61,17 +61,17 @@ class OMap extends OBag {
 
     function u_has_key ($key) {
         ARGS('s', func_get_args());
-		return isset($this->val[$key]);
+        return isset($this->val[$key]);
     }
 
     function u_has_value ($value) {
         ARGS('s', func_get_args());
-		return array_search($value, $this->val, true) !== false;
+        return array_search($value, $this->val, true) !== false;
     }
 
     function u_get_key ($value) {
         ARGS('s', func_get_args());
-		$found = array_search($value, $this->val, true);
+        $found = array_search($value, $this->val, true);
         if ($found === false) {
             $v = v($value)->u_limit(20);
             Tht::error("Map value not found: `$v`");
@@ -96,7 +96,7 @@ class OMap extends OBag {
     }
 
     function u_reverse () {
-		return OMap::create(array_flip($this->val));
+        return OMap::create(array_flip($this->val));
     }
 
     function u_merge ($a2) {

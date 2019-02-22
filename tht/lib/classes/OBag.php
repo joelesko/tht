@@ -165,7 +165,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
     }
 
     function getOne ($key) {
-		if (! isset($this->val[$key])) {
+        if (! isset($this->val[$key])) {
             return null;
         }
         return $this->val[$key];

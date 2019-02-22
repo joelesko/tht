@@ -6,11 +6,11 @@ namespace o;
 
 class Security {
 
-	static private $CSP_NONCE = '';
-	static private $CSRF_TOKEN_LENGTH = 64;
-	static private $NONCE_LENGTH = 40;
+    static private $CSP_NONCE = '';
+    static private $CSRF_TOKEN_LENGTH = 64;
+    static private $NONCE_LENGTH = 40;
 
-	static private $SESSION_ID_LENGTH = 48;
+    static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
     static private $isCrossOrigin = null;
@@ -47,30 +47,30 @@ class Security {
         'url_exec',
     ];
 
-	static function createPassword ($plainText) {
-		return new OPassword ($plainText);
-	}
+    static function createPassword ($plainText) {
+        return new OPassword ($plainText);
+    }
 
-	static function getCsrfToken() {
-		$token = Tht::module('Session')->u_get('csrfToken', '');
+    static function getCsrfToken() {
+        $token = Tht::module('Session')->u_get('csrfToken', '');
         if (empty($token)) {
             $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
             Tht::module('Session')->u_set('csrfToken', $token);
         }
 
         return $token;
-	}
+    }
 
-	static function getNonce() {
-		if (!self::$CSP_NONCE) {
+    static function getNonce() {
+        if (!self::$CSP_NONCE) {
             self::$CSP_NONCE = self::randomString(self::$NONCE_LENGTH);
         }
 
         return self::$CSP_NONCE;
-	}
+    }
 
-	// Length = final string length, not byte length
-	static function randomString($len) {
+    // Length = final string length, not byte length
+    static function randomString($len) {
 
         $bytes = '';
 
@@ -85,11 +85,11 @@ class Security {
         $b64 = base64_encode($bytes);
 
         return substr($b64, 0, $len);
-	}
+    }
 
-	static function initSessionParams() {
+    static function initSessionParams() {
 
-		ini_set('session.use_only_cookies', 1);
+        ini_set('session.use_only_cookies', 1);
         ini_set('session.use_strict_mode', 0);
         ini_set('session.cookie_httponly', 1);
         ini_set('session.use_trans_sid', 1);
@@ -97,9 +97,9 @@ class Security {
         ini_set('session.gc_maxlifetime',  Tht::getConfig('sessionDurationMins') * 60);
         ini_set('session.cookie_lifetime', self::$SESSION_COOKIE_DURATION);
         ini_set('session.sid_length',      self::$SESSION_ID_LENGTH);
-	}
+    }
 
-	static function sanitizeString($str) {
+    static function sanitizeString($str) {
         if (is_array($str)) {
             foreach ($str as $k => $v) {
                 $str[$k] = self::sanitizeString($v);
@@ -109,9 +109,9 @@ class Security {
             $str = trim($str);
         }
         return $str;
-	}
+    }
 
-	static function validateCsrfToken() {
+    static function validateCsrfToken() {
 
         if (!is_null(self::$isCsrfTokenValid)) {
             return self::$isCsrfTokenValid;
@@ -119,7 +119,7 @@ class Security {
 
         self::$isCsrfTokenValid = false;
 
-		$localCsrfToken = Tht::module('Session')->u_get('csrfToken', '');
+        $localCsrfToken = Tht::module('Session')->u_get('csrfToken', '');
         $post = Tht::data('phpGlobals', 'post');
         $remoteCsrfToken = isset($post['csrfToken']) ? $post['csrfToken'] : '';
 
@@ -128,15 +128,15 @@ class Security {
         }
 
         return self::$isCsrfTokenValid;
-	}
+    }
 
-	static function validatePhpFunction($func) {
+    static function validatePhpFunction($func) {
         $func = strtolower($func);
         $func = preg_replace('/^\\\\/', '', $func);
-		if (in_array($func, self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
+        if (in_array($func, self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
             Tht::error("PHP function is blacklisted: `$func`");
         }
-	}
+    }
 
     static function validateFilePath ($path, $checkSandbox=true) {
 
@@ -154,7 +154,7 @@ class Security {
         else if (v($path)->u_is_url()) {
             Tht::error("Remote URL not allowed: `$path`");
         }
-		else if (strpos($path, '..') !== false) {
+        else if (strpos($path, '..') !== false) {
             Tht::error("Parent shortcut `..` not allowed in path: `$path`");
         }
         else if (strpos($path, './') !== false) {
@@ -287,7 +287,7 @@ class Security {
     static function registerInternalFileModule() {
         $f = new u_File ();
         $f->dangerDangerDisableSandbox();
-    	ModuleManager::registerStdModule('*File', $f);
+        ModuleManager::registerStdModule('*File', $f);
     }
 
     // https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet
@@ -440,27 +440,27 @@ class Security {
 // Wrapper for incoming passwords to prevent leakage of plaintext
 class OPassword {
 
-	private $plainText = '';
-	private $hash = '';
+    private $plainText = '';
+    private $hash = '';
 
- 	function __construct ($plainText) {
- 		$this->plainText = $plainText;
- 	}
+     function __construct ($plainText) {
+         $this->plainText = $plainText;
+     }
 
- 	function __toString() {
- 		return '[Password]';
- 	}
+     function __toString() {
+         return '[Password]';
+     }
 
- 	function u_hash() {
- 		if (!$this->hash) {
- 			$this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
- 		}
- 		return $this->hash;
- 	}
+     function u_hash() {
+         if (!$this->hash) {
+             $this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
+         }
+         return $this->hash;
+     }
 
- 	function u_is_correct($correctHash) {
- 		return password_verify($this->plainText, $correctHash);
- 	}
+     function u_is_correct($correctHash) {
+         return password_verify($this->plainText, $correctHash);
+     }
 
     function u_danger_danger_plain_text() {
         return $this->plainText;
