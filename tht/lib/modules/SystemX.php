@@ -2,12 +2,14 @@
 
 namespace o;
 
-// Note: there is a silent error when calling require() on any file called 'System.php'.  
+// Note: there is a silent error when calling require() on any file called 'System.php'.
 // Hence, the extra 'X'.
 
 class u_System extends StdModule {
 
     function _call ($fn, $args=[], $checkReturn=true) {
+
+        Tht::module('Meta')->u_no_template_mode();
 
         $ret = \call_user_func_array($fn, $args);
         if ($checkReturn && $ret === false) {
@@ -23,33 +25,36 @@ class u_System extends StdModule {
         Tht::module('Meta')->u_no_template_mode();
 
         global $argv;
-        return $argv;
+        return OList::create($argv);
     }
 
-    // TODO: allow placeholders w shellescapearg.  same api as PDO
-    function u_command ($lockedCmd, $isPassThru) {
+    function u_command ($lockedCmd, $isPassThru=false) {
 
-        Tht::module('Meta')->u_no_template_mode();
         Tht::module('Meta')->u_no_web_mode();
+        Tht::module('Meta')->u_no_template_mode();
 
-        $cmd = OLockString::getUnlocked($lockedCmd, 'command()');
+        $cmd = OLockString::getUnlocked($lockedCmd, 'cmd');
 
+        Tht::module('Perf')->u_start('System.command', $cmd);
+        $ret = '';
         if ($isPassThru) {
             passthru($cmd, $returnVal);
-            return $returnVal;
+            $ret = $returnVal;
         } else {
             $output = [];
             exec($cmd, $output, $returnVal);
-            return [ 'output' => $output, 'returnCode' => $returnVal ];
+            $ret = [ 'output' => OList::create($output), 'returnCode' => $returnVal ];
         }
+        Tht::module('Perf')->u_stop();
+
+        return $ret;
     }
 
     function u_exit ($ret=0) {
-        exit($ret);
+        Tht::exitScript($ret);
     }
 
     function u_sleep ($ms=0) {
-
         Tht::module('Perf')->u_start('System.sleep');
         $r = u_System::_call('usleep', [$ms * 1000]);
         Tht::module('Perf')->u_stop();
@@ -69,10 +74,6 @@ class u_System extends StdModule {
     function u_peak_memory_usage () {
         $mem = u_System::_call('memory_get_peak_usage', [true]);
         return $mem / 1048576;
-    }
-
-    function u_tht_version () {
-        return Tht::$VERSION;
     }
 
     function u_app_compile_time () {
