@@ -42,13 +42,13 @@ class u_Php extends StdModule {
         $func = array_shift($args);
 
         $args = uv($args);
-        
+
         $this->checkPhpFunction($func);
 
         $ret = call_user_func_array($this->name($func), $args);
 
         if (is_object($ret)) {
-            return new PhpObject ($ret); 
+            return new PhpObject ($ret);
         }
 
         return convertReturnValue($ret);
@@ -73,6 +73,7 @@ class u_Php extends StdModule {
             }
             $this->isRequired[$phpFile] = true;
         }
+        return new \o\ONothing('require');
     }
 
     function u_new($cls) {
@@ -98,7 +99,7 @@ class u_Php extends StdModule {
     }
 
     function u_wrap_object($obj) {
-        return new PhpObject ($obj); 
+        return new PhpObject ($obj);
     }
 
     function u_function_exists($f) {
@@ -121,17 +122,17 @@ class PhpObject {
     }
 
     function __call ($rawFuncName, $args) {
-        $funcName = unu_($rawFuncName); 
+        $funcName = unu_($rawFuncName);
         return $this->u_z_call($funcName, $args);
     }
 
     function __get ($field) {
-        $rawField = unu_($field); 
+        $rawField = unu_($field);
         return $this->u_z_get($rawField);
     }
-    
+
     function __set ($field, $value) {
-        $rawField = unu_($field); 
+        $rawField = unu_($field);
         return $this->u_z_set($rawField, $value);
     }
 
@@ -160,9 +161,9 @@ function convertReturnValue($val) {
     $phpType = gettype($val);
 
     if ($phpType == 'array') {
-        
+
         if (count($val) > 0) {
-            
+
             foreach ($val as $k => $v) {
                 $val[$k] = convertReturnValue($v);
             }
