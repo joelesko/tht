@@ -5,7 +5,7 @@ namespace o;
 class u_Web extends StdModule {
 
     private $jsData = [];
-    
+
     private $request;
     private $isCrossOrigin = null;
     private $includedFormJs = false;
@@ -49,7 +49,9 @@ class u_Web extends StdModule {
             $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
             $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
-            $r['url'] = $this->u_parse_url($fullUrl);
+            $r['url'] = new UrlLockString($fullUrl); // Security::parseUrl($fullUrl);
+
+        //    print_r($r); exit();
 
             $this->request = OMap::create($r);
         }
@@ -68,7 +70,6 @@ class u_Web extends StdModule {
     function isAjax () {
         $requestedWith = WebMode::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
-        
     }
 
     function relativeUrl() {
@@ -109,78 +110,38 @@ class u_Web extends StdModule {
     // QUERY / URL PARSING
     // --------------------------------------------
 
-    function u_parse_url ($url) {
-        ARGS('s', func_get_args());
+    // function u_parse_url ($url) {
+    //     ARGS('s', func_get_args());
 
-        $u = parse_url($url);
 
-        $fullUrl = rtrim($url, '/');
-        $u['full'] = $fullUrl;
+    // }
 
-        $relativeUrl = preg_replace('#^.*?//.*?/#', '/', $fullUrl);
-        $u['relative'] = $relativeUrl;
+    // function u_parse_query ($s, $multiKeys=[]) {
 
-        $pathParts = explode('/', ltrim($u['path'], '/'));
-        $u['pathParts'] = $pathParts;
-        $u['page'] = end($pathParts);
+    //     ARGS('sl', func_get_args());
+    //     $multiKeys = uv($multiKeys);
 
-        if (!isset($u['query'])) {
-            $u['query'] = '';
-        }
+    //     $ary = [];
+    //     $pairs = explode('&', $s);
 
-        if (!isset($u['port']) && isset($u['scheme'])) {
-            $u['port'] = ($u['scheme'] == 'https') ? 443 : 80;
-        }
+    //     foreach ($pairs as $i) {
+    //         list($name, $value) = explode('=', $i, 2);
+    //         if (in_array($name, $multiKeys)) {
+    //             if (!isset($ary[$name])) {
+    //                 $ary[$name] = OList::create([]);
+    //             }
+    //             $ary[$name] []= $value;
+    //         }
+    //         else {
+    //             $ary[$name] = $value;
+    //         }
+    //     }
+    //     return OMap::create($ary);
+    // }
 
-        return OMap::create($u);
-    }
+    // function u_stringify_query ($params) {
 
-    function u_stringify_url($u) {
-        ARGS('m', func_get_args());
-
-        $u = uv($u);
-        $parts = [
-            $this->stringifyPart($u, 'scheme',   '__://'),
-            $this->stringifyPart($u, 'host',     '__'),
-            $this->stringifyPart($u, 'port',     ':__'),
-            $this->stringifyPart($u, 'path',     '__'),
-            $this->stringifyPart($u, 'query',    '?__'),
-            $this->stringifyPart($u, 'fragment', '#__'),
-        ];
-        return implode('', $parts);
-    }
-
-    function stringifyPart($u, $k, $template) {
-        if (!isset($u[$k])) { return ''; }
-        return str_replace('__', $u[$k], $template);
-    }
-
-    function u_parse_query ($s, $multiKeys=[]) {
-
-        ARGS('sl', func_get_args());
-        $multiKeys = uv($multiKeys);
-
-        $ary = [];
-        $pairs = explode('&', $s);
-
-        foreach ($pairs as $i) {
-            list($name, $value) = explode('=', $i, 2);
-            if (in_array($name, $multiKeys)) {
-                if (!isset($ary[$name])) {
-                    $ary[$name] = OList::create([]);
-                }
-                $ary[$name] []= $value;
-            }
-            else {
-                $ary[$name] = $value;
-            }
-        }
-        return OMap::create($ary);
-    }
-
-    function u_stringify_query ($params) {
-        return http_build_query(uv($params));
-    }
+    // }
 
 
 
@@ -189,36 +150,45 @@ class u_Web extends StdModule {
 	// RESPONSE
     // --------------------------------------------
 
-    function u_redirect ($url, $code=303) {
+    function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
-        if (OLockString::isa($url)) {
-            $url = $url->u_unlocked();
-        } else {
-            if (v($url)->u_is_url()) {
-                Tht::error("Redirect URL `$url` must be relative or a LockString.");
-            }
-        }
-
+        $url = OLockString::getUnlocked('url', $lUrl);
+        // if (OLockString::isa($url)) {
+        //     $url = $url->u_stringify();
+        // } else {
+        //     if (v($url)->u_is_url()) {
+        //         Tht::error("Redirect URL `$url` must be relative or a LockString.");
+        //     }
+        // }
+        // $url = preg_replace('/\s+/', ' ', $url);
         header('Location: ' . $url, true, $code);
-        exit();
+        Tht::exitScript(0);
     }
 
     function u_set_response_code ($code) {
         ARGS('n', func_get_args());
         http_response_code($code);
+
+        return new \o\ONothing('setResponseCode');
     }
 
     function u_set_header ($name, $value, $multiple=false) {
         ARGS('ssf', func_get_args());
 
+        $value = preg_replace('/\s+/', ' ', $value);
+        $name = preg_replace('/[^a-z0-9\-]/', '', strtolower($name));
         header($name . ': ' . $value, !$multiple);
+
+        return new \o\ONothing('setHeader');
     }
 
     function u_set_cache_header ($expiry='+1 year') {
         ARGS('s', func_get_args());
 
         $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime($expiry)));
+
+        return new \o\ONothing('setCacheHeader');
     }
 
     function u_nonce () {
@@ -263,12 +233,12 @@ class u_Web extends StdModule {
 
         // Normalize. Could be a single LocKString, OList, or a PHP array
         if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]); 
+            $chunks = OList::create([ $chunks ]);
         }
 
         $out = '';
         foreach ($chunks->val as $c) {
-            $out .= OLockString::getUnlocked($c);
+            $out .= OLockString::getUnlocked($c, '');
         }
         return $out;
     }
@@ -278,6 +248,8 @@ class u_Web extends StdModule {
 
         $this->u_set_header('Content-Type', 'application/json');
         $this->output(json_encode(uv($map)));
+
+        return new \o\ONothing('sendJson');
     }
 
     function u_send_text ($text) {
@@ -286,6 +258,7 @@ class u_Web extends StdModule {
         $this->u_set_header('Content-Type', 'text/plain');
 
         $this->output($text);
+        return new \o\ONothing('sendText');
     }
 
     function u_send_css ($chunks) {
@@ -297,6 +270,7 @@ class u_Web extends StdModule {
 
         $out = $this->renderChunks($chunks);
         $this->output($out);
+        return new \o\ONothing('sendCss');
     }
 
     function u_send_js ($chunks) {
@@ -311,16 +285,19 @@ class u_Web extends StdModule {
         $out .= "\n})();";
 
         $this->output($out);
+        return new \o\ONothing('sendJs');
     }
 
     function u_send_html ($html) {
-        $html = OLockString::getUnlocked($html);  
+        $html = OLockString::getUnlocked($html, 'html');
         $this->output($html);
+        return new \o\ONothing('sendHtml');
     }
 
     function u_danger_danger_send ($s) {
         ARGS('s', func_get_args());
         print $s;
+        return new \o\ONothing('dangerDangerSend');
     }
 
     // Print a well-formed HTML document with sensible defaults
@@ -328,7 +305,9 @@ class u_Web extends StdModule {
 
         ARGS('m', func_get_args());
 
-        $body = '';
+        $val = [];
+
+        $val['body'] = '';
 
         if ($doc['body']) {
             $chunks = [];
@@ -339,7 +318,7 @@ class u_Web extends StdModule {
             }
 
             foreach ($chunks as $c) {
-                $body .= OLockString::getUnlocked($c);
+                $val['body'] .= OLockString::getUnlocked($c, 'html');
             }
         }
 
@@ -348,63 +327,66 @@ class u_Web extends StdModule {
         //     return;
         // }
 
-        $css = $this->assetTags(
+        $val['css'] = $this->assetTags(
             'css',
             $doc['css'],
             '<link rel="stylesheet" href="{URL}" />',
             '<style nonce="{NONCE}">{BODY}</style>'
         );
 
-        $js = $this->assetTags(
+        $val['js'] = $this->assetTags(
             'js',
             $doc['js'],
             '<script src="{URL}" nonce="{NONCE}"></script>',
             '<script nonce="{NONCE}">{BODY}</script>'
         );
 
-        $title = $doc['title'];
-        $description = isset($doc['description']) ?: '';
+        $val['title'] = $doc['title'];
+        $val['description'] = isset($doc['description']) ? $doc['description'] : '';
 
         // TODO: get updateTime of the files
         // TODO: allow base64 urls
         // $cacheTag = '?cache=' . Source::getAppCompileTime();
         $cacheTag = '';
 
-        $image = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
-        $icon = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
-        // $jsData = Tht::module('Js')->serializeData();
+        $val['image'] = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
+        $val['icon'] = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
 
         $bodyClasses = uv($doc['bodyClasses']) ?: [];
-        $bodyClass = implode(' ', $bodyClasses);
-        $bodyClass = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $bodyClass); // TODO: call a lib to untaint instead
+        $val['bodyClass'] = implode(' ', $bodyClasses);
+        // TODO: call a lib to untaint instead
+        $val['bodyClass'] = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $val['bodyClass']);
 
-        
-
-        $comment = '';
+        $val['comment'] = '';
         if (isset($doc['comment'])) {
-            $comment = "<!--\n\n" . v(v(v($doc['comment'])->u_unlocked())->u_indent(4))->u_trim_right() . "\n\n-->";
+            $val['comment'] = "\n<!--\n\n" . v(v(v($doc['comment'])->u_stringify())->u_indent(4))->u_trim_right() . "\n\n-->";
         }
 
-        $out = <<<HTML
-<!doctype html>
-$comment
+        $out = $this->pageTemplate($val);
+
+        $this->output($out);
+
+        return new \o\ONothing('sendPage');
+    }
+
+    function pageTemplate($val) {
+        return <<<HTML
+<!doctype html>$val[comment]
 <html>
 <head>
-<title>$title</title>
-<meta name="description" content="$description"/>
+<title>$val[title]</title>
+<meta name="description" content="$val[description]"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta property="og:title" content="$title"/>
-<meta property="og:description" content="$description"/>
-$image $icon $css
+<meta property="og:title" content="$val[title]"/>
+<meta property="og:description" content="$val[description]"/>
+$val[image] $val[icon] $val[css]
 </head>
-<body class="$bodyClass">
-$body
-$js
+<body class="$val[bodyClass]">
+$val[body]
+$val[js]
 </body>
 </html>
 HTML;
-
-        $this->output($out);
     }
 
     function u_send_error ($code, $title='') {
@@ -432,25 +414,28 @@ HTML;
             }
 
             ?><html><head><title><?= $title ?></title></head><body>
-            <div style="text-align: center; font-family: <?= u_Css::u_sans_serif_font() ?>;">
+            <div style="text-align: center; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
             <h1 style="margin-top: 40px;"><?= $title ?></h1>
             <div style="margin-top: 40px"><a style="text-decoration: none; font-size: 20px;" href="/">Home Page</a></div></div>
             </body></html><?php
         }
 
-        exit(1);
+        Tht::exitScript(1);
     }
 
     // print css & js tags
     function assetTags ($type, $paths, $incTag, $blockTag) {
 
         $paths = uv($paths);
-
-        if (!$paths) { return ''; }
-
         if (!is_array($paths)) {
-            $paths = [$paths];
+            $paths = !$paths ? [] : [$paths];
         }
+        if ($type == 'js') {
+            $jsData = Tht::module('Js')->u_plugin('jsData');
+            if ($jsData) { array_unshift($paths, $jsData); }
+        }
+
+        if (!count($paths)) { return ''; }
 
         $nonce = Tht::module('Web')->u_nonce();
 
@@ -459,7 +444,10 @@ HTML;
         foreach ($paths as $path) {
             if (OLockString::isa($path)) {
                 // Inline it in the HTML document
-                $str = OLockString::getUnlocked($path);
+                $str = OLockString::getUnlocked($path, $type);
+                if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
+                    $str = "(function(){" + $str + "})();";
+                }
                 $tag = str_replace('{BODY}', $str, $blockTag);
                 $tag = str_replace('{NONCE}', $nonce, $tag);
                 $blocks []= $tag;
@@ -467,7 +455,7 @@ HTML;
             else {
 
                 if (preg_match('/^http(s?):/i', $path)) {
-                    
+
                 } else {
                     // Link to asset, with cache time set to file modtime
                     $basePath = preg_replace('/\?.*/', '', $path);
@@ -502,10 +490,8 @@ HTML;
     }
 
     function endGzip ($forceGzip=false) {
-        if ($forceGzip || Tht::getConfig('compressOutput')) {
-            if ($this->gzipBufferOpen) {
-                ob_end_flush();
-            }
+        if ($this->gzipBufferOpen) {
+            ob_end_flush();
         }
     }
 
@@ -517,10 +503,14 @@ HTML;
     // --------------------------------------------
 
     function u_parse_html($raw) {
+        ARGS('*', func_get_args());
         return Tht::parseTemplateString('html', $raw);
     }
 
     function u_table ($rows, $keys, $headings=[], $class='') {
+
+        ARGS('llls', func_get_args());
+
         $class = preg_replace('/[^a-zA-Z0-9_-]/', '', $class);  // [security]
 
         $str = "<table class='$class'>\n";
@@ -529,14 +519,14 @@ HTML;
         $headings = uv($headings);
         $str .= '<tr>';
         foreach ($headings as $h) {
-            $str .= '<th>' . $h . '</th>';
+            $str .= '<th>' . htmlspecialchars($h) . '</th>';
         }
         $str .= '</tr>';
         foreach ($rows as $row) {
             $str .= '<tr>';
             $row = uv($row);
             foreach ($keys as $k) {
-                $str .= '<td>' . (isset($row[$k]) ? $row[$k] : '') . '</td>';
+                $str .= '<td>' . (isset($row[$k]) ? htmlspecialchars($row[$k]) : '') . '</td>';
             }
             $str .= '</tr>';
         }
@@ -545,28 +535,35 @@ HTML;
         return new \o\HtmlLockString ($str);
     }
 
-    function u_link($label, $url) {
-        if ($label === '') {
-            $label = $url;
-        }
-        $url   = v($url)->u_encode_html();
-        $label = v($label)->u_encode_html();
+    function u_link($lUrl, $label=null, $params=null) {
 
-        $str = "<a href=\"$url\">$label</a>";
-        return new \o\HtmlLockString ($str);
+        ARGS('*sl', func_get_args());
+
+        OLockString::getUnlocked($lUrl, 'url');
+
+        if (is_null($label)) {
+            $label = $lUrl->u_unlocked();
+        }
+        $str = '<a href="{}">{}</a>';
+        $html = OLockString::create('html', $str);
+        $html->u_fill($lUrl, $label);
+        return $html;
     }
 
-    function u_breadcrumbs($links, $joiner = '&gt;') {
+    function u_breadcrumbs($links, $joiner = ' > ') {
+        ARGS('l*', func_get_args());
         $aLinks = [];
         foreach ($links as $l) {
-            $aLinks []= Tht::module('Web')->u_link($l['label'], $l['url'])->u_unlocked();
+            $aLinks []= Tht::module('Web')->u_link($l['url'], $l['label'])->u_stringify();
         }
 
-        $joiner = '<span class="breadcrumbs-joiner">' . v($joiner)->u_unlocked() . '</span>';
+        // TODO: joiner can be string (escape) or HtmlLockString
+
+        $joiner = '<span class="breadcrumbs-joiner">' . v($joiner)->u_stringify() . '</span>';
         $h = implode($aLinks, $joiner);
         $h = "<div class='breadcrumbs'>$h</div>";
 
-        return OLockString::create('\o\HtmlLockString', $h);
+        return OLockString::create('html', $h);
     }
 
     // DO NOT REMOVE
@@ -633,10 +630,13 @@ HTML;
     }
 
     function u_get_icons() {
+        ARGS('', func_get_args());
         return array_keys($this->icons());
     }
 
     function u_icon($id) {
+
+        ARGS('s', func_get_args());
 
         $icons = $this->icons();
 
@@ -649,9 +649,9 @@ HTML;
         return new \o\HtmlLockString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
     }
 
-
-
     function u_mask_email($email) {
+
+        ARGS('s', func_get_args());
 
         // TODO: show placeholder if not logged in user
         // if (!Tht::module('User')->u_logged_in() && $placeholder) {
@@ -677,8 +677,8 @@ HTML;
         return new HtmlLockString ($xe);
     }
 
-
     function u_route_param ($key) {
+        ARGS('s', func_get_args());
         return WebMode::getWebRouteParam($key);
     }
 
@@ -690,6 +690,7 @@ HTML;
 
 
     function u_form ($formId, $schema=null) {
+        ARGS('sm', func_get_args());
         if (is_null($schema)) {
             if (isset($this->forms[$formId])) {
                 return $this->forms[$formId];
@@ -728,7 +729,7 @@ HTML;
         }
 
         $rawVal = trim(Tht::getPhpGlobal($method, $name, false));
-        
+
         $schema = ['rule' => $sRules];
         $validator = new u_FormValidator ();
         $validated = $validator->validateField($name, $rawVal, $schema);
