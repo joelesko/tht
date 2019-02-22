@@ -55,7 +55,7 @@ class Security {
 		$token = Tht::module('Session')->u_get('csrfToken', '');
         if (empty($token)) {
             $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
-            Tht::module('Session')->u_set('csrfToken', $token); 
+            Tht::module('Session')->u_set('csrfToken', $token);
         }
 
         return $token;
@@ -71,9 +71,9 @@ class Security {
 
 	// Length = final string length, not byte length
 	static function randomString($len) {
-		    
+
         $bytes = '';
-        
+
         if (function_exists('random_bytes')) {
             $bytes = random_bytes($len);
         } else if (function_exists('mcrypt_create_iv')) {
@@ -81,7 +81,7 @@ class Security {
         } else {
             $bytes = openssl_random_pseudo_bytes($len);
         }
-        
+
         $b64 = base64_encode($bytes);
 
         return substr($b64, 0, $len);
@@ -145,16 +145,19 @@ class Security {
 
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
-        if (!strlen($path)) {
+        if (preg_match('/[^a-zA-Z0-9_\-\/\.:]/', $path)) {
+            Tht::error("Illegal character in path: `$path`");
+        }
+        else if (!strlen($path)) {
             Tht::error("File path cannot be empty: `$path`");
         }
-        if (v($path)->u_is_url()) {
+        else if (v($path)->u_is_url()) {
             Tht::error("Remote URL not allowed: `$path`");
         }
-		if (strpos($path, '..') !== false) {
+		else if (strpos($path, '..') !== false) {
             Tht::error("Parent shortcut `..` not allowed in path: `$path`");
         }
-        if (strpos($path, './') !== false) {
+        else if (strpos($path, './') !== false) {
             Tht::error("Dot directory `.` not allowed in path: `$path`");
         }
 
@@ -170,7 +173,7 @@ class Security {
 
         if ($path[0] !== '/') {
             return Tht::path('files', $path);
-        } 
+        }
         else {
             $sandboxDir = Tht::path('files');
             if (strpos($path, $sandboxDir) !== 0) {
@@ -181,7 +184,7 @@ class Security {
     }
 
     // TODO: Validate that form is submit by human?
-    static function isCrossOrigin () {  
+    static function isCrossOrigin () {
 
         if (!is_null(self::$isCrossOrigin)) {
             return self::$isCrossOrigin;
@@ -257,7 +260,7 @@ class Security {
     }
 
     static function validatePhpIni() {
-        
+
         // Configs that are only set in .ini or .htaccess
         // Trigger an error if PHP is more strict than Tht.
         $thtMaxPostSize = intval(Tht::getConfig('maxPostSizeMb'));
@@ -285,6 +288,152 @@ class Security {
         $f = new u_File ();
         $f->dangerDangerDisableSandbox();
     	ModuleManager::registerStdModule('*File', $f);
+    }
+
+    // https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet
+    static function validateUserUrl($sUrl) {
+
+        $sUrl = trim($sUrl);
+        $url = self::parseUrl($sUrl);
+        $sUrl = urldecode($sUrl);
+
+        if (!preg_match('!^https?\://!i', $sUrl)) {
+            // must be absolute, http
+            return false;
+        }
+        else if (preg_match('!\.\.!', $sUrl)) {
+            // No parent '..' patterns
+            return false;
+        }
+        else if (preg_match('![\'\"\0\s<>\\]!', $sUrl)) {
+            // Illegal characters
+            return false;
+        }
+        else if (strpos('&#', $sUrl) !== false) {
+            // No HTML escapes allowed
+            return false;
+        }
+        else if (strpos('%', $url['host']) !== false) {
+            // No escapes allowed in host
+            return false;
+        }
+        else if (preg_match('!^[0-9\.fxFX]+$!', $url['host'])) {
+            // Can not be IP address
+            return false;
+        }
+        else if (preg_match('!\.(loan|work|click|gdn|date|men|gq|world|life|bid)!i', $url['host'])) {
+            // High spam TLD
+            // https://www.spamhaus.org/statistics/tlds/
+            return false;
+        }
+        else if (preg_match('!\.(zip|doc|xls|pdf|7z)!i', $sUrl)) {
+            // High-risk file extension
+            return false;
+        }
+
+        return true;
+    }
+
+    // prevent the most common password mistakes
+    static function validatePasswordStrength($val) {
+
+        // all same character
+        if (preg_match("/^(.)\\\\1{1,}$/", $val)) {
+            return false;
+        }
+        // all digits
+        else if (preg_match("/^\\d+$/", $val)) {
+            return false;
+        }
+        // most common patterns
+        else if (preg_match("/^(abcd|abc1|qwer|asdf|1qaz|passw|admin|login|welcome|access)/i", $val)) {
+            return false;
+        }
+        // most common passwords
+        else if (preg_match("/^(football|baseball|princess|starwars|trustno1|superman|iloveyou)$/i", $val)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    static function sanitizeHash($hash) {
+        $hash = preg_replace('![^a-z0-9\-]!', '-', strtolower($hash));
+        $hash = rtrim($hash, '-');
+        return $hash;
+    }
+
+    static function parseUrl($url) {
+
+        // remove user
+        // https://www.cvedetails.com/cve/CVE-2016-10397/
+        // $url = preg_replace('!(\/+).*@!', '$1', $url);
+        // if (strpos($url, '@') !== false) {
+        //     $url = preg_replace('!.*@!', '', $url);
+        // }
+
+        $url = preg_replace('!\s+!', '', $url);
+
+        preg_match('!^(.*?)#(.*)$!', $url, $m);
+        if (isset($m[2])) {
+            $url = $m[1] . '#' . self::sanitizeHash($m[2]);
+        }
+
+        $u = parse_url($url);
+
+        unset($u['user']);
+
+        $fullUrl = rtrim($url, '/');
+        $u['full'] = $fullUrl;
+
+        $relativeUrl = preg_replace('#^.*?//.*?/#', '/', $fullUrl);
+        $u['relative'] = $relativeUrl;
+
+        if (!isset($u['path'])) {
+            $u['path'] = '';
+        }
+
+        // path parts
+        if ($u['path'] === '' || $u['path'] === '/') {
+            $u['pathParts'] = OList::create([]);
+            $u['page'] = '';
+        }
+        else {
+            $pathParts = explode('/', trim($u['path'], '/'));
+            $u['pathParts'] = OList::create($pathParts);
+            $u['page'] = end($pathParts);
+        }
+
+        // port
+        if (!isset($u['port'])) {
+            if (isset($u['scheme'])) {
+                if ($u['scheme'] == 'http') {
+                    $u['port'] = 80;
+                } else if ($u['scheme'] == 'https') {
+                    $u['port'] = 443;
+                } else {
+                    $u['port'] = 0;
+                }
+            } else {
+                $u['port'] = 80;
+            }
+        }
+
+        if (isset($u['fragment']) && $u['fragment']) {
+            $u['hash'] = $u['fragment'];
+            unset($u['fragment']);
+        } else {
+            $u['hash'] = '';
+        }
+
+        // remove hash & query
+        $u['full'] = preg_replace('!#.*!', '', $u['full']);
+        $u['full'] = preg_replace('!\?.*!', '', $u['full']);
+
+        // without the query & hash, this is effectively same as path
+        unset($u['relative']);
+
+        return $u;
     }
 }
 
