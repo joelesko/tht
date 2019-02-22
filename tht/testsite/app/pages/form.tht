@@ -1,10 +1,10 @@
 
 Web.form('testForm', {
-    name: {
-        label: 'Name',
-        type: 'text',
-        rule: 'text'
-    },
+    // name: {
+    //     label: 'Name',
+    //     type: 'text',
+    //     rule: 'text'
+    // },
     // sameName: {
     //     label: 'Same Name',
     //     type: 'text',
@@ -15,21 +15,21 @@ Web.form('testForm', {
     //     type: 'text',
     //     rule: 'text|different:name'
     // },
-    email: {
-        label: 'Email',
-        rule: 'email',
-        value: 'a@b.com',
-        help: 'Make sure it is valid!'
-    },
+    // email: {
+    //     label: 'Email',
+    //     rule: 'email',
+    //     value: 'a@b.com',
+    //     help: 'Make sure it is valid!'
+    // },
     // zip: {
     //     label: 'Zip Code',
     //     rule: 'optional|digits|min:5|max:10'
     // },
-    color: {
-        label: 'Color',
-        type: 'text',
-        rule: 'in:red,green,blue',
-    },
+    // color: {
+    //     label: 'Color',
+    //     type: 'text',
+    //     rule: 'in:red,green,blue',
+    // },
     // money: {
     //     label: 'Money',
     //     type: 'text',
@@ -45,17 +45,18 @@ Web.form('testForm', {
     accept: {
         type: 'checkbox',
         rule: 'accept',
-        options: ['I accept this thing.'],
+        options: ['I accept this thing.', 'And this other thing.'],
     },
-    // state: {
-    //     label: 'State',
-    //     type: 'select',
-    //     options: {
-    //         wi: 'Wisconsin',
-    //         fl: 'Florida',
-    //         ca: 'California'
-    //     }
-    // },
+    state: {
+        label: 'State',
+        type: 'select',
+        value: 'fl',
+        options: {
+            wi: 'Wisconsin',
+            fl: 'Florida',
+            ca: 'California'
+        }
+    },
 });
 
 
@@ -78,31 +79,32 @@ F main() {
 
     let html = '';
     if (Web.query('done')) {
-        let latest = MapDb.selectMaps('testForm', '', 20);
+        let latest = Session.get('formData');
         html = thanksHtml(latest);
     }
     else {
         html = formHtml(form);
     }
 
+    Js.data('form', { hello: 123, there: true });
+
     Web.sendPage({
         body: html,
         title: 'Test Form',
-        css: Css.include('base')
+        css: Css.include('base'),
     });
 }
 
 F ajax() {
     let form = Web.form('testForm');
     if (form.isOk()) {
-        // Save form
-        let id = MapDb.insertMap('testForm', 'name', form.data());
-        form.redirect('?done=1');
+       Session.set('formData', form.dataFields());
+       form.redirect(url''.query({ done: 1 }));
     }
 
     let form2 = Web.form('otherForm');
     if (form2.isOk()) {
-        form.redirect('?login=1');
+        form.redirect(url''.query({ login: 1 }));
     }
 }
 
@@ -145,20 +147,7 @@ T formHtml(form) {
         {{ f.close() }}
 
 
-
-        :: let form2 = Web.form('otherForm');
-
-        {{ form2.open('') }}
-
-            {{ form2.tags() }}
-
-            {{ form2.submit('Submit') }}
-
-        {{ form2.close() }}
-
     </></>
-
-
 }
 
 
@@ -234,7 +223,7 @@ T formHtml(form) {
 
     //         {{ loginForm.tag('userName') }}
     //         {{ loginForm.tag('password') }}
-          
+
     //         {{ loginForm.submit('Login', { class: 'button-large button-primary' }) }}
 
     //     {{ loginForm.close() }}
@@ -242,7 +231,7 @@ T formHtml(form) {
 
     // {{ Web.validateJs() }}
 
-  
+
 
     //     {{ Form.select('num', 'Select a Number', getOptions()) }}
     //     {{ Form.select('year', 'Select a Year', range(1950, Date.format('%Y').toNumber())) }}

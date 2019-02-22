@@ -4,6 +4,23 @@
         // /post/{postId}:  post.tht
     }
 
+    // Core settings
+    tht: {
+        // Server timezone
+        timezone: America/Los_Angeles
+
+        // Print performance timing info
+        showPerfScore: false
+
+        contentSecurityPolicy: x
+
+        memoryLimitMb: 32
+
+        _disablePhpCache: false
+        _phpErrors: true
+        _showPhpInTrace: true
+    }
+
     // Custom app settings.  Read via `Global.setting(key)`
     app: {
         num: -123.45
@@ -22,21 +39,6 @@
             line 1
             line 2
         '''
-    }
-
-    // Core settings
-    tht: {
-        // Server timezone
-        timezone: America/Los_Angeles
-
-        // Print performance timing info
-        showPerfScore: false
-
-        memoryLimitMb: 32
-
-        _disablePhpCache: true
-        _phpErrors: true
-        _showPhpInTrace: true
     }
 
     // Database settings
