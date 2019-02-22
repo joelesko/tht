@@ -171,7 +171,7 @@ class u_Db extends StdModule {
         }
         $row = isset($rows[0]) ? $rows[0] : '';
 
-        return $row;
+        return OMap::create($row);
     }
 
     function u_insert_row ($tTable, $fields){
@@ -195,7 +195,7 @@ class u_Db extends StdModule {
         $sql = "INSERT INTO $table ($sCols) VALUES ($sVals)";
 
         $lSql = new \o\SqlLockString ($sql);
-        $lSql->u_fill($fields);
+        $lSql->u_fill(v($fields));
 
         $this->query($lSql);
     }
@@ -203,7 +203,7 @@ class u_Db extends StdModule {
     function u_update_rows ($tTable, $vals, $lWhere) {
 
         $table = $this->untaintName($tTable, 'table');
-        $where = OLockString::getUnlocked($lWhere);
+        $where = OLockString::getUnlockedRaw($lWhere, 'sql');
 
         // create SET expression
         $cols = [];
@@ -215,7 +215,7 @@ class u_Db extends StdModule {
         }
         $sSets = join(", ", $sets);
 
-        $params = array_merge(uv($vals), $lWhere->getParams());
+        $params = array_merge(uv($vals), uv($lWhere->u_params()));
 
         if (strpos(strtolower($where), 'where') !== false) {
             Tht::error('Please remove `WHERE` keyword from `where` argument', array('table' => $table, 'where' => $where));
@@ -223,19 +223,19 @@ class u_Db extends StdModule {
 
         $sql = "UPDATE $table SET $sSets WHERE $where";
         $lSql = new \o\SqlLockString ($sql);
-        $lSql->u_fill($params);
+        $lSql->u_fill(v($params));
 
         $this->query($lSql);
     }
 
     function u_delete_rows ($tTable, $lWhere) {
 
-        $where = OLockString::getUnlocked($lWhere);
+        $where = OLockString::getUnlockedRaw($lWhere, 'sql');
         $table = $this->untaintName($tTable, 'table');
 
         $sql = "DELETE FROM $table WHERE $where";
         $lSql = new \o\SqlLockString ($sql);
-        $lSql->u_fill($lWhere->getParams());
+        $lSql->u_fill($lWhere->u_params());
 
         $this->query($lSql);
     }
@@ -248,8 +248,8 @@ class u_Db extends StdModule {
 
         Tht::module('Meta')->u_no_template_mode();
 
-        $sql = OLockString::getUnlocked($lockedSql);
-        $params = $lockedSql->getParams();
+        $sql = OLockString::getUnlockedRaw($lockedSql, 'sql');
+        $params = $lockedSql->u_params();
 
         $this->lastStatus['insertId'] = -1;
         $this->lastStatus['numRows'] = -1;
