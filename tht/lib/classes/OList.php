@@ -301,7 +301,7 @@ class OList extends OBag {
 
     function u_to_map() {
         ARGS('', func_get_args());
-        
+
         if (count($this->val) % 2 !== 0) {
             Tht::error('List.toMap() requires an even number of elements (key/value pairs).');
         }
@@ -337,7 +337,7 @@ class OList extends OBag {
         foreach ($list as $a) {
             if (!OList::isa($a)) {
                 $result []= $a;
-            } 
+            }
             else {
                 $result = array_merge($result, uv($this->flat($a, $depth, $maxDepth)));
             }
@@ -370,11 +370,11 @@ class OList extends OBag {
     function u_map ($fn) {
         return OList::create(array_map($fn, $this->val));
     }
-    
+
     function u_reduce ($fn, $initial) {
         return array_reduce($this->val, $fn, $initial);
     }
-    
+
     function u_filter ($fn) {
         $a = array_values(array_filter($this->val, $fn));
         return OList::create($a);
