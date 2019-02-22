@@ -29,14 +29,11 @@ class u_Net extends StdModule {
             $sHeaders .= "$k: $v\r\n";
         }
         return $sHeaders;
-	} 
+	}
 
     private function request($functionName, $method, $lUrl, $postData, $headers) {
 
-    	if (!OLockString::isa($lUrl)) {
-    		Tht::error('`' . $functionName . "()` expects a URL as a LockString. Ex: `L'...'`");
-    	}
-    	$url = OLockString::getUnlocked($lUrl);
+    	$url = OLockString::getUnlocked($lUrl, 'url');
         if (!preg_match('/http(s?):\/\//i', $url)) {
 			Tht::error('`' . $functionName . '()` expects a URL starting with `http://` or `https://`');
 		}
@@ -57,7 +54,7 @@ class u_Net extends StdModule {
 	        	$headers['Content-type'] = 'application/x-www-form-urlencoded';
 	        }
 		}
-        
+
         if (!is_string($postData)) {
             if (!OMap::isa($postData)) {
                 Tht::error('`postData` must be a String or a Map.');
