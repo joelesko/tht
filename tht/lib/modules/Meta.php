@@ -71,7 +71,7 @@ class u_Meta extends StdModule {
 
     function u_no_template_mode () {
         if (Runtime::inTemplate()) {
-            $this->callerError('can not be called in Template mode.');
+            $this->callerError('can not be called in Template mode. Try: Pass as data into the template.');
         }
         return true;
     }
