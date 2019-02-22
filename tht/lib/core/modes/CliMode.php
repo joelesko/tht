@@ -45,7 +45,7 @@ class CliMode {
     }
 
     static private function printUsage() {
- 
+
         echo "\n";
         echo "+---------------+\n";
         echo "|      THT      |\n";
@@ -59,7 +59,7 @@ class CliMode {
         echo "  server <port>   start the local test server on a custom port\n";
      // echo "tht run <filename>   (run script in scripts directory)\n";
         echo "\n";
-        exit(0);
+        Tht::exitScript(0);
     }
 
     static private function initOptions () {
@@ -85,12 +85,12 @@ class CliMode {
         if (file_exists(Tht::path('app'))) {
             echo "\nA THT app directory already exists:\n  " .  Tht::path('app') . "\n\n";
             echo "To start over, just delete or move that directory. Then rerun this command.\n\n";
-            exit(1);
+            Tht::exitScript(1);
         }
 
         if (!Tht::module('System')->u_confirm("\nYour Document Root is:\n  " . Tht::path('docRoot') . "\n\nInstall THT app for this directory?")) {
             echo "\nPlease 'cd' to your public Document Root directory.  Then rerun this command.\n\n";
-            exit(0);
+            Tht::exitScript(0);
         }
 
         usleep(500000);
@@ -127,7 +127,7 @@ class CliMode {
             define('APP_ROOT', '$appRoot');
             define('DATA_ROOT', '$dataRoot');
             define('THT_RUNTIME', '$thtMain');
-            
+
             return require_once(THT_RUNTIME);
 
             ");
@@ -158,10 +158,10 @@ class CliMode {
 
             // We are doing compression for THT-processed files
             //
-            // # Compression 
+            // # Compression
             // <IfModule mod_deflate.c>
             //     <IfModule mod_filter.c>
-            //         AddOutputFilterByType DEFLATE 
+            //         AddOutputFilterByType DEFLATE
             //           \"application/javascript\" \
             //           \"application/json\" \
             //           \"text/css\" \
@@ -285,7 +285,7 @@ class CliMode {
                 echo "Move or delete your app directories before trying again:\n\n  " . Tht::path('app');
                 echo "\n\n";
             }
-            exit(1);
+            Tht::exitScript(1);
         }
 
         echo "\n\n";
@@ -298,7 +298,7 @@ class CliMode {
         echo "*  Or run 'tht server' to start a local web server.";
         echo "\n\n";
 
-        exit(0);
+        Tht::exitScript(0);
     }
 
     static private function writeSetupFile($name, $content) {
@@ -356,12 +356,12 @@ class CliMode {
         }
         else if ($port < 8000 || $port >= 9000) {
             echo "\nServer port must be in the range of 8000-8999.\n\n";
-            exit(1);
+            Tht::exitScript(1);
         }
 
         if (!CliMode::isAppInstalled()) {
             echo "\nCan't find app directory.  Please `cd` to your your document root and try again.\n\n";
-            exit(1);
+            Tht::exitScript(1);
         }
 
         echo "\n";
