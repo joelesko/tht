@@ -22,7 +22,9 @@ class u_Test extends StdModule {
     }
 
     function u_stats() {
-        return $this->stats;
+        $s = OMap::create($this->stats);
+        $s['total'] = $s['numPassed'] + $s['numFailed'];
+        return $s;
     }
 
     function u_ok ($expression, $msg) {
@@ -102,7 +104,7 @@ class u_Test extends StdModule {
 
         $this->u_section('Results');
 
-        $str = '<style> .test-result { font-family:' . u_Css::u_monospace_font() . "}\n\n </style>\n\n";
+        $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_monospace_font() . "}\n\n </style>\n\n";
         foreach ($this->out as $l) {
             if (isset($l['section'])) {
                 if (Tht::isMode('web')) {
