@@ -156,10 +156,10 @@ class Parser {
 
     // TODO: probably need to refactor duplication between parseMain & parseBlock
     function validateOneStatementPerLine($sStatement) {
-        if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TSTRING) { 
+        if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TSTRING) {
             $lineNum = explode(',', $sStatement->token[TOKEN_POS])[0];
             if ($this->prevLineWithStatement == $lineNum) {
-                $this->error('Only one semicolon statement allowed per line.', $sStatement->token, true); 
+                $this->error('Only one semicolon statement allowed per line.', $sStatement->token, true);
             }
             $this->prevLineWithStatement = $lineNum;
         }
@@ -240,7 +240,7 @@ class Parser {
             $symbol = new S_Literal ($token, $this, $tokenType);
         }
         else if ($tokenType === TokenType::TSTRING) {
-            $symbol = new S_TString ($token, $this);
+            $symbol = new S_TemplateString ($token, $this);
         }
         else if (isset(ParserData::$SYMBOL_CLASS[$tokenValue])) {
             $symbolClass = 'o\\' . ParserData::$SYMBOL_CLASS[$tokenValue];
