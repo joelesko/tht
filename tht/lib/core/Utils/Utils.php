@@ -87,14 +87,14 @@ function hasu_ ($v) {
 function ARGS($sig, $arguments) {
 
     $err = '';
-    
+
     if (count($arguments) > strlen($sig)) {
         $err = 'expects ' . strlen($sig) . ' arguments.  Got ' . count($arguments) . ' instead.';
-    } 
+    }
     else {
         $i = 0;
         foreach ($arguments as $arg) {
-            
+
             $s = $sig[$i];
 
             if ($s === '*') { continue; }
@@ -103,10 +103,9 @@ function ARGS($sig, $arguments) {
             $t = gettype($arg);
 
             if ($t === 'integer' || $t === 'double' || $t === 'float') {
-                $t = 'number';  
+                $t = 'number';
                 if ($s === 's') {
-                    // allow numbers to be cast as strings
-                    $t = 'string';
+                    $t = 'string';  // allow numbers to be cast as strings
                 }
             }
             else if ($t === 'boolean') {
@@ -121,7 +120,7 @@ function ARGS($sig, $arguments) {
                     $t = 'list';
                 }
             }
- 
+
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
                 $name = $t;
