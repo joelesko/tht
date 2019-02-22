@@ -66,7 +66,7 @@ class u_Jcon extends StdModule {
     function parse($text) {
         Tht::module('Perf')->start('Jcon.parse', $text);
 
-        $text = OLockString::getUnlocked($text, true);
+        $text = OLockString::getUnlockedNoError($text);
 
         $text = trim($text);
 
@@ -98,7 +98,7 @@ class u_Jcon extends StdModule {
         }
 
         if (!count($this->leaf)) {
-            print $text; exit();
+            Tht::error('Unable to parse JCON.');
         }
 
          return $this->leaf[0];
@@ -185,8 +185,8 @@ class u_Jcon extends StdModule {
             $val = $l;
             if ($this->context['type'] == 'map') {
                 $parts = explode(':', $l, 2);
-                if (count($parts) < 2) { 
-                    $this->error("Missing colon `:`"); 
+                if (count($parts) < 2) {
+                    $this->error("Missing colon `:`");
                 }
                 $key = $parts[0];
 
