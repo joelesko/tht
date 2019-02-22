@@ -4,21 +4,20 @@ namespace o;
 
 class OTemplate {
     protected $chunks = [];
-    protected $returnClass = 'OLockString';
+    protected $returnLockType = '_';
 
     function getString() {
         $str = '';
         foreach ($this->chunks as $c) {
-            $str .= $c['type'] === 'static' ? $c['body'] : $this->handleDynamic($c['body']);
+            $str .= $c['type'] === 'static' ? $c['body'] : $this->handleDynamic($c['context'], $c['body']);
         }
         $str = $this->postProcess($str);
         if (is_string($str)) {
             $str = v($str)->u_trim_indent() . "\n";
         }
 
-        if ($this->returnClass) {
-            $retClass = 'o\\' . $this->returnClass;
-            return OLockString::create($retClass, $str);
+        if ($this->returnLockType) {
+            return OLockString::create($this->returnLockType, $str);
         } else {
             return $str;
         }
@@ -29,28 +28,28 @@ class OTemplate {
         $this->chunks []= ['type' => 'static', 'body' => $s];
     }
 
-    function addDynamic ($s) {
-        $this->chunks []= ['type' => 'dynamic', 'body' => $s];
+    function addDynamic ($context, $s) {
+        $this->chunks []= ['type' => 'dynamic', 'body' => $s, 'context' => $context];
     }
 
-    function handleDynamic($in) {
+    function handleDynamic($context, $in) {
 
         if (OList::isa($in)) {
             $out = '';
             foreach ($in as $chunk) {
-                $out .= $this->handleDynamic($chunk);
+                $out .= $this->handleDynamic($context, $chunk);
             }
             return $out;
         }
         else if (OLockString::isa($in)) {
-            return $this->handleLockString($in);
+            return $this->handleLockString($context, $in);
         }
         else {
-            return $this->escape($in);
+            return $this->escape($context, $in);
         }
     }
 
-    function escape($in) {
+    function escape($context, $in) {
         return $in;
     }
 
@@ -58,82 +57,78 @@ class OTemplate {
         return $s;
     }
 
-    function handleLockString($s) {
-        return OLockString::getUnlocked($s);
+    function handleLockString($context, $s) {
+        $plain = OLockString::getUnlocked($s, '');
+        if ($s->u_lock_type() == $this->returnLockType) {
+            return $plain;
+        }
+        else {
+            return $this->escape($context, $plain);
+        }
     }
 }
+
 
 
 ////////// TYPES //////////
 
-
+class TemplateLite extends TemplateHtml {}
 
 class TemplateHtml extends OTemplate {
-    protected $returnClass = 'HtmlLockString';
+    protected $returnLockType = 'html';
 
-    function escape($in) {
-        // TODO: if in tag, wrap in quotes
-        return htmlspecialchars($in, ENT_QUOTES, 'UTF-8');
+    function escape($context, $in) {
+        $esc = htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        if ($context == 'tag') {
+            $alpha = preg_replace('/[^a-z:]/', '', strtolower($in));
+            if (strpos($alpha, 'javascript:') !== false) {
+                $esc = '(REMOVED:UNSAFE_URL)';
+            }
+            $esc = '"' . $esc . '"';
+        }
+        return $esc;
     }
 
-    function handleLockString($s) {
+    function handleLockString($context, $s) {
+
         // if js or css, wrap in appropriate block tags
-        $cls = get_class($s);
+        $unlocked = OLockString::getUnlocked($s, '');
 
-        $unlocked = OLockString::getUnlocked($s);
-
-        if ($cls === 'o\\CssLockString') {
-            $nonce = Tht::module('Web')->u_nonce();
-            return "<style nonce=\"$nonce\">" . $unlocked . "</style>\n";
+        $type = $s->u_lock_type();
+        if ($type == 'html') {
+            return $unlocked;
         }
-        if ($cls === 'o\\JsLockString') {
+        else if ($type == 'css') {
             $nonce = Tht::module('Web')->u_nonce();
-            return "<script nonce=\"$nonce\">\n(function(){\n" . $unlocked . "\n})();\n</script>\n";
+            return "<style nonce=\"$nonce\">" . Tht::module('Css')->u_minify($unlocked) . "</style>\n";
+        }
+        else if ($type == 'js') {
+            $nonce = Tht::module('Web')->u_nonce();
+            return "<script nonce=\"$nonce\">\n(function(){\n" . Tht::module('Js')->u_minify($unlocked) . "\n})();\n</script>\n";
         }
 
-        return $unlocked;
+        return $this->escape($context, $unlocked);
     }
 }
 
-
 class TemplateJs extends OTemplate {
-    protected $returnClass = 'JsLockString';
-
-    function escape($in) {
-        if (is_bool($in)) {
-            return $in ? 'true' : 'false';
-        } else if (is_object($in)) {
-            return json_encode($in->val);
-        } else if (is_array($in)) {
-            return json_encode($in);
-        } else if (is_string($in)) {
-            $in = str_replace('"', '\\"', $in);
-            $in = str_replace("\n", '\\n', $in);
-            return "\"$in\"";
-        } else if (is_numeric($in)){
-            return $in;
-        } else {
-            Tht::error('Unable to escape expression in JS template', $in);
-        }
+    protected $returnLockType = 'js';
+    function escape($context, $in) {
+        return Tht::module('Js')->escape($in);
     }
 }
 
 class TemplateCss extends OTemplate {
-    protected $returnClass = 'CssLockString';
-
-    function escape($in) {
-        $in = preg_replace('/[;\{\}]/', '', $in);
-        return $in;
+    protected $returnLockType = 'css';
+    function escape($context, $in) {
+        return Tht::module('Css')->escape($in);
     }
 }
 
-
-class TemplateLite extends TemplateHtml {}
-
 class TemplateJcon extends OTemplate {
-    protected $returnClass = '';
+    protected $returnLockType = '';
 
-    function escape($in) {
+    function escape($context, $in) {
         if (is_bool($in)) {
             return $in ? 'true' : 'false';
         } else if (is_numeric($in) || is_string($in)) {
@@ -150,15 +145,11 @@ class TemplateJcon extends OTemplate {
 }
 
 class TemplateText extends OTemplate {
-    protected $returnClass = '';
+    protected $returnLockType = '';
 
     function postProcess($s) {
         return $s;
     }
 }
-
-
-
-
 
 
