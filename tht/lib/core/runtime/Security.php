@@ -13,6 +13,8 @@ class Security {
     static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
+    static private $THROTTLE_POST_SECS = 1;
+
     static private $isCrossOrigin = null;
     static private $isCsrfTokenValid = null;
 
@@ -23,6 +25,7 @@ class Security {
         'call_user_func',
         'call_user_func_array',
         'create_function',
+        'dl',
         'eval',
         'exec',
         'extract',
@@ -48,7 +51,7 @@ class Security {
     ];
 
     // Filter super globals and move them to internal data
-    static function initPhpGlobals () {
+    static function initRequestData () {
 
         $data = [
             'get'    => $_GET,
@@ -134,10 +137,10 @@ class Security {
         ini_set('session.sid_length',      self::$SESSION_ID_LENGTH);
     }
 
-    static function sanitizeString($str) {
+    static function sanitizeInputString($str) {
         if (is_array($str)) {
             foreach ($str as $k => $v) {
-                $str[$k] = self::sanitizeString($v);
+                $str[$k] = self::sanitizeInputString($v);
             }
         } else if (is_string($str)) {
             $str = str_replace(chr(0), '', $str);  // remove null bytes
@@ -218,7 +221,44 @@ class Security {
         }
     }
 
-    // TODO: Validate that form is submit by human?
+    static function validateRequest() {
+
+        $web = Tht::module('Web');
+
+        if ($web->u_request()['method'] === 'get') {
+            return;
+        }
+
+        if (Security::isCrossOrigin()) {
+            $web->u_send_error(403, 'Remote Origin Not Allowed');
+        }
+        else if (!Security::validateCsrfToken()) {
+            $web->u_send_error(403, 'Invalid or Missing CSRF Token');
+        }
+        else if (Security::isPossibleBruteForce()) {
+            $web->u_send_error(429, 'Too Many Requests', 'Must wait 2 seconds between POST requests.');
+        }
+    }
+
+    // https://stackoverflow.com/questions/549/the-definitive-guide-to-form-based-website-authentication
+    // See part VI, on brute force attempts
+    // Just a simple speed bump -- fast enough to not be noticeable by humans.
+    static function isPossibleBruteForce() {
+
+        // Keep this very general (IP), so that it can't be invalidated client-side
+        $userKey = 'lastPostTime:' . Tht::module('Web')->u_request()['ip'];
+
+        $lastPostTime = Tht::module('Cache')->u_get($userKey, 0);
+        $now = microtime(true);
+        $threshTime = $lastPostTime + self::$THROTTLE_POST_SECS;
+        $isTooSoon = $now < $threshTime;
+
+        $cacheTtlSecs = ceil(self::$THROTTLE_POST_SECS + 5);
+        $cache->u_set($userKey, $now, $cacheTtlSecs);
+
+        return $isTooSoon;
+    }
+
     static function isCrossOrigin () {
 
         if (!is_null(self::$isCrossOrigin)) {
@@ -228,11 +268,11 @@ class Security {
         $web = Tht::module('Web');
 
         if ($web->u_request()['method'] !== 'get') {
-           $host  = $web->u_request_header('host');
-           $origin = $web->u_request_header('origin');
+           $host  = Tht::getWebRequestHeader('host');
+           $origin = Tht::getWebRequestHeader('origin');
            $origin = preg_replace('/^https?:\/\//i', '', $origin);
            if (!$origin) {
-               $referrer = $web->u_request_header('referrer');
+               $referrer = Tht::getWebRequestHeader('referrer');
 
                if (strpos($referrer, $host)) {
                    self::$isCrossOrigin = false;

@@ -14,7 +14,7 @@ class Tht {
     static private $startTime = 0;
 
     static private $data = [
-        'phpGlobals'     => [],
+        'requestData'    => [],
         'config'         => [],
         'requestHeaders' => [],
         'memoryBuffer'   => ''
@@ -89,11 +89,11 @@ class Tht {
         Tht::loadLib('utils/StringReader.php');
         Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
 
-        Tht::loadLib('ErrorHandler.php');
-        Tht::loadLib('Source.php');
-        Tht::loadLib('Runtime.php');
-        Tht::loadLib('ModuleManager.php');
-        Tht::loadLib('Security.php');
+        Tht::loadLib('runtime/ErrorHandler.php');
+        Tht::loadLib('runtime/Source.php');
+        Tht::loadLib('runtime/Runtime.php');
+        Tht::loadLib('runtime/ModuleManager.php');
+        Tht::loadLib('runtime/Security.php');
 
         Tht::loadLib('../classes/_index.php');
         Tht::loadLib('../modules/_index.php');
@@ -170,7 +170,7 @@ class Tht {
 
         Tht::initMemoryBuffer();
         Tht::initErrorHandler();
-        Tht::initPhpGlobals();
+        Tht::initRequestData();
         Tht::initHttpRequestHeaders();
         Tht::initAppPaths();
         Tht::initAppConfig();
@@ -230,8 +230,8 @@ class Tht {
     // INITS
     //---------------------------------------------
 
-    static private function initPhpGlobals() {
-        Tht::$data['phpGlobals'] = Security::initPhpGlobals();
+    static private function initRequestData() {
+        Tht::$data['requestData'] = Security::initRequestData();
     }
 
     static private function initMode() {
@@ -616,21 +616,21 @@ class Tht {
         return Tht::$data['config'];
     }
 
-    static function getPhpGlobal ($g, $key, $def='') {
+    static function getPhpGlobal ($g, $key) {
 
-        if (!isset(Tht::$data['phpGlobals'][$g])) {
+        if (!isset(Tht::$data['requestData'][$g])) {
             return $def;
         }
-        $val = Tht::$data['phpGlobals'][$g];
+        $val = Tht::$data['requestData'][$g];
 
         if ($key !== '*') {
             if (!isset($val[$key])) {
-                return $def;
+                return '';
             }
             $val = $val[$key];
         }
 
-        $val = Security::sanitizeString($val);
+        $val = Security::sanitizeInputString($val);
 
         return $val;
     }

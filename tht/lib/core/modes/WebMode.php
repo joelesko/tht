@@ -46,7 +46,7 @@ class WebMode {
 
         // skip bots
         $botRx = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
-        if (preg_match($botRx, $req['userAgent'])) { return; }
+        if (preg_match($botRx, $req['userAgent']['full'])) { return; }
 
         $counterDir = DATA_ROOT . '/counter';
 
@@ -56,7 +56,7 @@ class WebMode {
         file_put_contents($dateLogPath, '+', FILE_APPEND|LOCK_EX);
 
         // page counter - 1 byte per hit
-        $page = $req['url']->u_parts()['path'];
+        $page = $req['url']['path'];
         if (strpos($page, '.') !== false) { return; }
         $page = preg_replace('#/+#', '__', $page);
         $page = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $page);
@@ -118,7 +118,7 @@ class WebMode {
 
     static private function getScriptPath() {
 
-        $path = Tht::module('Web')->u_request()['url']->u_parts()['path'];
+        $path = Tht::module('Web')->u_request()['url']['path'];
 
         // Validate route name
         // all lowercase, no special characters, hyphen separators, no trailing slash

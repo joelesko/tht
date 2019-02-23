@@ -52,7 +52,7 @@ class u_Test extends StdModule {
 
         $trapped = ErrorHandler::endTrapErrors();
 
-        return $this->u_ok($ex || $trapped, $msg);
+        return $this->u_ok($ex || $trapped, 'dies - ' . $msg);
     }
 
     function parserDies ($code, $match, $isFuzzy = false) {

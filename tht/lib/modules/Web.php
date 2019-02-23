@@ -27,7 +27,7 @@ class u_Web extends StdModule {
                 'ip'          => $ips[0],
                 'ips'         => $ips,
                 'isHttps'     => $this->isHttps(),
-                'userAgent'   => Tht::getPhpGlobal('server', 'HTTP_USER_AGENT'),
+                'userAgent'   => $this->parseUserAgent(Tht::getPhpGlobal('server', 'HTTP_USER_AGENT')),
                 'method'      => strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD')),
                 'referrer'    => Tht::getPhpGlobal('server', 'HTTP_REFERER', ''),
                 'languages'   => $this->languages(),
@@ -36,14 +36,7 @@ class u_Web extends StdModule {
                 'url'         => '',  // see below
             ];
 
-            $relativeUrl = $this->relativeUrl();
-            $scheme = $r['isHttps'] ? 'https' : 'http';
-            $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
-            $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
-
-            $r['url'] = new UrlLockString($fullUrl); // Security::parseUrl($fullUrl);
-
-        //    print_r($r); exit();
+            $r['url'] = $this->buildRequestUrl($r['isHttps']);
 
             $this->request = OMap::create($r);
         }
@@ -51,9 +44,74 @@ class u_Web extends StdModule {
         return $this->request;
     }
 
+    function buildRequestUrl($isHttps) {
+        $relativeUrl = $this->relativeUrl();
+        $scheme = $isHttps ? 'https' : 'http';
+        $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
+        $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
+
+        $lUrl = new UrlLockString($fullUrl);
+        $url = $lUrl->u_parts();
+        $url['full']  = $lUrl;
+        $url['query'] = '(in full.query())';
+        $url['hash']  = '(in full.hash())';
+
+        return $url;
+    }
+
+    function parseUserAgent($rawUa) {
+
+        $ua = strtolower($rawUa);
+
+        // Operating System
+        $os = 'other';
+        if (preg_match('/\b(ipad|ipod|iphone)\b/', $ua)) {
+            $os = 'ios';
+        }
+        if (strpos($ua, 'android') !== false) {
+            $os = 'android';
+        }
+        else if (strpos($ua, 'linux') !== false) {
+            $os = 'linux';
+        }
+        else if (strpos($ua, 'macintosh') !== false) {
+            $os = 'mac';
+        }
+        else if (strpos($ua, 'windows') !== false) {
+            $os = 'windows';
+        }
+
+        // Browser
+        // (order matters because browsers often include Safari & Chrome)
+        $browser = 'other';
+        if (strpos($ua, 'trident') !== false) {
+            $browser = 'ie';
+        }
+        else if (strpos($ua, 'firefox') !== false) {
+            $browser = 'firefox';
+        }
+        else if (preg_match('/\bedge\b/', $ua)) {
+            $browser = 'edge';
+        }
+        else if (strpos($ua, 'chrome') !== false) {
+            $browser = 'chrome';
+        }
+        else if (strpos($ua, 'safari') !== false) {
+            $browser = 'safari';
+        }
+
+        $out = [
+            'full' => trim($rawUa),
+            'os' => $os,
+            'browser' => $browser,
+        ];
+
+        return OMap::create($out);
+    }
+
     // TODO: support proxies (via HTTP_X_FORWARDED_PROTO?)
     function isHttps () {
-        $https = Tht::getPhpGlobal('server', 'HTTPS', '');
+        $https = Tht::getPhpGlobal('server', 'HTTPS');
         $port = Tht::getPhpGlobal('server', 'SERVER_PORT');
 
         return (!empty($https) && $https !== 'off') || intval($port) === 443;
@@ -79,7 +137,7 @@ class u_Web extends StdModule {
     // THANKS: http://www.thefutureoftheweb.com/blog/use-accept-language-header
     function languages () {
         $langs = [];
-        $acceptLang = strtolower(Tht::getPhpGlobal('server', 'HTTP_ACCEPT_LANGUAGE', ''));
+        $acceptLang = strtolower(Tht::getPhpGlobal('server', 'HTTP_ACCEPT_LANGUAGE'));
         if ($acceptLang) {
             preg_match_all('/([a-z]{1,8}(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/', $acceptLang, $matches);
             if (count($matches[1])) {
@@ -381,9 +439,9 @@ $val[js]
 HTML;
     }
 
-    function u_send_error ($code, $title='') {
+    function u_send_error ($code, $title='', $desc='') {
 
-        ARGS('ns', func_get_args());
+        ARGS('nss', func_get_args());
 
         http_response_code($code);
 
@@ -408,6 +466,9 @@ HTML;
             ?><html><head><title><?= $title ?></title></head><body>
             <div style="text-align: center; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
             <h1 style="margin-top: 40px;"><?= $title ?></h1>
+            <?php if ($desc) { ?>
+            <div style="margin-top: 40px;"><?= $desc ?></div>
+            <?php } ?>
             <div style="margin-top: 40px"><a style="text-decoration: none; font-size: 20px;" href="/">Home Page</a></div></div>
             </body></html><?php
         }
@@ -669,17 +730,16 @@ HTML;
         return new HtmlLockString ($xe);
     }
 
-    function u_route_param ($key) {
-        ARGS('s', func_get_args());
-        return WebMode::getWebRouteParam($key);
-    }
-
 
 
 
     // USER INPUT
     // --------------------------------------------
 
+    function u_route_param ($key) {
+        ARGS('s', func_get_args());
+        return WebMode::getWebRouteParam($key);
+    }
 
     function u_form ($formId, $schema=null) {
         ARGS('sm', func_get_args());
@@ -706,21 +766,18 @@ HTML;
 
         ARGS('sss', func_get_args());
 
-        if (strpos('get|post|dangerDangerRemote', $method) === false) {
+        if (!in_array(['get', 'post', 'dangerDangerRemote'], $method)) {
             Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
         }
 
-        // Disallow cross-origin request
         if ($method === 'post') {
-            if (Security::isCrossOrigin()) {
-                Tht::module('Web')->u_send_error(403, 'Remote Origin Not Allowed');
-            }
+            Security::validateRequest();
         }
-        if ($method == 'dangerDangerRemote') {
+        else if ($method == 'dangerDangerRemote') {
             $method = 'post';
         }
 
-        $rawVal = trim(Tht::getPhpGlobal($method, $name, false));
+        $rawVal = trim(Tht::getPhpGlobal($method, $name));
 
         $schema = ['rule' => $sRules];
         $validator = new u_FormValidator ();

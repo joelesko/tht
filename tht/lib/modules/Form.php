@@ -3,7 +3,6 @@
 namespace o;
 
 include_once('FormCreator.php');
-include_once('FormValidator.php');
 
 class u_Form extends StdModule {
 
@@ -126,7 +125,8 @@ class u_Form extends StdModule {
             return false;
         }
 
-        $this->validateRequest();
+
+        return true;
 
         $v = Tht::module('FormValidator');
         $this->validationResult = $v->validateFields($postData, $this->formConfig);
@@ -149,30 +149,17 @@ class u_Form extends StdModule {
     }
 
     function u_send_ok($next = '') {
-        ARGS('s', func_get_args());
+        ARGS('*', func_get_args());
         Tht::module('Session')->u_set_flash('form.done:' . $this->formId, true);
         Tht::module('Web')->u_send_json(OMap::create([
             'status' => 'ok',
-            'next' => $next,
+            'next' => OLockString::getUnlocked($next, 'url'),
         ]));
 
         return new \o\ONothing('sendOk');
     }
 
-    function validateRequest() {
 
-        $web = Tht::module('Web');
-
-        if (Security::isCrossOrigin()) {
-            $web->u_send_error(403, 'Remote Origin Not Allowed');
-        }
-        else if (!Security::validateCsrfToken()) {
-            $web->u_send_error(403, 'Invalid or Missing CSRF Token');
-        }
-        // if (!Security::isFormSubmittedByHuman()) {
-        //     $this->formRequestError('Too Many Requests');
-        // }
-    }
 
 
 

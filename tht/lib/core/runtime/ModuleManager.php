@@ -106,6 +106,8 @@ class ModuleManager {
     // Entry point for `import()`
     static function loadUserModule($relPath) {
 
+        self::validateImportPath($relPath);
+
         $fullPath = Tht::path('modules', $relPath . '.' . Tht::getExt());
         Source::process($fullPath);
 
@@ -120,6 +122,21 @@ class ModuleManager {
         self::$moduleRegistry[$cacheKey] = self::$moduleRegistry[$relPath];
 
         return self::$moduleRegistry[$relPath];
+    }
+
+    static function validateImportPath($relPath) {
+        if (preg_match('!\.tht!i', $relPath)) {
+            Tht::error("Please remove `.tht` file extension from import path.");
+        }
+        else if (strpos($relPath, './') !== false || strpos($relPath, '..') !== false) {
+            Tht::error("Dot shortcuts (`.` or `..`) are not support in `import`.");
+        }
+        else if (strpos($relPath, '\\') !== false) {
+            Tht::error("Please use forward slashes `/` in file paths.");
+        }
+        else if (preg_match('![^a-zA-Z0-9\/]!', $relPath)) {
+            Tht::error("Invalid character in `import` path: `$relPath`");
+        }
     }
 
     // Entry point for `new Object ()`

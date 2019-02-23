@@ -649,7 +649,7 @@ class ErrorHandler {
     }
 
     function doDisplayWebErrors () {
-        $host = Tht::module('Web')->u_request()->url->u_parts()['host'];
+        $host = Tht::module('Web')->u_request()['url']['host'];
         if ($host == 'localhost') {
             return true;
         }
