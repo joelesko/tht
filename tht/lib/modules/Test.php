@@ -138,33 +138,10 @@ class u_Test extends StdModule {
         return new HtmlLockString ($str);
     }
 
-    function u_check_args_map() {
-        ARGS('m', func_get_args());
-        return true;
-    }
-
-    function u_check_args_string() {
-        ARGS('s', func_get_args());
-        return true;
-    }
-
-    function u_check_args_list() {
-        ARGS('l', func_get_args());
-        return true;
-    }
-
-    function u_check_args_number() {
-        ARGS('n', func_get_args());
-        return true;
-    }
-
-    function u_check_args_flag() {
-        ARGS('f', func_get_args());
-        return true;
-    }
-
-    function u_check_args_multi() {
-        ARGS('snl', func_get_args());
+    function u_check_args() {
+        $args = func_get_args();
+        $mask = array_shift($args);
+        ARGS($mask, $args);
         return true;
     }
 }

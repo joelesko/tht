@@ -366,7 +366,7 @@ function testMisc(t) {
     }
     t.ok(ii == numEls, 'large loop done');
     let elapsed = Date.now(true) - now;
-    t.ok(elapsed < 3, 'ArrayAccess loop ({0} elements) took {1} ms'.fill(numEls, elapsed));
+    t.ok(elapsed < 2, 'ArrayAccess loop ({0} elements) took < 2 ms'.fill(numEls));
     Perf.stop();
 
 
@@ -606,28 +606,26 @@ function testFunctions(t) {
 
     t.section('Function - Argument Checking');
 
-    t.ok(t.checkArgsString(''), 'string');
-    t.ok(t.checkArgsNumber(123), 'number');
-    t.ok(t.checkArgsList([]), 'list');
-    t.ok(t.checkArgsFlag(false), 'flag');
-    t.ok(t.checkArgsMap({}), 'map');
+    t.ok(t.checkArgs('s', ''), 'string');
+    t.ok(t.checkArgs('n', 123), 'number');
+    t.ok(t.checkArgs('l', []), 'list');
+    t.ok(t.checkArgs('f', false), 'flag');
+    t.ok(t.checkArgs('m', {}), 'map');
+    t.ok(t.checkArgs('snl', '0', 0, []), 'multi: string, number, list');
 
-    t.ok(t.checkArgsMulti('', 0, []), 'multi: string, number, list');
+    t.dies(F () { t.checkArgs('f', true, true); }, 'Too many args');
 
+    t.dies(F () { t.checkArgs('m', []); }, 'Expect map.  Got List.');
+    t.dies(F () { t.checkArgs('m', 'x'); }, 'Expect map. Got String');
+    t.dies(F () { t.checkArgs('m', 123); }, 'Expect map. Got Number');
+    t.dies(F () { t.checkArgs('m', true); }, 'Expect map. Got Flag');
 
-    t.dies(F () { t.checkArgsMap(true, true); }, 'Too many args');
+    t.ok(t.checkArgs('s', 123), 'Number as string');
+    t.dies(F () { t.checkArgs('n', '123'); }, 'String as number');
 
-    t.dies(F () { t.checkArgsMap([]); }, 'Expect map.  Got List.');
-    t.dies(F () { t.checkArgsMap('x'); }, 'Expect map. Got String');
-    t.dies(F () { t.checkArgsMap(123); }, 'Expect map. Got Number');
-    t.dies(F () { t.checkArgsMap(true); }, 'Expect map. Got Flag');
-
-    t.ok(t.checkArgsString(123), 'Number as string');
-    t.dies(F () { t.checkArgsNumber('123'); }, 'String as number');
-
-    t.dies(F () { t.checkArgsMulti(true, 123, []); }, 'Multi (snl): bad #1');
-    t.dies(F () { t.checkArgsMulti('', '123', []); }, 'Multi (snl): bad #2');
-    t.dies(F () { t.checkArgsMulti('', 123, 'x'); }, 'Multi (snl): bad #3');
+    t.dies(F () { t.checkArgs('snl', true, 123, []); }, 'Multi (snl): bad #1');
+    t.dies(F () { t.checkArgs('snl', '', '123', []); }, 'Multi (snl): bad #2');
+    t.dies(F () { t.checkArgs('snl', '', 123, 'x'); }, 'Multi (snl): bad #3');
 
     let a = [1, 2, 3];
     t.ok(spread(...a) == '1:2:3', 'spread operator (...)');
