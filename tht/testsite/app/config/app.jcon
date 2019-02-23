@@ -10,13 +10,13 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfScore: false
+        showPerfScore: true
 
         contentSecurityPolicy: x
 
         memoryLimitMb: 32
 
-        _disablePhpCache: false
+        _disablePhpCache: true
         _phpErrors: true
         _showPhpInTrace: true
     }

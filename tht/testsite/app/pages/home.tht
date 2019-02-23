@@ -1,6 +1,7 @@
 // Test Suite
 
 function main() {
+    print(Web.request());
     let test = Test.new();
     run(test);
     Web.sendHtml(html(test.resultsHtml()));
@@ -401,6 +402,11 @@ function testMisc(t) {
 
     import('subDir/OtherModule');
     t.ok(OtherModule.ok('Joe') == 'ok:Joe', 'import from subfolder');
+
+    t.dies(F { import('http://tht.help'); }, 'import remote url');
+    t.dies(F { import('../Foo'); }, 'import with dots');
+    t.dies(F { import('Foo%'); }, 'import with illegal char');
+    t.dies(F { import('Foo.tht'); }, 'import with tht extension');
 
 }
 
@@ -1644,6 +1650,7 @@ function libFile(t) {
     t.dies(F () { File.exists(''); }, 'empty path');
     t.dies(F () { File.exists('./path'); }, 'dotted relative path');
     t.dies(F () { File.exists('#char'); }, 'illegal char in path');
+    t.dies(F () { File.exists('/passwd'); }, 'outside of sandbox');
 
     t.ok(!File.exists('sdf/sdf'), 'Missing file does not exist');
     t.ok(!File.isFile('sdf/sdf'), 'Missing path is not a file');
@@ -1673,7 +1680,6 @@ function libFile(t) {
     t.ok(info.fileNameShort == 'testFile', 'Path info shortFileName');
 
     // t.ok(File.parsePath('././profile.png').dirList.length() == 0, 'remove . from path');
-
 
     File.delete(p);
     t.ok(!File.exists(p), 'File deleted');

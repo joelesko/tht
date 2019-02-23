@@ -97,14 +97,14 @@ F main() {
 
 F ajax() {
     let form = Web.form('testForm');
-    if (form.isOk()) {
+    if (form.check()) {
        Session.set('formData', form.dataFields());
-       form.redirect(url''.query({ done: 1 }));
+       form.sendOk(url''.query({ done: 1 }));
     }
 
     let form2 = Web.form('otherForm');
-    if (form2.isOk()) {
-        form.redirect(url''.query({ login: 1 }));
+    if (form2.check()) {
+        form.sendOk(url''.query({ login: 1 }));
     }
 }
 
