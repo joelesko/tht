@@ -22,8 +22,8 @@ I am interested in feedback like the following:
 
 - I tried doing `X` and expected `Y`, but got `Z` instead.
 - I am constantly running into issue `X`.
+- I still can't figure out how to do `X`.
 - I had to do `X`, but it would be a lot easier if I could just do `Y` instead.
-- `X` is frustrating/confusing, given that other languages `A` and `B` are able to do `Y`.
 - I got error `X`, which took a long time to fix.  If it told me `Y` up front, it would have been much easier.
 - `X` and `Y` are inconsistent with each other, which makes it hard to remember.
 - The docs for `X` left out information that took a lot of work to figure out on my own.
