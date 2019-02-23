@@ -16,14 +16,6 @@ class u_Web extends StdModule {
     // REQUEST
     // --------------------------------------------
 
-    function u_request_headers () {
-        return OMap::create(Tht::data('phpGlobals', 'headers'));
-    }
-
-    function u_request_header ($val) {
-        return Tht::data('phpGlobals', 'headers', $val);
-    }
-
     function u_request () {
 
         if (!$this->request) {
@@ -40,7 +32,7 @@ class u_Web extends StdModule {
                 'referrer'    => Tht::getPhpGlobal('server', 'HTTP_REFERER', ''),
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
-                'headers'     => OMap::create(Tht::getWebRequestHeaders()),
+                'headers'     => OMap::create(Tht::getWebRequestHeader('*')),
                 'url'         => '',  // see below
             ];
 

@@ -158,7 +158,9 @@ class Tht {
     }
 
     static public function exitScript($code) {
-        self::printPerf();
+        if (!$code) {
+            self::printPerf();
+        }
         exit($code);
     }
 
@@ -248,12 +250,16 @@ class Tht {
         Tht::$data['memoryBuffer'] = str_repeat('*', 128 * 1024);
     }
 
+    static private function clearMemoryBuffer() {
+        Tht::$data['memoryBuffer'] = '';
+    }
+
     static private function initErrorHandler () {
         set_error_handler("\\o\\ErrorHandler::handlePhpRuntimeError");
         register_shutdown_function('\o\Tht::handleShutdown');
     }
 
-    // TODO: public to allow Cli access.  Revisit this.
+    // TODO: public to allow CliMode access.  Revisit this.
     static public function initAppPaths($isSetup=false) {
 
         // Find the Document Root
@@ -271,7 +277,8 @@ class Tht {
 
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
 
-        // Set paths for 'app'
+        // TODO: clean this up at v1 when paths are locked.
+        // Top Level directories.  There is only one now: 'app'
         foreach (['app'] as $topDir) {
 
             // Read APP_ROOT & DATA_ROOT
@@ -298,35 +305,50 @@ class Tht {
             }
         }
 
+        // Define subdirectories
+        $dirs = [
+            ['app', 'data'],
+            ['app', 'pages'],
+            ['app', 'modules'],
+            ['app', 'config'],
+            ['app', 'localTht'],
+            ['app', 'misc'],
 
-        // app subdirs
-        Tht::$paths['data']      = Tht::path('app', Tht::$APP_DIR['data']);
-        Tht::$paths['pages']     = Tht::path('app', Tht::$APP_DIR['pages']);
-        Tht::$paths['modules']   = Tht::path('app', Tht::$APP_DIR['modules']);
-        Tht::$paths['config']    = Tht::path('app', Tht::$APP_DIR['config']);
-        Tht::$paths['localTht']  = Tht::path('app', Tht::$APP_DIR['localTht']);
-        Tht::$paths['misc']      = Tht::path('app', Tht::$APP_DIR['misc']);
+            ['data', 'db'],
+            ['data', 'cache'],
+            ['data', 'sessions'],
+            ['data', 'files'],
+            ['data', 'counter'],
 
-        // misc subdirs
-        Tht::$paths['scripts']   = Tht::path('misc', Tht::$APP_DIR['scripts']);
-        Tht::$paths['phpLib']    = Tht::path('misc', Tht::$APP_DIR['phpLib']);
+            ['counter', 'counterPage'],
+            ['counter', 'counterDate'],
+            ['counter', 'counterRef'],
 
-        // data subdirs
-        Tht::$paths['db']          = Tht::path('data',    Tht::$APP_DIR['db']);
-        Tht::$paths['cache']       = Tht::path('data',    Tht::$APP_DIR['cache']);
-        Tht::$paths['sessions']    = Tht::path('data',    Tht::$APP_DIR['sessions']);
-        Tht::$paths['phpCache']    = Tht::path('cache',   Tht::$APP_DIR['phpCache']);
-        Tht::$paths['kvCache']     = Tht::path('cache',   Tht::$APP_DIR['kvCache']);
-        Tht::$paths['files']       = Tht::path('data',    Tht::$APP_DIR['files']);
-        Tht::$paths['counter']     = Tht::path('data',    Tht::$APP_DIR['counter']);
-        Tht::$paths['counterPage'] = Tht::path('counter', Tht::$APP_DIR['counterPage']);
-        Tht::$paths['counterDate'] = Tht::path('counter', Tht::$APP_DIR['counterDate']);
+            ['cache', 'phpCache'],
+            ['cache', 'kvCache'],
 
-        // file paths
-        Tht::$paths['configFile']         = Tht::path('config',   Tht::$APP_FILE['configFile']);
-        Tht::$paths['appCompileTimeFile'] = Tht::path('phpCache', Tht::$APP_FILE['appCompileTimeFile']);
-        Tht::$paths['logFile']            = Tht::path('files',    Tht::$APP_FILE['logFile']);
+            ['misc', 'scripts'],
+            ['misc', 'phpLib'],
+        ];
 
+        foreach ($dirs as $d) {
+            $parent = $d[0];
+            $key = $d[1];
+            Tht::$paths[$key] = Tht::path($parent, Tht::$APP_DIR[$key]);
+        }
+
+        // Define file paths
+        $files = [
+            ['config',   'configFile'],
+            ['phpCache', 'appCompileTimeFile'],
+            ['files',    'logFile'],
+        ];
+
+        foreach ($files as $f) {
+            $parent = $f[0];
+            $key = $f[1];
+            Tht::$paths[$key] = Tht::path($parent, Tht::$APP_FILE[$key]);
+        }
     }
 
     static private function initAppConfig () {
@@ -435,7 +457,7 @@ class Tht {
             unset($headers['referer']);
         }
 
-        Tht::$data['requestHeaders'] = $headers;
+        Tht::$data['requestHeaders'] = Security::filterRequestHeaders($headers);
     }
 
 
@@ -474,10 +496,6 @@ class Tht {
             Tht::error("Need to specify a subKey for array data: `$k`");
         }
         return $d;
-    }
-
-    static function clearMemoryBuffer() {
-        Tht::$data['memoryBuffer'] = '';
     }
 
     static function getExt() {
@@ -531,9 +549,7 @@ class Tht {
     static function getRelativePath ($baseKey, $fullPath) {
         $basePath = Tht::path($baseKey);
         $rel = str_replace(realpath($basePath), '', $fullPath);
-
         Tht::validatePath($fullPath);
-
         return ltrim($rel, '/');
     }
 
@@ -623,6 +639,10 @@ class Tht {
         return $val;
     }
 
+    static function getWebRequestHeader ($key) {
+        return Tht::data('requestHeaders', $key);
+    }
+
     static function getThtVersion($token=false) {
         return $token ? Tht::$VERSION_TOKEN : Tht::$VERSION;
     }
@@ -643,14 +663,6 @@ class Tht {
         $p = str_replace('o/', 'std/', $p);
         $p = str_replace('tht/', '', $p);
         return $p;
-    }
-
-    static function getWebRequestHeader ($key) {
-        return Tht::data('requestHeaders', $key);
-    }
-
-    static function getWebRequestHeaders () {
-        return Tht::data('requestHeaders', '*');
     }
 }
 

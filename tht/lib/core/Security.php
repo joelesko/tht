@@ -268,6 +268,11 @@ class Security {
         header("Content-Security-Policy: $csp");
     }
 
+    static function filterRequestHeaders($headers) {
+        $headers['cookie'] = '(removed)';
+        return $headers;
+    }
+
     // set PHP ini
     static function initPhpIni () {
 
