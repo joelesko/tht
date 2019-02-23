@@ -9,8 +9,13 @@ At this early stage, I am mainly open to the following contributions:
 - Bug fixes
 - Feedback on usability (setup, language, and standard library API)
 - Unit test coverage (see the `testsite` readme)
-- Security testing & feedback. Most sensitive operations are in the `Security.php` module.
-- Windows support
+- Security testing & feedback. Most sensitive operations are in `Security.php`.
+
+And support/compatibility for:
+- Windows
+- Nginx/PHP-FPM
+- Cache module: memcached, APC, Redis
+- Db module: PostgreSQL
 
 ## Bug Reports & Feedback
 
