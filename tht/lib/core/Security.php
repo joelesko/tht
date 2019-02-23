@@ -196,7 +196,7 @@ class Security {
             Tht::error("Dot directory `.` not allowed in path: `$path`");
         }
 
-        if ($checkSandbox && Tht::isMode('fileSandbox')) {
+        if ($checkSandbox) {
             $path = self::getSandboxedPath($path);
         }
 

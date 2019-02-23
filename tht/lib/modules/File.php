@@ -223,10 +223,6 @@ class u_File extends StdModule {
 
     function u_full_path ($relPath) {
         ARGS('s', func_get_args());
-        if (Tht::isMode('fileSandbox')) {
-            // TODO: relPath must be relative
-            return Tht::path('files', $relPath);
-        }
         return $this->_call('realpath', [$relPath], 'path');
     }
 

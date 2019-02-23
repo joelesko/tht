@@ -128,18 +128,14 @@ class Tht {
             Tht::loadLib('modes/CliMode.php');
             Tht::initErrorHandler();
 
-            Tht::$mode['fileSandbox'] = true;
             CliMode::main();
-            Tht::$mode['fileSandbox'] = false;
         }
         else {
 
             Tht::loadLib('modes/WebMode.php');
             Tht::init();
 
-            Tht::$mode['fileSandbox'] = true;
             WebMode::main();
-            Tht::$mode['fileSandbox'] = false;
         }
 
         Tht::printPerf();
