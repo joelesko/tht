@@ -16,6 +16,18 @@ At this early stage, I am mainly open to the following contributions:
 
 https://github.com/joelesko/tht/issues
 
+## Usability Feedback
+
+I am interested in feedback like the following:
+
+- I tried doing `X` and expected `Y`, but got `Z` instead.
+- I am constantly running into issue `X`.
+- I had to do `X`, but it would be a lot easier if I could just do `Y` instead.
+- `X` is frustrating/confusing, given that other languages `A` and `B` are able to do `Y`.
+- I got error `X`, which took a long time to fix.  If it told me `Y` up front, it would have been much easier.
+- `X` and `Y` are inconsistent with each other, which makes it hard to remember.
+- The docs for `X` left out information that took a lot of work to figure out on my own.
+
 
 ## New Features
 I want to lead design and implementation of new features for now, so that the core direction is consistent.
