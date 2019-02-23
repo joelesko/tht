@@ -17,11 +17,11 @@ class u_Web extends StdModule {
     // --------------------------------------------
 
     function u_request_headers () {
-        return OMap::create(Tht::data('requestHeaders'));
+        return OMap::create(Tht::data('phpGlobals', 'headers'));
     }
 
     function u_request_header ($val) {
-        return Tht::data('requestHeaders', $val);
+        return Tht::data('phpGlobals', 'headers', $val);
     }
 
     function u_request () {
@@ -40,7 +40,7 @@ class u_Web extends StdModule {
                 'referrer'    => Tht::getPhpGlobal('server', 'HTTP_REFERER', ''),
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
-                'headers'     => OMap::create(WebMode::getWebRequestHeaders()),
+                'headers'     => OMap::create(Tht::getWebRequestHeaders()),
                 'url'         => '',  // see below
             ];
 
@@ -68,7 +68,7 @@ class u_Web extends StdModule {
     }
 
     function isAjax () {
-        $requestedWith = WebMode::getWebRequestHeader('x-requested-with');
+        $requestedWith = Tht::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 

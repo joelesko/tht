@@ -47,6 +47,41 @@ class Security {
         'url_exec',
     ];
 
+    // Filter super globals and move them to internal data
+    static function initPhpGlobals () {
+
+        $data = [
+            'get'    => $_GET,
+            'post'   => $_POST,
+            'cookie' => $_COOKIE,
+            'files'  => $_FILES,
+            'server' => $_SERVER
+        ];
+
+        // Only keep ENV for CLI mode.  In Web mode, config should happen in app.jcon.
+        if (Tht::isMode('cli')) {
+            $data['env'] = $_ENV;
+        }
+
+        if (isset($HTTP_RAW_POST_DATA)) {
+            $data['post']['_raw'] = $HTTP_RAW_POST_DATA;
+            unset($HTTP_RAW_POST_DATA);
+        }
+
+        // remove all php globals
+        unset($_ENV);
+        unset($_REQUEST);
+        unset($_GET);
+        unset($_POST);
+        // unset($_COOKIE);  // keep this for Session
+        unset($_FILES);
+        unset($_SERVER);
+
+        $GLOBALS = null;
+
+        return $data;
+    }
+
     static function createPassword ($plainText) {
         return new OPassword ($plainText);
     }

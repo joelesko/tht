@@ -16,6 +16,7 @@ class Tht {
     static private $data = [
         'phpGlobals'     => [],
         'config'         => [],
+        'requestHeaders' => [],
         'memoryBuffer'   => ''
     ];
 
@@ -169,11 +170,12 @@ class Tht {
 
     static private function init () {
 
-        Tht::initScalarData();
+        Tht::initMemoryBuffer();
         Tht::initErrorHandler();
         Tht::initPhpGlobals();
-        Tht::initPaths();
-        Tht::initConfig();
+        Tht::initHttpRequestHeaders();
+        Tht::initAppPaths();
+        Tht::initAppConfig();
 
         Security::initPhpIni();
     }
@@ -230,6 +232,10 @@ class Tht {
     // INITS
     //---------------------------------------------
 
+    static private function initPhpGlobals() {
+        Tht::$data['phpGlobals'] = Security::initPhpGlobals();
+    }
+
     static private function initMode() {
         $sapi = php_sapi_name();
         Tht::$mode['testServer'] = $sapi === 'cli-server';
@@ -237,7 +243,7 @@ class Tht {
         Tht::$mode['web'] = !Tht::$mode['cli'];
     }
 
-    static private function initScalarData() {
+    static private function initMemoryBuffer() {
         // Reserve memory in case of out-of-memory error. Enough to call handleShutdown.
         Tht::$data['memoryBuffer'] = str_repeat('*', 128 * 1024);
     }
@@ -248,7 +254,7 @@ class Tht {
     }
 
     // TODO: public to allow Cli access.  Revisit this.
-    static public function initPaths($isSetup=false) {
+    static public function initAppPaths($isSetup=false) {
 
         // Find the Document Root
         if (Tht::isMode('cli')) {
@@ -323,7 +329,7 @@ class Tht {
 
     }
 
-    static private function initConfig () {
+    static private function initAppConfig () {
 
         Tht::module('Perf')->start('tht.initAppConfig');
 
@@ -353,66 +359,6 @@ class Tht {
         Tht::$data['config'] = $appConfig;
 
         Tht::module('Perf')->u_stop();
-    }
-
-    // [security] clear out super globals
-    static private function initPhpGlobals () {
-
-        // Avoid timezone warning
-        if (!ini_get('date.timezone')) {
-            date_default_timezone_set('UTC');
-        }
-
-        Tht::$data['phpGlobals'] = [
-            'get'    => $_GET,
-            'post'   => $_POST,
-            'cookie' => $_COOKIE,
-            'files'  => $_FILES,
-            'server' => $_SERVER
-        ];
-
-        // Only keep ENV for CLI mode.  In Web mode, config should happen in app.odf.
-        if (Tht::isMode('cli')) {
-            Tht::$data['phpGlobals']['env'] = $_ENV;
-        }
-
-        if (isset($HTTP_RAW_POST_DATA)) {
-            Tht::$data['phpGlobals']['post']['_raw'] = $HTTP_RAW_POST_DATA;
-            unset($HTTP_RAW_POST_DATA);
-        }
-
-        Tht::initHttpRequestHeaders();
-
-        // remove all php globals
-        unset($_ENV);
-        unset($_REQUEST);
-        unset($_GET);
-        unset($_POST);
-     //   unset($_COOKIE);  // this kills session...
-        unset($_FILES);
-        unset($_SERVER);
-
-        $GLOBALS = null;
-    }
-
-    static private function initHttpRequestHeaders () {
-        $headers = [];
-
-        // Convert http headers to standard kebab-case
-        foreach ($_SERVER as $k => $v) {
-            if (substr($k, 0, 5) === 'HTTP_') {
-                $base = substr($k, 5);
-                $base = str_replace('_', '-', strtolower($base));
-                $headers[$base] = $v;
-            }
-        }
-
-        // Correct spelling of "referrer"
-        if (isset($headers['referer'])) {
-            $headers['referrer'] = $headers['referer'];
-            unset($headers['referer']);
-        }
-        Tht::$data['requestHeaders'] = $headers;
     }
 
     static private function getDefaultConfig () {
@@ -468,6 +414,28 @@ class Tht {
         ];
 
         return $default;
+    }
+
+    static private function initHttpRequestHeaders() {
+
+        $headers = [];
+
+        // Convert http headers to standard kebab-case
+        foreach (Tht::getPhpGlobal('server', '*') as $k => $v) {
+            if (substr($k, 0, 5) === 'HTTP_') {
+                $base = substr($k, 5);
+                $base = str_replace('_', '-', strtolower($base));
+                $headers[$base] = $v;
+            }
+        }
+
+        // Correct spelling of "referrer"
+        if (isset($headers['referer'])) {
+            $headers['referrer'] = $headers['referer'];
+            unset($headers['referer']);
+        }
+
+        Tht::$data['requestHeaders'] = $headers;
     }
 
 
@@ -675,6 +643,14 @@ class Tht {
         $p = str_replace('o/', 'std/', $p);
         $p = str_replace('tht/', '', $p);
         return $p;
+    }
+
+    static function getWebRequestHeader ($key) {
+        return Tht::data('requestHeaders', $key);
+    }
+
+    static function getWebRequestHeaders () {
+        return Tht::data('requestHeaders', '*');
     }
 }
 

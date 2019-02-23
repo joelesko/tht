@@ -304,14 +304,6 @@ class WebMode {
         }
     }
 
-    static function getWebRequestHeader ($key) {
-        return Tht::data('requestHeaders', $key);
-    }
-
-    static function getWebRequestHeaders () {
-        return Tht::data('requestHeaders', '*');
-    }
-
     static function getWebRouteParam ($key) {
         if (!isset(self::$routeParams[$key])) {
             throw new ThtException ("Route param '$key' does not exist.");
