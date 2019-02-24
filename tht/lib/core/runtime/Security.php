@@ -54,11 +54,12 @@ class Security {
     static function initRequestData () {
 
         $data = [
-            'get'    => $_GET,
-            'post'   => $_POST,
-            'cookie' => $_COOKIE,
-            'files'  => $_FILES,
-            'server' => $_SERVER
+            'get'     => $_GET,
+            'post'    => $_POST,
+            'cookie'  => $_COOKIE,
+            'files'   => $_FILES,
+            'server'  => $_SERVER,
+            'headers' => self::initHttpRequestHeaders($_SERVER),
         ];
 
         // Only keep ENV for CLI mode.  In Web mode, config should happen in app.jcon.
@@ -84,6 +85,32 @@ class Security {
 
         return $data;
     }
+
+    static private function initHttpRequestHeaders($serverVars) {
+
+        $headers = [];
+
+        // Convert http headers to standard kebab-case
+        foreach ($serverVars as $k => $v) {
+            if (substr($k, 0, 5) === 'HTTP_') {
+                $base = substr($k, 5);
+                $base = str_replace('_', '-', strtolower($base));
+                $headers[$base] = $v;
+            }
+        }
+
+        // Correct spelling of "referrer"
+        if (isset($headers['referer'])) {
+            $headers['referrer'] = $headers['referer'];
+            unset($headers['referer']);
+        }
+
+        $headers['cookie'] = '(removed)';
+
+        return $headers;
+    }
+
+
 
     static function createPassword ($plainText) {
         return new OPassword ($plainText);
@@ -306,11 +333,6 @@ class Security {
             $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src *; font-src *; " . $scriptSrc;
         }
         header("Content-Security-Policy: $csp");
-    }
-
-    static function filterRequestHeaders($headers) {
-        $headers['cookie'] = '(removed)';
-        return $headers;
     }
 
     // set PHP ini

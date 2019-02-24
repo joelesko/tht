@@ -11,6 +11,12 @@ class u_Js extends StdModule {
         $this->jsData[$key] = $data;
     }
 
+    function wrap($str) {
+        $nonce = Tht::module('Web')->u_nonce();
+        $min = $this->u_minify($str);
+        return "<script nonce=\"$nonce\">(function(){" . $min . "})();</script>";
+    }
+
     function escape($v) {
         if (is_bool($v)) {
             return $v ? 'true' : 'false';

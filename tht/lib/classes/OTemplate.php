@@ -100,11 +100,11 @@ class TemplateHtml extends OTemplate {
         }
         else if ($type == 'css') {
             $nonce = Tht::module('Web')->u_nonce();
-            return "<style nonce=\"$nonce\">" . Tht::module('Css')->u_minify($unlocked) . "</style>\n";
+            return Tht::module('Css')->wrap($unlocked);
         }
         else if ($type == 'js') {
             $nonce = Tht::module('Web')->u_nonce();
-            return "<script nonce=\"$nonce\">\n(function(){\n" . Tht::module('Js')->u_minify($unlocked) . "\n})();\n</script>\n";
+            return Tht::module('Js')->wrap($unlocked);
         }
 
         return $this->escape($context, $unlocked);

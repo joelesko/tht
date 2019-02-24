@@ -68,7 +68,7 @@ class WebMode {
         // referrer log - 1 line per external referrer
         $ref = isset($req['referrer']) ? $req['referrer'] : '';
         if ($ref) {
-            if (stripos($ref, $req['url']->u_parts()['host']) === false) {
+            if (stripos($ref, $req['url']['host']) === false) {
                 // format search query
                 if (preg_match('/(google|bing|yahoo|duckduckgo|ddg)\./i', $ref) && strpos('q=', $ref) !== false) {
                     preg_match('/q=(.*)(&|$)/', $m);

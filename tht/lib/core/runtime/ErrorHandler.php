@@ -396,10 +396,11 @@ class ErrorHandler {
         $this->printWebTemplate($heading, $error);
 
         // TODO: wrap in tags
-        // $colorCss = Tht::module('Js')->u_plugin('colorCode', 'dark')[0]->u_stringify();
-        // print($colorCss);
-        // $colorJs = Tht::module('Js')->u_plugin('colorCode', 'dark')[1]->u_stringify();
-        // print($colorJs);
+        $plugin = Tht::module('Js')->u_plugin('colorCode', 'dark');
+        $colorCss = Tht::module('Css')->wrap($plugin[0]->u_stringify());
+        print($colorCss);
+        $colorJs = Tht::module('Js')->wrap($plugin[1]->u_stringify());
+        print($colorJs);
     }
 
     function printWebTemplate($heading, $error) {

@@ -22,21 +22,23 @@ class u_Web extends StdModule {
 
             $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
             $ips = preg_split('/\s*,\s*/', $ip);
+            $headers = OMap::create(Tht::getPhpGlobal('headers', '*'));
+            $isHttps = $this->isHttps();
+            $ua = $this->parseUserAgent(Tht::getPhpGlobal('server', 'HTTP_USER_AGENT'));
+            $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
 
             $r = [
                 'ip'          => $ips[0],
                 'ips'         => $ips,
-                'isHttps'     => $this->isHttps(),
-                'userAgent'   => $this->parseUserAgent(Tht::getPhpGlobal('server', 'HTTP_USER_AGENT')),
-                'method'      => strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD')),
-                'referrer'    => Tht::getPhpGlobal('server', 'HTTP_REFERER', ''),
+                'isHttps'     => $isHttps,
+                'userAgent'   => $ua,
+                'method'      => $method,
+                'referrer'    => Tht::getPhpGlobal('headers', 'referrer'),
                 'languages'   => $this->languages(),
                 'isAjax'      => $this->isAjax(),
-                'headers'     => OMap::create(Tht::getWebRequestHeader('*')),
-                'url'         => '',  // see below
+                'headers'     => $headers,
+                'url'         => $this->buildRequestUrl($isHttps),
             ];
-
-            $r['url'] = $this->buildRequestUrl($r['isHttps']);
 
             $this->request = OMap::create($r);
         }
@@ -59,6 +61,8 @@ class u_Web extends StdModule {
         return $url;
     }
 
+    // Very basic parsing to get browser & OS.
+    // Not really concerned with version numbers, etc.
     function parseUserAgent($rawUa) {
 
         $ua = strtolower($rawUa);
@@ -68,7 +72,7 @@ class u_Web extends StdModule {
         if (preg_match('/\b(ipad|ipod|iphone)\b/', $ua)) {
             $os = 'ios';
         }
-        if (strpos($ua, 'android') !== false) {
+        else if (strpos($ua, 'android') !== false) {
             $os = 'android';
         }
         else if (strpos($ua, 'linux') !== false) {

@@ -143,16 +143,6 @@ class Tht {
         return true;
     }
 
-    static private function printPerf () {
-        if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
-            if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
-                $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
-                print("\n<!-- Page Speed: $duration ms -->\n");
-            }
-            Tht::module('Perf')->printResults();
-        }
-    }
-
     static public function exitScript($code) {
         if (!$code) {
             self::printPerf();
@@ -171,7 +161,6 @@ class Tht {
         Tht::initMemoryBuffer();
         Tht::initErrorHandler();
         Tht::initRequestData();
-        Tht::initHttpRequestHeaders();
         Tht::initAppPaths();
         Tht::initAppConfig();
 
@@ -187,8 +176,18 @@ class Tht {
     }
 
 
-    // OUTPUT
+    // ERROR / DEBUG
     //---------------------------------------------
+
+    static private function printPerf () {
+        if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
+            if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
+                $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
+                print("\n<!-- Page Speed: $duration ms -->\n");
+            }
+            Tht::module('Perf')->printResults();
+        }
+    }
 
     static function devPrint ($msg) {
         if (Tht::getConfig('_devPrint')) {
@@ -433,30 +432,6 @@ class Tht {
 
         return $default;
     }
-
-    static private function initHttpRequestHeaders() {
-
-        $headers = [];
-
-        // Convert http headers to standard kebab-case
-        foreach (Tht::getPhpGlobal('server', '*') as $k => $v) {
-            if (substr($k, 0, 5) === 'HTTP_') {
-                $base = substr($k, 5);
-                $base = str_replace('_', '-', strtolower($base));
-                $headers[$base] = $v;
-            }
-        }
-
-        // Correct spelling of "referrer"
-        if (isset($headers['referer'])) {
-            $headers['referrer'] = $headers['referer'];
-            unset($headers['referer']);
-        }
-
-        Tht::$data['requestHeaders'] = Security::filterRequestHeaders($headers);
-    }
-
-
 
 
 

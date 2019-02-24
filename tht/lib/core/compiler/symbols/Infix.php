@@ -21,6 +21,7 @@ class S_Add extends S_Infix {
 
     // Unary + and -
     function asLeft($p) {
+        $this->space('*!x', true);
         $p->next();
         $this->updateType(SymbolType::PREFIX);
         $this->setKids([$p->parseExpression(70)]);
