@@ -169,9 +169,6 @@ class Source {
         if ($encoding !== 'UTF-8') {
             Tht::error('Source file must be saved in UTF-8 format.', [ 'sourceFile' => $sourceFile ]);
         }
-        if (strpos($rawSource, "\r" !== false)) {
-            Tht::error("Source file must be saved with Unix line endings `\\n`. Found a Windows line feed (\\r).", [ 'sourceFile' => $sourceFile ]);
-        }
 
         return $rawSource;
     }

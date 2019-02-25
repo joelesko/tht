@@ -11,6 +11,8 @@ class Tht {
 
     static private $THT_SITE = 'https://tht.help';
 
+    static private $MEMORY_BUFFER_KB = 1;
+
     static private $startTime = 0;
 
     static private $data = [
@@ -104,10 +106,33 @@ class Tht {
         Tht::$startTime = microtime(true);
 
         Tht::includeLibs();
-
         Tht::initMode();
 
-        // Serve directly if requested a static file in testServer mode
+        if (Tht::isMode('cli')) {
+            Tht::loadLib('modes/CliMode.php');
+            Tht::initErrorHandler();
+
+            CliMode::main();
+        }
+        else {
+
+            if (Tht::serveStaticFile()) {
+                return false;
+            }
+
+            Tht::loadLib('modes/WebMode.php');
+            Tht::init();
+
+            WebMode::main();
+        }
+
+        Tht::printPerf();
+
+        return true;
+    }
+
+    // Serve directly if requested a static file in testServer mode
+    static private function serveStaticFile() {
         if (Tht::isMode('testServer')) {
             // Need to construct path manually.
             // See: https://github.com/joelesko/tht/issues/2
@@ -119,28 +144,11 @@ class Tht {
                 }
                 // is a static file
                 if (!is_dir($path)) {
-                    return false;
+                    return true;
                 }
             }
         }
-
-        if (Tht::isMode('cli')) {
-            Tht::loadLib('modes/CliMode.php');
-            Tht::initErrorHandler();
-
-            CliMode::main();
-        }
-        else {
-
-            Tht::loadLib('modes/WebMode.php');
-            Tht::init();
-
-            WebMode::main();
-        }
-
-        Tht::printPerf();
-
-        return true;
+        return false;
     }
 
     static public function exitScript($code) {
@@ -181,11 +189,12 @@ class Tht {
 
     static private function printPerf () {
         if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
+            $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
+            $peakMem = round(memory_get_peak_usage(false) / 1048576, 1);
             if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
-                $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
-                print("\n<!-- Page Speed: $duration ms -->\n");
+                print("\n<!-- Page Speed: $duration ms, $peakMem mb  -->\n");
             }
-            Tht::module('Perf')->printResults();
+            Tht::module('Perf')->printResults($duration, $peakMem);
         }
     }
 
@@ -242,7 +251,7 @@ class Tht {
 
     static private function initMemoryBuffer() {
         // Reserve memory in case of out-of-memory error. Enough to call handleShutdown.
-        Tht::$data['memoryBuffer'] = str_repeat('*', 128 * 1024);
+        Tht::$data['memoryBuffer'] = str_repeat('*', Tht::$MEMORY_BUFFER_KB * 1024);
     }
 
     static private function clearMemoryBuffer() {
@@ -393,7 +402,7 @@ class Tht {
             "_disablePhpCache" => false,
             "_showPhpInTrace"  => false,
             "_lintPhp"         => true,
-            "_phpErrors"       => false,
+            "_leakPhpErrors"   => false,
 
             // temporary - still working on it
             "tempParseCss"     => false,

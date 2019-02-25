@@ -345,7 +345,7 @@ class Security {
 
         // logging
         error_reporting(E_ALL);
-        ini_set('display_errors', Tht::isMode('cli') ? '1' : (Tht::getConfig('_phpErrors') ? '1' : '0'));
+        ini_set('display_errors', Tht::isMode('cli') ? '1' : (Tht::getConfig('_leakPhpErrors') ? '1' : '0'));
         ini_set('display_startup_errors', '1');
         ini_set('log_errors', '0');  // assume we are logging all errors manually
 
