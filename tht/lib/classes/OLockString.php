@@ -244,6 +244,10 @@ class UrlLockString extends OLockString {
 
     function init($s) {
 
+        if (preg_match('!\?.*\{.*\}!', $s)) {
+            Tht::error("UrlLockString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
+        }
+
         $u = Security::parseUrl($s);
 
         // move hash to internal data
