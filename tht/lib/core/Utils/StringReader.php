@@ -37,6 +37,7 @@ class StringReader {
         $fullText = rtrim($fullText) . "\n";
 
         $fullText = str_replace("\t", "    ", $fullText);
+        $fullText = str_replace("\r", "", $fullText);
 
         $this->fullText = $fullText;
         $this->len = strlen($fullText);

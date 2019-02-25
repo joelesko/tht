@@ -231,7 +231,7 @@ class Tokenizer extends StringReader {
             $this->next();
 
             // preserve backslash for special characters
-            if (strpos("rnt\\", $next) !== false || $stringType === TokenType::RSTRING) {
+            if (strpos("nt\\", $next) !== false || $stringType === TokenType::RSTRING) {
                 return "\\" . $next;
             }
             return $next;
@@ -251,18 +251,18 @@ class Tokenizer extends StringReader {
             if (!in_array($prev, $this->ALLOW_PREV_ADJ_ATOMS) &&
                 !in_array($current, $this->ALLOW_NEXT_ADJ_ATOMS)) {
 
-                    $prevPos = $this->prevToken[TOKEN_POS];
-                    if (in_array($prev, ['var', 'const', 'constant', 'local'])) {
-                        $this->error("Unknown keyword `$prev`. Try: `let`", $prevPos);
-                    }
-                    if ($prev === 'global') {
-                        $this->error("Unknown keyword `$prev`. Try: `Globals.myVar = 123;`", $prevPos);
-                    }
-                    if ($current === 'as') {
-                        $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
-                    }
+                $prevPos = $this->prevToken[TOKEN_POS];
+                if (in_array($prev, ['var', 'const', 'constant', 'local'])) {
+                    $this->error("Unknown keyword `$prev`. Try: `let`", $prevPos);
+                }
+                if ($prev === 'global') {
+                    $this->error("Unknown keyword `$prev`. Try: `Globals.myVar = 123;`", $prevPos);
+                }
+                if ($current === 'as') {
+                    $this->error("Unknown keyword `as`. Try: `for (item in list) { ... }`", false);
+                }
 
-                    $this->error("Unexpected $type.", false);
+                $this->error("Unexpected $type.", false);
             }
         }
     }
@@ -506,6 +506,7 @@ class Tokenizer extends StringReader {
 
         $this->updateTokenPos();
 
+        // catch mistake of using 'function' in place of 'template'
         if ($this->prevToken && $this->prevToken[TOKEN_VALUE] === '{') {
             if (strpos('<#.', $c) !== false) {
                 $this->error("Unexpected `$c`.  Did you mean to use a `template` instead?");
@@ -515,7 +516,7 @@ class Tokenizer extends StringReader {
             }
         }
 
-          if ($this->isGlyph('{') && $this->templateMode == TemplateMode::PRE) {
+        if ($this->isGlyph('{') && $this->templateMode == TemplateMode::PRE) {
 
             // start of template body
             $foundType = preg_match('/(' . ParserData::$TEMPLATE_TYPES . ')$/i', $this->templateName, $m);
@@ -535,8 +536,7 @@ class Tokenizer extends StringReader {
             }
             return;
         }
-        if ($this->templateMode === TemplateMode::EXPR && $this->isGlyph(Glyph::TEMPLATE_EXPR_END)) {
-
+        else if ($this->templateMode === TemplateMode::EXPR && $this->isGlyph(Glyph::TEMPLATE_EXPR_END)) {
             // end of template var '}}'
             $this->makeToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_END);
             $this->templateMode = TemplateMode::BODY;
@@ -544,6 +544,7 @@ class Tokenizer extends StringReader {
             return;
         }
 
+        // collect final characters
         $str = '';
         if (strpos(Glyph::MULTI_GLYPH_PREFIX, $c) !== false) {
 
@@ -612,14 +613,17 @@ class Tokenizer extends StringReader {
 
             } else if ($this->atStartOfLine() && !$this->isWhitespace($c) && $this->indent <= $this->templateIndent) {
 
+                // end of template body '}'
                 if (!$this->isGlyph('}')) {
                     $this->error("Line should be indented inside template `" . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
                 }
-                // end of template body '}'
+
                 $this->currentTemplateTransformer->onEndTemplateBody();
                 $this->addTemplateString($str);
                 $this->nextFor('}');
-                $this->makeToken(TokenType::GLYPH, ';');  // satisfy "semicolon at end of function" rule
+
+                // satisfy "semicolon at end of function" rule
+                $this->makeToken(TokenType::GLYPH, ';');
 
                 $this->prevSpace = true;  // satisfy format checker (space before '}')
                 $this->insertToken(TokenType::GLYPH, '}');
@@ -644,7 +648,7 @@ class Tokenizer extends StringReader {
 
             } else {
 
-                // Do transformations based on type (e.g. handle HTML tags)
+                // Do transformations based on template type (e.g. handle HTML tags)
                 $transformed = $this->currentTemplateTransformer->transformNext();
                 if ($transformed !== false) {
                     $str .= $transformed;
