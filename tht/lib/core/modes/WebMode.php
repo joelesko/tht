@@ -42,6 +42,8 @@ class WebMode {
             return;
         }
 
+        Tht::module('Perf')->u_start('tht.hitCounter');
+
         $req = uv(Tht::module('Web')->u_request());
 
         // skip bots
@@ -80,6 +82,8 @@ class WebMode {
                 file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $req['url']['relative'] . "\n", FILE_APPEND|LOCK_EX);
             }
         }
+
+        Tht::module('Perf')->u_stop();
     }
 
     static private function downtimePage($file) {
