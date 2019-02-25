@@ -31,7 +31,7 @@ class CliMode {
             CliMode::installApp();
         }
         else if ($firstOption === CliMode::$CLI_OPTIONS['server']) {
-            Tht::initPaths(true);
+            Tht::initAppPaths(true);
             $port = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
             CliMode::startTestServer($port);
         }
