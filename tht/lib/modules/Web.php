@@ -207,7 +207,7 @@ class u_Web extends StdModule {
     function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
-        $url = OLockString::getUnlocked('url', $lUrl);
+        $url = OLockString::getUnlocked($lUrl, 'url');
         // if (OLockString::isa($url)) {
         //     $url = $url->u_stringify();
         // } else {
@@ -770,7 +770,7 @@ HTML;
 
         ARGS('sss', func_get_args());
 
-        if (!in_array(['get', 'post', 'dangerDangerRemote'], $method)) {
+        if (!in_array($method, ['get', 'post', 'dangerDangerRemote'])) {
             Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
         }
 
