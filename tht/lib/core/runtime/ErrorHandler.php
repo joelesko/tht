@@ -71,18 +71,21 @@ class ErrorHandler {
         $error['function'] = '';
         $trace = [ $error ];
 
+        // Show minimal error message for memory and execution errors.
         preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
         if ($m) {
             $max = Tht::getConfig('memoryLimitMb');
-            $error['message'] = "Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.";
-            $error['file'] = null;
+            print "<b>Page Error: Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.</b>";
+            Tht::exitScript(1);
+            // $error['file'] = null;
         }
 
         preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
         if ($m) {
             $max = Tht::getConfig('maxExecutionTimeSecs');
-            $error['message'] = "Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.";
-            $error['file'] = null;
+            print "<b>Page Error: Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.</b>";
+            Tht::exitScript(1);
+            // $error['file'] = null;
         }
 
         // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false
@@ -390,8 +393,10 @@ class ErrorHandler {
         $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Suggestion: $1', $error['message']);
 
         // format caret, wrap for color coding
-        $error['srcLine'] = preg_replace("/\^$/", '</span><span class="tht-caret">&uarr;</span>', $error['srcLine']);
-        $error['srcLine'] = '<span class="tht-color-code theme-dark">' . $error['srcLine'];
+        if ($error['srcLine']) {
+            $error['srcLine'] = preg_replace("/\^$/", '</span><span class="tht-caret">&uarr;</span>', $error['srcLine']);
+            $error['srcLine'] = '<span class="tht-color-code theme-dark">' . $error['srcLine'];
+        }
 
         $this->printWebTemplate($heading, $error);
 
