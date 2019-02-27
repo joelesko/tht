@@ -42,7 +42,7 @@ class u_Perf extends StdModule {
             'startTime' => microtime(true),
             'subTaskTime' => 0,
             'subs' => [],
-            'peakMemoryMb' => memory_get_peak_usage(false),
+            'startMemoryMb' => memory_get_usage(false),
             'memoryMb' => 0,
         ];
     }
@@ -64,8 +64,8 @@ class u_Perf extends StdModule {
         }
 
         $result['durationMs'] = round($elapsed * 1000, 2);
-        $memDelta = memory_get_peak_usage(false) - $task['peakMemoryMb'];
-        $result['memoryMb'] = round($memDelta / 1048576, 1);
+        $memDelta = memory_get_usage(false) - $task['startMemoryMb'];
+        $result['memoryMb'] = round($memDelta / 1048576, 2);
         $this->results []= $result;
 
         foreach ($this->tasks as &$t) {
@@ -85,7 +85,8 @@ class u_Perf extends StdModule {
         return $this->results;
     }
 
-    function printResults () {
+    // TODO: include args in perf panel
+    function printResults ($scriptTime, $peakMem) {
 
         if (! $this->isActive()) { return; }
 
@@ -97,10 +98,6 @@ class u_Perf extends StdModule {
             $d = $b['durationMs'] > $a['durationMs'];
             return $d > 0 ? 1 : ($d < 0 ? -1 : 0);
         });
-
-        $start = Tht::getPhpGlobal('server', 'REQUEST_TIME_FLOAT');
-        $allDuration = round((microtime(true) - $start) * 1000, 2);
-        $peakMem = Tht::module('System')->u_peak_memory_usage();
 
         $thtDocLink = Tht::getThtSiteUrl('/reference/perf-score');
 
@@ -128,9 +125,9 @@ class u_Perf extends StdModule {
 
                 #perfScoreTotal { font-weight: bold; }
                 #perfScoreTotalLabel { margin-right: 24px; font-size: 100%; font-weight: bold; }
-                #perfTotals { width: 350px; margin: 48px auto; }
-                #perfTotals div { margin-bottom: 12px; }
-                #perfTotals span { font-weight: bold; }
+                #perfTotals { width: 400px; margin: 48px auto; white-space: nowrap; }
+                #perfTotals div { margin-bottom: 12px; width: 100%; }
+                #perfTotals span { font-weight: bold; float: right; }
                 #perfHeader { font-size: 30px; font-weight: bold; text-align: center; letter-spacing: -2px }
                 #perfHelp { font-size: 20px; margin-top: 14px;  text-align: center; letter-spacing: -1px;  }
             </style>
@@ -143,8 +140,12 @@ class u_Perf extends StdModule {
                 <?= $compileMessage ?>
 
                 <div id="perfTotals">
-                    <div>Server - Response Time: <span id='perfScoreServer'></span></div>
-                    <div>Client - window.onLoad: <span id='perfScoreClient'></span></div>
+                    <div>Server - Page Execution: <span id="perfScoreServer"><?= $scriptTime ?> ms</span></div>
+                    <div>Network - Transfer: <span id='perfScoreNetwork'></span></div>
+                    <div>Browser - window.onLoad: <span id='perfScoreClient'></span></div>
+
+                    <div style="margin-top:32px">Server - Peak Memory: <span><?= $peakMem ?> mb</span></div>
+
                 </div>
 
                 <?= $table ?>
@@ -161,14 +162,13 @@ class u_Perf extends StdModule {
 
                     var perf = window.performance.timing;
                     var stats = {
-                        server: perf.responseEnd - perf.requestStart,
+                        network: perf.responseEnd - perf.responseStart,
+                        server: perf.requestEnd - perf.requestStart,
                         client: perf.loadEventEnd - perf.responseEnd,
-                        memory: <?= $peakMem ?>
                     };
+                   // stats.startup = stats.server - <?= $scriptTime ?> - stats.network;
 
-                    var clientScore = Math.max(stats.client - 100, 0) * 0.1;
-                    var serverScore = Math.max(stats.server - 100, 0) * 0.1;
-                    var totalTime = stats.client + stats.server;
+                    var totalTime = stats.client + <?= $scriptTime ?> + stats.network;
 
                     var grade = { label: 'VERY SLOW', color: '#d80000' };
                     if (totalTime <= 1000) { grade = { label: 'FAST', color: '#3a3' }; }
@@ -177,8 +177,11 @@ class u_Perf extends StdModule {
 
                     var getId = document.getElementById.bind(document);
 
-                    getId('perfScoreServer').innerText = stats.server + ' ms';
+                    getId('perfScoreNetwork').innerText = stats.network + ' ms';
+                 //   getId('perfScoreStartup').innerText = stats.startup + ' ms';
+                    getId('perfScoreServer').innerText = <?= $scriptTime ?> + ' ms';
                     getId('perfScoreClient').innerText = stats.client + ' ms';
+
                     getId('perfScoreTotal').innerText = totalTime + ' ms';
                     getId('perfScoreTotalLabel').innerHTML = grade.label;
                     getId('perfScoreTotal').style.color = grade.color;

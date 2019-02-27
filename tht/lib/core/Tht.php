@@ -84,26 +84,7 @@ class Tht {
         }
     }
 
-    // TODO: put all these in one registry function/file?
-    static private function includeLibs() {
-
-        Tht::loadLib('utils/Utils.php');
-        Tht::loadLib('utils/StringReader.php');
-        Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
-
-        Tht::loadLib('runtime/ErrorHandler.php');
-        Tht::loadLib('runtime/Source.php');
-        Tht::loadLib('runtime/Runtime.php');
-        Tht::loadLib('runtime/ModuleManager.php');
-        Tht::loadLib('runtime/Security.php');
-
-        Tht::loadLib('../classes/_index.php');
-        Tht::loadLib('../modules/_index.php');
-    }
-
     static private function main () {
-
-        Tht::$startTime = microtime(true);
 
         Tht::includeLibs();
         Tht::initMode();
@@ -129,6 +110,23 @@ class Tht {
         Tht::printPerf();
 
         return true;
+    }
+
+    // TODO: put all these in one registry function/file?
+    static private function includeLibs() {
+
+        Tht::loadLib('utils/Utils.php');
+        Tht::loadLib('utils/StringReader.php');
+        Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
+
+        Tht::loadLib('runtime/ErrorHandler.php');
+        Tht::loadLib('runtime/Source.php');
+        Tht::loadLib('runtime/Runtime.php');
+        Tht::loadLib('runtime/ModuleManager.php');
+        Tht::loadLib('runtime/Security.php');
+
+        Tht::loadLib('../classes/_index.php');
+        Tht::loadLib('../modules/_index.php');
     }
 
     // Serve directly if requested a static file in testServer mode
@@ -189,7 +187,7 @@ class Tht {
 
     static private function printPerf () {
         if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
-            $duration = ceil((microtime(true) - Tht::$startTime) * 1000);
+            $duration = ceil((microtime(true) - Tht::getPhpGlobal('server', "REQUEST_TIME_FLOAT")) * 1000);
             $peakMem = round(memory_get_peak_usage(false) / 1048576, 1);
             if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
                 print("\n<!-- Page Speed: $duration ms, $peakMem mb  -->\n");
