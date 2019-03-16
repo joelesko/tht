@@ -155,7 +155,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_danger_danger_lock ($type) {
         ARGS('s', func_get_args());
-        return OLockString::create($this->val, $type);
+        return OLockString::create($type, $this->val);
     }
 
 
@@ -546,23 +546,27 @@ class OString extends OVar implements \ArrayAccess {
     static function cbFill ($matches) {
         $key = $matches[1];
         if ($key == '') {
-            $key = OString::$fillArgNum;
+            $key = self::$fillArgNum;
             OString::$fillArgNum += 1;
         }
-        if (!array_key_exists($key, OString::$fillArg)) {
+        if (!isset(self::$fillArg, $key)) {
             Tht::error("Key `$key` is not found in fill value.", [ 'fill' => OString::$fillArg ]);
         }
         return OString::$fillArg[$key];
     }
 
     function u_fill () {
-        $args = func_get_args();
-        if (is_array(uv($args[0]))) {
-            $args = uv($args[0]);
-        }
-        OString::$fillArg = $args;
-        OString::$fillArgNum = 0;
 
+        $args = func_get_args();
+        if (count($args) == 1) {
+            $first = uv($args[0]);
+            // accepts both list and map
+            if (is_array($first)) {
+                $args = $first;
+            }
+        }
+        self::$fillArg = $args;
+        self::$fillArgNum = 0;
         $filled = preg_replace_callback('/{([a-zA-Z0-9]*)}/', '\o\OString::cbFill', $this->val);
 
         return $filled;
