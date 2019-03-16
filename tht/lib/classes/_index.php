@@ -22,12 +22,13 @@ class LibClasses {
     ];
 
     static public function load () {
+
         foreach (LibClasses::$files as $lib) {
             require_once($lib . '.php');
         }
+
         Runtime::_initSingletons();
     }
 }
 
 LibClasses::load();
-
