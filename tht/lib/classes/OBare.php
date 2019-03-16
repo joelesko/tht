@@ -24,7 +24,7 @@ class OBare {
             else {
                 $a = Tht::module('Json')->u_format($a);
             }
-            
+
             $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
             if (Tht::isMode('web')) {
                 $a = htmlentities($a);
@@ -41,7 +41,7 @@ class OBare {
         $out = OBare::formatPrint(func_get_args());
 
         if (Tht::isMode('web')) {
-            WebMode::queuePrint($out);
+            PrintBuffer::add($out);
         }
         else {
             echo $out, "\n";
