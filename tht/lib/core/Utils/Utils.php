@@ -81,6 +81,7 @@ function hasu_ ($v) {
 //   f = flag
 //   l = list
 //.  m = map
+//   c = callable
 //   * = any
 
 // NOTE: Fewer args are already handled by PHP.
@@ -118,6 +119,9 @@ function ARGS($sig, $arguments) {
                 }
                 else if ($varg->u_is_list()) {
                     $t = 'list';
+                }
+                else if (get_class($arg) == 'Closure') {
+                    $t = 'callable';
                 }
             }
 
