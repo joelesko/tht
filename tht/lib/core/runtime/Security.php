@@ -17,6 +17,8 @@ class Security {
 
     static private $isCrossOrigin = null;
     static private $isCsrfTokenValid = null;
+    static private $isPostRequestValidated = false;
+    static private $isAdmin = false;
 
     static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
 
@@ -49,6 +51,17 @@ class Security {
         'unserialize',
         'url_exec',
     ];
+
+    // TODO: allow multiple IPs (list in app.jcon)
+    static function isAdmin() {
+        $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
+        $adminIp = Tht::getConfig('adminIp');
+        $isWhitelistedIp = $adminIp && $adminIp == $ip;
+        if ($isWhitelistedIp || Tht::isMode('testServer') || $ip = '127.0.0.1') {
+            return true;
+        }
+        return false;
+    }
 
     // Filter super globals and move them to internal data
     static function initRequestData () {
@@ -210,7 +223,8 @@ class Security {
 
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
-        if (preg_match('/[^a-zA-Z0-9_\-\/\.:]/', $path)) {
+        // TODO: revisit ' '
+        if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
             Tht::error("Illegal character in path: `$path`");
         }
         else if (!strlen($path)) {
@@ -248,15 +262,19 @@ class Security {
         }
     }
 
-    static function validateRequest() {
+    static function validatePostRequest() {
+
+        if (self::$isPostRequestValidated) {
+            return;
+        }
+        self::$isPostRequestValidated = true;
 
         $web = Tht::module('Web');
 
         if ($web->u_request()['method'] === 'get') {
             return;
         }
-
-        if (Security::isCrossOrigin()) {
+        else if (Security::isCrossOrigin()) {
             $web->u_send_error(403, 'Remote Origin Not Allowed');
         }
         else if (!Security::validateCsrfToken()) {
@@ -264,6 +282,16 @@ class Security {
         }
         else if (Security::isPossibleBruteForce()) {
             $web->u_send_error(429, 'Too Many Requests', 'Must wait 2 seconds between POST requests.');
+        }
+    }
+
+    // All lowercase, no special characters, hyphen separators, no trailing slash
+    static function validateRoutePath($path) {
+        $pathSize = strlen($path);
+        $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
+        if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
+            Tht::errorLog("Path `$path` is not valid");
+            Tht::module('Web')->u_send_error(404);
         }
     }
 
@@ -536,6 +564,30 @@ class Security {
         unset($u['relative']);
 
         return $u;
+    }
+
+    // PHP behavior:
+    // ?foo=1&foo=2         >>  foo=2
+    // ?foo[]=1&foo[]=2     >>  foo=[1,2]
+    // ?foo[a]=1&foo[b]=2   >>  foo={a:1, b:2}
+    static function stringifyQuery($query) {
+
+        $q = http_build_query(uv($query), null, '&', PHP_QUERY_RFC3986);
+        $q = str_replace('%5B', '[', $q);
+        $q = str_replace('%5D', ']', $q);
+        $q = preg_replace('!\[([0-9]+)\]!', '[]', $q);
+
+        if ($q) {
+            return '?' . $q;
+        }
+        else {
+            return '';
+        }
+    }
+
+    static function getFileMimeType($file) {
+        $finfo = new \finfo();
+        return $finfo->file($file, FILEINFO_MIME_TYPE);
     }
 }
 
