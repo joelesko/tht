@@ -1,1 +1,5 @@
-Web.sendHtml(html'Hello World!');
+Web.sendHtml(html());
+
+T html() {
+    Hello World!
+}

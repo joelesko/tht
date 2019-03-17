@@ -1,7 +1,5 @@
-// Test Suite
 
 function main() {
-    print(Web.request());
     let test = Test.new();
     run(test);
     Web.sendHtml(html(test.resultsHtml()));
@@ -21,19 +19,19 @@ template html(results) {
 
                 <a href="#test-results" style="font-weight: bold">> Skip to Results
 
-                <p style="font-size: 100%; margin-top: 3rem">> <b>Perf:</> When measuring raw execution speed of this page, set <code>_disablePhpCache: false</> in <code>app.jcon</>.  Then take Server Response Time and subtract <code>System.sleep</> + <code>Net.httpRequest</> + <code>CompileErrors</>.
+                <p style="font-size: 100%; margin-top: 3rem">
+                    <b>Perf:</>&nbsp;
+                    When measuring raw execution speed of this page, set <code>_forceRecompile: false</> in <code>app.jcon</>, and reload with <a href="/home?perf=1">perf=1</a>.
+                </>
 
                 {{ results }}
 
             </>
         </>
     </>
-
 }
 
 function run(t) {
-
-    let start = Date.now(true);
 
     testMathAndLogic(t);
     testStrings(t);
@@ -57,7 +55,7 @@ function run(t) {
     libLitemark(t);
     libMath(t);
     libMeta(t);
-    libPerf(t);
+   // libPerf(t);
     libPhp(t);
     libWeb(t);
     libGlobal(t);
@@ -66,18 +64,16 @@ function run(t) {
     libSession(t);
     libSystem(t);
 
-    let end = Date.now(true);
-    //print(t.stats(), (end - start) ~ ' MS');
+    // Not including these in perf measurement due to artificially long delays
+    // or not representative of user code.
+    if (!Web.query('perf', 'flag')) {
 
-    // not including these in perf measurement due to artificially long delays
-    libCache(t);
-    libNet(t);
+        libCache(t);
+        libNet(t);
 
-    // these take 2x as long as the rest of the suite (~50 MS)
-    runtimeErrors(t);
-    compileErrors(t);
-
-
+        runtimeErrors(t);
+        compileErrors(t);
+    }
 }
 
 function runtimeErrors(t) {
@@ -102,7 +98,7 @@ function runtimeErrors(t) {
 
 function compileErrors(t) {
 
-    Perf.start('CompileErrors');
+    Perf.start('test.compileErrors');
 
     t.section('Parser');
 
@@ -135,7 +131,7 @@ function compileErrors(t) {
     let longName = String.repeat('a', 41);
     t.parserError('let ' ~ longName ~ ' = 1;', '40 characters or less');
     t.parserError('function ' ~ longName ~ ' () {}', '40 characters or less');
-
+    t.parserError('let l = 1;', 'number one');
 
     t.section('Parser Errors - Aliases');
 
@@ -197,7 +193,8 @@ function compileErrors(t) {
     t.parserError('let a = 1;;', 'Unexpected semicolon');
     t.parserError('let a = [1,, ];', 'Unexpected comma');
     t.parserError('let a = [,, 1];', 'Unexpected comma');
-
+    let crlf =  String.charFromCode(13) ~ String.charFromCode(10);
+    t.parserOk('let a = 1;' ~ crlf ~ 'let b = 2;', 'Ignore CR (Windows line break)');
 
 
     t.section('Parser Errors - Adjacent Tokens');
@@ -260,6 +257,7 @@ function compileErrors(t) {
     t.parserError('let a =1+2;',          'space after `=`');
     t.parserError('let a = 1+ 2;',        'space before `+`');
     t.parserError('let a = 1 +2;',        'space after `+`');
+    t.parserError('let a = 1 + - 2',      'space after `-`');
     t.parserError('let a = {a:`b`}',      'space after `{`');
     t.parserError('let a = { a:`b`}',     'space after `:`');
     t.parserError('let a = { a : `b`}',   'space before `:`');
@@ -355,7 +353,7 @@ function testMisc(t) {
     t.section('Performance');
 
     // make sure autoboxed array access doesn't drastically hit performance
-    Perf.start('Large Array');
+    Perf.start('test.perf.largeArray');
     let now = Date.now(true);
     let numEls = 1000;
     let nums = range(1, numEls);
@@ -559,8 +557,16 @@ function testFunctions(t) {
     t.ok(funClosure('IN') == 'IN/OUT', 'closure');
 
 
-    function addToList(l) {
-        l #= 4;
+    outer = 'OUT';
+    let funClosure2 = function (a) keep (outer) {
+        outer ~= '-append';
+    };
+    funClosure2(1);
+    t.ok(outer == 'OUT-append', 'closure - modify outer');
+
+
+    function addToList(list) {
+        list #= 4;
     }
     let refList = [1, 2, 3];
     addToList(refList);
@@ -881,7 +887,7 @@ function testMathAndLogic(t) {
 
 function testControlFlow(t) {
 
-    Perf.start('ControlFlow');
+    Perf.start('test.controlFlow');
 
     t.section('Loops');
 
@@ -1039,7 +1045,7 @@ function testControlFlow(t) {
 
 function testStrings(t) {
 
-    Perf.start('Strings');
+    Perf.start('test.strings');
 
     t.section('Strings');
 
@@ -1338,7 +1344,7 @@ function testStrings(t) {
     Perf.stop();
 
 
-    Perf.start('String.civilize');
+    Perf.start('test.strings.civilize');
 
     t.ok('PLS HELP HELP!!!!!!'.civilize() == 'please help help!', 'civilize: all caps');
     t.ok('r u ok?!!!'.civilize() == 'are you ok?!', 'civilize: r u ok?!!!');
@@ -1382,6 +1388,8 @@ F testLockStrings(t) {
     t.ok(lockHtml('a').lockType() == 'html', 'getLockType');
     t.ok(sql'x'.lockType() == 'sql', 'getLockType');
 
+    t.dies(F { R url'page?foo={}'; }, 'dynamic query hardcoded in url string');
+
     let lUrl = url'http://test.com/'.query({ foo: 'val`s' });
     let lCmd = cmd'xget {} > file.txt'.fill(lUrl);
     let lHtml = deepEscHtml(lCmd);
@@ -1402,7 +1410,7 @@ F testLockStrings(t) {
 
     t.ok(url'/page'.link('hey').stringify() == '<a href="/page">hey</a>', 'link()');
 
-    print(url'/foo'.query({ bar: 1, foo: [1, 2, 3] }).stringify().decodeUrl());
+  //  print(url'/foo'.query({ bar: 1, foo: [1, 2, 3] }).stringify().decodeUrl());
 
     let mixedQuery = url'/path?foo=123'.query({ bar: 456 });
     t.ok(mixedQuery.stringify() == '/path?' ~ 'foo=123&bar=456', 'url: mixed query');
@@ -1411,7 +1419,7 @@ F testLockStrings(t) {
     t.ok(url'/foo#abc'.hash('xyz').stringify() == '/foo#xyz', 'hash set');
     t.ok(url'/foo?a=1#abc'.hash('X,Y,Z,').hash() == 'x-y-z', 'hash set & sanitize');
 
-    print(url'http://sdfsdfsdf.com/d/foo.php?a=1#abc'.parts());
+   // print(url'http://sdfsdfsdf.com/d/foo.php?a=1#abc'.parts());
 
 }
 
@@ -1888,26 +1896,26 @@ template failModeHtml() {
 }
 
 
-function libPerf(t) {
-      t.section('Module: Perf');
+// function libPerf(t) {
+//       t.section('Module: Perf');
 
-      Perf.forceActive(true);
-      Perf.start('testPerf');
-      System.sleep(1);
-      Perf.stop(true);
+//       Perf.forceActive(true);
+//       Perf.start('test.perfModule');
+//       System.sleep(1);
+//       Perf.stop(true);
 
-      let res = Perf.results(true);
-      let found = false;
-      for (r in res) {
-          if (r.task == 'testPerf') {
-              found = true;
-              break;
-          }
-      }
-      t.ok(found, 'Perf task & results');
+//       let res = Perf.results(true);
+//       let found = false;
+//       for (r in res.single) {
+//           if (r.task == 'testPerf') {
+//               found = true;
+//               break;
+//           }
+//       }
+//       t.ok(found, 'Perf task & results');
 
-      Perf.forceActive(false);
-}
+//       Perf.forceActive(false);
+// }
 
 function libPhp(t) {
 
@@ -2121,11 +2129,11 @@ function libCache(t) {
 
 
     Cache.set('short', 'a', 0.1);
-    Cache.set('longer', 'a', 0.5);
+    Cache.set('longer', 'a', 1);
     Cache.set('forever', 'a', 0);
     System.sleep(200);
     t.ok(!Cache.has('short'), '100ms expiry');
-    t.ok(Cache.has('longer'), '500ms expiry');
+    t.ok(Cache.has('longer'), '1s expiry');
     t.ok(Cache.has('forever'), 'no expiry');
 
     Cache.delete('short');

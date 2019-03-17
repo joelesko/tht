@@ -1,0 +1,14 @@
+
+
+print(Web.query('userId', 'id'));
+
+print(Web.formData({
+    userId: {
+        rules: 'id'
+    },
+    numItems: {
+        rules: 'id'
+    },
+
+}, 'get'));
+

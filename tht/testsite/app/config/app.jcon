@@ -10,15 +10,15 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfScore: true
-
-        contentSecurityPolicy: x
+        showPerfPanel: false
+        adminIp:
 
         memoryLimitMb: 32
 
-        _disablePhpCache: true
-        _phpErrors: true
+        _forceRecompile: true
         _showPhpInTrace: true
+
+        hitCounter: true
     }
 
     // Custom app settings.  Read via `Global.setting(key)`
