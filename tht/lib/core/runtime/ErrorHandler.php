@@ -247,7 +247,7 @@ class ErrorHandler {
 
     static function printError ($error, $logOut='') {
 
-        if (Source::isSandboxMode()) {
+        if (Compiler::isSandboxMode()) {
             throw new \Exception ('[Sandbox] ' . $error['message']);
         }
 
@@ -430,7 +430,7 @@ class ErrorHandler {
                 .tht-src-small .tht-caret { font-size: 24px; }
                 .tht-error-file { font-size: 90%; margin-bottom: 40px;  }
                 .tht-error-file span { margin-right: 40px; margin-left: 5px; font-size: 105%; font-weight: bold; color: inherit; }
-                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= $cssMod->u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2 8px; }
+                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= $cssMod->u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2px 8px; }
             </style>
 
             <div class='tht-error-content'>
@@ -471,8 +471,8 @@ class ErrorHandler {
     }
 
     function printPrintBuffer() {
-        if (WebMode::hasPrintBuffer()) {
-            WebMode::flushWebPrintBuffer(true);
+        if (PrintBuffer::hasItems()) {
+            PrintBuffer::flush(true);
             print "<style> .tht-print-panel { color: inherit; width: auto; box-shadow: none; background-color: #282828; position: relative; } </style>";
         }
 
@@ -561,6 +561,7 @@ class ErrorHandler {
         $clean = preg_replace('/Call to undefined function (.*)\(\)/', 'Unknown function: `$1`', $clean);
         $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: `$1`', $clean);
         $clean = preg_replace('/Missing argument (\d+) for (.*)\(\)/', 'Missing argument $1 for `$2()`', $clean);
+        $clean = preg_replace('/\{closure\}/i', '{function}', $clean);
         $clean = preg_replace('/, called.*/', '', $clean);
         $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
@@ -603,7 +604,7 @@ class ErrorHandler {
     function cleanPath ($path) {
 
         $path = Tht::getThtPathForPhp($path);
-        $path = Tht::getRelativePath('app', $path);
+        $path = Tht::stripAppRoot($path);
 
         return $path;
     }
@@ -659,7 +660,7 @@ class ErrorHandler {
         if ($host == 'localhost') {
             return true;
         }
-        return Source::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;
+        return Compiler::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;
     }
 
     // function sendErrorToHq($error) {
