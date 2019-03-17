@@ -10,6 +10,7 @@ class CliMode {
     static private $CLI_OPTIONS = [
         'new'    => 'new',
         'server' => 'server',
+        'images' => 'images',
     //  'run'    => 'run',
     ];
 
@@ -26,18 +27,22 @@ class CliMode {
 
         $firstOption = CliMode::$options[0];
 
+        Tht::initAppPaths(true);
+
         if ($firstOption === CliMode::$CLI_OPTIONS['new']) {
-            Tht::initPaths(true);
             CliMode::installApp();
         }
         else if ($firstOption === CliMode::$CLI_OPTIONS['server']) {
-            Tht::initAppPaths(true);
             $port = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
             CliMode::startTestServer($port);
         }
+        else if ($firstOption === CliMode::$CLI_OPTIONS['images']) {
+            $actionOrDir = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
+            Tht::module('Image')->optimizeImages($actionOrDir);
+        }
         // else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
         //     // Tht::init();
-        //     // Source::process(CliMode::$options[1]);
+        //     // Compiler::process(CliMode::$options[1]);
         // }
         else {
             CliMode::printUsage();
@@ -46,10 +51,7 @@ class CliMode {
 
     static private function printUsage() {
 
-        echo "\n";
-        echo "+---------------+\n";
-        echo "|      THT      |\n";
-        echo "+---------------+\n\n";
+        self::printHeaderBox('THT');
 
         echo "Version: " . Tht::getThtVersion() . "\n\n";
         echo "Usage: tht [command]\n\n";
@@ -57,9 +59,19 @@ class CliMode {
         echo "  new             create an app in the current dir\n";
         echo "  server          start the local test server (port: 8888)\n";
         echo "  server <port>   start the local test server on a custom port\n";
+        echo "  images          compress images in your document root by up to 70%\n";
      // echo "tht run <filename>   (run script in scripts directory)\n";
         echo "\n";
         Tht::exitScript(0);
+    }
+
+    static function printHeaderBox($title) {
+        $title = trim(strtoupper($title));
+        $line = str_repeat('-', strlen($title) + 8);
+        echo "\n";
+        echo "+$line+\n";
+        echo "|    $title    |\n";
+        echo "+$line+\n\n";
     }
 
     static private function initOptions () {
@@ -77,10 +89,7 @@ class CliMode {
 
     static private function confirmInstall() {
 
-        echo "\n";
-        echo "+-------------------+\n";
-        echo "|      NEW APP      |\n";
-        echo "+-------------------+\n";
+        self::printHeaderBox('New App');
 
         if (file_exists(Tht::path('app'))) {
             echo "\nA THT app directory already exists:\n  " .  Tht::path('app') . "\n\n";
@@ -288,10 +297,7 @@ class CliMode {
             Tht::exitScript(1);
         }
 
-        echo "\n\n";
-        echo "+-------------------+\n";
-        echo "|      SUCCESS!     |\n";
-        echo "+-------------------+\n\n";
+        self::printHeaderBox('Success!');
 
         echo "Your new THT app directory is here:\n  " . Tht::path('app') . "\n\n";
         echo "*  Load 'http://yoursite.com' to see if it's working.\n";
@@ -364,10 +370,7 @@ class CliMode {
             Tht::exitScript(1);
         }
 
-        echo "\n";
-        echo "+-------------------+\n";
-        echo "|    TEST SERVER    |\n";
-        echo "+-------------------+\n\n";
+        self::printHeaderBox('Test Server');
 
         echo "App directory:\n  " . Tht::path('app') . "\n\n";
         echo "Serving app at:\n  http://$hostName:$port\n\n";
@@ -377,6 +380,5 @@ class CliMode {
 
         passthru("php -S $hostName:$port $controller");
     }
-
 }
 
