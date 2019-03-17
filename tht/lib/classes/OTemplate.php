@@ -8,9 +8,11 @@ class OTemplate {
 
     function getString() {
         $str = '';
+
         foreach ($this->chunks as $c) {
             $str .= $c['type'] === 'static' ? $c['body'] : $this->handleDynamic($c['context'], $c['body']);
         }
+
         $str = $this->postProcess($str);
         if (is_string($str)) {
             $str = v($str)->u_trim_indent() . "\n";
@@ -34,19 +36,20 @@ class OTemplate {
 
     function handleDynamic($context, $in) {
 
+        $out = '';
         if (OList::isa($in)) {
-            $out = '';
             foreach ($in as $chunk) {
                 $out .= $this->handleDynamic($context, $chunk);
             }
-            return $out;
         }
         else if (OLockString::isa($in)) {
-            return $this->handleLockString($context, $in);
+            $out = $this->handleLockString($context, $in);
         }
         else {
-            return $this->escape($context, $in);
+            $out = $this->escape($context, $in);
         }
+
+        return $out;
     }
 
     function escape($context, $in) {
@@ -57,6 +60,7 @@ class OTemplate {
         return $s;
     }
 
+    // Hot Path
     function handleLockString($context, $s) {
         $plain = OLockString::getUnlocked($s, '');
         if ($s->u_lock_type() == $this->returnLockType) {
@@ -99,11 +103,9 @@ class TemplateHtml extends OTemplate {
             return $unlocked;
         }
         else if ($type == 'css') {
-            $nonce = Tht::module('Web')->u_nonce();
             return Tht::module('Css')->wrap($unlocked);
         }
         else if ($type == 'js') {
-            $nonce = Tht::module('Web')->u_nonce();
             return Tht::module('Js')->wrap($unlocked);
         }
 
