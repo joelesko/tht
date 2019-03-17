@@ -50,6 +50,8 @@ class Minifier extends StringReader {
                     $this->out .= $c;
                     $this->inString = false;
                     $this->stringDelim = '';
+                } else {
+                    $this->out .= $c;
                 }
             }
             else {
