@@ -34,6 +34,7 @@ class Runtime {
         'f' => 'flag',
         'l' => 'list',
         'm' => 'map',
+        'c' => 'callable',
     ];
 
     static $SINGLE = [];
