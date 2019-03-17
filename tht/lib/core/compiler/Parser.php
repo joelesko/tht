@@ -39,7 +39,7 @@ class Parser {
 
     function error ($msg, $token = null, $isLineError = false) {
         if (!$token) { $token = $this->symbol->token; }
-        return ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile(), $isLineError);
+        return ErrorHandler::handleCompilerError($msg, $token, Compiler::getCurrentFile(), $isLineError);
     }
 
 
