@@ -2,27 +2,6 @@
 
 namespace o;
 
-class SourceMap {
-    private $map = [];
-    private $lineNum = 1;
-
-    function __construct ($sourceFile) {
-        $this->map = [ 'file' => $sourceFile ];
-    }
-
-    function set ($targetSrcLine) {
-        $this->map[$this->lineNum] = $targetSrcLine;
-    }
-
-    function next () {
-        $this->lineNum += 1;
-    }
-
-    function out () {
-        return '/* SOURCE=' . json_encode($this->map) . ' */';
-    }
-}
-
 class Emitter {
 
     protected $symbolTable = null;
@@ -34,7 +13,7 @@ class Emitter {
     }
 
     function error ($msg, $token) {
-        ErrorHandler::handleCompilerError($msg, $token, Source::getCurrentFile());
+        ErrorHandler::handleCompilerError($msg, $token, Compiler::getCurrentFile());
     }
 
     function appendSourceMap ($targetSrc, $sourceFile) {
@@ -68,6 +47,7 @@ class Emitter {
         $args = func_get_args();
 
         $template = array_shift($args);
+
         $template = str_replace('\\n', "\n", $template);
         $template = str_replace('}', "\n}\n", $template);
         $template = str_replace('{', "{\n", $template);
@@ -75,11 +55,9 @@ class Emitter {
         $template = preg_replace('/\n{2,}/', "\n", $template);
 
         foreach ($args as $a) {
-
             if (is_array($a)) {
                 $a = $this->out($a);
             }
-
             $pos = strpos($template, '###');
             $template = substr_replace($template, $a, $pos, 3);
         }
