@@ -40,7 +40,7 @@ class u_Js extends StdModule {
 
         if (!trim($str)) { return ''; }
 
-        $cacheKey = 'min_js_' . md5($str);
+        $cacheKey = 'js_minified_' . md5($str);
         $cache = Tht::module('Cache');
         if ($cache->u_has($cacheKey)) {
             return $cache->u_get($cacheKey);
