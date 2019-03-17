@@ -5,6 +5,13 @@ namespace o;
 class S_Class extends S_Statement {
     var $type = SymbolType::NEW_CLASS;
 
+    // TODO: figure out how to allow 'class' as an accepted user variable name
+    // function asLeft($p) {
+    //     $this->updateType(SymbolType::USER_VAR);
+    //     $p->next();
+    //     return $this;
+    // }
+
     // e.g. class Foo { ... }
     function asStatement ($p) {
 
