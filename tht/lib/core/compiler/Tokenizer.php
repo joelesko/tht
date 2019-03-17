@@ -62,7 +62,6 @@ class Tokenizer extends StringReader {
         'in',
         'return' ,
         'new',
-        'class',
         'for',
         'if',
         'F',
@@ -111,7 +110,7 @@ class Tokenizer extends StringReader {
             $tokenPos = explode(',', $tokenPos);
         }
         $pos = $tokenPos ?: $this->tokenPos;
-        ErrorHandler::handleCompilerError($msg, ['', implode(',', $pos)], Source::getCurrentFile());
+        ErrorHandler::handleCompilerError($msg, ['', implode(',', $pos)], Compiler::getCurrentFile());
     }
 
     function templateEndError () {
@@ -423,13 +422,18 @@ class Tokenizer extends StringReader {
                 $this->error("Unclosed string. Maybe you missed a closing quote ($c).", $startPos);
             }
             if ($c === $closeQuote) {
-                if ($this->inMultiLineString && $this->nextChar(2) == "''") {
-                    if (!$this->atStartOfLine()) {
-                        $this->error("Closing triple-quotes `'''` must belong on a separate line.");
+                if ($this->inMultiLineString) {
+                    if ($this->nextChar(2) == "''") {
+                        if (!$this->atStartOfLine()) {
+                            $this->error("Closing triple-quotes `'''` must belong on a separate line.");
+                        }
+                        $this->next(2);
+                        break;
                     }
-                    $this->next(2);
                 }
-                break;
+                else {
+                    break;
+                }
             }
 
             $str .= $this->escape($c, $type);
@@ -440,7 +444,7 @@ class Tokenizer extends StringReader {
         }
 
         if ($type === TokenType::STRING) {
-            if (preg_match('#\?.*=#', $str)) {
+            if (preg_match('#\?\S+=#', $str)) {
                 $this->error("URL should be created as a LockString. Try: e.g. `url'/page'.query({ foo: 123 })`");
             }
         }
