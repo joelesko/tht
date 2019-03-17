@@ -124,6 +124,9 @@ class Validator {
         else if (strlen($name) > ParserData::$MAX_WORD_LENGTH) {
             $this->parser->error("Words must be " . ParserData::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
+        else if ($name == 'l') {
+            $this->parser->error("Can't use `l` as an identifier, for readability.  It looks too much like a `1` (number one).", $token);
+        }
     }
 
     function setPaused ($isPaused) {
