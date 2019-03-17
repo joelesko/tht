@@ -69,6 +69,7 @@ class LibModules {
         'Cache',
         'Net',
         'MapDb',
+        'Image',
     ];
 
     public static function load () {
