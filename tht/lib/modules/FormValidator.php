@@ -102,26 +102,36 @@ class u_FormValidator extends StdModule {
 
         $allFieldsOk = true;
         $errors = [];
+        $results = [];
 
         foreach (uv($schema) as $fieldName => $fieldSchema) {
 
             if (!isset($data[$fieldName])) {
-                Tht::error("Missing form data for field: `$fieldName`");
+                // Tht::error("Missing form data for field: `$fieldName`");
+                $val = '';
+            }
+            else {
+                $val = $data[$fieldName];
             }
 
-            $val = $data[$fieldName];
-
+         //   $val = $data[$fieldName];
             $result = $this->validateField($fieldName, $val, $fieldSchema);
 
             if (!$result['ok']) {
                 $allFieldsOk = false;
                 $errors []= $result;
+                $results[$fieldName] = '';
             }
+            else {
+                $results[$fieldName] = $result['value'];
+            }
+
         }
 
         return [
             'ok' => $allFieldsOk,
             'errors' => $errors,
+            'fields' => $results,
         ];
     }
 
