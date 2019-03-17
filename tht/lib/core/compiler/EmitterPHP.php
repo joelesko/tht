@@ -8,6 +8,7 @@ class EmitterPHP extends Emitter {
     private $constantContext = '';
     private $constantValues = [];
     private $isPhpLiteral = false;
+    private $inClosureVars = false;
 
     var $astToTarget = [
 
@@ -211,7 +212,12 @@ class EmitterPHP extends Emitter {
     // Words
 
     function pUserVar ($value, $k) {
-        return $this->format('$###', u_($value));
+        $t = '$###';
+        if ($this->inClosureVars) {
+            // closure vars need to be a reference
+            $t = '&$###';
+        }
+        return $this->format($t, u_($value));
     }
 
     function pMemberVar ($value, $k) {
@@ -403,7 +409,9 @@ class EmitterPHP extends Emitter {
     function pFunction ($value, $k) {
         $closure = '';
         if (isset($k[3])) {
+            $this->inClosureVars = true;
             $closure = $this->format('use (###)', $k[3]);
+            $this->inClosureVars = false;
         }
 
         $out = $this->format('function ### (###) ### { %%% ### return new \o\ONothing(__METHOD__); }',
