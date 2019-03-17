@@ -35,6 +35,7 @@ class u_Litemark extends StdModule {
         'image1'  => '<img class="lite" src="{1}" />',
         'image2'  => '<img class="lite" src="{1}" alt="{2}" />',
         'br0'     => '<br />',
+        'nobr1'   => '<nobr>{1}</nobr>',
         'pbr0'    => '<p> </p>',
         'sp0'     => '&nbsp;',
 
