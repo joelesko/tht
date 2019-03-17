@@ -656,8 +656,7 @@ class ErrorHandler {
     }
 
     function doDisplayWebErrors () {
-        $host = Tht::module('Web')->u_request()['url']['host'];
-        if ($host == 'localhost') {
+        if (Security::isAdmin()) {
             return true;
         }
         return Compiler::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;

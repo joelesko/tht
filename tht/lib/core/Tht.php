@@ -416,7 +416,7 @@ class Tht {
             // security
             "allowFileUploads"        => false,
             "contentSecurityPolicy"   => '',
-            "showErrorPageForMins"    => 30,
+            "showErrorPageForMins"    => 10,
             "dangerDangerAllowJsEval" => false,
 
             // misc
