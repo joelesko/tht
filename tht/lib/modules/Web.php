@@ -25,7 +25,7 @@ class u_Web extends StdModule {
             $headers = OMap::create(Tht::getPhpGlobal('headers', '*'));
             $isHttps = $this->isHttps();
             $ua = $this->parseUserAgent(Tht::getPhpGlobal('server', 'HTTP_USER_AGENT'));
-            $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
+            $method = $this->getMethod();
 
             $r = [
                 'ip'          => $ips[0],
@@ -44,6 +44,20 @@ class u_Web extends StdModule {
         }
 
         return $this->request;
+    }
+
+    function getMethod() {
+        $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
+        if ($method == 'post') {
+            $restMethod = strtolower(Tht::getPhpGlobal('post', '_method', ''));
+            if ($restMethod) {
+                if (!in_array($restMethod, ['get', 'post', 'put', 'patch', 'delete'])) {
+                    Tht::error('Unsupported REST method: `$restMethod`. Try: `get`, `post`, `put`, `patch`, `delete`');
+                }
+                $method = $restMethod;
+            }
+        }
+        return $method;
     }
 
     function buildRequestUrl($isHttps) {
@@ -276,10 +290,10 @@ class u_Web extends StdModule {
         $type = $lout->u_get_string_type();
 
         if ($type == 'css') {
-            return $this->u_return_css($lout);
+            return $this->u_send_css($lout);
         }
         else if ($type == 'js') {
-            return $this->u_return_js($lout);
+            return $this->u_send_js($lout);
         }
     }
 
@@ -400,7 +414,7 @@ class u_Web extends StdModule {
 
         // TODO: get updateTime of the files
         // TODO: allow base64 urls
-        // $cacheTag = '?cache=' . Source::getAppCompileTime();
+        // $cacheTag = '?cache=' . Compiler::getAppCompileTime();
         $cacheTag = '';
 
         $val['image'] = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
@@ -592,19 +606,23 @@ HTML;
         return new \o\HtmlLockString ($str);
     }
 
-    function u_link($lUrl, $label=null, $params=null) {
+    //
+    function u_link($lUrl, $label, $params=null) {
 
         ARGS('*sl', func_get_args());
 
-        OLockString::getUnlocked($lUrl, 'url');
+        $url = OLockString::getUnlocked($lUrl, 'url');
 
-        if (is_null($label)) {
-            $label = $lUrl->u_unlocked();
-        }
-        $str = '<a href="{}">{}</a>';
-        $html = OLockString::create('html', $str);
-        $html->u_fill($lUrl, $label);
-        return $html;
+        // PERF: Hot Path.  Links are extremely common, so sidestepping LockStrings
+        // TODO: reconsider?
+
+        $url = htmlspecialchars($url);
+        return OLockString::create('html', "<a href=\"$url\">$label</a>");
+
+        // $str = '<a href="{}">{}</a>';
+        // $html = OLockString::create('html', $str);
+        // $html->u_fill($lUrl, $label);
+        // return $html;
     }
 
     function u_breadcrumbs($links, $joiner = ' > ') {
@@ -737,6 +755,9 @@ HTML;
 
 
 
+
+
+
     // USER INPUT
     // --------------------------------------------
 
@@ -762,32 +783,91 @@ HTML;
     }
 
     function u_query($name, $sRules='id') {
-        ARGS('ss', func_get_args());
-        return $this->u_input('get', $name, $sRules);
+        $getter = new u_RequestData ('get');
+        return $getter->field($name, $sRules);
     }
 
-    function u_input($method, $name, $sRules='id') {
+    function u_form_data($sRules) {
+        $getter = new u_RequestData ($method, $sRules);
+        return $getter->fields();
+    }
+
+    function u_input_($method, $name, $sRules='id') {
 
         ARGS('sss', func_get_args());
 
-        if (!in_array($method, ['get', 'post', 'dangerDangerRemote'])) {
-            Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`, `dangerDangerRemote`");
+        if (!in_array($method, ['get', 'post', 'put', 'patch', 'delete'])) {
+            Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`");
         }
 
-        if ($method === 'post') {
-            Security::validateRequest();
-        }
-        else if ($method == 'dangerDangerRemote') {
-            $method = 'post';
-        }
+        Security::validatePostRequest();
 
-        $rawVal = trim(Tht::getPhpGlobal($method, $name));
+        $dataSource = $method == 'get' ? 'get' : 'post';
+        $rawVal = Tht::getPhpGlobal($dataSource, $name);
 
         $schema = ['rule' => $sRules];
         $validator = new u_FormValidator ();
         $validated = $validator->validateField($name, $rawVal, $schema);
 
         return $validated['value'];
+    }
+
+    function u_data($method, $rules=null) {
+        return new u_RequestData ($method, $rules);
+    }
+
+}
+
+class u_RequestData {
+
+    static private $METHODS = ['get', 'post', 'put', 'patch', 'delete'];
+
+    private $matchesRequestMethod = false;
+    private $dataSource = '';
+    private $method = '';
+    private $allowRemote = false;
+    private $rules = null;
+
+    function __construct($method, $rules=null) {
+        if (!in_array($method, self::$METHODS)) {
+            Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`");
+        }
+
+        $this->method = $method;
+        $this->matchesRequestMethod = Tht::module('Web')->u_request()['method'] === $method;
+
+        Security::validatePostRequest();
+
+        $this->dataSource = $method == 'get' ? 'get' : 'post';
+
+        $this->rules = $rules;
+    }
+
+    function field($fieldName, $sRules) {
+
+        if (!$this->matchesRequestMethod) {
+            return '';
+        }
+
+        $rawVal = Tht::getPhpGlobal($this->dataSource, $fieldName);
+
+        $schema = ['rule' => $sRules];
+        $validator = new u_FormValidator ();
+        $validated = $validator->validateField($fieldName, $rawVal, $schema);
+
+        return $validated;
+    }
+
+    function fields() {
+        $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
+        $validator = new u_FormValidator ();
+        $validated = $validator->validateFields($rawVals, $this->rules);
+
+        return v($validated);
+    }
+
+    function u_danger_danger_allow_remote() {
+        $this->allowRemote = true;
     }
 
 }
