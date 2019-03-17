@@ -109,7 +109,7 @@ class ModuleManager {
         self::validateImportPath($relPath);
 
         $fullPath = Tht::path('modules', $relPath . '.' . Tht::getExt());
-        Source::process($fullPath);
+        Compiler::process($fullPath);
 
         $relPath = Tht::getRelativePath('app', $fullPath);
         if (!isset(self::$moduleRegistry[$relPath])) {
