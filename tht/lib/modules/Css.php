@@ -22,7 +22,7 @@ class u_Css extends StdModule {
 
         if (!trim($str)) { return ''; }
 
-        $cacheKey = 'min_css_' . md5($str);
+        $cacheKey = 'css_minified_' . md5($str);
         $cache = Tht::module('Cache');
         if ($cache->u_has($cacheKey)) {
             return $cache->u_get($cacheKey);
