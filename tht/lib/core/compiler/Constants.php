@@ -207,7 +207,6 @@ class ParserData {
         'include'   => 'S_Unsupported',
         'while'     => 'S_Unsupported',
 
-
         // oop
         'class'     => 'S_Class',
         'interface' => 'S_Class',
@@ -218,7 +217,6 @@ class ParserData {
         'private'   => 'S_Class',
         'protected' => 'S_Class',
         'static'    => 'S_Class',
-
     ];
 
     static public $RESERVED_NAMES = [
