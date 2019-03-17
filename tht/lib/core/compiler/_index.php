@@ -10,6 +10,7 @@ class ThtLib {
         'Symbols',
         'Parser',
         'Validator',
+        'SourceMap',
         'Emitter',
         'EmitterPHP',
     ];

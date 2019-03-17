@@ -4,8 +4,8 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.2.0 - Beta';
-    static private $VERSION_TOKEN = '000200';
+    static private $VERSION = '0.3.0 - Beta';
+    static private $VERSION_TOKEN = '000300';
 
     static private $SRC_EXT = 'tht';
 
@@ -113,14 +113,17 @@ class Tht {
     }
 
     // TODO: put all these in one registry function/file?
+    // Includes take less than a 1ms (?)
     static private function includeLibs() {
 
         Tht::loadLib('utils/Utils.php');
         Tht::loadLib('utils/StringReader.php');
         Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
 
+        Tht::loadLib('runtime/HitCounter.php');
+        Tht::loadLib('runtime/PrintBuffer.php');
         Tht::loadLib('runtime/ErrorHandler.php');
-        Tht::loadLib('runtime/Source.php');
+        Tht::loadLib('runtime/Compiler.php');
         Tht::loadLib('runtime/Runtime.php');
         Tht::loadLib('runtime/ModuleManager.php');
         Tht::loadLib('runtime/Security.php');
@@ -186,13 +189,9 @@ class Tht {
     //---------------------------------------------
 
     static private function printPerf () {
+        // TODO: Only when response type = html
         if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
-            $duration = ceil((microtime(true) - Tht::getPhpGlobal('server', "REQUEST_TIME_FLOAT")) * 1000);
-            $peakMem = round(memory_get_peak_usage(false) / 1048576, 1);
-            if (Tht::getConfig('showPerfComment') && Tht::isMode('web')) {
-                print("\n<!-- Page Speed: $duration ms, $peakMem mb  -->\n");
-            }
-            Tht::module('Perf')->printResults($duration, $peakMem);
+            Tht::module('Perf')->printResults();
         }
     }
 
@@ -397,17 +396,16 @@ class Tht {
 
             // internal
             "_devPrint"        => false,
-            "_disablePhpCache" => false,
+            "_forceRecompile"  => false,
             "_showPhpInTrace"  => false,
-            "_lintPhp"         => true,
             "_leakPhpErrors"   => false,
 
             // temporary - still working on it
             "tempParseCss"     => false,
 
             // features
-            "showPerfScore"        => false,
-            "showPerfComment"      => true,
+            "adminIp"              => '',
+            "showPerfPanel"        => false,
             "disableFormatChecker" => false,
             "minifyCssTemplates"   => true,
             "minifyJsTemplates"    => true,
@@ -416,7 +414,6 @@ class Tht {
             'hitCounter'           => true,
 
             // security
-            "allowFileAccess"         => false,
             "allowFileUploads"        => false,
             "contentSecurityPolicy"   => '',
             "showErrorPageForMins"    => 30,
@@ -552,6 +549,12 @@ class Tht {
 
     static function getThtFileName ($fileBaseName) {
         return $fileBaseName . '.' . Tht::$SRC_EXT;
+    }
+
+    static function stripAppRoot($value) {
+        $value = str_replace(Tht::path('app'), '', $value);
+        $value = str_replace(Tht::path('docRoot'), '', $value);
+        return ltrim($value, '/');
     }
 
 
