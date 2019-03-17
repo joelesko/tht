@@ -75,11 +75,13 @@ abstract class OLockString extends OVar {
     }
 
     private function escapeParams() {
+
         $escParams = [];
         foreach($this->bindParams as $k => $v) {
             if (OLockString::isa($v)) {
                 $plain = $v->u_stringify();
                 if ($v->u_lock_type() === $this->u_lock_type()) {
+                    // If same lock type, don't escape
                     $escParams[$k] = $plain;
                 } else {
                     $escParams[$k] = $this->u_z_escape_param($plain);
@@ -124,12 +126,14 @@ abstract class OLockString extends OVar {
     }
 
     function u_stringify () {
+
         ARGS('', func_get_args());
         $out = $this->str;
         if ($this->bindParams) {
             $escParams = $this->escapeParams();
             $out = v($this->str)->u_fill($escParams);
         }
+
         if (count($this->appendedLockStrings)) {
             $num = 0;
             foreach ($this->appendedLockStrings as $s) {
@@ -138,6 +142,7 @@ abstract class OLockString extends OVar {
                 $num += 1;
             }
         }
+
         return $out;
     }
 
@@ -198,11 +203,9 @@ class SqlLockString extends OLockString {
     protected $type = 'sql';
     protected function u_z_escape_param($v) {
         Tht::error('SQL escaping must be handled internally.');
-       // return Tht::module('Css')->u_escape($v);
     }
     function u_stringify() {
         Tht::error('SqlLockStrings may only be stringified internally.');
-       // return Tht::module('Css')->u_escape($v);
     }
 }
 
@@ -310,12 +313,8 @@ class UrlLockString extends OLockString {
 
         $s = parent::u_stringify();
 
-        // add query
         if (!is_null($this->query)) {
-            $q = http_build_query(uv($this->query), null, '&', PHP_QUERY_RFC3986);
-            if ($q !== '') {
-                $s .= '?' . $q;
-            }
+            $s .= Security::stringifyQuery($this->query);
         }
 
         // add hash
@@ -350,26 +349,6 @@ class UrlLockString extends OLockString {
         }
         return $ary;
     }
-
-    // function stringify_url($u) {
-    //     ARGS('m', func_get_args());
-
-    //     $u = uv($u);
-    //     $parts = [
-    //         $this->stringifyPart($u, 'scheme',   '__://'),
-    //         $this->stringifyPart($u, 'host',     '__'),
-    //         $this->stringifyPart($u, 'port',     ':__'),
-    //         $this->stringifyPart($u, 'path',     '__'),
-    //         $this->stringifyPart($u, 'query',    '?__'),
-    //         $this->stringifyPart($u, 'fragment', '#__'),
-    //     ];
-    //     return implode('', $parts);
-    // }
-
-    // function stringifyPart($u, $k, $template) {
-    //     if (!isset($u[$k])) { return ''; }
-    //     return str_replace('__', $u[$k], $template);
-    // }
 }
 
 
