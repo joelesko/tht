@@ -56,7 +56,7 @@ class u_File extends StdModule {
             // internally set, is ok
             return $a;
         }
-        if (strpos($pattern, 'string') !== false) {
+        else if (strpos($pattern, 'string') !== false) {
             // TODO: check type
             return $a;
         }
@@ -64,12 +64,14 @@ class u_File extends StdModule {
             // TODO: check type
             return $a;
         }
+
         if (preg_match('/path|dir|file/', $pattern)) {
             // a path
             // TODO: check is_dir or is_file
             $a = $this->validatePath($a, !$this->isSandboxDisabled);
 
         }
+
         if (strpos($pattern, 'exists') !== false) {
             // path must exist
             if (!file_exists($a)) {
@@ -185,12 +187,13 @@ class u_File extends StdModule {
 
     function u_parse_path ($path) {
 
-        $this->validatePath($path, false);
         ARGS('s', func_get_args());
-        $info = $this->_call('pathinfo', [$path]);
-        $dirPath = str_replace('\\', '/', $info['dirname']);
 
-        $dirs = explode('/', trim($dirPath, '/'));
+        $path = str_replace('\\', '/', $path);
+        $this->validatePath($path, false);
+        $info = $this->_call('pathinfo', [$path]);
+
+        $dirs = explode('/', trim($info['dirname'], '/'));
         $dirList = [];
         foreach ($dirs as $d) {
             if ($d !== '.' && $d !== '') {
@@ -198,14 +201,13 @@ class u_File extends StdModule {
             }
         }
 
-        $dirPath = implode('/', $dirList);
-
         return OMap::create([
             'dirList'       => $dirList,
-            'dirPath'       => $dirPath,
+            'dirPath'       => $info['dirname'],
             'fileNameShort' => $info['filename'],
             'fileName'      => $info['basename'],
-            'fileExt'       => $info['extension']
+            'fileExt'       => $info['extension'],
+            'fullPath'      => $path,
         ]);
     }
 
@@ -485,25 +487,61 @@ class u_File extends StdModule {
         return $files;
     }
 
-    function u_for_files($dirPath, $fn) {
+    // TODO: file ext filter
+    // TODO: merge with read_dir
+    function u_for_files($dirPath, $fn, $goDeep=false) {
 
-        ARGS('s*', func_get_args());
+        ARGS('scf', func_get_args());
         $dirPath = $this->validatePath($dirPath, !$this->isSandboxDisabled);
 
-        $dirHandle = opendir($dirPath);
+        $agg = [];
+        $dirStack = [$dirPath];
+        $dirHandle = null;
+
+        $ignoreFiles = ['.', '..', '.DS_Store', 'thumbs.db', 'desktop.ini'];
+
         while (true) {
+
+            if (!$dirHandle) {
+                if (count($dirStack)) {
+                    $dirPath = array_pop($dirStack);
+                    $dirHandle = opendir($dirPath);
+                }
+                else {
+                    break;
+                }
+            }
+
             $file = readdir($dirHandle);
-            if (!$file) { break; }
-            if ($file === "." || $file === ".." || $file === '.DS_Store') {
+            if (!$file) {
+                // last file in dir
+                closedir($dirHandle);
+                $dirHandle = null;
                 continue;
             }
+            else if (in_array($file, $ignoreFiles)) {
+                continue;
+            }
+
             $subPath = $dirPath . "/" . $file;
-            $ret = $fn(OMap::create([ 'name' => $file, 'path' => $subPath ]));
-            if ($ret === true) {
-                break;
+            $isDir = is_dir($subPath);
+            if ($goDeep && $isDir) {
+                $dirStack []= $subPath;
+            }
+            else {
+                $fileInfo = $this->u_parse_path($subPath);
+                $fileInfo['isDir'] = $isDir;
+                $fileInfo['isFile'] = !$isDir;
+                $ret = $fn($fileInfo);
+                if ($ret === false) {
+                    break;
+                }
+                if (!is_null($ret)) {
+                    $agg []= $ret;
+                }
             }
         }
-        closedir($dirHandle);
+        return OList::create($agg);
     }
 
 
