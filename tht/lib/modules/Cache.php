@@ -5,10 +5,20 @@ namespace o;
 class u_Cache extends StdModule {
 
     private $driver;
+    private $triedGarbageCollect = false;
 
     function __construct() {
         // TODO: support memcache, etc.
         $this->driver = new FileCacheDriver ();
+    }
+
+    function tryGarbageCollect() {
+        if (!$this->triedGarbageCollect) {
+            if (rand(1, Tht::getConfig('cacheGarbageCollectRate')) == 1) {
+                $this->driver->garbageCollect();
+            }
+            $this->triedGarbageCollect = true;
+        }
     }
 
     function u_has($k) {
@@ -37,9 +47,7 @@ class u_Cache extends StdModule {
     }
 
     function u_set($k, $v, $ttlSecs) {
-        if (rand(1, Tht::getConfig('cacheGarbageCollectRate')) == 1) {
-            $this->driver->garbageCollect();
-        }
+        $this->tryGarbageCollect();
         return $this->driver->set($k, $v, $ttlSecs);
     }
 
@@ -188,8 +196,8 @@ class FileCacheDriver extends CacheDriver {
         $now = time();
         $numDeleted = 0;
         Tht::module('*File')->u_for_files(Tht::path('kvCache'), function($f) use ($now, $numDeleted){
-            if (filemtime($f['path']) <= $now) {
-                unlink($f['path']);
+            if (filemtime($f['fullPath']) <= $now) {
+                unlink($f['fullPath']);
                 $numDeleted += 1;
                 if ($numDeleted == 100) {
                     return true;
