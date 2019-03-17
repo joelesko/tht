@@ -38,7 +38,7 @@ class u_Meta extends StdModule {
 
     function u_parse ($source) {
         ARGS('s', func_get_args());
-        return Source::safeParseString($source);
+        return Compiler::safeParseString($source);
     }
 
     // TODO:  debug_backtrace is slow. support inline splats instead (supported in PHP 5.6+).
