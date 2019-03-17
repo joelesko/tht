@@ -77,7 +77,7 @@ class u_System extends StdModule {
     }
 
     function u_app_compile_time () {
-        return Source::getAppCompileTime();
+        return Compiler::getAppCompileTime();
     }
 
     function u_start_time () {
