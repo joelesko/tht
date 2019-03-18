@@ -10,12 +10,12 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfPanel: false
+        showPerfPanel: true
         adminIp:
 
         memoryLimitMb: 32
 
-        _forceRecompile: true
+        _forceRecompile: false
         _showPhpInTrace: true
 
         hitCounter: true
