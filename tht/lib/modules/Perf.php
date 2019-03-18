@@ -169,6 +169,29 @@ class u_Perf extends StdModule {
 
         // TODO: this is all pretty ugly
 
+
+        $opCache = '';
+        if (function_exists('opcache_get_status')) {
+            if (opcache_get_status()['opcache_enabled']) {
+                $opCache = '<span style="color: #393">OPCache</span>';
+            }
+        }
+        if (!$opCache) {
+            if (extension_loaded('apc')) {
+                $opCache = '<span style="color: #393">APC</span>';
+            }
+            else {
+                $opCache = '<span style="color: #c33">None</span>';
+            }
+        }
+
+
+        $appCache = 'File';
+
+        $phpColor = PHP_MAJOR_VERSION >= 7 ? '#393' : '#c33';
+        $phpVersion = "<span style=\"color: $phpColor\">" . phpVersion() . '</span>';
+
+
         echo $this->perfPanelCss();
         echo $this->perfPanelJs($results['scriptTime']);
 
@@ -221,6 +244,20 @@ class u_Perf extends StdModule {
                 <?php } ?>
             </div>
             </div>
+
+            <div class="perfSection">
+                <div class="perfHeader">PHP Info</div>
+
+                <div style="text-align: left; width: 300px; display: inline-block; margin-top: 32px">
+                <li>PHP Version: <b><?= $phpVersion ?></b></li>
+                <li>Opcode Cache: <b><?= $opCache ?></b></li>
+                <li>App Cache: <b><?= $appCache ?></b></li>
+                </div>
+
+
+
+            </div>
+
 
         </div>
         <?php
