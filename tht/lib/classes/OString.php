@@ -33,6 +33,51 @@ class OString extends OVar implements \ArrayAccess {
         'slice'     => 'substring()',
     ];
 
+    // static private $typos = [
+    //     "\bteh\b" => "the",
+    //     "\bpls\b" => "please",
+    //     "\bthx\b" => "thanks",
+    //     "\bot\b" => "to",
+    //     "\bu r\b" => "you are",
+    //     "\br u\b" => "are you",
+    //     "\bur\b" => "you're",
+    //     "\bi m\b" => "I am",
+    //     "\by " => "why ",
+    //     '\bi ' => 'I ',
+    //     '\bu(?!\.)\b' => 'you',
+    //     "\btaht\b" => "that",
+    //     "\badn\b" => "and",
+    //     '\bect\b' => "etc",
+    //     '\bwether\b' => "whether",
+    //     "\buntill\b" => "until",
+    //     "\bniether\b" => "neither",
+    //     "belei(v|f)" => "belie$1",
+    //     "\bbeli(v|f)" => "belie$1",
+    //     "\bfreind" => "friend",
+    //     "\bwierd" => "weird",
+    //     "\brember" => "remember",
+    //     "\bremeber" => "remember",
+    //     "\bsuprise" => "surprise",
+    //     "\bthier\b" => "their",
+    //     "cie(t|v)" => "cei(t|v)",
+    //     "\brealy\b" => "really",
+    //     "\ballmost\b" => "almost",
+    //     "\bthru\b" => "through",
+    //     "\bwich\b" => "which",
+    //     "\banyways\b" => "anyway",
+    //     "\btom+or+ow\b" => "tomorrow",
+    //     "\bdefinate" => "definite",
+    //     "\bseperate" => "separate",
+    //     "\balot\b" => "a lot",
+    //     "\bwont (?!to)" => "won't",
+    //     "\b(could|should|would) of\b" => "$1 have",
+    //     "\bits (the|in|a|for)\b" => "it's $1",
+    //     "\byour (the|in|a)\b" => "you're $1",
+    //     "\btheir (the|in|a)\b" => "they're $1",
+    // ];
+
+    // static private $currentTypoMatch = '';
+
 
     // Indexing
 
@@ -776,6 +821,15 @@ class OString extends OVar implements \ArrayAccess {
         return ucfirst(strtolower($raw[1]));
     }
 
+    static function replaceTypo ($raw) {
+        $word = $raw[1];
+        $newWord = self::$currentTypoMatch;
+        if (preg_match('/^[A-Z]/', $word)) {
+            $newWord = ucfirst($newWord);
+        }
+        return $newWord;
+    }
+
     // prevent ALL CAPS
     function removeAllCaps($s) {
 
@@ -795,135 +849,93 @@ class OString extends OVar implements \ArrayAccess {
         return $s;
     }
 
+    // WORK IN PROGRESS
+
     // TODO: leave code samples alone
     // TODO: retain first cap in typo fixes
     // TODO: register as 'civilize' input filter
     // Slow-ish due to so many regexes, but this will only be called on inbound user data.
     // Not on every output.
-    function u_civilize () {
+    // function u_civilize () {
 
-        ARGS('', func_get_args());
-        $s = trim($this->val);
+    //     ARGS('', func_get_args());
+    //     $s = trim($this->val);
 
-        // trim and squeeze spaces
-        $s = preg_replace('/\n{2,}/', "\n\n", $s);
-        $s = preg_replace('/ {3,}/', "  ", $s);
+    //     // trim and squeeze spaces
+    //     $s = preg_replace('/\n{2,}/', "\n\n", $s);
+    //     $s = preg_replace('/ {3,}/', "  ", $s);
 
-        $s = $this->removeAllCaps($s);
+    //     $s = $this->removeAllCaps($s);
 
-        // truncate repeated characters
-        $s = preg_replace("/(\.|,){3,}/", "...", $s);
-        $s = preg_replace("/!{2,}/", "!", $s);
-        $s = preg_replace('/\?{2,}/', "?", $s);
-        $s = preg_replace('/[\?!]{2,}/', "?!", $s);
-        $s = preg_replace("/(.)\\1{3,}/i", '\\1\\1\\1', $s);
-        $s = preg_replace_callback("/([^\s]{30,})/", '\o\OString::truncateLongString', $s);
+    //     // truncate repeated characters
+    //     $s = preg_replace("/(\.|,){3,}/", "...", $s);
+    //     $s = preg_replace("/!{2,}/", "!", $s);
+    //     $s = preg_replace('/\?{2,}/', "?", $s);
+    //     $s = preg_replace('/[\?!]{2,}/', "?!", $s);
+    //     $s = preg_replace("/(.)\\1{3,}/i", '\\1\\1\\1', $s);
+    //     $s = preg_replace_callback("/([^\s]{30,})/", '\o\OString::truncateLongString', $s);
 
-        // Fix CAse problem
-        $s = preg_replace_callback('/\b([A-Z]{2,}[a-z])/', '\o\OString::capsCase', $s);
+    //     // Fix CAse problem
+    //     $s = preg_replace_callback('/\b([A-Z]{2,}[a-z])/', '\o\OString::capsCase', $s);
 
-        // remove spaces before punctuation.  add a space after.
-        $s = preg_replace("/\s+([\.\,\?!])/", '$1', $s);
-        $s = preg_replace("/([\.\,\?!]+)/", '$1 ', $s);
+    //     // remove spaces before punctuation.  add a space after.
+    //     $s = preg_replace("/\s+([\.\,\?!])/", '$1', $s);
+    //     $s = preg_replace("/([\.\,\?!]+)/", '$1 ', $s);
 
-        // TODO: replace with callback and map lookup, will cut time roughly in half
-        $typos = [
-            "\bteh\b" => "the",
-            "\bpls\b" => "please",
-            "\bthx\b" => "thanks",
-            "\bot\b" => "to",
-            "\bu r\b" => "you are",
-            "\br u\b" => "are you",
-            "\bur\b" => "you're",
-            "\bi m\b" => "I am",
-            "\by " => "why ",
-            '\bi ' => 'I ',
-            '\bu(?!\.)\b' => 'you',
-            "\btaht\b" => "that",
-            "\badn\b" => "and",
-            '\bect\b' => "etc",
-            '\bwether\b' => "whether",
-            "\buntill\b" => "until",
-            "\bniether\b" => "neither",
-            "beleiv" => "believ",
-            "\bbeliv" => "believ",
-            "\bfreind" => "friend",
-            "\bwierd" => "weird",
-            "\brember" => "remember",
-            "\bremeber" => "remember",
-            "\bsuprise" => "surprise",
-            "\bthier\b" => "their",
-            "\breciev" => "receiv",
-            "\brealy\b" => "really",
-            "\ballmost\b" => "almost",
-            "\bthru\b" => "through",
-            "\bwich\b" => "which",
-            "\banyways\b" => "anyway",
-            "\btom+or+ow\b" => "tomorrow",
-            "\bdefinate" => "definite",
-            "\bseperate" => "separate",
-            "\balot\b" => "a lot",
-            "\bwont (?!to)" => "won't",
-            "\b(could|should|would) of\b" => "$1 have",
-            "\bits (the|in|a|for)\b" => "it's $1",
-            "\byour (the|in|a)\b" => "you're $1",
-            "\btheir (the|in|a)\b" => "they're $1",
-        ];
+    //     // TODO: replace with callback and map lookup, will cut time roughly in half
 
-        $apos = [
-            'didnt', 'doesnt', 'wouldnt', 'couldnt', 'shouldnt', 'cant', 'isnt', 'arent', 'aint',
-            'whats', 'wheres', 'hows', 'whens', 'whys', 'thats',
-            'im', 'hes', 'shes'
-        ];
-        foreach ($apos as $a) {
-            $fix = substr($a, 0, strlen($a) - 1) . "'" . substr($a, strlen($a) - 1);
-            $typos["\b$a\b"] = $fix;
-        }
+    //     // add apostrophes to typo list
+    //     $apos = [
+    //         'didnt', 'doesnt', 'wouldnt', 'couldnt', 'shouldnt', 'cant', 'isnt', 'arent', 'aint',
+    //         'whats', 'wheres', 'hows', 'whens', 'whys', 'thats',
+    //         'im', 'hes', 'shes'
+    //     ];
+    //     foreach ($apos as $a) {
+    //         $fix = substr($a, 0, strlen($a) - 1) . "'" . substr($a, strlen($a) - 1);
+    //         self::$typos["\b$a\b"] = $fix;
+    //     }
 
-        foreach ($typos as $pattern => $replace) {
-            $s = preg_replace("#$pattern#i", $replace, $s);
-        }
+    //     foreach (self::$typos as $pattern => $replace) {
+    //         self::$currentTypoMatch = $replace;
+    //         $s = preg_replace_callback("#($pattern)#i", '\o\OString::replaceTypo', $s);
+    //     }
 
-        $s = trim($s);
+    //     $s = trim($s);
 
-        return $s;
-    }
+    //     return $s;
+    // }
 
-    function profanity() {
+    // function profanity() {
 
-        function fuzzyToken($s) {
-            $pr = strtolower($s);
-            $pr = str_replace(
-                ['0', '1', '!', '^', '4', '@', '&', '$', '5', 'z', 'ph', 'ck'],
-                ['o', 'i', 'i', 'a', 'a', 'a', 'a', 's', 's', 's', 'f', 'k'],
-                $pr);
-            $pr = preg_replace('/[^a-z\s]/', '', $pr);
-            $pr = preg_replace('/\s+/', ' ', $pr);
-            $pr = preg_replace("/(.)\\1{2,}/", '\\1', $pr); // shrink repeats
+    //     function fuzzyToken($s) {
+    //         $pr = strtolower($s);
+    //         $pr = str_replace(
+    //             ['0', '1', '!', '3', '^', '4', '@', '&', '$', '5', 'z', 'ph', 'ck'],
+    //             ['o', 'i', 'i', 'e', 'a', 'a', 'a', 'a', 's', 's', 's', 'f', 'k'],
+    //             $pr);
+    //         $pr = preg_replace('/[^a-z\s]/', '', $pr);
+    //         $pr = preg_replace('/\s+/', ' ', $pr);
+    //         $pr = preg_replace("/(.)\\1{2,}/", '\\1', $pr); // shrink repeats
 
-            return $pr;
-        }
+    //         return $pr;
+    //     }
 
-        // "softer" profznity is replaced.
-        $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);
-     //   $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);  f u c k (complete spellings only)
+    //     // "softer" profanity is replaced.
+    //     $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);
+    //  //   $s = preg_replace_callback('/(\S+)/', 'checkWord', $s);  f u c k (complete spellings only)
 
-        // Highly charged words null the entire message.
-        // No need to hear from this person.
+    //     // Highly charged words null the entire message.
+    //     // No need to hear from this person.
 
-        // fukishima, nigeria, Fager
-
-        $profanity = [
-            'niger', 'fag', 'fagot', 'fagit', 'faget', 'fuk',
-        ];
-        foreach ($profanity as $p) {
-            if (strpos($p, $s) !== false) {
-                return '(profanity removed)';
-            }
-        }
-
-        // 'bitch', 'ass', 'arse', 'shit', 'fuck'
-    }
+    //     $profanity = [
+    //         'nig' . 'ger', 'fa' . 'ggot', 'fu' . 'ck', 'cu' . 'nt'
+    //     ];
+    //     foreach ($profanity as $p) {
+    //         if (strpos($p, $s) !== false) {
+    //             return '(removed)';
+    //         }
+    //     }
+    // }
 }
 
 
