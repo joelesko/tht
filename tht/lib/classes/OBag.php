@@ -2,7 +2,7 @@
 
 namespace o;
 
-class OBag extends OVar implements \ArrayAccess, \Iterator {
+class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
 
     public $val = [];
     protected $default = null;
@@ -42,6 +42,12 @@ class OBag extends OVar implements \ArrayAccess, \Iterator {
         $this->val = $v;
     }
 
+
+    // Countable
+
+    function count() {
+        return count($this->val);
+    }
 
     // ArrayAccess iterface
 
