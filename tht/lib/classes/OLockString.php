@@ -6,8 +6,8 @@ abstract class OLockString extends OVar {
 
     protected $str = '';
     protected $type = 'text';
-    protected $bindParams = null;
-    protected $overrideParams = null;
+    protected $bindParams = [];
+    protected $overrideParams = [];
     protected $appendedLockStrings = [];
 
     function __construct ($s) {
@@ -129,7 +129,7 @@ abstract class OLockString extends OVar {
 
         ARGS('', func_get_args());
         $out = $this->str;
-        if ($this->bindParams) {
+        if (count($this->bindParams)) {
             $escParams = $this->escapeParams();
             $out = v($this->str)->u_fill($escParams);
         }
@@ -147,7 +147,7 @@ abstract class OLockString extends OVar {
     }
 
     function u_fill ($params) {
-        if (!(OList::isa($params) || OMap::isa($params))) {
+        if (!OList::isa($params) && !OMap::isa($params)) {
             $params = OList::create(func_get_args());
         }
         $this->bindParams = $params;
