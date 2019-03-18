@@ -13,7 +13,7 @@ class u_Global extends OClass {
         $this->u_field[$key] = $v;
     }
 
-    function u_setting($key) {
+    function u_config($key) {
         ARGS('s', func_get_args());
         return Tht::getTopConfig('app', $key);
     }
