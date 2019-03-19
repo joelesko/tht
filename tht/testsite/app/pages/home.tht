@@ -2131,7 +2131,6 @@ function libCache(t) {
 
     Cache.delete('count');
 
-
     Cache.set('short', 'a', 0.1);
     Cache.set('longer', 'a', 1);
     Cache.set('forever', 'a', 0);
