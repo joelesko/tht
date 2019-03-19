@@ -129,6 +129,7 @@ abstract class OLockString extends OVar {
 
         ARGS('', func_get_args());
         $out = $this->str;
+
         if (count($this->bindParams)) {
             $escParams = $this->escapeParams();
             $out = v($this->str)->u_fill($escParams);
@@ -138,7 +139,7 @@ abstract class OLockString extends OVar {
             $num = 0;
             foreach ($this->appendedLockStrings as $s) {
                 $us = $s->u_stringify();
-                $out = str_replace("[LOCK_STRING_$num]", $us);
+                $out = str_replace("[LOCK_STRING_$num]", $us, $out);
                 $num += 1;
             }
         }
@@ -175,7 +176,6 @@ abstract class OLockString extends OVar {
     }
 }
 
-class LiteLockString extends OLockString {  protected $type = 'lite';  }
 class JconLockString extends OLockString {  protected $type = 'jcon';  }
 
 class HtmlLockString extends OLockString {
@@ -188,14 +188,14 @@ class HtmlLockString extends OLockString {
 class JsLockString extends OLockString {
     protected $type = 'js';
     protected function u_z_escape_param($v) {
-        return Tht::module('Js')->u_escape($v);
+        return Tht::module('Js')->escape($v);
     }
 }
 
 class CssLockString extends OLockString {
     protected $type = 'css';
     protected function u_z_escape_param($v) {
-        return Css::escape($v);
+        return Tht::module('Css')->escape($v);
     }
 }
 
