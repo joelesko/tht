@@ -21,42 +21,50 @@ class u_Cache extends StdModule {
         }
     }
 
+    function cleanKey($k) {
+        $k = preg_replace('/[^a-zA-Z0-9]/', '_', trim(strtolower($k)));
+        $k = $k . '_' . Tht::getThtVersion(true);
+        return $k;
+    }
+
     function u_has($k) {
         Tht::module('Perf')->start('Cache.has', $k);
+        $k = $this->cleanKey($k);
         $v = $this->driver->has($k);
         Tht::module('Perf')->u_stop();
         return $v;
     }
 
     function u_get($k, $default='') {
-
         Tht::module('Perf')->start('Cache.get', $k);
+        $k = $this->cleanKey($k);
         $v = $this->driver->get($k, -1, $default);
         Tht::module('Perf')->u_stop();
-
         return $v;
     }
 
     function u_get_sync($k, $syncFileTime, $default='') {
-
         Tht::module('Perf')->start('Cache.getSync', $k);
+        $k = $this->cleanKey($k);
         $v = $this->driver->get($k, $syncFileTime, $default);
         Tht::module('Perf')->u_stop();
-
         return $v;
     }
 
     function u_set($k, $v, $ttlSecs) {
+        $k = $this->cleanKey($k);
         $this->tryGarbageCollect();
         return $this->driver->set($k, $v, $ttlSecs);
     }
 
     function u_delete($k) {
+        $k = $this->cleanKey($k);
         $this->driver->clearPrev($k);
         return $this->driver->delete($k);
     }
 
     function u_counter($k, $delta=1) {
+        $k = $this->cleanKey($k);
         $num = $this->driver->counter($k, $delta);
         $this->driver->setPrev($k, $num);
         return $num;
@@ -143,10 +151,6 @@ class CacheDriver {
         return serialize($record);
     }
 
-    function normalKey($k) {
-        return preg_replace('/[^a-zA-Z0-9]/', '_', trim(strtolower($k)));
-    }
-
     // TODO: figure out how to cleanly support user TTL
     function counter($k, $delta) {
         $v = $this->get($k, -1, 0);
@@ -163,7 +167,7 @@ class CacheDriver {
 class FileCacheDriver extends CacheDriver {
 
     function path($k) {
-        return Tht::path('kvCache', $this->normalKey($k) . '.txt');
+        return Tht::path('kvCache', $k . '.txt');
     }
 
     function fetch($k) {
