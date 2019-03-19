@@ -76,8 +76,6 @@ class OTemplate {
 
 ////////// TYPES //////////
 
-class TemplateLite extends TemplateHtml {}
-
 class TemplateHtml extends OTemplate {
     protected $returnLockType = 'html';
 
@@ -112,6 +110,8 @@ class TemplateHtml extends OTemplate {
         return $this->escape($context, $unlocked);
     }
 }
+
+class TemplateLite extends TemplateHtml {}
 
 class TemplateJs extends OTemplate {
     protected $returnLockType = 'js';
