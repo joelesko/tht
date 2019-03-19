@@ -597,6 +597,7 @@ class ErrorHandler {
         $clean = preg_replace('/(?<=\w)::/', '.', $clean);  // :: to dot .
         $clean = preg_replace('/\bO(?=[A-Z])/', '', $clean);  // internal classes e.g. "OString"
         $clean = preg_replace('/\bu_/', '', $clean);  // u_ prefix
+        $clean = preg_replace('#.*\\\\#', '', $clean);  // no namespace
 
         return $clean;
     }
