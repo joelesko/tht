@@ -36,7 +36,7 @@ class OVar extends OClass implements \JsonSerializable {
         return is_string($this->val);
     }
 
-    function u_is_lock_string () {
+    function u_is_tag_string () {
         return false;
     }
 

@@ -198,7 +198,7 @@ class OString extends OVar implements \ArrayAccess {
         return $this->val;
     }
 
-    function u_danger_danger_lock ($type) {
+    function u_danger_danger_tag ($type) {
         ARGS('s', func_get_args());
         return OTagString::create($type, $this->val);
     }

@@ -104,7 +104,7 @@ abstract class OTagString extends OVar {
         return $escParams;
     }
 
-    function u_is_lock_string () {
+    function u_is_tag_string () {
         ARGS('', func_get_args());
         return true;
     }
