@@ -66,7 +66,7 @@ class u_Web extends StdModule {
         $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
         $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
-        $lUrl = new UrlLockString($fullUrl);
+        $lUrl = new UrlTagString($fullUrl);
         $url = $lUrl->u_parts();
         $url['full']  = $lUrl;
         $url['query'] = '(in full.query())';
@@ -221,12 +221,12 @@ class u_Web extends StdModule {
     function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
-        $url = OLockString::getUnlocked($lUrl, 'url');
-        // if (OLockString::isa($url)) {
+        $url = OTagString::getUntagged($lUrl, 'url');
+        // if (OTagString::isa($url)) {
         //     $url = $url->u_stringify();
         // } else {
         //     if (v($url)->u_is_url()) {
-        //         Tht::error("Redirect URL `$url` must be relative or a LockString.");
+        //         Tht::error("Redirect URL `$url` must be relative or a TagString.");
         //     }
         // }
         // $url = preg_replace('/\s+/', ' ', $url);
@@ -273,7 +273,7 @@ class u_Web extends StdModule {
     // --------------------------------------------
 
     // function u_print_block($h, $title='') {
-    //     $html = OLockString::getUnlocked($h);
+    //     $html = OTagString::getUntagged($h);
     //     $this->u_send_json([
     //         'status' => 'ok',
     //         'title' => $title,
@@ -299,14 +299,14 @@ class u_Web extends StdModule {
 
     function renderChunks($chunks) {
 
-        // Normalize. Could be a single LocKString, OList, or a PHP array
+        // Normalize. Could be a single TagString, OList, or a PHP array
         if (! (is_object($chunks) && v($chunks)->u_is_list())) {
             $chunks = OList::create([ $chunks ]);
         }
 
         $out = '';
         foreach ($chunks->val as $c) {
-            $out .= OLockString::getUnlocked($c, '');
+            $out .= OTagString::getUntagged($c, '');
         }
         return $out;
     }
@@ -357,7 +357,7 @@ class u_Web extends StdModule {
     }
 
     function u_send_html ($html) {
-        $html = OLockString::getUnlocked($html, 'html');
+        $html = OTagString::getUntagged($html, 'html');
         $this->output($html);
         return new \o\ONothing('sendHtml');
     }
@@ -386,7 +386,7 @@ class u_Web extends StdModule {
             }
 
             foreach ($chunks as $c) {
-                $val['body'] .= OLockString::getUnlocked($c, 'html');
+                $val['body'] .= OTagString::getUntagged($c, 'html');
             }
         }
 
@@ -482,7 +482,7 @@ HTML;
             }
 
             ?><html><head><title><?= $title ?></title></head><body>
-            <div style="text-align: center; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
+            <div style="text-align: center; color:#333; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
             <h1 style="margin-top: 40px;"><?= $title ?></h1>
             <?php if ($desc) { ?>
             <div style="margin-top: 40px;"><?= $desc ?></div>
@@ -513,9 +513,9 @@ HTML;
         $includes = [];
         $blocks = [];
         foreach ($paths as $path) {
-            if (OLockString::isa($path)) {
+            if (OTagString::isa($path)) {
                 // Inline it in the HTML document
-                $str = OLockString::getUnlocked($path, $type);
+                $str = OTagString::getUntagged($path, $type);
                 if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
                     $str = "(function(){" + $str + "})();";
                 }
@@ -603,7 +603,7 @@ HTML;
         }
         $str .= "</table>\n";
 
-        return new \o\HtmlLockString ($str);
+        return new \o\HtmlTagString ($str);
     }
 
     //
@@ -611,16 +611,16 @@ HTML;
 
         ARGS('*sl', func_get_args());
 
-        $url = OLockString::getUnlocked($lUrl, 'url');
+        $url = OTagString::getUntagged($lUrl, 'url');
 
-        // PERF: Hot Path.  Links are extremely common, so sidestepping LockStrings
+        // PERF: Hot Path.  Links are extremely common, so sidestepping TagStrings
         // TODO: reconsider?
 
         $url = htmlspecialchars($url);
-        return OLockString::create('html', "<a href=\"$url\">$label</a>");
+        return OTagString::create('html', "<a href=\"$url\">$label</a>");
 
         // $str = '<a href="{}">{}</a>';
-        // $html = OLockString::create('html', $str);
+        // $html = OTagString::create('html', $str);
         // $html->u_fill($lUrl, $label);
         // return $html;
     }
@@ -632,13 +632,13 @@ HTML;
             $aLinks []= Tht::module('Web')->u_link($l['url'], $l['label'])->u_stringify();
         }
 
-        // TODO: joiner can be string (escape) or HtmlLockString
+        // TODO: joiner can be string (escape) or HtmlTagString
 
         $joiner = '<span class="breadcrumbs-joiner">' . v($joiner)->u_stringify() . '</span>';
         $h = implode($aLinks, $joiner);
         $h = "<div class='breadcrumbs'>$h</div>";
 
-        return OLockString::create('html', $h);
+        return OTagString::create('html', $h);
     }
 
     // DO NOT REMOVE
@@ -718,10 +718,10 @@ HTML;
         if (!isset($icons[$id])) { Tht::error("Unknown icon: `$id`"); }
 
         if (substr($icons[$id], 0, 4) == '<svg') {
-            return new \o\HtmlLockString($icons[$id]);
+            return new \o\HtmlTagString($icons[$id]);
         }
 
-        return new \o\HtmlLockString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
+        return new \o\HtmlTagString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
     }
 
     function u_mask_email($email) {
@@ -749,7 +749,7 @@ HTML;
         $xe = $begin . "<span class=\"$r\">$e</span><span class=\"$r2\">" . $end . "</span>";
         $xe .= "<style> .$r { display: none; } </style>";
 
-        return new HtmlLockString ($xe);
+        return new HtmlTagString ($xe);
     }
 
 
@@ -784,10 +784,10 @@ HTML;
 
     function u_query($name, $sRules='id') {
         $getter = new u_RequestData ('get');
-        return $getter->field($name, $sRules);
+        return $getter->field($name, $sRules)['value'];
     }
 
-    function u_form_data($sRules) {
+    function u_form_data($method, $sRules) {
         $getter = new u_RequestData ($method, $sRules);
         return $getter->fields();
     }

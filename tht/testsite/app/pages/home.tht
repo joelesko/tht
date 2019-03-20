@@ -35,7 +35,7 @@ function run(t) {
 
     testMathAndLogic(t);
     testStrings(t);
-    testLockStrings(t);
+    testTagStrings(t);
     testBitwise(t);
     testControlFlow(t);
     testLists(t);
@@ -1372,12 +1372,12 @@ function testStrings(t) {
     // Perf.stop();
 }
 
-F testLockStrings(t) {
+F testTagStrings(t) {
 
-    t.section('LockStrings');
+    t.section('TagStrings');
 
-    t.ok(sql'abc'.isLockString(), 'isLockString = true');
-    t.ok(!'abc'.isLockString(), 'isLockString = false');
+    t.ok(sql'abc'.isTagString(), 'isTagString = true');
+    t.ok(!'abc'.isTagString(), 'isTagString = false');
 
     t.dies(F { return lock'a' ~ 'b'; }, 'Can`t combine');
     t.dies(F { return 'a' ~ lock'b'; }, 'Can`t combine');
@@ -1387,7 +1387,7 @@ F testLockStrings(t) {
     let lock2 = html'2={}';
     let combined = lock1 ~ lock2;
     combined.fill(['a', 'b']);
-    t.ok(combined.stringify() == '1=a,2=b', 'combined lockstrings');
+    t.ok(combined.stringify() == '1=a,2=b', 'combined TagStrings');
 
     t.ok(lockHtml('a').lockType() == 'html', 'getLockType');
     t.ok(sql'x'.lockType() == 'sql', 'getLockType');
@@ -1401,7 +1401,7 @@ F testLockStrings(t) {
     let escOut = '<b>xget &apos;http://test.com/?' ~ 'foo=val%27s&apos; &gt; file.txt</b>\n';
     t.ok(lHtml.stringify() == escOut, 'recursive escaped stringify()');
 
-    t.section('LockStrings - URLs');
+    t.section('TagStrings - URLs');
 
     let lUrl2 = url'/home'.query({ bar: 'my var' });
     t.ok(lUrl2.stringify() == '/home?' ~ 'bar=my%20var', 'url: escape query');
@@ -1617,7 +1617,7 @@ function testTemplates(t) {
     t.ok(tagsHtml(entHtml()).stringify().contains('<p>2 &gt; 1</p>'), 'html - embed html');
 
     let ls = html'<p>a &gt; c</p>';
-    t.ok(tagsHtml(ls).stringify().contains('<p>a &gt; c</p>'), 'html - LockString');
+    t.ok(tagsHtml(ls).stringify().contains('<p>a &gt; c</p>'), 'html - TagString');
 
     t.ok(dataJs('string').stringify().contains('"string";'), 'js - string');
     t.ok(dataJs('a\nb').stringify().contains('"a\\nb";'), 'js - string newline');

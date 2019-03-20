@@ -8,7 +8,7 @@ function u_main ()  {
 u_run($u_test);
 \o\v(\o\ModuleManager::getModule('Web'))->u_send_html(u_html(\o\v($u_test)->u_results_html()));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_html ($u_results)  {
 $t = \o\Runtime::openTemplate("html");
@@ -55,32 +55,32 @@ u_lib_net($u_t);
 u_runtime_errors($u_t);
 u_compile_errors($u_t);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_runtime_errors ($u_t)  {
   \o\v($u_t)->u_section("Runtime Errors");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v("abc")->u_sdf();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "non-existent method");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v("abc {1}")->u_fill(\o\OList::create([ "foo" ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "bad fill value");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OMap::create([ 'a' => 1 ]))->u_sdfsdf();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "invalid method");
 \o\v($u_t)->u_dies(function  ()  {
   $u_a = \o\v("sdf")->u_reverse;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "missing parens in method call");
 $u_fun_for = function  ()  {
@@ -88,18 +88,18 @@ $u_fun_for = function  ()  {
 
 }
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ;
 \o\v($u_t)->u_dies($u_fun_for, "Invalid argument");
 \o\v($u_t)->u_dies(function  ()  {
   return \o\v("abc")->u_length;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "length()");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_compile_errors ($u_t)  {
   \o\v(\o\ModuleManager::getModule('Perf'))->u_start("CompileErrors");
@@ -299,7 +299,7 @@ $u_long_name = \o\v(\o\ModuleManager::getModule('String'))->u_repeat("a", 41);
 \o\v($u_t)->u_parser_error("function foo() { }\nfOo();", "case mismatch", "");
 \o\v(\o\ModuleManager::getModule('Perf'))->u_stop();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_misc ($u_t)  {
   \o\v($u_t)->u_section("Performance");
@@ -334,7 +334,7 @@ $u_st = \o\v(\o\ModuleManager::getModule('Result'))->u_fail(66);
 \o\OBare::u_import("subDir/OtherModule");
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('OtherModule'))->u_ok("Joe") === "ok:Joe"), "import from subfolder");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_oop ($u_t)  {
   \o\v($u_t)->u_section("Classes (OOP)");
@@ -345,7 +345,7 @@ $u_tc = \o\ModuleManager::newObject("TestClass", ["green", 123]);
 \o\v($u_t)->u_dies(function  ()  {
   return \o\v($u_tc)->u_x_field;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "No access to private field");
 \o\v($u_t)->u_ok((\o\v($u_tc)->u_get_id() === 123), "getter method");
@@ -358,7 +358,7 @@ $u_tc = \o\ModuleManager::newObject("TestClass", ["green", 123]);
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_tc)->u_foo = 123;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Fields locked after construction");
 \o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('TestClass'))->u_factory())->u_get_full_name() === "factory:99"), "module factory");
@@ -369,7 +369,7 @@ $u_tc = \o\ModuleManager::newObject("TestClass", ["green", 123]);
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_tc)->u_bad_field = 1;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "zDynamicGet fail");
 \o\v($u_t)->u_ok((\o\v($u_tc)->u_get_secret_number() === 42), "zDynamicCall");
@@ -383,7 +383,7 @@ $u_meths = \o\v($u_tc)->u_z_get_methods();
 \o\v($u_t)->u_dies(function  ()  {
   \o\OBare::u_print(\o\v(\o\ModuleManager::getModule('Php'))->u_version);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "version()");
 \o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Php'))->u_function_exists("strpos"), "function exists");
@@ -397,7 +397,7 @@ $u_oc = \o\ModuleManager::newObject("OtherClass", [\o\OMap::create([ 'a1' => 1, 
 \o\v($u_t)->u_ok(((\o\v($u_oc)->u_a1 === 1) && (\o\v($u_oc)->u_a2 === 2)), "zSetFields");
 \o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Meta'))->u_new_object("TestClass", \o\OList::create([ "green", 123 ])), "Meta.new");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_types ($u_t)  {
   \o\v($u_t)->u_section("Types");
@@ -410,7 +410,7 @@ $u_f = true;
 \o\v($u_t)->u_ok(\o\v($u_f)->u_is_flag(), "flag");
 $u_fn = function  ()  {
    return new \o\ONothing(__METHOD__);
- 
+
 }
 ;
 \o\v($u_t)->u_ok(\o\v($u_fn)->u_is_function(), "function");
@@ -430,26 +430,26 @@ $u_n = 0.1;
 $u_f = true;
 \o\v($u_t)->u_ok((! \o\v($u_f)->u_is_empty()), "non-empty flag");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_functions ($u_t)  {
   \o\v($u_t)->u_section("Functions");
 function u_test ()  {
   return "yay";
  return new \o\ONothing(__METHOD__);
- 
+
 }
 \o\v($u_t)->u_ok((u_test() === "yay"), "no args");
 function u_test_a ($u_arg)  {
   return \o\Runtime::concat($u_arg, "!");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 \o\v($u_t)->u_ok((u_test_a("hey") === "hey!"), "with arg");
 function u_test_b ($u_arg="default")  {
   return \o\Runtime::concat($u_arg, "!");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 \o\v($u_t)->u_ok((u_test_b() === "default!"), "default");
 function u_test_sum ()  {
@@ -460,14 +460,14 @@ $u_asum += \o\vn($u_arg, 1);
 }
 return $u_asum;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 $u_sum = u_test_sum(1, 2, 3, 4);
 \o\v($u_t)->u_ok(($u_sum === 10), "variable args");
 function u_with_op ($u_foo, $u_bar="default")  {
   return $u_bar;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 $u_r = u_with_op("hello", "world");
 \o\v($u_t)->u_ok(($u_r === "world"), "default, supplied");
@@ -477,14 +477,14 @@ $u_outer = "OUT";
 $u_fun_closure = function  ($u_a) use ($u_outer) {
   return \o\Runtime::concat(\o\Runtime::concat($u_a, "/"), $u_outer);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ;
 \o\v($u_t)->u_ok(($u_fun_closure("IN") === "IN/OUT"), "closure");
 function u_add_to_list ($u_l)  {
   $u_l []= 4;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 $u_ref_list = \o\OList::create([ 1, 2, 3 ]);
 u_add_to_list($u_ref_list);
@@ -494,7 +494,7 @@ u_add_to_list($u_ref_list);
 function u_add_to_string ($u_s)  {
   $u_s .= "4";
  return new \o\ONothing(__METHOD__);
- 
+
 }
 $u_ref_str = "123";
 u_add_to_string($u_ref_str);
@@ -503,24 +503,24 @@ $u_fn_no_return = function  ()  {
   $u_v = u_no_return();
 \o\v($u_v)->u_reverse();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ;
 \o\v($u_t)->u_dies($u_fn_no_return, "returned Nothing");
 function u_missing_args ($u_arg1, $u_arg2)  {
    return new \o\ONothing(__METHOD__);
- 
+
 }
 \o\v($u_t)->u_dies(function  ()  {
   u_missing_args(1);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Missing argument - user function");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('File'))->u_read();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Missing argument - module");
 \o\v($u_t)->u_ok((\o\v(u_test_default_map())->u_a === 123), "map as default arg");
@@ -539,62 +539,62 @@ function u_missing_args ($u_arg1, $u_arg2)  {
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_map(true, true);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Too many args");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_map(\o\OList::create([  ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Expect map.  Got List.");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_map("x");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Expect map. Got String");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_map(123);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Expect map. Got Number");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_map(true);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Expect map. Got Flag");
 \o\v($u_t)->u_ok(\o\v($u_t)->u_check_args_string(123), "Number as string");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_number("123");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "String as number");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_multi(true, 123, \o\OList::create([  ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Multi (snl): bad #1");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_multi("", "123", \o\OList::create([  ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Multi (snl): bad #2");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v($u_t)->u_check_args_multi("", 123, "x");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Multi (snl): bad #3");
 $u_a = \o\OList::create([ 1, 2, 3 ]);
 \o\v($u_t)->u_ok((u_spread(...$u_a) === "1:2:3"), "spread operator (...)");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_maps ($u_t)  {
   \o\v($u_t)->u_section("Maps");
@@ -619,7 +619,7 @@ $u_mlmap = \o\OMap::create([ 'name' => "Joe", 'id' => 12345 ]);
 \o\v($u_t)->u_dies(function  () use ($u_user) {
   \o\OBare::u_print(\o\v($u_user)->u_name_x);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "dot access - missing field dies");
 \o\v($u_t)->u_section("Maps - Missing values");
@@ -655,7 +655,7 @@ $u_map2 = \o\v($u_map)->u_copy();
 \o\v($u_t)->u_dies(function  () use ($u_map) {
   \o\v($u_map)->u_remove("Z");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "delete - key nonexistent");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_map)->u_keys())->u_length() === 1), "delete - modified map");
@@ -672,29 +672,29 @@ $u_map = \o\OMap::create([ 'a' => 1, 'b' => 2, 'c' => 3 ]);
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OMap::create([  ]))->u_remove("Z");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Map key not found");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OMap::create([  ]))->u_get_key("VAL");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Map value not found");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OMap::create([  ]))->u_get_key(false);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Map.getKey(<flag>);");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OMap::create([  ]))->u_merge(\o\OList::create([ "a" ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Map.merge(<list>);");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_math_and_logic ($u_t)  {
   \o\v($u_t)->u_section("Math operators");
@@ -720,80 +720,80 @@ $u_fp = (\o\vn(1.1, 1) + \o\vn(2.2, 1));
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn("a", 1) + \o\vn(2, 1));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Add string to number");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(2, 1) + \o\vn("b", 1));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Add number to string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn("a", 0) * \o\vn(2, 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Multiply string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn("a", 0) % \o\vn(2, 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Modulo string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(true, 1) + \o\vn(2, 1));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Add flag to number");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(\o\OMap::create([  ]), 1) + \o\vn(2, 1));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Add Map to number");
 \o\v($u_t)->u_dies(function  ()  {
   $u_aa = 1;
 $u_aa += \o\vn("v", 1);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "+= string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(1, 0) > \o\vn("a", 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "number > string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(1, 0) >= \o\vn("a", 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "number >= string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(1, 0) < \o\vn("a", 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "number < string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(1, 0) <= \o\vn("a", 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "number <= string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(2, 0) ** \o\vn("a", 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "number ** string");
 \o\v($u_t)->u_dies(function  ()  {
   return (\o\vn(2, 0) / \o\vn(0, 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "divide by zero");
 \o\v($u_t)->u_section("Hex & Binary Numbers");
@@ -859,7 +859,7 @@ $u_num = 1234.56;
 \o\v($u_t)->u_ok((5 === 5), "5 == 5.0");
 \o\v($u_t)->u_ok(((\o\vn(1, 1) + \o\vn(2, 1)) === 3), "1.0 + 2.0 == 3.0");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_control_flow ($u_t)  {
   \o\v(\o\ModuleManager::getModule('Perf'))->u_start("ControlFlow");
@@ -1033,7 +1033,7 @@ $u_file_ex = \o\v($u_e)->u_message();
 \o\v($u_t)->u_ok(((\o\vn(1, 0) > \o\vn(2, 0)) ? false : true), "false");
 \o\v(\o\ModuleManager::getModule('Perf'))->u_stop();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_strings ($u_t)  {
   \o\v(\o\ModuleManager::getModule('Perf'))->u_start("Strings");
@@ -1234,7 +1234,7 @@ $u_esc = "\$_SERVER[\"REMOTE_ADDR\"]";
 \o\v($u_t)->u_dies(function  ()  {
   \o\v("longstringlongstring")->u_find(new \o\ORegex("(?:\D+|<\d+>)*[!?]"));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "regex error");
 $u_multi = "one\ntwo\nthree";
@@ -1248,34 +1248,34 @@ $u_esc_ticks = "hello `WORLD`";
 \o\v($u_t)->u_ok((\o\v("ab  cd e")->u_replace(new \o\ORegex("\s+"), "-") === "ab-cd-e"), "replace");
 $u_rx = \o\v(\o\ModuleManager::getModule('Regex'))->u_new(\o\v("'{0}'")->u_fill("world"), "i");
 \o\v($u_t)->u_ok((\o\v($u_ticks)->u_replace($u_rx, "VAR") === "hello VAR"), "replace with variable");
-\o\v($u_t)->u_section("LockStrings");
-\o\v($u_t)->u_ok(\o\v(\o\OLockString::create("sql", "abc"))->u_is_lock_string(), "isLockString = true");
-\o\v($u_t)->u_ok((! \o\v("abc")->u_is_lock_string()), "isLockString = false");
+\o\v($u_t)->u_section("TagStrings");
+\o\v($u_t)->u_ok(\o\v(\o\OTagString::create("sql", "abc"))->u_is_lock_string(), "isTagString = true");
+\o\v($u_t)->u_ok((! \o\v("abc")->u_is_lock_string()), "isTagString = false");
 \o\v($u_t)->u_dies(function  ()  {
-  return \o\Runtime::concat(\o\OLockString::create("lock", "a"), "b");
+  return \o\Runtime::concat(\o\OTagString::create("lock", "a"), "b");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Can't combine");
 \o\v($u_t)->u_dies(function  ()  {
-  return \o\Runtime::concat("a", \o\OLockString::create("lock", "b"));
+  return \o\Runtime::concat("a", \o\OTagString::create("lock", "b"));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Can't combine");
-$u_lock1 = \o\OLockString::create("sql", "1={},");
-$u_lock2 = \o\OLockString::create("sql", "2={}");
+$u_lock1 = \o\OTagString::create("sql", "1={},");
+$u_lock2 = \o\OTagString::create("sql", "2={}");
 $u_combined = \o\Runtime::concat($u_lock1, $u_lock2);
 \o\v($u_combined)->u_fill(\o\OList::create([ "a", "b" ]));
-\o\v($u_t)->u_ok((\o\v($u_combined)->u_stringify() === "1=a,2=b"), "combined lockstrings");
+\o\v($u_t)->u_ok((\o\v($u_combined)->u_stringify() === "1=a,2=b"), "combined TagStrings");
 \o\v($u_t)->u_ok((\o\v(u_lock_html("a"))->u_lock_type() === "html"), "getLockType");
-\o\v($u_t)->u_ok((\o\v(\o\OLockString::create("sql", "x"))->u_lock_type() === "sql"), "getLockType");
-$u_l_url = \o\v(\o\OLockString::create("url", "http://test.com/"))->u_query(\o\OMap::create([ 'foo' => "val's" ]));
-$u_l_cmd = \o\v(\o\OLockString::create("cmd", "xget {} > file.txt"))->u_fill($u_l_url);
+\o\v($u_t)->u_ok((\o\v(\o\OTagString::create("sql", "x"))->u_lock_type() === "sql"), "getLockType");
+$u_l_url = \o\v(\o\OTagString::create("url", "http://test.com/"))->u_query(\o\OMap::create([ 'foo' => "val's" ]));
+$u_l_cmd = \o\v(\o\OTagString::create("cmd", "xget {} > file.txt"))->u_fill($u_l_url);
 $u_l_html = u_deep_esc_html($u_l_cmd);
 $u_esc_out = \o\Runtime::concat("<b>xget &apos;http://test.com/?", "foo=val%27s&apos; &gt; file.txt</b>\n");
 \o\v($u_t)->u_ok((\o\v($u_l_html)->u_stringify() === $u_esc_out), "recursive escaped stringify()");
-$u_l_url2 = \o\v(\o\OLockString::create("url", "/home"))->u_query(\o\OMap::create([ 'bar' => "my var" ]));
+$u_l_url2 = \o\v(\o\OTagString::create("url", "/home"))->u_query(\o\OMap::create([ 'bar' => "my var" ]));
 \o\v($u_t)->u_ok((\o\v($u_l_url2)->u_stringify() === \o\Runtime::concat("/home?", "bar=my%20var")), "url: escape query");
 \o\v($u_l_url2)->u_query(\o\OMap::create([ 'foo' => 123 ]));
 \o\v($u_t)->u_ok((\o\v($u_l_url2)->u_stringify() === \o\Runtime::concat("/home?", "bar=my%20var&foo=123")), "url: add query");
@@ -1283,7 +1283,7 @@ $u_l_url2 = \o\v(\o\OLockString::create("url", "/home"))->u_query(\o\OMap::creat
 \o\v($u_t)->u_ok((\o\v($u_l_url2)->u_stringify() === \o\Runtime::concat("/home?", "foo=123")), "url: remove one query");
 \o\v($u_l_url2)->u_clear_query();
 \o\v($u_t)->u_ok((\o\v($u_l_url2)->u_stringify() === "/home"), "url: clear query");
-\o\OBare::u_print(\o\v(\o\ModuleManager::getModule('Web'))->u_link(\o\OLockString::create("url", "/page"), "hey"));
+\o\OBare::u_print(\o\v(\o\ModuleManager::getModule('Web'))->u_link(\o\OTagString::create("url", "/page"), "hey"));
 \o\v(\o\ModuleManager::getModule('Perf'))->u_stop();
 \o\v(\o\ModuleManager::getModule('Perf'))->u_start("String.civilize");
 \o\v($u_t)->u_ok((\o\v("PLS HELP HELP!!!!!!")->u_civilize() === "please help help!"), "civilize: all caps");
@@ -1302,7 +1302,7 @@ $u_long3 = "asdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdasdas
 \o\v($u_t)->u_ok((\o\v($u_long3)->u_civilize() === "asdasdasdasdasdasdasdasdasdasd"), "Civ: long cycled asdasd");
 \o\v(\o\ModuleManager::getModule('Perf'))->u_stop();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_deep_esc_html ($u_val)  {
 $t = \o\Runtime::openTemplate("Html");
@@ -1370,7 +1370,7 @@ $u_ml = \o\OList::create([ "aa", "bb", "'cc'" ]);
 $u_list = \o\v(\o\OList::create([ "a", "b", "c" ]))->u_sort(function  ($u_a, $u_b)  {
   return \o\Runtime::spaceship($u_b, $u_a);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 );
 \o\v($u_t)->u_ok((\o\v($u_list)->u_join("|") === "c|b|a"), "sort function");
@@ -1385,7 +1385,7 @@ $u_list = \o\v(\o\OList::create([ "a1", "a10", "a2" ]))->u_sort(\o\OMap::create(
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([ "a" ]))->u_sort(\o\OMap::create([ 'type' => "nope" ]));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "unknown sort type");
 $u_list = \o\v(\o\OList::create([ "a1", "A2", "a3", "A4" ]))->u_sort(\o\OMap::create([ 'type' => "stringCase" ]));
@@ -1394,31 +1394,31 @@ $u_list = \o\v(\o\OList::create([ "a1", "A2", "a3", "A4" ]))->u_sort(\o\OMap::cr
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([ 1, 2 ]))->u_remove(3);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "remove()");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([  ]))->u_remove();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "empty");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([ 1 ]))->u_sublist(2);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "sublist");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([ 1 ]))->u_first(2);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "last");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\OList::create([ 1 ]))->u_last(2);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "first");
 \o\v($u_t)->u_section("Lists - Misc");
@@ -1430,19 +1430,19 @@ $u_default_list = \o\v(\o\OList::create([ "a", "b" ]))->u_default("Z");
 \o\v($u_t)->u_ok((\o\v(\o\v(\o\OList::create([ 1, 2, 3 ]))->u_map(function  ($u_a)  {
   return (\o\vn($u_a, 0) * \o\vn(2, 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ))->u_join(":") === "2:4:6"), "map");
 \o\v($u_t)->u_ok((\o\v(\o\OList::create([ 1, 2, 3 ]))->u_reduce(function  ($u_a, $u_i)  {
   return (\o\vn($u_i, 1) + \o\vn($u_a, 1));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , 3) === 9), "reduce");
 \o\v($u_t)->u_ok((\o\v(\o\v(\o\OList::create([ 1, 2, 3, 4 ]))->u_filter(function  ($u_a)  {
   return (\o\vn($u_a, 0) % \o\vn(2, 0));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ))->u_join(":") === "1:3"), "filter");
 $u_mdl = \o\OList::create([ 1, 2, \o\OList::create([  ]), \o\OList::create([ 3, 4 ]), \o\OList::create([ \o\OList::create([ 5, 6 ]), \o\OList::create([ 7, 8 ]) ]) ]);
@@ -1452,7 +1452,7 @@ $u_table = \o\OList::create([ \o\OMap::create([ 'a' => 20 ]), \o\OMap::create([ 
 $u_table_vals = \o\v(\o\v(\o\v($u_table)->u_sort_table("a"))->u_map(function  ($u_a)  {
   return \o\v($u_a)->u_a;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ))->u_join(",");
 \o\v($u_t)->u_ok(($u_table_vals === "-30,20,70"), "tableSort by map");
@@ -1460,19 +1460,19 @@ $u_table = \o\OList::create([ \o\OList::create([ 1, 50 ]), \o\OList::create([ 2,
 $u_table_vals = \o\v(\o\v(\o\v($u_table)->u_sort_table(1))->u_map(function  ($u_a)  {
   return \o\v($u_a)[1];
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ))->u_join(",");
 \o\v($u_t)->u_ok(($u_table_vals === "-30,10,50"), "tableSort by index");
 $u_table_vals = \o\v(\o\v(\o\v($u_table)->u_sort_table(1, true))->u_map(function  ($u_a)  {
   return \o\v($u_a)[1];
  return new \o\ONothing(__METHOD__);
- 
+
 }
 ))->u_join(",");
 \o\v($u_t)->u_ok(($u_table_vals === "50,10,-30"), "tableSort by index (DESC)");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_templates ($u_t)  {
   \o\v($u_t)->u_section("Templates");
@@ -1480,7 +1480,7 @@ $u_html_users = \o\v(u_template_html(\o\OList::create([ "Frodo", "Sam", "Gandalf
 \o\v($u_t)->u_ok(\o\v($u_html_users)->u_match(new \o\ORegex("<li>Frodo.*?<li>Sam.*?<li>Gandalf")), "template - loop & variables");
 $u_html_users = u_template_html(\o\OList::create([ "Frodo", "<b>Sam</b>", "Gandalf" ]));
 \o\v($u_t)->u_ok(\o\v(\o\v($u_html_users)->u_stringify())->u_contains("&lt;b&gt;Sam"), "template with html escapes");
-$u_p = \o\v(\o\ModuleManager::getModule('Web'))->u_parse_html(\o\OLockString::create("html", "<h1>> Hello\n<.abc>> 123"));
+$u_p = \o\v(\o\ModuleManager::getModule('Web'))->u_parse_html(\o\OTagString::create("html", "<h1>> Hello\n<.abc>> 123"));
 $u_p = \o\v($u_p)->u_stringify();
 \o\v($u_t)->u_ok(\o\v($u_p)->u_contains("<h1>Hello</h1>"), "parse html string - double arrow");
 \o\v($u_t)->u_ok(\o\v($u_p)->u_contains("<div class='abc'>123</div>"), "parse html string - dotted");
@@ -1493,8 +1493,8 @@ $u_h = \o\v(u_exp_html("\"'", "a&b\""))->u_stringify();
 \o\v($u_t)->u_ok(\o\v(\o\v(u_tags_html(u_in_css()))->u_stringify())->u_contains("<style"), "html - css style block");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_tags_html(u_in_js()))->u_stringify())->u_contains("<script"), "html - js block");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_tags_html(u_ent_html()))->u_stringify())->u_contains("<p>2 &gt; 1</p>"), "html - embed html");
-$u_ls = \o\OLockString::create("html", "<p>a &gt; c</p>");
-\o\v($u_t)->u_ok(\o\v(\o\v(u_tags_html($u_ls))->u_stringify())->u_contains("<p>a &gt; c</p>"), "html - LockString");
+$u_ls = \o\OTagString::create("html", "<p>a &gt; c</p>");
+\o\v($u_t)->u_ok(\o\v(\o\v(u_tags_html($u_ls))->u_stringify())->u_contains("<p>a &gt; c</p>"), "html - TagString");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_data_js("string"))->u_stringify())->u_contains("\"string\";"), "js - string");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_data_js("a\nb"))->u_stringify())->u_contains("\"a\\nb\";"), "js - string newline");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_data_js("a\"b"))->u_stringify())->u_contains("\"a\\\"b\";"), "js - string quote");
@@ -1502,7 +1502,7 @@ $u_ls = \o\OLockString::create("html", "<p>a &gt; c</p>");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_data_js(true))->u_stringify())->u_contains("true;"), "js - bool");
 \o\v($u_t)->u_ok(\o\v(\o\v(u_data_js(\o\OMap::create([ 'a' => 1 ])))->u_stringify())->u_contains("{\"a\":1};"), "js - object");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_bitwise ($u_t)  {
   \o\v($u_t)->u_section("Bitwise Operators");
@@ -1517,20 +1517,20 @@ function u_test_bitwise ($u_t)  {
 \o\v($u_t)->u_ok(((0b100 ^ 0b110) === 0b010), "XOR (+^) with binary number");
 \o\v($u_t)->u_ok(((~ 0b110) === (- 7)), "NOT (+~) with binary number");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_file ($u_t)  {
   \o\v($u_t)->u_section("Module: File");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('File'))->u_exists("../bad.txt");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "parent shortcut (..)");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('File'))->u_read("http://yahoo.com");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "stop remote file read");
 \o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_exists("sdf/sdf")), "Missing file does not exist");
@@ -1560,7 +1560,7 @@ $u_info = \o\v(\o\ModuleManager::getModule('File'))->u_parse_path($u_p);
 \o\v(\o\ModuleManager::getModule('File'))->u_delete_dir($u_d);
 \o\v($u_t)->u_ok((! \o\v(\o\ModuleManager::getModule('File'))->u_exists($u_d)), "Dir deleted");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_date ($u_t)  {
   \o\v($u_t)->u_section("Module: Date");
@@ -1574,52 +1574,52 @@ function u_lib_date ($u_t)  {
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_format("%Y-%m-%d %H:%M:%S", 1400000000) === "2014-05-13 09:53:20"), "Date.format");
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Date'))->u_difference(100, 280) === "3 minutes"), "Date.difference");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_db ($u_t)  {
   \o\v($u_t)->u_section("Module: Db");
-\o\v(\o\ModuleManager::getModule('Db'))->u_query(\o\OLockString::create("sql", "CREATE TABLE IF NOT EXISTS test (key, value);"));
-\o\v(\o\ModuleManager::getModule('Db'))->u_query(\o\OLockString::create("sql", "delete from test"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_query(\o\OTagString::create("sql", "CREATE TABLE IF NOT EXISTS test (key, value);"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_query(\o\OTagString::create("sql", "delete from test"));
 $u_key = \o\Runtime::concat("test", \o\v(\o\ModuleManager::getModule('Math'))->u_random(0, 1000));
 \o\v(\o\ModuleManager::getModule('Db'))->u_insert_row("test", \o\OMap::create([ 'key' => $u_key, 'value' => \o\v(\o\ModuleManager::getModule('Date'))->u_now() ]));
-$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(\o\OLockString::create("sql", "select * from test"));
+$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(\o\OTagString::create("sql", "select * from test"));
 \o\v($u_t)->u_ok((\o\v($u_rows)->u_length() === 1), "Insert & select row");
 \o\v($u_t)->u_ok((\o\v(\o\v($u_rows)[0])->u_key === $u_key), "Check inserted row");
 $u_dbh = \o\v(\o\ModuleManager::getModule('Db'))->u_use("default");
-$u_rows = \o\v($u_dbh)->u_select_rows(\o\OLockString::create("sql", "select * from test"));
+$u_rows = \o\v($u_dbh)->u_select_rows(\o\OTagString::create("sql", "select * from test"));
 \o\v($u_t)->u_ok((\o\v(\o\v($u_rows)[0])->u_key === $u_key), "Db.use");
-\o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("test", \o\OMap::create([ 'key' => $u_key, 'value' => "new!" ]), \o\v(\o\OLockString::create("sql", " key = {}"))->u_fill($u_key));
-$u_row = \o\v(\o\ModuleManager::getModule('Db'))->u_select_row(\o\v(\o\OLockString::create("sql", "select * from test where key = {}"))->u_fill($u_key));
+\o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("test", \o\OMap::create([ 'key' => $u_key, 'value' => "new!" ]), \o\v(\o\OTagString::create("sql", " key = {}"))->u_fill($u_key));
+$u_row = \o\v(\o\ModuleManager::getModule('Db'))->u_select_row(\o\v(\o\OTagString::create("sql", "select * from test where key = {}"))->u_fill($u_key));
 \o\v($u_t)->u_ok((\o\v($u_row)["value"] === "new!"), "Update row");
-\o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("test", \o\v(\o\OLockString::create("sql", "key = {}"))->u_fill($u_key));
-$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(\o\OLockString::create("sql", "select * from test"));
+\o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("test", \o\v(\o\OTagString::create("sql", "key = {}"))->u_fill($u_key));
+$u_rows = \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows(\o\OTagString::create("sql", "select * from test"));
 \o\v($u_t)->u_ok((\o\v($u_rows)->u_length() === 0), "Delete row");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("\"bad", \o\OMap::create([ 'key' => $u_key ]), \o\v(\o\OLockString::create("sql", " key = {}"))->u_fill($u_key));
+  \o\v(\o\ModuleManager::getModule('Db'))->u_update_rows("\"bad", \o\OMap::create([ 'key' => $u_key ]), \o\v(\o\OTagString::create("sql", " key = {}"))->u_fill($u_key));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "invalid table name - updateRows");
 \o\v($u_t)->u_dies(function  ()  {
-  \o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("\"bad", \o\v(\o\OLockString::create("sql", " key = {}"))->u_fill($u_key));
+  \o\v(\o\ModuleManager::getModule('Db'))->u_delete_rows("\"bad", \o\v(\o\OTagString::create("sql", " key = {}"))->u_fill($u_key));
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "invalid table name - deleteRows");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Db'))->u_query("delete from test");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "reject stringify query - query");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Db'))->u_select_rows("select * from test");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "reject stringify query - selectRows");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_jcon_test ($u_t)  {
   \o\v($u_t)->u_section("Module: Jcon");
@@ -1641,7 +1641,7 @@ $u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkey: '''\nThis is\
 $u_d = \o\v(\o\ModuleManager::getModule('Jcon'))->u_parse("{\nkeyLite: '''\n## Heading!\n'''\n}\n");
 \o\v($u_t)->u_ok(\o\v(\o\v(\o\v($u_d)->u_key_lite)->u_stringify())->u_contains("<h2>"), "Litemark value");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_js ($u_t)  {
   \o\v($u_t)->u_section("Module: Js");
@@ -1649,7 +1649,7 @@ function u_lib_js ($u_t)  {
 \o\v($u_t)->u_ok(\o\v(\o\v(\o\v(\o\v(\o\ModuleManager::getModule('Js'))->u_plugin("lazyLoadImages"))[0])->u_stringify())->u_contains("img"), "lazyLoadImages");
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Js'))->u_minify("/* comment */\n\nlet a = '//';\n   // line  \n") === "let a='//';"), "minify");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_json ($u_t)  {
   \o\v($u_t)->u_section("Module: Json");
@@ -1665,12 +1665,12 @@ $u_st = \o\v(\o\ModuleManager::getModule('Json'))->u_encode(\o\OMap::create([ 'a
 $u_obj = \o\v(\o\ModuleManager::getModule('Json'))->u_decode($u_st);
 \o\v($u_t)->u_ok((\o\v(\o\v($u_obj)->u_b)[1] === 2), "decode after encode");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_litemark ($u_t)  {
   \o\v($u_t)->u_section("Module: Litemark");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_math ($u_t)  {
   \o\v($u_t)->u_section("Module: Math");
@@ -1692,7 +1692,7 @@ $u_rnd = \o\v(\o\ModuleManager::getModule('Math'))->u_random();
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_convert_base(21, 10, 2) === "10101"), "convertBase: dec to bin");
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Math'))->u_convert_base("1af9", 16, 10) === 6905), "convertBase: hex to dec");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_meta ($u_t)  {
   \o\v($u_t)->u_section("Module: Meta");
@@ -1701,18 +1701,18 @@ function u_lib_meta ($u_t)  {
 \o\v($u_t)->u_ok(\o\v(\o\ModuleManager::getModule('Meta'))->u_function_exists("dynamicFunction"), "dynamic function exists");
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Meta'))->u_call_function("dynamicFunction", \o\OList::create([ "Hey" ])) === "Hey!!!"), "call dynamic function");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_meta_call_me ()  {
   $u_args = \o\v(\o\ModuleManager::getModule('Meta'))->u_arguments();
 return \o\v($u_args)->u_join("|");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_fail_template_mode ()  {
   \o\v(\o\ModuleManager::getModule('Meta'))->u_no_template_mode();
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_fail_mode_html ()  {
 $t = \o\Runtime::openTemplate("Html");
@@ -1743,7 +1743,7 @@ break;
 \o\v($u_t)->u_ok($u_found, "Perf task & results");
 \o\v(\o\ModuleManager::getModule('Perf'))->u_force_active(false);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_php ($u_t)  {
   \o\v($u_t)->u_section("Module: Php");
@@ -1754,19 +1754,19 @@ $u_fl = \o\v(\o\ModuleManager::getModule('Php'))->u_options(\o\OList::create([ "
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Php'))->u_call("nonexistent", 1, 2);
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "Non-existent PHP call");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Php'))->u_call("eval", "print(\"hi\");");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "stop blacklisted function - by name");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Php'))->u_call("ini_set", "x", "y");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "stop blacklisted function - by match");
 \o\v(\o\ModuleManager::getModule('Php'))->u_require("vendor/testVendorClass.php");
@@ -1779,24 +1779,24 @@ $u_vc = \o\v(\o\ModuleManager::getModule('Php'))->u_new("Abc/VendorClass");
 \o\v($u_t)->u_ok((\o\v($u_vc)->u_z_get("ALL_CAP_FIELD") === 789), "Vendor class - ALL_CAP_FIELD");
 \o\v($u_t)->u_ok((\o\v($u_vc)->u_z_call("ALL_CAP_METHOD") === "FOO"), "Vendor class - ALL_CAP_METHOD");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_test ($u_t)  {
   \o\v($u_t)->u_section("Module: Test");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_global ($u_t)  {
   \o\v($u_t)->u_section("Module: Global");
 u_set_globals();
 \o\v($u_t)->u_ok((\o\v(\o\ModuleManager::getModule('Global'))->u_hello === "world"), "global set");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_set_globals ()  {
   \o\v(\o\ModuleManager::getModule('Global'))->u_hello = "world";
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_web ($u_t)  {
   \o\v($u_t)->u_section("Module: Web");
@@ -1804,25 +1804,25 @@ return new \o\ONothing(__METHOD__);
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("http://google.com");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "redirect - normal");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("mailto:google.com");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "redirect - mailto");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("//google.com");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "redirect - no protocol");
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Web'))->u_redirect("bob@ftp://google.com");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "redirect - ftp & username");
 \o\v($u_t)->u_section("Module: Web - Form Input");
@@ -1851,16 +1851,16 @@ return new \o\ONothing(__METHOD__);
 \o\v($u_t)->u_dies(function  ()  {
   u_form_validate("abc", "badRule");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "bad rule");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_form_validate ($u_v, $u_type)  {
   return \o\v(\o\v(\o\ModuleManager::getModule('Web'))->u_temp_validate_input($u_v, $u_type))["value"];
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_settings ($u_t)  {
   \o\v($u_t)->u_section("Module: Settings");
@@ -1873,11 +1873,11 @@ function u_lib_settings ($u_t)  {
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Global'))->u_setting("MISSING");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "missing key");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_map_db ($u_t)  {
   \o\v($u_t)->u_section("Module: MapDb");
@@ -1888,7 +1888,7 @@ function u_lib_map_db ($u_t)  {
 \o\v($u_t)->u_ok((\o\v(\o\v(\o\ModuleManager::getModule('MapDb'))->u_select_maps("test", "hello"))->u_length() === 2), "selectMaps");
 \o\v($u_t)->u_ok((\o\v(\o\v(\o\v(\o\ModuleManager::getModule('MapDb'))->u_buckets())[0])->u_num_maps === 2), "buckets()");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_session ($u_t)  {
   \o\v($u_t)->u_section("Module: Session");
@@ -1918,11 +1918,11 @@ function u_lib_session ($u_t)  {
 \o\v($u_t)->u_dies(function  ()  {
   \o\v(\o\ModuleManager::getModule('Session'))->u_get("missing");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 , "get bad key");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_cache ($u_t)  {
   \o\v($u_t)->u_section("Module: Cache");
@@ -1951,19 +1951,19 @@ function u_lib_cache ($u_t)  {
 \o\v(\o\ModuleManager::getModule('Cache'))->u_delete("longer");
 \o\v(\o\ModuleManager::getModule('Cache'))->u_delete("forever");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_net ($u_t)  {
   \o\v($u_t)->u_section("Module: Net");
-$u_content = \o\v(\o\ModuleManager::getModule('Net'))->u_http_get(\o\OLockString::create("url", "https://tht.help"));
+$u_content = \o\v(\o\ModuleManager::getModule('Net'))->u_http_get(\o\OTagString::create("url", "https://tht.help"));
 \o\v($u_t)->u_ok(\o\v($u_content)->u_match(\o\v(new \o\ORegex("programming language"))->u_flags("i")), "Net get");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_lib_system ($u_t)  {
   \o\v($u_t)->u_section("Module: System");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_template_html ($u_users)  {
 $t = \o\Runtime::openTemplate("Html");
@@ -2066,23 +2066,23 @@ return $t->getString();
 function u_dynamic_function ($u_a)  {
   return \o\Runtime::concat($u_a, "!!!");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_no_return ()  {
    return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_default_map ($u_xmap=[ 'a' => 123 ])  {
  $u_xmap = is_object($u_xmap) ? $u_xmap : \o\OMap::create($u_xmap);
  return $u_xmap;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_default_list ($u_xlist=[ "a", "b", "c" ])  {
  $u_xlist = is_object($u_xlist) ? $u_xlist : \o\OList::create($u_xlist);
  return $u_xlist;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_test_default_maps ($u_m1=[ 'a' => "aa" ], $u_m2=[ 'b' => "bb" ])  {
  $u_m1 = is_object($u_m1) ? $u_m1 : \o\OMap::create($u_m1);
@@ -2090,12 +2090,12 @@ $u_m2 = is_object($u_m2) ? $u_m2 : \o\OMap::create($u_m2);
  \o\v($u_m1)["m2"] = $u_m2;
 return $u_m1;
  return new \o\ONothing(__METHOD__);
- 
+
 }
 function u_spread (...$u_args)  {
   return \o\v($u_args)->u_join(":");
  return new \o\ONothing(__METHOD__);
- 
+
 }
 
 

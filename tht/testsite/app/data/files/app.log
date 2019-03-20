@@ -373,7 +373,7 @@
 
 [2018-05-23 09:19:31]  --- ThtException ---
 
-    Can not autoload PHP class: `LockString`
+    Can not autoload PHP class: `TagString`
 
     83:  if (form.ok()) {
     --- Trace ---

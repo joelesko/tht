@@ -80,7 +80,7 @@ trait FormCreator {
 
             $combined = $labelTag . $optional . $lInputTag->u_stringify() . $help;
 
-            return new HtmlLockString ('<div class="form-field">' . $combined . '</div>');
+            return new HtmlTagString ('<div class="form-field">' . $combined . '</div>');
         }
     }
 
@@ -97,7 +97,7 @@ trait FormCreator {
             $html .= $this->u_tag($tag)->u_stringify();
         }
 
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function u_open ($actionUrl='', $atts=[]) {
@@ -137,7 +137,7 @@ trait FormCreator {
         // Always include formId
         $formTag .= '<input type="hidden" name="formId" value="' . htmlspecialchars($this->formId) . '">';
 
-        $html = new HtmlLockString ($formTag);
+        $html = new HtmlTagString ($formTag);
 
         Tht::module('Session')->u_set('formLoadTime', time());
 
@@ -160,7 +160,7 @@ trait FormCreator {
         $valJsTag = "<script nonce='$nonce'>" . $formJs . "</script>";
         $errorMsgTag = '<div class="form-error-message"></div>';
 
-        $html = new HtmlLockString ($errorMsgTag  . $closeTag . $valJsTag);
+        $html = new HtmlTagString ($errorMsgTag  . $closeTag . $valJsTag);
 
         return $html;
     }
@@ -206,12 +206,12 @@ trait FormCreator {
             $out .= htmlspecialchars($params['value']) . '</button>';
         }
 
-        return $getRaw ? $out : new HtmlLockString ($out);
+        return $getRaw ? $out : new HtmlTagString ($out);
     }
 
     function closeTag($name, $getRaw=false) {
         $out = "</$name>";
-        return $getRaw ? $out : new HtmlLockString ($out);
+        return $getRaw ? $out : new HtmlTagString ($out);
     }
 
     function inputTag($type, $name, $atts=[]) {
@@ -238,14 +238,14 @@ trait FormCreator {
 
         $html = $this->openTag('textarea', $atts, true);
         $html .= htmlspecialchars($val) . '</textarea>';
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function labelTag($name, $text, $atts=[]) {
         $atts = uv($atts);
         $atts['for'] = $this->getFieldId($name);
         $html = $this->openTag('label', $atts, true) . $text . '</label>';
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function noscriptTag() {
@@ -283,7 +283,7 @@ trait FormCreator {
         $html .= $this->optionTags($options)->u_stringify();
         $html .= '</select>';
 
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function optionTags($ops) {
@@ -297,7 +297,7 @@ trait FormCreator {
             $html .= htmlspecialchars($op['label']);
             $html .= '</option>';
         }
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function prepOptions($name, $tagConfig) {
@@ -378,7 +378,7 @@ trait FormCreator {
         }
         $html .= '</fieldset>';
 
-        return new HtmlLockString ($html);
+        return new HtmlTagString ($html);
     }
 
     function checkableTag($type, $name, $value, $label, $def, $atts) {
@@ -619,7 +619,7 @@ EOJS;
         $js = Tht::module('Js')->u_minify($formJs . $formRegisterJs);
 
 
-        return new JsLockString($js);
+        return new JsTagString($js);
 
     }
 }

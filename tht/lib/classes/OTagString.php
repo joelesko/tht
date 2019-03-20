@@ -2,16 +2,16 @@
 
 namespace o;
 
-abstract class OLockString extends OVar {
+abstract class OTagString extends OVar {
 
     protected $str = '';
     protected $type = 'text';
     protected $bindParams = [];
     protected $overrideParams = [];
-    protected $appendedLockStrings = [];
+    protected $appendedTagStrings = [];
 
     function __construct ($s) {
-        if (OLockString::isa($s)) {
+        if (OTagString::isa($s)) {
             $s = $s->getString();
         }
         $this->str = $s;
@@ -25,7 +25,7 @@ abstract class OLockString extends OVar {
             $s .= '…';
         }
         // This format is recognized by the Json formatter
-        return "<<<LockString = $s>>>";
+        return "<<<TagString = $s>>>";
     }
 
     function jsonSerialize() {
@@ -33,42 +33,42 @@ abstract class OLockString extends OVar {
     }
 
     static function concat($a, $b) {
-        return $a->appendLockString($b);
+        return $a->appendTagString($b);
     }
 
-    static function create ($lockType, $s) {
-        $nsClassName = '\\o\\' . ucfirst($lockType) . 'LockString';
+    static function create ($tagType, $s) {
+        $nsClassName = '\\o\\' . ucfirst($tagType) . 'TagString';
         if (!class_exists($nsClassName)) {
-            Tht::error("LockString of type `$nsClassName` not supported.");
+            Tht::error("TagString of type `$nsClassName` not supported.");
         }
         return new $nsClassName ($s);
     }
 
-    static function getUnlocked ($s, $type) {
-        if (!OLockString::isa($s)) {
+    static function getUntagged ($s, $type) {
+        if (!OTagString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a LockString.  Ex: `$type'...'`");
+            Tht::error("`$caller` must be passed a TagString.  Ex: `$type'...'`");
         }
-        return self::_getUnlocked($s, $type, false);
+        return self::_getUntagged($s, $type, false);
     }
 
-    static function getUnlockedRaw ($s, $type) {
-        if (!OLockString::isa($s)) {
+    static function getUntaggedRaw ($s, $type) {
+        if (!OTagString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a LockString.  Ex: `$type'...'`");
+            Tht::error("`$caller` must be passed a TagString.  Ex: `$type'...'`");
         }
-        return self::_getUnlocked($s, $type, true);
+        return self::_getUntagged($s, $type, true);
     }
 
-    private static function _getUnlocked ($s, $type, $getRaw) {
+    private static function _getUntagged ($s, $type, $getRaw) {
         if ($type && $s->type !== $type) {
-            Tht::error("LockString must be of type `$type`. Got: `$s->type`");
+            Tht::error("TagString must be of type `$type`. Got: `$s->type`");
         }
         return $getRaw ? $s->u_raw_string() : $s->u_stringify();
     }
 
-    static function getUnlockedNoError ($s) {
-        if (!OLockString::isa($s)) {
+    static function getUntaggedNoError ($s) {
+        if (!OTagString::isa($s)) {
             return $s;
         }
         return $s->u_raw_string();
@@ -78,7 +78,7 @@ abstract class OLockString extends OVar {
 
         $escParams = [];
         foreach($this->bindParams as $k => $v) {
-            if (OLockString::isa($v)) {
+            if (OTagString::isa($v)) {
                 $plain = $v->u_stringify();
                 if ($v->u_lock_type() === $this->u_lock_type()) {
                     // If same lock type, don't escape
@@ -109,12 +109,12 @@ abstract class OLockString extends OVar {
         return true;
     }
 
-    // TODO: support other lockstring types & regular strings
-    function appendLockString($l) {
+    // TODO: support other TagString types & regular strings
+    function appendTagString($l) {
         $t1 = $this->u_lock_type();
         $t2 = $l->u_lock_type();
         if ($t1 !== $t2) {
-            Tht::error("Can only append lockstrings of the same type. Got: `$t1` and `$t2`");
+            Tht::error("Can only append TagStrings of the same type. Got: `$t1` and `$t2`");
         }
         $this->str .= $l->u_raw_string();
         return $this;
@@ -135,9 +135,9 @@ abstract class OLockString extends OVar {
             $out = v($this->str)->u_fill($escParams);
         }
 
-        if (count($this->appendedLockStrings)) {
+        if (count($this->appendedTagStrings)) {
             $num = 0;
-            foreach ($this->appendedLockStrings as $s) {
+            foreach ($this->appendedTagStrings as $s) {
                 $us = $s->u_stringify();
                 $out = str_replace("[LOCK_STRING_$num]", $us, $out);
                 $num += 1;
@@ -176,47 +176,47 @@ abstract class OLockString extends OVar {
     }
 }
 
-class JconLockString extends OLockString {  protected $type = 'jcon';  }
+class JconTagString extends OTagString {  protected $type = 'jcon';  }
 
-class HtmlLockString extends OLockString {
+class HtmlTagString extends OTagString {
     protected $type = 'html';
     protected function u_z_escape_param($v) {
         return htmlspecialchars($v);
     }
 }
 
-class JsLockString extends OLockString {
+class JsTagString extends OTagString {
     protected $type = 'js';
     protected function u_z_escape_param($v) {
         return Tht::module('Js')->escape($v);
     }
 }
 
-class CssLockString extends OLockString {
+class CssTagString extends OTagString {
     protected $type = 'css';
     protected function u_z_escape_param($v) {
         return Tht::module('Css')->escape($v);
     }
 }
 
-class SqlLockString extends OLockString {
+class SqlTagString extends OTagString {
     protected $type = 'sql';
     protected function u_z_escape_param($v) {
         Tht::error('SQL escaping must be handled internally.');
     }
     function u_stringify() {
-        Tht::error('SqlLockStrings may only be stringified internally.');
+        Tht::error('SqlTagStrings may only be stringified internally.');
     }
 }
 
-class CmdLockString extends OLockString {
+class CmdTagString extends OTagString {
     protected $type = 'cmd';
     protected function u_z_escape_param($v) {
         return escapeshellarg($v);
     }
 }
 
-class PlainLockString  extends OLockString {
+class PlainTagString  extends OTagString {
     protected $type = 'plain';
     protected function u_z_escape_param($k) {
         return $this->bindParams[$k];
@@ -224,14 +224,14 @@ class PlainLockString  extends OLockString {
 }
 
 // Relying on File module security measures instead.
-// class FileLockString extends OLockString {
+// class FileTagString extends OTagString {
 //     protected $type = 'file';
 //     protected function u_z_escape_param($v) {
 //         return preg_replace('/[^A-Za-z0-9_]/', '_', $v);
 //     }
 // }
 
-class UrlLockString extends OLockString {
+class UrlTagString extends OTagString {
     protected $type = 'url';
     private $query = null;
     private $hash = '';
@@ -248,7 +248,7 @@ class UrlLockString extends OLockString {
     function init($s) {
 
         if (preg_match('!\?.*\{.*\}!', $s)) {
-            Tht::error("UrlLockString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
+            Tht::error("UrlTagString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
         }
 
         $u = Security::parseUrl($s);

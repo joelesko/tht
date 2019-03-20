@@ -153,14 +153,14 @@ class u_Perf extends StdModule {
         $thtDocLink = Tht::getThtSiteUrl('/reference/perf-score');
         $compileMessage = Compiler::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
 
-        $table = OLockString::getUnlocked(
+        $table = OTagString::getUntagged(
             Tht::module('Web')->u_table(OList::create($results['single']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Detail' ]),
                 'bench-result'
         ), 'html');
 
-        $tableGroup = OLockString::getUnlocked(
+        $tableGroup = OTagString::getUntagged(
             Tht::module('Web')->u_table(OList::create($results['group']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'numCalls' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Calls' ]),

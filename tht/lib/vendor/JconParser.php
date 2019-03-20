@@ -9,15 +9,15 @@ class JconParser {
 
     private $leafs = [];
     private $leaf = [];
-    
-    private $blockString = '';
-    private $blockStringKey = '';
+
+    private $bTagString = '';
+    private $bTagStringKey = '';
 
     private $file = '';
     private $line = '';
     private $lineNum = 0;
     private $pos = 0;
-    
+
     private $text = '';
     private $length = 0;
 
@@ -65,7 +65,7 @@ class JconParser {
             if ($this->context['type'] == 'list') {
                 $missingBrace = ']';
             }
-            else if ($this->blockString) {
+            else if ($this->bTagString) {
                 $missingBrace = "'''";
             }
             $this->error("Reached end of file with unclosed `$missingBrace`");
@@ -104,21 +104,21 @@ class JconParser {
         $line = trim($rawLine);
 
         // in multi-line string
-        if ($this->blockString !== null) {
+        if ($this->bTagString !== null) {
             if ($line === "'''") {
                 // close quotes
-                $trimmed = v($this->blockString)->u_trim_indent();  //!!!
-                $this->assignVal($this->blockStringKey, $trimmed);
-                $this->blockString = null;
+                $trimmed = v($this->bTagString)->u_trim_indent();  //!!!
+                $this->assignVal($this->bTagStringKey, $trimmed);
+                $this->bTagString = null;
             } else {
-                $this->blockString .= $rawLine . "\n";
+                $this->bTagString .= $rawLine . "\n";
             }
             return;
         }
 
         // Blank line
-        if (!strlen($line)) { 
-            return; 
+        if (!strlen($line)) {
+            return;
         }
 
         // Read first 2 chars (c0 and c1)
@@ -126,8 +126,8 @@ class JconParser {
         $c1 = strlen(line) > 1 ? $line[1] : '';
 
         // comment
-        if ($c0 == '/' && $c1 == '/') { 
-            return; 
+        if ($c0 == '/' && $c1 == '/') {
+            return;
         }
 
         // closing brace
@@ -154,8 +154,8 @@ class JconParser {
 
         if ($this->context['type'] == 'map') {
             $parts = explode(':', $l, 2);
-            if (count($parts) < 2) { 
-                $this->error("Missing colon `:`"); 
+            if (count($parts) < 2) {
+                $this->error("Missing colon `:`");
             }
             $key = $parts[0];
             $val = trim($parts[1]);
@@ -168,7 +168,7 @@ class JconParser {
             }
             else if ($parts[0] && $parts[0][strlen($parts[0]) - 1] == ' ') {
                 $this->error("Extra space before colon `:`");
-            }            
+            }
         }
 
         // handle value
@@ -179,8 +179,8 @@ class JconParser {
             $this->openChild('list', $key);
         }
         else if ($val === "'''") {
-            $this->blockStringKey = $key;
-            $this->blockString = '';
+            $this->bTagStringKey = $key;
+            $this->bTagString = '';
         }
         else {
             // literal value
@@ -198,7 +198,7 @@ class JconParser {
         else {
             $this->error("Missing top-level open brace `{` or `[`.");
         }
-        
+
         if ($c1 !== '') {
             $this->error("Missing newline after open brace `" . $c0 . "`.");
         }
@@ -251,7 +251,7 @@ class JconParser {
         }
     }
 
-    // Convert a text value into a typed version 
+    // Convert a text value into a typed version
     // e.g. "123" => 123 [number], "true" => true [boolean]
     private function stringToTypedValue($v) {
 
@@ -301,7 +301,7 @@ class JconParser {
             $minIndent = min($indent, $minIndent);
             if (!$indent) { break; }
         }
-        
+
         for ($i = 0; $i < $numLines; $i += 1) {
             $lines[$i] = substr($lines[$i], $minIndent);
         }

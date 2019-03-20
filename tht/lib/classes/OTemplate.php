@@ -19,7 +19,7 @@ class OTemplate {
         }
 
         if ($this->returnLockType) {
-            return OLockString::create($this->returnLockType, $str);
+            return OTagString::create($this->returnLockType, $str);
         } else {
             return $str;
         }
@@ -42,8 +42,8 @@ class OTemplate {
                 $out .= $this->handleDynamic($context, $chunk);
             }
         }
-        else if (OLockString::isa($in)) {
-            $out = $this->handleLockString($context, $in);
+        else if (OTagString::isa($in)) {
+            $out = $this->handleTagString($context, $in);
         }
         else {
             $out = $this->escape($context, $in);
@@ -61,8 +61,8 @@ class OTemplate {
     }
 
     // Hot Path
-    function handleLockString($context, $s) {
-        $plain = OLockString::getUnlocked($s, '');
+    function handleTagString($context, $s) {
+        $plain = OTagString::getUntagged($s, '');
         if ($s->u_lock_type() == $this->returnLockType) {
             return $plain;
         }
@@ -91,10 +91,10 @@ class TemplateHtml extends OTemplate {
         return $esc;
     }
 
-    function handleLockString($context, $s) {
+    function handleTagString($context, $s) {
 
         // if js or css, wrap in appropriate block tags
-        $unlocked = OLockString::getUnlocked($s, '');
+        $unlocked = OTagString::getUntagged($s, '');
 
         $type = $s->u_lock_type();
         if ($type == 'html') {

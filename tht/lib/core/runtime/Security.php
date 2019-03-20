@@ -20,7 +20,7 @@ class Security {
     static private $isPostRequestValidated = false;
     static private $isAdmin = false;
 
-    static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_/i';
+    static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_|mysql|sqlite/i';
 
     static private $PHP_BLACKLIST = [
         'assert',

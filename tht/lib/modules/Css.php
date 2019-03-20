@@ -85,7 +85,7 @@ button,hr,input{overflow:visible}audio,canvas,progress,video{display:inline-bloc
         html{ -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 EOCSS;
-        return new \o\CssLockString ($css);
+        return new \o\CssTagString ($css);
     }
 
     function inc_base ($nSizeX=0, $breakCss=null) {
@@ -95,7 +95,7 @@ EOCSS;
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
 
-        $css = OLockString::getUnlocked($this->inc_reset(), 'css');
+        $css = OTagString::getUntagged($this->inc_reset(), 'css');
 
         $gridCss = $this->inc_grid($nSizeX, $breakCss)->u_stringify();
 
@@ -644,7 +644,7 @@ EOCSS;
 
         $css = self::u_minify($css);
 
-        return new \o\CssLockString ($css);
+        return new \o\CssTagString ($css);
 
     }
 
@@ -656,7 +656,7 @@ EOCSS;
         $breakX = ($nSizeX + 20) . 'px';
         $sizeX = $nSizeX . 'px';
 
-        $breakCss = is_null($breakCss) ? '' : \o\OLockString::getUnlocked($breakCss);
+        $breakCss = is_null($breakCss) ? '' : \o\OTagString::getUntagged($breakCss);
 
         $css = <<<EOCSS
 
@@ -706,7 +706,7 @@ EOCSS;
         }
 EOCSS;
 
-        return new \o\CssLockString ($this->u_minify($css));
+        return new \o\CssTagString ($this->u_minify($css));
 
     }
 
@@ -738,7 +738,7 @@ EOCSS;
 
 EOCSS;
 
-        return new \o\CssLockString ($this->u_minify($css));
+        return new \o\CssTagString ($this->u_minify($css));
     }
 
     function u_parse($str) {

@@ -135,7 +135,7 @@ class u_Test extends StdModule {
             $str .= "Failed:  " . $this->stats['numFailed'] . "\n\n";
         }
 
-        return new HtmlLockString ($str);
+        return new HtmlTagString ($str);
     }
 
     function u_check_args() {

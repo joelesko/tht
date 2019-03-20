@@ -83,20 +83,20 @@ class u_Js extends StdModule {
                     return data.hasOwnProperty(key);
                 },
                 get: function (key, def) {
-                    if (locked[key]) {
+                    if (frozen[key]) {
                         throw 'Can only retrieve JsData key=`' + key + '` one time.';
                     }
                     if (!this.has(key)) {
                         if (typeof def !== 'undefined') {  return def;  }
                         throw 'JsData key=`'+ key +'` does not exist.';
                     }
-                    locked[key] = true;
+                    frozen[key] = true;
                     return data[key];
                 }
             };
         ");
 
-        return new JsLockString("window.JsData=(function(){var data=$data;var locked={}; $min })();");
+        return new JsTagString("window.JsData=(function(){var data=$data;var frozen={}; $min })();");
     }
 
     function incLazyLoadImages () {
@@ -159,7 +159,7 @@ EOLAZY;
 
 EOLAZY;
 
-        return OList::create([new CssLockString($css), new JsLockString($js)]);
+        return OList::create([new CssTagString($css), new JsTagString($js)]);
     }
 
     function getArg($args, $i, $def) {
@@ -287,7 +287,7 @@ EOCSS;
 
 EOSYNTAX;
 
-        return OList::create([new CssLockString($css), new JsLockString($js)]);
+        return OList::create([new CssTagString($css), new JsTagString($js)]);
     }
 }
 

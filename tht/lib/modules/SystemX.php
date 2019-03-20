@@ -28,12 +28,12 @@ class u_System extends StdModule {
         return OList::create($argv);
     }
 
-    function u_command ($lockedCmd, $isPassThru=false) {
+    function u_command ($taggedCmd, $isPassThru=false) {
 
         Tht::module('Meta')->u_no_web_mode();
         Tht::module('Meta')->u_no_template_mode();
 
-        $cmd = OLockString::getUnlocked($lockedCmd, 'cmd');
+        $cmd = OTagString::getUntagged($taggedCmd, 'cmd');
 
         Tht::module('Perf')->u_start('System.command', $cmd);
         $ret = '';

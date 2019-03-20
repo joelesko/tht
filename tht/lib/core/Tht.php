@@ -278,7 +278,7 @@ class Tht {
 
         $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
 
-        // TODO: clean this up at v1 when paths are locked.
+        // TODO: clean this up at v1 when paths are set.
         // Top Level directories.  There is only one now: 'app'
         foreach (['app'] as $topDir) {
 
@@ -449,7 +449,7 @@ class Tht {
     }
 
     static function parseTemplateString ($type, $lRawText) {
-        $rawText = OLockString::getUnlocked($lRawText, $type);
+        $rawText = OTagString::getUntagged($lRawText, $type);
         $tsr = new TemplateStringReader ($type, $rawText);
         return $tsr->parse();
     }

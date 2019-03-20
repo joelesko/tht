@@ -15,7 +15,7 @@ class LibClasses {
         'OString',
         'OFlag',
         'OFunction',
-        'OLockString',
+        'OTagString',
         'ONothing',
         'OModule',
         'OTemplate',

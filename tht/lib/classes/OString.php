@@ -192,7 +192,7 @@ class OString extends OVar implements \ArrayAccess {
     // Locking
 
 
-    // Just for convenience if mixing and matching with OLockStrings
+    // Just for convenience if mixing and matching with OTagStrings
     function u_stringify () {
         ARGS('', func_get_args());
         return $this->val;
@@ -200,7 +200,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_danger_danger_lock ($type) {
         ARGS('s', func_get_args());
-        return OLockString::create($type, $this->val);
+        return OTagString::create($type, $this->val);
     }
 
 
@@ -774,7 +774,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_to_url () {
         ARGS('', func_get_args());
-        return OLockString::create('url', $this->val);
+        return OTagString::create('url', $this->val);
     }
 
 

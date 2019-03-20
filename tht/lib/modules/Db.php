@@ -84,14 +84,14 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_get_tables() {
-        $lSql = new \o\SqlLockString ("SELECT name FROM sqlite_master WHERE type='table'");
+        $lSql = new \o\SqlTagString ("SELECT name FROM sqlite_master WHERE type='table'");
         return v($this->u_select_rows($lSql))->u_column('name');
     }
 
     // TODO: support more than just sqlite
     function u_table_exists($tableName) {
         ARGS('s', func_get_args());
-        $lSql = new \o\SqlLockString ("SELECT name FROM sqlite_master WHERE type='table' AND name = {0} LIMIT 1");
+        $lSql = new \o\SqlTagString ("SELECT name FROM sqlite_master WHERE type='table' AND name = {0} LIMIT 1");
         $lSql->u_fill($tableName);
         $rows = $this->u_select_rows($lSql);
         return count($rows) == 1;
@@ -103,7 +103,7 @@ class u_Db extends StdModule {
         if (preg_match('/[^a-zA-Z0-9_-]/', $tableName)) {
             Tht::error("Invalid character in table name: `$tableName`");
         }
-        $lSql = new \o\SqlLockString ("PRAGMA table_info(" . $tableName . ")");
+        $lSql = new \o\SqlTagString ("PRAGMA table_info(" . $tableName . ")");
         return $this->u_select_rows($lSql);
     }
 
@@ -120,7 +120,7 @@ class u_Db extends StdModule {
         }
         $sql .= implode(",\n", $aCols);
         $sql .= ')';
-        return $this->u_query(new \o\SqlLockString ($sql));
+        return $this->u_query(new \o\SqlTagString ($sql));
     }
 
     // TODO: support more than just sqlite
@@ -129,7 +129,7 @@ class u_Db extends StdModule {
         $table = $this->untaintName($table, 'table');
         $col = $this->untaintName($col, 'column');
         $sql = "CREATE INDEX i_{$table}_{$col} ON $table ($col)";
-        return $this->u_query(new \o\SqlLockString ($sql));
+        return $this->u_query(new \o\SqlTagString ($sql));
     }
 
     function untaintName($n, $label) {
@@ -194,7 +194,7 @@ class u_Db extends StdModule {
 
         $sql = "INSERT INTO $table ($sCols) VALUES ($sVals)";
 
-        $lSql = new \o\SqlLockString ($sql);
+        $lSql = new \o\SqlTagString ($sql);
         $lSql->u_fill(v($fields));
 
         $this->query($lSql);
@@ -203,7 +203,7 @@ class u_Db extends StdModule {
     function u_update_rows ($tTable, $vals, $lWhere) {
 
         $table = $this->untaintName($tTable, 'table');
-        $where = OLockString::getUnlockedRaw($lWhere, 'sql');
+        $where = OTagString::getUntaggedRaw($lWhere, 'sql');
 
         // create SET expression
         $cols = [];
@@ -222,7 +222,7 @@ class u_Db extends StdModule {
         }
 
         $sql = "UPDATE $table SET $sSets WHERE $where";
-        $lSql = new \o\SqlLockString ($sql);
+        $lSql = new \o\SqlTagString ($sql);
         $lSql->u_fill(v($params));
 
         $this->query($lSql);
@@ -230,26 +230,26 @@ class u_Db extends StdModule {
 
     function u_delete_rows ($tTable, $lWhere) {
 
-        $where = OLockString::getUnlockedRaw($lWhere, 'sql');
+        $where = OTagString::getUntaggedRaw($lWhere, 'sql');
         $table = $this->untaintName($tTable, 'table');
 
         $sql = "DELETE FROM $table WHERE $where";
-        $lSql = new \o\SqlLockString ($sql);
+        $lSql = new \o\SqlTagString ($sql);
         $lSql->u_fill($lWhere->u_params());
 
         $this->query($lSql);
     }
 
-    function u_query ($lockedSql) {
-        $this->query($lockedSql);
+    function u_query ($taggedSql) {
+        $this->query($taggedSql);
     }
 
-    function query ($lockedSql) {
+    function query ($taggedSql) {
 
         Tht::module('Meta')->u_no_template_mode();
 
-        $sql = OLockString::getUnlockedRaw($lockedSql, 'sql');
-        $params = $lockedSql->u_params();
+        $sql = OTagString::getUntaggedRaw($taggedSql, 'sql');
+        $params = $taggedSql->u_params();
 
         $this->lastStatus['insertId'] = -1;
         $this->lastStatus['numRows'] = -1;
