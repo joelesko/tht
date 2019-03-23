@@ -82,10 +82,7 @@ class TemplateHtml extends OTemplate {
     function escape($context, $in) {
         $esc = htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
         if ($context == 'tag') {
-            $alpha = preg_replace('/[^a-z:]/', '', strtolower($in));
-            if (strpos($alpha, 'javascript:') !== false) {
-                $esc = '(REMOVED:UNSAFE_URL)';
-            }
+            $esc = Security::sanitizeHtmlPlaceholder($esc);
         }
         return $esc;
     }

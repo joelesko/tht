@@ -464,6 +464,14 @@ class Security {
         return true;
     }
 
+    static function sanitizeHtmlPlaceholder($in) {
+        $alpha = preg_replace('/[^a-z:]/', '', strtolower($in));
+        if (strpos($alpha, 'javascript:') !== false) {
+            $in = '(REMOVED:UNSAFE_URL)';
+        }
+        return $in;
+    }
+
     // prevent the most common password mistakes
     static function validatePasswordStrength($val) {
 
