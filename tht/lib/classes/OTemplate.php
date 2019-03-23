@@ -4,7 +4,7 @@ namespace o;
 
 class OTemplate {
     protected $chunks = [];
-    protected $returnLockType = '_';
+    protected $returnTagType = '_';
 
     function getString() {
         $str = '';
@@ -18,8 +18,8 @@ class OTemplate {
             $str = v($str)->u_trim_indent() . "\n";
         }
 
-        if ($this->returnLockType) {
-            return OTagString::create($this->returnLockType, $str);
+        if ($this->returnTagType) {
+            return OTagString::create($this->returnTagType, $str);
         } else {
             return $str;
         }
@@ -63,7 +63,7 @@ class OTemplate {
     // Hot Path
     function handleTagString($context, $s) {
         $plain = OTagString::getUntagged($s, '');
-        if ($s->u_lock_type() == $this->returnLockType) {
+        if ($s->u_tag_type() == $this->returnTagType) {
             return $plain;
         }
         else {
@@ -77,7 +77,7 @@ class OTemplate {
 ////////// TYPES //////////
 
 class TemplateHtml extends OTemplate {
-    protected $returnLockType = 'html';
+    protected $returnTagType = 'html';
 
     function escape($context, $in) {
         $esc = htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
@@ -86,7 +86,6 @@ class TemplateHtml extends OTemplate {
             if (strpos($alpha, 'javascript:') !== false) {
                 $esc = '(REMOVED:UNSAFE_URL)';
             }
-            $esc = '"' . $esc . '"';
         }
         return $esc;
     }
@@ -96,7 +95,7 @@ class TemplateHtml extends OTemplate {
         // if js or css, wrap in appropriate block tags
         $unlocked = OTagString::getUntagged($s, '');
 
-        $type = $s->u_lock_type();
+        $type = $s->u_tag_type();
         if ($type == 'html') {
             return $unlocked;
         }
@@ -114,21 +113,21 @@ class TemplateHtml extends OTemplate {
 class TemplateLite extends TemplateHtml {}
 
 class TemplateJs extends OTemplate {
-    protected $returnLockType = 'js';
+    protected $returnTagType = 'js';
     function escape($context, $in) {
         return Tht::module('Js')->escape($in);
     }
 }
 
 class TemplateCss extends OTemplate {
-    protected $returnLockType = 'css';
+    protected $returnTagType = 'css';
     function escape($context, $in) {
         return Tht::module('Css')->escape($in);
     }
 }
 
 class TemplateJcon extends OTemplate {
-    protected $returnLockType = '';
+    protected $returnTagType = '';
 
     function escape($context, $in) {
         if (is_bool($in)) {
@@ -147,7 +146,7 @@ class TemplateJcon extends OTemplate {
 }
 
 class TemplateText extends OTemplate {
-    protected $returnLockType = '';
+    protected $returnTagType = '';
 
     function postProcess($s) {
         return $s;

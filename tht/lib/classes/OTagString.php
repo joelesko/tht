@@ -80,7 +80,7 @@ abstract class OTagString extends OVar {
         foreach($this->bindParams as $k => $v) {
             if (OTagString::isa($v)) {
                 $plain = $v->u_stringify();
-                if ($v->u_lock_type() === $this->u_lock_type()) {
+                if ($v->u_tag_type() === $this->u_tag_type()) {
                     // If same lock type, don't escape
                     $escParams[$k] = $plain;
                 } else {
@@ -111,8 +111,8 @@ abstract class OTagString extends OVar {
 
     // TODO: support other TagString types & regular strings
     function appendTagString($l) {
-        $t1 = $this->u_lock_type();
-        $t2 = $l->u_lock_type();
+        $t1 = $this->u_tag_type();
+        $t2 = $l->u_tag_type();
         if ($t1 !== $t2) {
             Tht::error("Can only append TagStrings of the same type. Got: `$t1` and `$t2`");
         }
@@ -165,7 +165,7 @@ abstract class OTagString extends OVar {
         return $this->bindParams;
     }
 
-    function u_lock_type() {
+    function u_tag_type() {
         ARGS('', func_get_args());
         return $this->type;
     }
@@ -180,8 +180,11 @@ class JconTagString extends OTagString {  protected $type = 'jcon';  }
 
 class HtmlTagString extends OTagString {
     protected $type = 'html';
-    protected function u_z_escape_param($v) {
-        return htmlspecialchars($v);
+    // protected function u_z_escape_param($v) {
+    //     return htmlspecialchars($v);
+    // }
+    function u_fill($params) {
+        Tht::error('(Security) HtmlTagString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
     }
 }
 
@@ -205,7 +208,7 @@ class SqlTagString extends OTagString {
         Tht::error('SQL escaping must be handled internally.');
     }
     function u_stringify() {
-        Tht::error('SqlTagStrings may only be stringified internally.');
+        Tht::error('SqlTagStrings can only be stringified internally, by the `Db` module.');
     }
 }
 
@@ -219,7 +222,7 @@ class CmdTagString extends OTagString {
 class PlainTagString  extends OTagString {
     protected $type = 'plain';
     protected function u_z_escape_param($k) {
-        return $this->bindParams[$k];
+        return $k;
     }
 }
 
