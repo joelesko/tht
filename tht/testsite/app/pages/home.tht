@@ -1379,18 +1379,18 @@ F testTagStrings(t) {
     t.ok(sql'abc'.isTagString(), 'isTagString = true');
     t.ok(!'abc'.isTagString(), 'isTagString = false');
 
-    t.dies(F { return lock'a' ~ 'b'; }, 'Can`t combine');
-    t.dies(F { return 'a' ~ lock'b'; }, 'Can`t combine');
+    t.dies(F { return plain'a' ~ 'b'; }, 'Can`t combine');
+    t.dies(F { return 'a' ~ plain'b'; }, 'Can`t combine');
     t.dies(F { return url'a' ~ cmd'b'; }, 'Can`t combine');
 
-    let lock1 = html'1={},';
-    let lock2 = html'2={}';
+    let lock1 = plain'1={},';
+    let lock2 = plain'2={}';
     let combined = lock1 ~ lock2;
     combined.fill(['a', 'b']);
     t.ok(combined.stringify() == '1=a,2=b', 'combined TagStrings');
 
-    t.ok(lockHtml('a').lockType() == 'html', 'getLockType');
-    t.ok(sql'x'.lockType() == 'sql', 'getLockType');
+    t.ok(tagHtml('a').tagType() == 'html', 'getTagType');
+    t.ok(sql'x'.tagType() == 'sql', 'getTagType');
 
     t.dies(F { R url'page?foo={}'; }, 'dynamic query hardcoded in url string');
 
@@ -1600,7 +1600,6 @@ function testTemplates(t) {
     p = p.stringify();
     t.ok(p.contains('<h1>Hello</h1>'), 'parse html string - double arrow');
     t.ok(p.contains('<div class=\'abc\'>123</div>'), 'parse html string - dotted');
-
 
 
     t.section('Template Escaping');
@@ -2214,8 +2213,8 @@ template inJs() {
     var a = 1;
 }
 
-template lockHtml(lock) {
-    <p>> {{ lock }}
+template tagHtml(val) {
+    <p>> {{ val }}
 }
 
 template expCss(inp) {
