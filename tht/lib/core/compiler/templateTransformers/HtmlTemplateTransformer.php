@@ -13,6 +13,16 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr'
     ];
 
+    static function cleanHtmlSpaces($str) {
+        $str = preg_replace('#>\s+$#',      '>', $str);
+        $str = preg_replace('#^\s+<#',      '<', $str);
+        $str = preg_replace('#>\s*\n+\s*#', '>', $str);
+        $str = preg_replace('#\s*\n+\s*<#', '<', $str);
+        $str = preg_replace('#\s+</#',      '</', $str);
+
+        return $str;
+    }
+
     function transformNext () {
 
         $t = $this->reader;
@@ -145,6 +155,16 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         if ($c === '>') {
             $str .= $this->readTagEnd($isSelfClosing);
+        }
+        else if ($c === '=') {
+            $nc = $t->nextChar();
+            if ($nc !== '"' && $nc !== "'") {
+                $t->error('HTML tag property `=` must be immediately followed by double-quotes `"`.');
+            } else if ($t->prevChar() == ' ') {
+                $t->error('Please remove the space before `=`.');
+            }
+            $str .= $c;
+            $t->next();
         }
         else {
             if ($c === "\n") {
@@ -304,7 +324,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             $t->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
         }
         if (!preg_match('/[a-z]/', $name) && preg_match('/[A-Z]/', $name)) {
-            $t->error("Tag `$name` should not be all uppercase.", $tag['pos']);
+            $t->error("Tag `$name` should be all lowercase.", $tag['pos']);
         }
         if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
             $sigil = substr($name, 0, 1);
@@ -347,7 +367,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
 
     function onEndString($str) {
-        return $this->cleanHtmlSpaces($str);
+        return self::cleanHtmlSpaces($str);
     }
 
     function onEndTemplateBody() {}

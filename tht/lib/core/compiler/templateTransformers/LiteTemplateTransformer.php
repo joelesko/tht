@@ -37,7 +37,7 @@ class LiteTemplateTransformer extends TemplateTransformer {
     function onEndString($s) {
         $str = Tht::module('Litemark')->u_parse($s, ['html' => true, 'reader' => $this->reader])->u_stringify();
 
-        $str = $this->cleanHtmlSpaces($str);
+        $str = HtmlTemplateTransformer::cleanHtmlSpaces($str);
 
         return $str;
     }
