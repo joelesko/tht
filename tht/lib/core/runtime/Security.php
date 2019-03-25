@@ -271,7 +271,7 @@ class Security {
 
         $web = Tht::module('Web');
 
-        if ($web->u_request()['method'] === 'get') {
+        if (Tht::module('Request')->u_method() === 'get') {
             return;
         }
         else if (Security::isCrossOrigin()) {
@@ -301,7 +301,7 @@ class Security {
     static function isPossibleBruteForce() {
 
         // Keep this very general (IP), so that it can't be invalidated client-side
-        $userKey = 'lastPostTime:' . Tht::module('Web')->u_request()['ip'];
+        $userKey = 'lastPostTime:' . Tht::module('Request')->u_ip();
 
         $lastPostTime = Tht::module('Cache')->u_get($userKey, 0);
         $now = microtime(true);
@@ -320,9 +320,7 @@ class Security {
             return self::$isCrossOrigin;
         }
 
-        $web = Tht::module('Web');
-
-        if ($web->u_request()['method'] !== 'get') {
+        if (Tht::module('Request')->u_method() !== 'get') {
            $host  = Tht::getWebRequestHeader('host');
            $origin = Tht::getWebRequestHeader('origin');
            $origin = preg_replace('/^https?:\/\//i', '', $origin);
@@ -470,6 +468,14 @@ class Security {
             $in = '(REMOVED:UNSAFE_URL)';
         }
         return $in;
+    }
+
+    static function escapeHtml($in) {
+        return htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+    }
+
+    static function unescapeHtml($in) {
+         return htmlspecialchars_decode($in, ENT_QUOTES|ENT_HTML5);
     }
 
     // prevent the most common password mistakes
