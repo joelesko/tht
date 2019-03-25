@@ -181,7 +181,7 @@ class JconTagString extends OTagString {  protected $type = 'jcon';  }
 class HtmlTagString extends OTagString {
     protected $type = 'html';
     // protected function u_z_escape_param($v) {
-    //     return htmlspecialchars($v);
+    //     return Security::escapeHtml($v);
     // }
     function u_fill($params) {
         Tht::error('(Security) HtmlTagString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
@@ -353,7 +353,5 @@ class UrlTagString extends OTagString {
         return $ary;
     }
 }
-
-
 
 
