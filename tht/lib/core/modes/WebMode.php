@@ -42,13 +42,15 @@ class WebMode {
 
     static private function initRoute () {
 
-        Tht::module('Perf')->u_start('tht.route');
-
         $path = self::getScriptPath();
+        if ($path == '/counter' && Security::isAdmin()) {
+            HitCounter::counterPanel();
+            return;
+        }
+
+        Tht::module('Perf')->u_start('tht.route');
         $controllerFile = self::getControllerForPath($path);
-
         Tht::module('Perf')->u_stop();
-
         return $controllerFile;
     }
 
@@ -64,7 +66,7 @@ class WebMode {
     }
 
     static private function getScriptPath() {
-        $path = Tht::module('Web')->u_request()['url']['path'];
+        $path = Tht::module('Request')->u_url()['path'];
         Security::validateRoutePath($path);
         return $path;
     }
@@ -192,12 +194,11 @@ class WebMode {
         $fullUserFunction = $nameSpace . '\\u_' . $userFunction;
 
         $mainFunction = 'main';
-        $web = Tht::module('Web');
-        $req = uv($web->u_request());
+        $req = Tht::module('Request');
 
-        if ($req['isAjax']) {
+        if ($req->u_is_ajax()) {
             $mainFunction = 'ajax';
-        } else if ($req['method'] === 'POST') {
+        } else if ($req->u_method() === 'POST') {
             $mainFunction = 'post';
         }
         $fullMainFunction = $nameSpace . '\\u_' . $mainFunction;

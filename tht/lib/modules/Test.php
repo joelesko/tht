@@ -118,7 +118,7 @@ class u_Test extends StdModule {
                 $fmtResult = $l['result'] ? '(OK)' : 'FAIL';
                 if (Tht::isMode('web')) {
                     $color = $l['result'] ? '#090' : '#c33';
-                    $str .= "<div class='test-result'><b style='color:$color'>" . $fmtResult . '</b>  ' . htmlspecialchars($msg) . "</div>";
+                    $str .= "<div class='test-result'><b style='color:$color'>" . $fmtResult . '</b>  ' . Security::escapeHtml($msg) . "</div>";
                 } else {
                     $str .= '  ' . $fmtResult . '  ' . $msg . "\n";
                 }

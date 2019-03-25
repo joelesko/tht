@@ -4,260 +4,7 @@ namespace o;
 
 class u_Web extends StdModule {
 
-    private $jsData = [];
-
-    private $request;
-    private $isCrossOrigin = null;
-    private $includedFormJs = false;
-    private $forms = [];
-    private $gzipBufferOpen = false;
-
-
-    // REQUEST
-    // --------------------------------------------
-
-    function u_request () {
-
-        if (!$this->request) {
-
-            $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
-            $ips = preg_split('/\s*,\s*/', $ip);
-            $headers = OMap::create(Tht::getPhpGlobal('headers', '*'));
-            $isHttps = $this->isHttps();
-            $ua = $this->parseUserAgent(Tht::getPhpGlobal('server', 'HTTP_USER_AGENT'));
-            $method = $this->getMethod();
-
-            $r = [
-                'ip'          => $ips[0],
-                'ips'         => $ips,
-                'isHttps'     => $isHttps,
-                'userAgent'   => $ua,
-                'method'      => $method,
-                'referrer'    => Tht::getPhpGlobal('headers', 'referrer'),
-                'languages'   => $this->languages(),
-                'isAjax'      => $this->isAjax(),
-                'headers'     => $headers,
-                'url'         => $this->buildRequestUrl($isHttps),
-            ];
-
-            $this->request = OMap::create($r);
-        }
-
-        return $this->request;
-    }
-
-    function getMethod() {
-        $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
-        if ($method == 'post') {
-            $restMethod = strtolower(Tht::getPhpGlobal('post', '_method', ''));
-            if ($restMethod) {
-                if (!in_array($restMethod, ['get', 'post', 'put', 'patch', 'delete'])) {
-                    Tht::error('Unsupported REST method: `$restMethod`. Try: `get`, `post`, `put`, `patch`, `delete`');
-                }
-                $method = $restMethod;
-            }
-        }
-        return $method;
-    }
-
-    function buildRequestUrl($isHttps) {
-        $relativeUrl = $this->relativeUrl();
-        $scheme = $isHttps ? 'https' : 'http';
-        $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
-        $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
-
-        $lUrl = new UrlTagString($fullUrl);
-        $url = $lUrl->u_parts();
-        $url['full']  = $lUrl;
-        $url['query'] = '(in full.query())';
-        $url['hash']  = '(in full.hash())';
-
-        return $url;
-    }
-
-    // Very basic parsing to get browser & OS.
-    // Not really concerned with version numbers, etc.
-    function parseUserAgent($rawUa) {
-
-        $ua = strtolower($rawUa);
-
-        // Operating System
-        $os = 'other';
-        if (preg_match('/\b(ipad|ipod|iphone)\b/', $ua)) {
-            $os = 'ios';
-        }
-        else if (strpos($ua, 'android') !== false) {
-            $os = 'android';
-        }
-        else if (strpos($ua, 'linux') !== false) {
-            $os = 'linux';
-        }
-        else if (strpos($ua, 'macintosh') !== false) {
-            $os = 'mac';
-        }
-        else if (strpos($ua, 'windows') !== false) {
-            $os = 'windows';
-        }
-
-        // Browser
-        // (order matters because browsers often include Safari & Chrome)
-        $browser = 'other';
-        if (strpos($ua, 'trident') !== false) {
-            $browser = 'ie';
-        }
-        else if (strpos($ua, 'firefox') !== false) {
-            $browser = 'firefox';
-        }
-        else if (preg_match('/\bedge\b/', $ua)) {
-            $browser = 'edge';
-        }
-        else if (strpos($ua, 'chrome') !== false) {
-            $browser = 'chrome';
-        }
-        else if (strpos($ua, 'safari') !== false) {
-            $browser = 'safari';
-        }
-
-        $out = [
-            'full' => trim($rawUa),
-            'os' => $os,
-            'browser' => $browser,
-        ];
-
-        return OMap::create($out);
-    }
-
-    // TODO: support proxies (via HTTP_X_FORWARDED_PROTO?)
-    function isHttps () {
-        $https = Tht::getPhpGlobal('server', 'HTTPS');
-        $port = Tht::getPhpGlobal('server', 'SERVER_PORT');
-
-        return (!empty($https) && $https !== 'off') || intval($port) === 443;
-    }
-
-    function isAjax () {
-        $requestedWith = Tht::getWebRequestHeader('x-requested-with');
-        return (strtolower($requestedWith) === 'xmlhttprequest');
-    }
-
-    function relativeUrl() {
-        $path = Tht::getPhpGlobal('server', "REQUEST_URI");  // SCRIPT_URL
-        if (!$path) {
-            // Look for PHP dev server path instead.
-            $path = Tht::getPhpGlobal('server', "SCRIPT_NAME");
-            if (!$path) {
-                Tht::configError("Unable to determine route path.  Only Apache and PHP dev server are supported.");
-            }
-        }
-        return $path;
-    }
-
-    // THANKS: http://www.thefutureoftheweb.com/blog/use-accept-language-header
-    function languages () {
-        $langs = [];
-        $acceptLang = strtolower(Tht::getPhpGlobal('server', 'HTTP_ACCEPT_LANGUAGE'));
-        if ($acceptLang) {
-            preg_match_all('/([a-z]{1,8}(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/', $acceptLang, $matches);
-            if (count($matches[1])) {
-                $langs = array_combine($matches[1], $matches[4]);
-                foreach ($langs as $lang => $val) {
-                    if ($val === '') $langs[$lang] = 1;
-                }
-                arsort($langs, SORT_NUMERIC);
-            }
-        }
-        return array_keys($langs);
-    }
-
-
-
-
-
-
-
-    // QUERY / URL PARSING
-    // --------------------------------------------
-
-    // function u_parse_url ($url) {
-    //     ARGS('s', func_get_args());
-
-
-    // }
-
-    // function u_parse_query ($s, $multiKeys=[]) {
-
-    //     ARGS('sl', func_get_args());
-    //     $multiKeys = uv($multiKeys);
-
-    //     $ary = [];
-    //     $pairs = explode('&', $s);
-
-    //     foreach ($pairs as $i) {
-    //         list($name, $value) = explode('=', $i, 2);
-    //         if (in_array($name, $multiKeys)) {
-    //             if (!isset($ary[$name])) {
-    //                 $ary[$name] = OList::create([]);
-    //             }
-    //             $ary[$name] []= $value;
-    //         }
-    //         else {
-    //             $ary[$name] = $value;
-    //         }
-    //     }
-    //     return OMap::create($ary);
-    // }
-
-    // function u_stringify_query ($params) {
-
-    // }
-
-
-
-
-
-    // RESPONSE
-    // --------------------------------------------
-
-    function u_redirect ($lUrl, $code=303) {
-        ARGS('*n', func_get_args());
-
-        $url = OTagString::getUntagged($lUrl, 'url');
-        // if (OTagString::isa($url)) {
-        //     $url = $url->u_stringify();
-        // } else {
-        //     if (v($url)->u_is_url()) {
-        //         Tht::error("Redirect URL `$url` must be relative or a TagString.");
-        //     }
-        // }
-        // $url = preg_replace('/\s+/', ' ', $url);
-        header('Location: ' . $url, true, $code);
-        Tht::exitScript(0);
-    }
-
-    function u_set_response_code ($code) {
-        ARGS('n', func_get_args());
-        http_response_code($code);
-
-        return new \o\ONothing('setResponseCode');
-    }
-
-    function u_set_header ($name, $value, $multiple=false) {
-        ARGS('ssf', func_get_args());
-
-        $value = preg_replace('/\s+/', ' ', $value);
-        $name = preg_replace('/[^a-z0-9\-]/', '', strtolower($name));
-        header($name . ': ' . $value, !$multiple);
-
-        return new \o\ONothing('setHeader');
-    }
-
-    function u_set_cache_header ($expiry='+1 year') {
-        ARGS('s', func_get_args());
-
-        $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime($expiry)));
-
-        return new \o\ONothing('setCacheHeader');
-    }
+    private $icons = null;
 
     function u_nonce () {
         ARGS('', func_get_args());
@@ -269,335 +16,29 @@ class u_Web extends StdModule {
         return Security::getCsrfToken();
     }
 
-    // SEND DOCUMENTS
-    // --------------------------------------------
-
-    // function u_print_block($h, $title='') {
-    //     $html = OTagString::getUntagged($h);
-    //     $this->u_send_json([
-    //         'status' => 'ok',
-    //         'title' => $title,
-    //         'html' => $html
-    //     ]);
-    // }
-
-    function output($out) {
-        $this->startGzip();
-        print $out;
-    }
-
-    function sendByType($lout) {
-        $type = $lout->u_get_string_type();
-
-        if ($type == 'css') {
-            return $this->u_send_css($lout);
-        }
-        else if ($type == 'js') {
-            return $this->u_send_js($lout);
-        }
-    }
-
-    function renderChunks($chunks) {
-
-        // Normalize. Could be a single TagString, OList, or a PHP array
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
-            $chunks = OList::create([ $chunks ]);
-        }
-
-        $out = '';
-        foreach ($chunks->val as $c) {
-            $out .= OTagString::getUntagged($c, '');
-        }
-        return $out;
-    }
-
-    function u_send_json ($map) {
-        ARGS('m', func_get_args());
-
-        $this->u_set_header('Content-Type', 'application/json');
-        $this->output(json_encode(uv($map)));
-
-        return new \o\ONothing('sendJson');
-    }
-
-    function u_send_text ($text) {
-        ARGS('s', func_get_args());
-
-        $this->u_set_header('Content-Type', 'text/plain');
-
-        $this->output($text);
-        return new \o\ONothing('sendText');
-    }
-
-    function u_send_css ($chunks) {
-
-        ARGS('*', func_get_args());
-
-        $this->u_set_header('Content-Type', 'text/css');
-        $this->u_set_cache_header();
-
-        $out = $this->renderChunks($chunks);
-        $this->output($out);
-        return new \o\ONothing('sendCss');
-    }
-
-    function u_send_js ($chunks) {
-
-        ARGS('*', func_get_args());
-
-        $this->u_set_header('Content-Type', 'application/javascript');
-        $this->u_set_cache_header();
-
-        $out = "(function(){\n";
-        $out .= $this->renderChunks($chunks);
-        $out .= "\n})();";
-
-        $this->output($out);
-        return new \o\ONothing('sendJs');
-    }
-
-    function u_send_html ($html) {
-        $html = OTagString::getUntagged($html, 'html');
-        $this->output($html);
-        return new \o\ONothing('sendHtml');
-    }
-
-    function u_danger_danger_send ($s) {
-        ARGS('s', func_get_args());
-        print $s;
-        return new \o\ONothing('dangerDangerSend');
-    }
-
-    // Print a well-formed HTML document with sensible defaults
-    function u_send_page ($doc) {
-
-        ARGS('m', func_get_args());
-
-        $val = [];
-
-        $val['body'] = '';
-
-        if ($doc['body']) {
-            $chunks = [];
-            if (OList::isa($doc['body'])) {
-                $chunks = $doc['body'];
-            } else {
-                $chunks = [$doc['body']];
-            }
-
-            foreach ($chunks as $c) {
-                $val['body'] .= OTagString::getUntagged($c, 'html');
-            }
-        }
-
-        // if (u_Web::u_is_ajax()) {
-        //     u_Web::u_send_block($body, $header['title']);
-        //     return;
-        // }
-
-        $val['css'] = $this->assetTags(
-            'css',
-            $doc['css'],
-            '<link rel="stylesheet" href="{URL}" />',
-            '<style nonce="{NONCE}">{BODY}</style>'
-        );
-
-        $val['js'] = $this->assetTags(
-            'js',
-            $doc['js'],
-            '<script src="{URL}" nonce="{NONCE}"></script>',
-            '<script nonce="{NONCE}">{BODY}</script>'
-        );
-
-        $val['title'] = $doc['title'];
-        $val['description'] = isset($doc['description']) ? $doc['description'] : '';
-
-        // TODO: get updateTime of the files
-        // TODO: allow base64 urls
-        // $cacheTag = '?cache=' . Compiler::getAppCompileTime();
-        $cacheTag = '';
-
-        $val['image'] = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
-        $val['icon'] = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
-
-        $bodyClasses = uv($doc['bodyClasses']) ?: [];
-        $val['bodyClass'] = implode(' ', $bodyClasses);
-        // TODO: call a lib to untaint instead
-        $val['bodyClass'] = preg_replace('/[^a-zA-Z0-9_\- ]/', '', $val['bodyClass']);
-
-        $val['comment'] = '';
-        if (isset($doc['comment'])) {
-            $val['comment'] = "\n<!--\n\n" . v(v(v($doc['comment'])->u_stringify())->u_indent(4))->u_trim_right() . "\n\n-->";
-        }
-
-        $out = $this->pageTemplate($val);
-
-        $this->output($out);
-
-        return new \o\ONothing('sendPage');
-    }
-
-    function pageTemplate($val) {
-        return <<<HTML
-<!doctype html>$val[comment]
-<html>
-<head>
-<title>$val[title]</title>
-<meta name="description" content="$val[description]"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta property="og:title" content="$val[title]"/>
-<meta property="og:description" content="$val[description]"/>
-$val[image] $val[icon] $val[css]
-</head>
-<body class="$val[bodyClass]">
-$val[body]
-$val[js]
-</body>
-</html>
-HTML;
-    }
-
-    function u_send_error ($code, $title='', $desc='') {
-
-        ARGS('nss', func_get_args());
-
-        http_response_code($code);
-
-        if ($code !== 500) {
-            // User custom error page
-            WebMode::runStaticRoute($code);
-        }
-
-        // User custom error page
-        // $errorPage = Tht::module('File')->u_document_path($code . '.html');
-        // if (file_exists($errorPage)) {
-        //     print(file_get_contents($errorPage));
-        //     exit(1);
-        // }
-
-        if (!$this->u_request()['isAjax']) {
-
-            if (!$title) {
-                $title = $code === 404 ? 'Page Not Found' : 'Website Error';
-            }
-
-            ?><html><head><title><?= $title ?></title></head><body>
-            <div style="text-align: center; color:#333; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
-            <h1 style="margin-top: 40px;"><?= $title ?></h1>
-            <?php if ($desc) { ?>
-            <div style="margin-top: 40px;"><?= $desc ?></div>
-            <?php } ?>
-            <div style="margin-top: 40px"><a style="text-decoration: none; font-size: 20px;" href="/">Home Page</a></div></div>
-            </body></html><?php
-        }
-
-        Tht::exitScript(1);
-    }
-
-    // print css & js tags
-    function assetTags ($type, $paths, $incTag, $blockTag) {
-
-        $paths = uv($paths);
-        if (!is_array($paths)) {
-            $paths = !$paths ? [] : [$paths];
-        }
-        if ($type == 'js') {
-            $jsData = Tht::module('Js')->u_plugin('jsData');
-            if ($jsData) { array_unshift($paths, $jsData); }
-        }
-
-        if (!count($paths)) { return ''; }
-
-        $nonce = Tht::module('Web')->u_nonce();
-
-        $includes = [];
-        $blocks = [];
-        foreach ($paths as $path) {
-            if (OTagString::isa($path)) {
-                // Inline it in the HTML document
-                $str = OTagString::getUntagged($path, $type);
-                if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
-                    $str = "(function(){" + $str + "})();";
-                }
-                $tag = str_replace('{BODY}', $str, $blockTag);
-                $tag = str_replace('{NONCE}', $nonce, $tag);
-                $blocks []= $tag;
-            }
-            else {
-
-                if (preg_match('/^http(s?):/i', $path)) {
-
-                } else {
-                    // Link to asset, with cache time set to file modtime
-                    $basePath = preg_replace('/\?.*/', '', $path);
-                    if (defined('BASE_URL')) {
-                        $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
-                    }
-                    $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
-                    $cacheTag = strpos($path, '?') === false ? '?' : '&';
-                    $cacheTag .= 'cache=' . filemtime($filePath);
-                    $path .= $cacheTag;
-                }
-
-                $tag = str_replace('{URL}', $path, $incTag);
-                $tag = str_replace('{NONCE}', $nonce, $tag);
-                $includes []= $tag;
-            }
-        }
-
-        $sIncludes = implode("\n", $includes);
-        $sBlocks = implode("\n\n", $blocks);
-
-        return $sIncludes . "\n" . $sBlocks;
-    }
-
-
-    function startGzip ($forceGzip=false) {
-        if ($this->gzipBufferOpen) { return; }
-        if ($forceGzip || Tht::getConfig('compressOutput')) {
-            ob_start("ob_gzhandler");
-        }
-        $this->gzipBufferOpen = true;
-    }
-
-    function endGzip ($forceGzip=false) {
-        if ($this->gzipBufferOpen) {
-            ob_end_flush();
-        }
-    }
-
-
-
-
-
-    // MARKUP
-    // --------------------------------------------
-
     function u_parse_html($raw) {
         ARGS('*', func_get_args());
         return Tht::parseTemplateString('html', $raw);
     }
 
-    function u_table ($rows, $keys, $headings=[], $class='') {
+    function u_table ($rows, $keys, $headings=[], $params=[]) {
 
-        ARGS('llls', func_get_args());
+        ARGS('lllm', func_get_args());
 
-        $class = preg_replace('/[^a-zA-Z0-9_-]/', '', $class);  // [security]
-
-        $str = "<table class='$class'>\n";
+        $str = $this->openTag('table', $params);
         $rows = uv($rows);
         $keys = uv($keys);
         $headings = uv($headings);
         $str .= '<tr>';
         foreach ($headings as $h) {
-            $str .= '<th>' . htmlspecialchars($h) . '</th>';
+            $str .= '<th>' . Security::escapeHtml($h) . '</th>';
         }
         $str .= '</tr>';
         foreach ($rows as $row) {
             $str .= '<tr>';
             $row = uv($row);
             foreach ($keys as $k) {
-                $str .= '<td>' . (isset($row[$k]) ? htmlspecialchars($row[$k]) : '') . '</td>';
+                $str .= '<td>' . (isset($row[$k]) ? Security::escapeHtml($row[$k]) : '') . '</td>';
             }
             $str .= '</tr>';
         }
@@ -606,39 +47,82 @@ HTML;
         return new \o\HtmlTagString ($str);
     }
 
-    //
-    function u_link($lUrl, $label, $params=null) {
+    function u_link($lUrl, $label, $params=[]) {
 
-        ARGS('*sl', func_get_args());
+        ARGS('*sm', func_get_args());
 
         $url = OTagString::getUntagged($lUrl, 'url');
 
-        // PERF: Hot Path.  Links are extremely common, so sidestepping TagStrings
-        // TODO: reconsider?
+        $params['href'] = $url;
+        $rawLink = $this->openTag('a', $params) . Security::escapeHtml($label) . '</a>';
 
-        $url = htmlspecialchars($url);
-        return OTagString::create('html', "<a href=\"$url\">$label</a>");
-
-        // $str = '<a href="{}">{}</a>';
-        // $html = OTagString::create('html', $str);
-        // $html->u_fill($lUrl, $label);
-        // return $html;
+        return OTagString::create('html', $rawLink);
     }
 
-    function u_breadcrumbs($links, $joiner = ' > ') {
-        ARGS('l*', func_get_args());
+    function openTag($name, $params) {
+        $out = '<' . $name . ' ';
+        $lParams = [];
+
+        $mainClass = isset($params['mainClass']) ? $this->getClassProp($params['mainClass']) : '';
+        unset($params['mainClass']);
+
+        $userClass = isset($params['class']) ? $this->getClassProp($params['class']) : '';
+        $params['class'] = trim(implode(' ', [$mainClass, $userClass]));
+
+        foreach ($params as $k => $v) {
+            if ($v) {
+                $lParams []= $k . '="' . Security::escapeHtml($v) . '"';
+            }
+        }
+        $out .= implode(' ', $lParams);
+        $out .= '>';
+        return $out;
+    }
+
+    function u_breadcrumbs($links, $joiner = ' > ', $params=[]) {
+        ARGS('l*m', func_get_args());
+
         $aLinks = [];
         foreach ($links as $l) {
             $aLinks []= Tht::module('Web')->u_link($l['url'], $l['label'])->u_stringify();
         }
 
-        // TODO: joiner can be string (escape) or HtmlTagString
+        if (is_string($joiner)) {
+            $joiner = Security::escapeHtml($joiner);
+        } else {
+            $joiner = v($joiner)->u_stringify();
+        }
+        $joiner = '<span class="breadcrumbs-joiner">' . $joiner . '</span>';
+        $h = implode($joiner, $aLinks);
 
-        $joiner = '<span class="breadcrumbs-joiner">' . v($joiner)->u_stringify() . '</span>';
-        $h = implode($aLinks, $joiner);
-        $h = "<div class='breadcrumbs'>$h</div>";
+        $params['mainClass'] = 'breadcrumbs';
+        $h = $this->openTag('div', $params) . $h . "</div>";
 
         return OTagString::create('html', $h);
+    }
+
+    function getClassProp($raw) {
+        if (is_string($raw)) {
+            return $this->untaintClassProp($raw);
+        }
+        else if (OList::isa($raw)) {
+            $prop = implode(' ', $raw);
+            return $this->untaintClassProp($prop);
+        }
+        else if (OMap::isa($raw)) {
+            $prop = '';
+            foreach ($raw as $c => $onOff) {
+                if ($onOff) {
+                    $prop .= $c . ' ';
+                }
+            }
+            return $this->untaintClassProp(rtrim($c));
+        }
+        return '';
+    }
+
+    function untaintClassProp($raw) {
+        return preg_replace('/[^a-zA-Z0-9_\- ]/', '', $raw);
     }
 
     // DO NOT REMOVE
@@ -656,10 +140,14 @@ HTML;
     //     return implode(' ', $points);
     // }
 
+    // TODO: mail, cart
     function icons() {
 
-        // TODO: mail, cart
-        return [
+        if ($this->icons) {
+            return $this->icons;
+        }
+
+        $this->icons = [
 
             'arrowLeft'  => '<path d="M30,50H90z"/><polyline points="60,10 20,50 60,90"/>',
             'arrowRight' => '<path d="M10,50H70z"/><polyline points="40,10 80,50 40,90"/>',
@@ -702,6 +190,8 @@ HTML;
             'facebook' => '<svg class="ticonx" viewBox="0 0 33 33"><g><path d="M 17.996,32L 12,32 L 12,16 l-4,0 l0-5.514 l 4-0.002l-0.006-3.248C 11.993,2.737, 13.213,0, 18.512,0l 4.412,0 l0,5.515 l-2.757,0 c-2.063,0-2.163,0.77-2.163,2.209l-0.008,2.76l 4.959,0 l-0.585,5.514L 18,16L 17.996,32z"></path></g></svg>',
 
         ];
+
+        return $this->icons;
     }
 
     function u_get_icons() {
@@ -714,14 +204,12 @@ HTML;
         ARGS('s', func_get_args());
 
         $icons = $this->icons();
-
         if (!isset($icons[$id])) { Tht::error("Unknown icon: `$id`"); }
-
         if (substr($icons[$id], 0, 4) == '<svg') {
             return new \o\HtmlTagString($icons[$id]);
         }
-
-        return new \o\HtmlTagString('<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>');
+        $rawTag = '<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>';
+        return new \o\HtmlTagString($rawTag);
     }
 
     function u_mask_email($email) {
@@ -751,126 +239,5 @@ HTML;
 
         return new HtmlTagString ($xe);
     }
-
-
-
-
-
-
-
-    // USER INPUT
-    // --------------------------------------------
-
-    function u_route_param ($key) {
-        ARGS('s', func_get_args());
-        return WebMode::getWebRouteParam($key);
-    }
-
-    function u_form ($formId, $schema=null) {
-        ARGS('sm', func_get_args());
-        if (is_null($schema)) {
-            if (isset($this->forms[$formId])) {
-                return $this->forms[$formId];
-            }
-            else {
-                Tht::error("Unknown formId `$formId`");
-            }
-        }
-
-        $f = new u_Form ($formId, $schema);
-        $this->forms[$formId] = $f;
-        return $f;
-    }
-
-    function u_query($name, $sRules='id') {
-        $getter = new u_RequestData ('get');
-        return $getter->field($name, $sRules)['value'];
-    }
-
-    function u_form_data($method, $sRules) {
-        $getter = new u_RequestData ($method, $sRules);
-        return $getter->fields();
-    }
-
-    function u_input_($method, $name, $sRules='id') {
-
-        ARGS('sss', func_get_args());
-
-        if (!in_array($method, ['get', 'post', 'put', 'patch', 'delete'])) {
-            Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`");
-        }
-
-        Security::validatePostRequest();
-
-        $dataSource = $method == 'get' ? 'get' : 'post';
-        $rawVal = Tht::getPhpGlobal($dataSource, $name);
-
-        $schema = ['rule' => $sRules];
-        $validator = new u_FormValidator ();
-        $validated = $validator->validateField($name, $rawVal, $schema);
-
-        return $validated['value'];
-    }
-
-    function u_data($method, $rules=null) {
-        return new u_RequestData ($method, $rules);
-    }
-
 }
-
-class u_RequestData {
-
-    static private $METHODS = ['get', 'post', 'put', 'patch', 'delete'];
-
-    private $matchesRequestMethod = false;
-    private $dataSource = '';
-    private $method = '';
-    private $allowRemote = false;
-    private $rules = null;
-
-    function __construct($method, $rules=null) {
-        if (!in_array($method, self::$METHODS)) {
-            Tht::error("Invalid input method: `$method`.  Supported methods: `get`, `post`");
-        }
-
-        $this->method = $method;
-        $this->matchesRequestMethod = Tht::module('Web')->u_request()['method'] === $method;
-
-        Security::validatePostRequest();
-
-        $this->dataSource = $method == 'get' ? 'get' : 'post';
-
-        $this->rules = $rules;
-    }
-
-    function field($fieldName, $sRules) {
-
-        if (!$this->matchesRequestMethod) {
-            return '';
-        }
-
-        $rawVal = Tht::getPhpGlobal($this->dataSource, $fieldName);
-
-        $schema = ['rule' => $sRules];
-        $validator = new u_FormValidator ();
-        $validated = $validator->validateField($fieldName, $rawVal, $schema);
-
-        return $validated;
-    }
-
-    function fields() {
-        $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
-        $validator = new u_FormValidator ();
-        $validated = $validator->validateFields($rawVals, $this->rules);
-
-        return v($validated);
-    }
-
-    function u_danger_danger_allow_remote() {
-        $this->allowRemote = true;
-    }
-
-}
-
-
 

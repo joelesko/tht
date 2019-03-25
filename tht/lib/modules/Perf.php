@@ -157,14 +157,14 @@ class u_Perf extends StdModule {
             Tht::module('Web')->u_table(OList::create($results['single']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Detail' ]),
-                'bench-result'
+                OMap::create(['class' => 'bench-result'])
         ), 'html');
 
         $tableGroup = OTagString::getUntagged(
             Tht::module('Web')->u_table(OList::create($results['group']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'numCalls' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Calls' ]),
-                'bench-result'
+                OMap::create(['class' => 'bench-result'])
         ), 'html');
 
         // TODO: this is all pretty ugly

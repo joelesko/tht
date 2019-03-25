@@ -11,10 +11,16 @@ class StdModule implements \JsonSerializable {
     function __get ($f) {
         $try = '';
 
-        if (method_exists($this, $f)) {
-            $try = 'Try: `.' . unu_($f) . '()`';
-        }
-        Tht::error("Can't get field `$f` on a standard module. $try");
+        // if (method_exists($this, $f)) {
+        //     $try = 'Try: `.' . unu_($f) . '()`';
+        //    // Tht::error("Expected a method call. $try");
+        //     Tht::error("Can't get field `$f`. Did you mean $try?");
+        // }
+        // else {
+            $try = '`.' . unu_($f) . '()`';
+            Tht::error("Unknown field. Did you mean to call method $try?");
+     //   }
+
     }
 
     function __toString() {
@@ -61,6 +67,8 @@ class LibModules {
         'Css',
         'Js',
         'Web',
+        'Request',
+        'Response',
         'Litemark',
         'Jcon',
         'Form',
@@ -70,6 +78,7 @@ class LibModules {
         'Net',
         'MapDb',
         'Image',
+        'Input',
     ];
 
     public static function load () {

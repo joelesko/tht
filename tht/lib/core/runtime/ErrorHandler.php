@@ -336,8 +336,7 @@ class ErrorHandler {
 
     function printToCss ($aOut) {
 
-        $req = Tht::module('Web')->u_request();
-        $file = $req['relativeUrl'];
+        $file = Tht::module('Request')->u_url()['relative'];
 
         $out = $aOut;
 
@@ -371,8 +370,8 @@ class ErrorHandler {
         $heading = preg_replace('/php/i', 'PHP', $heading);
         $heading = preg_replace('/tht/i', 'THT', $heading);
 
-        $error['message'] = htmlspecialchars($error['message']);
-        $error['srcLine'] = htmlspecialchars($error['srcLine']);
+        $error['message'] = Security::escapeHtml($error['message']);
+        $error['srcLine'] = Security::escapeHtml($error['srcLine']);
 
         // Formatting for "Got: ..." detail.
         // TODO: fix this formatting

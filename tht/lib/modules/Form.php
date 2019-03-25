@@ -102,10 +102,9 @@ class u_Form extends StdModule {
 
         ARGS('', func_get_args());
 
-        $web = Tht::module('Web');
         $postData = Tht::getPhpGlobal('post', '*');
 
-        if ($web->u_request()['method'] !== 'post') {
+        if (Tht::module('Request')->u_method() !== 'post') {
             return false;
         }
         else if (!isset($postData['formId'])) {

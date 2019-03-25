@@ -70,12 +70,12 @@ trait FormCreator {
 
             $optional = '';
             if (isset($tagConfig['rule']) && preg_match('/optional/', $tagConfig['rule'])) {
-                $optional = '<small class="form-optional">' . htmlspecialchars($this->strings['optional']) . '</small>';
+                $optional = '<small class="form-optional">' . Security::escapeHtml($this->strings['optional']) . '</small>';
             }
 
             $help = '';
             if (isset($tagConfig['help'])) {
-                $help = '<small class="form-help">' . htmlspecialchars($tagConfig['help']) . '</small>';
+                $help = '<small class="form-help">' . Security::escapeHtml($tagConfig['help']) . '</small>';
             }
 
             $combined = $labelTag . $optional . $lInputTag->u_stringify() . $help;
@@ -135,7 +135,7 @@ trait FormCreator {
         $formTag = $this->openTag('form', $atts, true);
 
         // Always include formId
-        $formTag .= '<input type="hidden" name="formId" value="' . htmlspecialchars($this->formId) . '">';
+        $formTag .= '<input type="hidden" name="formId" value="' . Security::escapeHtml($this->formId) . '">';
 
         $html = new HtmlTagString ($formTag);
 
@@ -191,7 +191,7 @@ trait FormCreator {
         foreach ($params as $k => $v) {
             if ($v === true) { $v = $k; }
             if ($v === false) { $v = ''; }
-            $paramsOut []= $k . '="' . htmlspecialchars($v) . '"';
+            $paramsOut []= $k . '="' . Security::escapeHtml($v) . '"';
         }
         $inner = implode(' ', $paramsOut);
         $inner .= ($name == 'input') ? ' /' : '';
@@ -203,7 +203,7 @@ trait FormCreator {
             $out = $out . $this->noscriptTag();
         }
         else if ($name == 'button') {
-            $out .= htmlspecialchars($params['value']) . '</button>';
+            $out .= Security::escapeHtml($params['value']) . '</button>';
         }
 
         return $getRaw ? $out : new HtmlTagString ($out);
@@ -237,7 +237,7 @@ trait FormCreator {
         $val = $this->getDefaultValue($name);
 
         $html = $this->openTag('textarea', $atts, true);
-        $html .= htmlspecialchars($val) . '</textarea>';
+        $html .= Security::escapeHtml($val) . '</textarea>';
         return new HtmlTagString ($html);
     }
 
@@ -294,7 +294,7 @@ trait FormCreator {
                 $op['selected'] = true;
             }
             $html .= $this->openTag('option', $op, true);
-            $html .= htmlspecialchars($op['label']);
+            $html .= Security::escapeHtml($op['label']);
             $html .= '</option>';
         }
         return new HtmlTagString ($html);
@@ -392,7 +392,7 @@ trait FormCreator {
 
         $html = '<label class="checkable-option">';
         $html .= $this->inputTag($type, $name, $atts)->u_stringify();
-        $html .= '<span class="checkable-option-label">' . htmlspecialchars($label) . '</span></label>';
+        $html .= '<span class="checkable-option-label">' . Security::escapeHtml($label) . '</span></label>';
 
         return  $html;
     }

@@ -121,7 +121,7 @@ class u_Litemark extends StdModule {
 
         $out = ['<ul>'];
         foreach ($this->toc as $h) {
-            $out []= '<li><a href="#' . v($h)->u_to_token_case() . '">' . htmlspecialchars($h) . '</a></li>';
+            $out []= '<li><a href="#' . v($h)->u_to_token_case() . '">' . Security::escapeHtml($h) . '</a></li>';
         }
         $out []= '</ul>';
         return implode("\n", $out);
@@ -243,7 +243,7 @@ class u_Litemark extends StdModule {
                 return $this->add('</pre>');
             }
             else {
-                $this->blockContent .= htmlspecialchars($rawLine) . "\n";
+                $this->blockContent .= Security::escapeHtml($rawLine) . "\n";
                 return;
             }
         }
@@ -348,7 +348,7 @@ class u_Litemark extends StdModule {
                     }
 
                 } else {
-                    $str .= htmlspecialchars($c);
+                    $str .= Security::escapeHtml($c);
                 }
 
             } else if ($c === '`') {
@@ -366,7 +366,7 @@ class u_Litemark extends StdModule {
                         }
                     }
                     if ($i >= $len || $c === '`') { break; }
-                    $str .= htmlspecialchars($c);
+                    $str .= Security::escapeHtml($c);
                 }
                 $str .= '</code>';
 
@@ -471,7 +471,7 @@ class u_Litemark extends StdModule {
                 if ($this->flags['html']) {
                     $str .= $c;
                 } else {
-                    $str .= htmlspecialchars($c);
+                    $str .= Security::escapeHtml($c);
                 }
             }
         }

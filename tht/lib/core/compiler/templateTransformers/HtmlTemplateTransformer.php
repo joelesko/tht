@@ -158,8 +158,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
         else if ($c === '=') {
             $nc = $t->nextChar();
-            if ($nc !== '"' && $nc !== "'") {
-                $t->error('HTML tag property `=` must be immediately followed by double-quotes `"`.');
+            if ($nc == ' ') {
+                $t->error('Please remove the space after `=`.');
             } else if ($t->prevChar() == ' ') {
                 $t->error('Please remove the space before `=`.');
             }
@@ -289,7 +289,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             $t->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
         }
 
-        $b = htmlspecialchars($b);
+        $b = Security::escapeHtml($b);
         return v($b)->u_trim_indent();
     }
 

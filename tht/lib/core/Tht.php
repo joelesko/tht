@@ -162,7 +162,7 @@ class Tht {
     static public function handleShutdown() {
         Tht::clearMemoryBuffer();
         ErrorHandler::handleShutdown();
-        Tht::module('Web')->endGzip();
+        Tht::module('Response')->endGzip();
     }
 
     static private function init () {
@@ -190,7 +190,7 @@ class Tht {
 
     static private function printPerf () {
         // TODO: Only when response type = html
-        if (Tht::isMode('web') && !Tht::module('Web')->u_request()['isAjax']) {
+        if (Tht::isMode('web') && !Tht::module('Request')->u_is_ajax()) {
             Tht::module('Perf')->printResults();
         }
     }
