@@ -2,7 +2,7 @@
 function main() {
     let test = Test.new();
     run(test);
-    Web.sendHtml(html(test.resultsHtml()));
+    Response.sendHtml(html(test.resultsHtml()));
 }
 
 template html(results) {
@@ -66,7 +66,7 @@ function run(t) {
 
     // Not including these in perf measurement due to artificially long delays
     // or not representative of user code.
-    if (!Web.query('perf', 'flag')) {
+    if (!Input.get('perf', 'flag')) {
 
         libCache(t);
         libNet(t);
@@ -1414,17 +1414,12 @@ F testTagStrings(t) {
 
     t.ok(url'/page'.link('hey').stringify() == '<a href="/page">hey</a>', 'link()');
 
-  //  print(url'/foo'.query({ bar: 1, foo: [1, 2, 3] }).stringify().decodeUrl());
-
     let mixedQuery = url'/path?foo=123'.query({ bar: 456 });
     t.ok(mixedQuery.stringify() == '/path?' ~ 'foo=123&bar=456', 'url: mixed query');
 
     t.ok(url'/foo#abc'.hash() == 'abc', 'hash get');
     t.ok(url'/foo#abc'.hash('xyz').stringify() == '/foo#xyz', 'hash set');
     t.ok(url'/foo?a=1#abc'.hash('X,Y,Z,').hash() == 'x-y-z', 'hash set & sanitize');
-
-   // print(url'http://sdfsdfsdf.com/d/foo.php?a=1#abc'.parts());
-
 }
 
 template deepEscHtml(val) {
@@ -2198,7 +2193,7 @@ template jsHtml() {
 }
 
 template expHtml(inner, outer) {
-    <p {{ inner }}>> {{ outer }}
+    <p "{{ inner }}">> {{ outer }}
 }
 
 template tagsHtml(exp) {

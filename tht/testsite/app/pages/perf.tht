@@ -1,4 +1,4 @@
-Web.sendHtml(html());
+Response.sendHtml(html());
 
 T html() {
     Hello World!

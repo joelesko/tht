@@ -15,7 +15,7 @@
 
         memoryLimitMb: 32
 
-        _forceRecompile: true
+        _forceRecompile: false
         _showPhpInTrace: true
 
         hitCounter: true
