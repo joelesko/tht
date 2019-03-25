@@ -628,12 +628,12 @@ class OString extends OVar implements \ArrayAccess {
             $t = array_map(function($n) { return "&#$n;"; }, $t);
             return implode("", $t);
         }
-        return htmlspecialchars($this->val, ENT_QUOTES, 'UTF-8');
+        return Security::escapeHtml($this->val);
     }
 
     function u_decode_html () {
         ARGS('', func_get_args());
-        return htmlspecialchars_decode($this->val, ENT_QUOTES);
+        return Security::unescapeHtml($this->val);
     }
 
     function u_encode_url () {

@@ -80,7 +80,7 @@ class TemplateHtml extends OTemplate {
     protected $returnTagType = 'html';
 
     function escape($context, $in) {
-        $esc = htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        $esc = Security::escapeHtml($in);
         if ($context == 'tag') {
             $esc = Security::sanitizeHtmlPlaceholder($esc);
         }
