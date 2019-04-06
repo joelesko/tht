@@ -95,6 +95,16 @@ class HitCounter {
         }
     }
 
+
+
+
+
+/*****  WORK IN PROGRESS
+
+
+
+
+
     static function counterPanel() {
 
         print "<!doctype html><html><head></head><body>";
@@ -317,4 +327,6 @@ class HitCounter {
             </style>
         <?php
     }
+
+    **********/
 }
