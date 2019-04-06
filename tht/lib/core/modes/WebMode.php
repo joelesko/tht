@@ -20,7 +20,7 @@ class WebMode {
 
         $controllerFile = self::initRoute();
         if ($controllerFile) {
-            self::executeWebController($controllerFile);
+            self::executeController($controllerFile);
         }
 
         PrintBuffer::flush();
@@ -42,16 +42,24 @@ class WebMode {
 
     static private function initRoute () {
 
-        $path = self::getScriptPath();
-        if ($path == '/counter' && Security::isAdmin()) {
-            HitCounter::counterPanel();
-            return;
-        }
-
         Tht::module('Perf')->u_start('tht.route');
+
+        $path = self::getScriptPath();
         $controllerFile = self::getControllerForPath($path);
+
         Tht::module('Perf')->u_stop();
+
         return $controllerFile;
+    }
+
+    static public function runRoute($path) {
+
+        $controllerFile = self::getControllerForPath($path);
+        if ($controllerFile) {
+            self::executeController($controllerFile);
+        } else {
+            Tht::error("No route found for path: `$path`");
+        }
     }
 
     static public function runStaticRoute($route) {
@@ -60,7 +68,7 @@ class WebMode {
         if (!isset($routes[$route])) { return false; }
 
         $file = Tht::path('pages', $routes[$route]);
-        Tht::executeWebController($file);
+        Tht::executeController($file);
 
         Tht::exitScript(0);
     }
@@ -86,7 +94,10 @@ class WebMode {
         }
         else {
             $c = self::getDynamicController($routes, $path);
-            return $c === false ? self::getPublicController($path) : $c;
+            if ($c === false) {
+                $c = self::getStaticController($path);
+            }
+            return $c;
         }
     }
 
@@ -140,7 +151,7 @@ class WebMode {
         return false;
     }
 
-    static private function getPublicController($path) {
+    static private function getStaticController($path) {
 
         $apath = '';
         if ($path === '/') {
@@ -160,17 +171,16 @@ class WebMode {
         $thtPath = Tht::path('pages', Tht::getThtFileName($apath));
 
         if (!file_exists($thtPath)) {
-            $thtPath = Tht::path('pages', Tht::getThtFileName('default'));
-            if (!file_exists($thtPath)) {
-                Tht::errorLog("Entry file not found for path: `$path`");
-                Tht::module('Web')->u_send_error(404);
+            $defaultPath = Tht::path('pages', Tht::getThtFileName('default'));
+            if (!file_exists($defaultPath)) {
+                Tht::module('Response')->u_send_error(404);
             }
         }
 
         return $thtPath;
     }
 
-    static private function executeWebController ($controllerFile) {
+    static private function executeController ($controllerFile) {
 
         Tht::module('Perf')->u_start('tht.executeRoute', Tht::stripAppRoot($controllerFile));
 
@@ -219,7 +229,7 @@ class WebMode {
             try {
                 $ret = call_user_func($callFunction);
                 if (OTagString::isa($ret)) {
-                    Tht::module('Web')->sendByType($ret);
+                    Tht::module('Response')->sendByType($ret);
                 }
 
             } catch (ThtException $e) {
@@ -230,7 +240,11 @@ class WebMode {
 
     static public function getWebRouteParam ($key) {
         if (!isset(self::$routeParams[$key])) {
-            throw new ThtException ("Route param '$key' does not exist.");
+            if (Security::isAdmin()) {
+                throw new ThtException ("Route param '$key' does not exist.");
+            } else {
+                Tht::module('Response')->u_send_error(404);
+            }
         }
         return self::$routeParams[$key];
     }
