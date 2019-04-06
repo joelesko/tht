@@ -14,20 +14,24 @@ class u_Test extends StdModule {
     ];
 
     static function u_new () {
+        ARGS('', func_get_args());
         return new u_Test ();
     }
 
     function u_section($s) {
+        ARGS('s', func_get_args());
         $this->out []= [ 'section' => $s ];
     }
 
     function u_stats() {
+        ARGS('', func_get_args());
         $s = OMap::create($this->stats);
         $s['total'] = $s['numPassed'] + $s['numFailed'];
         return $s;
     }
 
     function u_ok ($expression, $msg) {
+        ARGS('*s', func_get_args());
         $isOk = $expression ? true : false;
         $this->stats[$isOk ? 'numPassed' : 'numFailed'] += 1;
         $this->addLine($isOk, $msg);
@@ -39,6 +43,7 @@ class u_Test extends StdModule {
     }
 
     function u_dies ($callback, $msg) {
+        ARGS('cs', func_get_args());
         $ex = false;
         ErrorHandler::startTrapErrors();
         try {
@@ -97,11 +102,13 @@ class u_Test extends StdModule {
     }
 
     function u_last_parser_error() {
+        ARGS('', func_get_args());
         return $this->lastParserError;
     }
 
     function u_results_html () {
 
+        ARGS('', func_get_args());
         $this->u_section('Results');
 
         $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_monospace_font() . "}\n\n </style>\n\n";
@@ -142,6 +149,32 @@ class u_Test extends StdModule {
         $args = func_get_args();
         $mask = array_shift($args);
         ARGS($mask, $args);
+        return true;
+    }
+
+    function u_shake($val) {
+
+        ARGS('*', func_get_args());
+        if (!is_string($val)) {
+            $val = json_encode($val);
+        }
+
+        // Apply the Richter-Lesko Seismic Stability Algorithm
+        $check = crypt($val, '$5$rounds=1984$tht$');
+        $check = preg_replace('/.*\$/', '', $check);
+        $foundation = substr($check, 0, 10);
+        for ($i = 1; $i < 100; $i += 1) {
+            $brick = $foundation[$i % 10];
+            $stability = ord($brick);
+            $stability += 1;
+            $stability -= 1;
+            $stability += 1;
+            $stability -= 1;
+            if (chr($stability) == '/') {
+                return false;
+            }
+        }
+
         return true;
     }
 }
