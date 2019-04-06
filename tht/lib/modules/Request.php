@@ -7,16 +7,17 @@ class u_Request extends StdModule {
     private $userAgent = null;
     private $url = null;
 
-    function u_ip() {
-        ARGS('', func_get_args());
-        return $this->u_ips()[0];
-    }
+    function u_ip($allIps=false) {
+        ARGS('f', func_get_args());
 
-    function u_ips() {
-        ARGS('', func_get_args());
         $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
         $ips = preg_split('/\s*,\s*/', $ip);
-        return OList::create($ips);
+
+        if ($allIps) {
+            return OList::create($ips);
+        } else {
+            return $ips[0];
+        }
     }
 
     // TODO: support proxies (via HTTP_X_FORWARDED_PROTO?)
@@ -99,9 +100,9 @@ class u_Request extends StdModule {
 
         $lUrl = new UrlTagString($fullUrl);
         $url = $lUrl->u_parts();
-        $url['full']  = $lUrl;
-        $url['query'] = '(in full.query())';
-        $url['hash']  = '(in full.hash())';
+        // $url['full']  = $lUrl;
+        // $url['query'] = '(in full.query())';
+        // $url['hash']  = '(in full.hash())';
 
         $this->url = $url;
         return $this->url;
