@@ -240,7 +240,7 @@ EOCSS;
             for (var i=0; i < codes.length; i++) {
                 var block = codes[i];
                 var classes = block.classList;
-                if (classes.contains(hiClass) || classes.contains('no-highlight')) {
+                if (classes.contains(hiClass) || classes.contains('no-color-code')) {
                     continue;
                 }
 
