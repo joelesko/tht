@@ -6,6 +6,12 @@ class u_Web extends StdModule {
 
     private $icons = null;
 
+    function u_run_route($path) {
+        ARGS('s', func_get_args());
+        WebMode::runRoute($path);
+        return new \o\ONothing('runRoute');
+    }
+
     function u_nonce () {
         ARGS('', func_get_args());
         return Security::getNonce();
