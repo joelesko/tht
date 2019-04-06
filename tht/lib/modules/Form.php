@@ -2,7 +2,7 @@
 
 namespace o;
 
-include_once('FormCreator.php');
+require_once('helpers/FormCreator.php');
 
 class u_Form extends StdModule {
 
@@ -140,7 +140,7 @@ class u_Form extends StdModule {
 
     function u_send_fail($errors=[]) {
         ARGS('l', func_get_args());
-        Tht::module('Web')->u_send_json(OMap::create([
+        Tht::module('Response')->u_send_json(OMap::create([
             'status' => 'fail',
             'errors' => uv($errors),
         ]));
@@ -150,7 +150,7 @@ class u_Form extends StdModule {
     function u_send_ok($next = '') {
         ARGS('*', func_get_args());
         Tht::module('Session')->u_set_flash('form.done:' . $this->formId, true);
-        Tht::module('Web')->u_send_json(OMap::create([
+        Tht::module('Response')->u_send_json(OMap::create([
             'status' => 'ok',
             'next' => OTagString::getUntagged($next, 'url'),
         ]));
