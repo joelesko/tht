@@ -37,7 +37,7 @@ class Tht {
         'app'       => 'app',
         'pages'     =>   'pages',
         'modules'   =>   'modules',
-        'config'    =>   'config',
+        'settings'  =>   'settings',
 
         'misc'      =>   'misc',
         'phpLib'      =>   'php',
@@ -60,7 +60,7 @@ class Tht {
     ];
 
     static private $APP_FILE = [
-        'configFile'         => 'app.jcon',
+        'settingsFile'       => 'app.jcon',
         'appCompileTimeFile' => '_appCompileTime',
         'logFile'            => 'app.log',
         'frontFile'          => 'thtApp.php',
@@ -120,7 +120,7 @@ class Tht {
         Tht::loadLib('utils/StringReader.php');
         Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
 
-        Tht::loadLib('runtime/HitCounter.php');
+        Tht::loadLib('runtime/HitCounter.php');  // TODO: lazy load this
         Tht::loadLib('runtime/PrintBuffer.php');
         Tht::loadLib('runtime/ErrorHandler.php');
         Tht::loadLib('runtime/Compiler.php');
@@ -311,7 +311,7 @@ class Tht {
             ['app', 'data'],
             ['app', 'pages'],
             ['app', 'modules'],
-            ['app', 'config'],
+            ['app', 'settings'],
             ['app', 'localTht'],
             ['app', 'misc'],
 
@@ -340,7 +340,7 @@ class Tht {
 
         // Define file paths
         $files = [
-            ['config',   'configFile'],
+            ['settings', 'settingsFile'],
             ['phpCache', 'appCompileTimeFile'],
             ['files',    'logFile'],
         ];
@@ -358,15 +358,15 @@ class Tht {
 
         $defaultConfig = Tht::getDefaultConfig();
 
-        $iniPath = Tht::path('configFile');
+        $iniPath = Tht::path('settingsFile');
 
         // TODO: cache as JSON?
-        $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$APP_FILE['configFile']);
+        $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$APP_FILE['settingsFile']);
 
         // make sure the required top-level keys exist
         foreach (['tht', 'routes'] as $key) {
             if (!isset($appConfig[$key])) {
-                Tht::configError("Missing top-level key `$key` in `" . Tht::$paths['configFile'] . "`.", $appConfig);
+                Tht::configError("Missing top-level key `$key` in `" . Tht::$paths['settingsFile'] . "`.", $appConfig);
             }
         }
 
@@ -375,7 +375,7 @@ class Tht {
         $def = Tht::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
-                Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['configFile'] . "`.");
+                Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['settingsFile'] . "`.");
             }
         }
 
@@ -395,12 +395,10 @@ class Tht {
         $default['tht'] = [
 
             // internal
-            "_devPrint"        => false,
-            "_forceRecompile"  => false,
-            "_showPhpInTrace"  => false,
-            "_leakPhpErrors"   => false,
+            "_devPrint"     => false,
+            "_coreDevMode"  => false,
 
-            // temporary - still working on it
+            // WIP - still working on it
             "tempParseCss"     => false,
 
             // features
@@ -414,7 +412,6 @@ class Tht {
             'hitCounter'           => true,
 
             // security
-            "allowFileUploads"        => false,
             "contentSecurityPolicy"   => '',
             "showErrorPageForMins"    => 10,
             "dangerDangerAllowJsEval" => false,
@@ -423,7 +420,6 @@ class Tht {
             "cacheGarbageCollectRate" => 100,
 
             // resource limits
-            "maxPostSizeMb"        => 2,
             "memoryLimitMb"        => 16,
             'maxExecutionTimeSecs' => 20, // starts at request start, lasts until execution ends
             'maxInputTimeSecs'     => 10, // starts at request start, ends when request received, execution starts
