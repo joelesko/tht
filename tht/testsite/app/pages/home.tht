@@ -3,6 +3,10 @@ function main() {
     let test = Test.new();
     run(test);
     Response.sendHtml(html(test.resultsHtml()));
+
+    print(Math.whoa(27));
+    print(Math.whoa(1000));
+    print(Math.whoa(10000000));
 }
 
 template html(results) {
@@ -21,7 +25,7 @@ template html(results) {
 
                 <p style="font-size: 100%; margin-top: 3rem">
                     <b>Perf:</>&nbsp;
-                    When measuring raw execution speed of this page, set <code>_forceRecompile: false</> in <code>app.jcon</>, and reload with <a href="/home?perf=1">perf=1</a>.
+                    When measuring raw execution speed of this page, set <code>_coreDevMode: false</> in <code>app.jcon</>, and reload with <a href="/home?perf=1">perf=1</a>.
                 </>
 
                 {{ results }}
@@ -55,14 +59,17 @@ function run(t) {
     libLitemark(t);
     libMath(t);
     libMeta(t);
+    libRequest(t);
    // libPerf(t);
     libPhp(t);
     libWeb(t);
+    libInput(t);
     libGlobal(t);
     libSettings(t);
    // libMapDb(t);
     libSession(t);
     libSystem(t);
+    libTest(t);
 
     // Not including these in perf measurement due to artificially long delays
     // or not representative of user code.
@@ -1085,8 +1092,9 @@ function testStrings(t) {
     t.ok(hi.length() == 12, 'length()');
     t.ok(hi.charAt(1) == 'e', 'get()');
     t.ok(hi.charAt(-1) == '!', 'get() negative');
-    t.ok(hi.contains('Hello'), 'has()');
-    t.ok(!hi.contains('missing'), '! has()');
+    t.ok(hi.contains('Hello'), 'contains()');
+    t.ok(!hi.contains('missing'), '! contains()');
+    t.ok(hi.contains(r'wor'.flags('i')), 'contains(regex)');
     t.ok(hi.split('o').length() == 3, 'split()');
     t.ok(hi.split('o')[0] == 'Hell', 'split()');
     t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode');
@@ -1947,6 +1955,10 @@ function libPhp(t) {
 
 function libTest(t) {
     t.section('Module: Test');
+
+    t.ok(t.shake('Rasmus Lerdorf'), 'shake');
+    t.ok(!t.shake('Leaning Tower of Pizza'), 'shake');
+    t.ok(t.shake({ a: 125 }), 'shake');
 }
 
 function libGlobal(t) {
@@ -1979,19 +1991,25 @@ function libWeb(t) {
     t.dies(function () {  Web.redirect('//google.com'); }, 'redirect - no protocol');
     t.dies(function () {  Web.redirect('bob@ftp://google.com'); }, 'redirect - ftp & username');
 
-    t.section('Module: Web - Form Input');
+
+}
+
+function libInput(t) {
+
+    t.section('Module: Input');
 
    // t.ok(formValidate('123') == 123, 'default id ok');
    // t.ok(formValidate('$foo') == '', 'default id not ok');
 
+   print(Input.validate('test', '$foo', 'id'));
+
     t.ok(formValidate('id123', 'id') == 'id123', 'id ok');
     t.ok(formValidate('$foo', 'id') == '', 'id not ok');
 
-    t.ok(formValidate('1234', 'number') == 1234, 'number ok');
-    t.ok(formValidate('123,456', 'numberAny') == 123456, 'number with comma ok');
-    t.ok(formValidate('123`456', 'numberAny') == 123456, 'number with apos ok');
-    t.ok(formValidate('-123.4', 'numberAny') == -123.4, 'negative number with decimal point');
-    t.ok(formValidate('$1', 'number') == '', 'number not ok');
+    t.ok(formValidate('1234', 'int') == 1234, 'int ok');
+    t.ok(formValidate('123.4', 'float') == 123.4, 'float ok');
+    t.ok(formValidate('-123', 'int|min:-200') == -123, 'negative float');
+    t.ok(formValidate('$1', 'int') == '', 'number not ok');
 
     t.ok(formValidate('true', 'flag') == true, 'flag ok');
     t.ok(formValidate('false', 'flag') == false, 'flag ok');
@@ -2015,30 +2033,29 @@ function libWeb(t) {
     t.ok(formValidate('abc<b>tag', 'text') == 'abctag', 'text no tag');
     t.ok(formValidate('abc\nline2', 'text') == 'abc line2', 'text newline');
 
-    t.ok(formValidate('abc  123\n\n\nxyz!\n', 'textarea') == 'abc 123\n\nxyz!', 'textarea spaces');
-    t.ok(formValidate('abc<b>tag', 'textarea') == 'abctag', 'textarea no tag');
-    t.ok(formValidate('abc\n\n\nline2', 'textarea') == 'abc\n\nline2', 'textarea newline');
+    t.ok(formValidate('abc  123\n\n\nxyz!\n', 'textbody') == 'abc 123\n\nxyz!', 'textarea spaces');
+    t.ok(formValidate('abc<b>tag', 'textbody') == 'abctag', 'textarea no tag');
+    t.ok(formValidate('abc\n\n\nline2', 'textbody') == 'abc\n\nline2', 'textarea newline');
 
     t.dies(F { formValidate('abc', 'badRule'); }, 'bad rule');
-
 }
 
 function formValidate(v, type) {
-    return Web.tempValidateInput(v, type)['value']; // FormValidator.validate(v, type)['value'];
+    return Input.validate('test', v, type)['value']; // FormValidator.validate(v, type)['value'];
 }
 
 function libSettings(t) {
 
     t.section('Module: Settings');
 
-    t.ok(Global.config('num') == -123.45, 'get num');
-    t.ok(Global.config('flagFalse') == false, 'get flag');
-    t.ok(Global.config('flagTrue') == true, 'get flag');
-    t.ok(Global.config('string') == 'value with spaces, etc.', 'get string');
-    t.ok(Global.config('map').key == 'value', 'get map');
-    t.ok(Global.config('list')[1] == 'value 1', 'get list');
+    t.ok(Settings.get('num') == -123.45, 'get num');
+    t.ok(Settings.get('flagFalse') == false, 'get flag');
+    t.ok(Settings.get('flagTrue') == true, 'get flag');
+    t.ok(Settings.get('string') == 'value with spaces, etc.', 'get string');
+    t.ok(Settings.get('map').key == 'value', 'get map');
+    t.ok(Settings.get('list')[1] == 'value 1', 'get list');
 
-    t.dies(F { Global.setting('MISSING'); }, 'missing key');
+    t.dies(F { Settings.get('MISSING'); }, 'missing key');
 }
 
 function libMapDb(t) {
@@ -2153,6 +2170,28 @@ function libSystem(t) {
     t.section('Module: System');
 
     // t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command');
+}
+
+// TODO: This is all hardcoded to my local setup
+function libRequest(t) {
+
+    t.section('Module: Request');
+
+    t.ok(Request.ip(), 'ip');
+    t.ok(Request.ip(true).getType() == 'List', 'ip list');
+
+    let ua = Request.userAgent();
+    t.ok(ua.os == 'mac', 'userAgent - os');
+    t.ok(ua.browser == 'chrome', 'userAgent - browser');
+    t.ok(ua.full.contains('Mozilla'), 'userAgent - full');
+    t.ok(Request.languages()[0] == 'en-us', 'languages');
+
+    t.ok(Request.isHttps() == false, 'isHttps');
+    t.ok(Request.isAjax() == false, 'isAjax');
+    t.ok(Request.referrer() == '', 'referrer');
+
+    t.ok(Request.method() == 'get', 'method');
+    t.ok(Request.headers().hasKey('accept-encoding'), 'headers');
 }
 
 
