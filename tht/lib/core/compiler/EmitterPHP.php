@@ -40,6 +40,7 @@ class EmitterPHP extends Emitter {
         'BITWISE'         => 'pBitwise',
         'PREFIX'          => 'pPrefix',
         'PREFIX|...'      => 'pBarePrefix',
+        'PREFIX|^^'       => 'pCatPrefix',
         'VALGATE'         => 'pValGate',
         'TERNARY'         => 'pTernary',
 
@@ -307,6 +308,10 @@ class EmitterPHP extends Emitter {
 
     function pBarePrefix ($value, $k) {
         return $this->format('######', $value, $k[0]);
+    }
+
+    function pCatPrefix ($value, $k) {
+        return '"MEOW"';
     }
 
     function pQualifier ($value) {
