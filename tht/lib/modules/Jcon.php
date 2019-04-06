@@ -24,7 +24,7 @@ class u_Jcon extends StdModule {
 
         $cacheKey = 'jcon:' . $file;
 
-        $path = Tht::path('config', $file);
+        $path = Tht::path('settings', $file);
 
         if (!file_exists($path)) {
             Tht::error("JCON file not found: '$path'");
