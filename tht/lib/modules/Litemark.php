@@ -41,12 +41,12 @@ class u_Litemark extends StdModule {
 
         // documentation
         'toc0'     => '<<<<<TOC>>>>>',
-        'message1' => '<div class="lite message">{1}</div>',
-        'message2' => '<div class="lite message"><strong>{1}</strong>{2}</div>',
-        'success1' => '<div class="lite message success">{1}</div>',
-        'success2' => '<div class="lite message success"><strong>{1}</strong>{2}</div>',
-        'error1'   => '<div class="lite message error">{1}</div>',
-        'error2'   => '<div class="lite message error"><strong>{1}</strong>{2}</div>',
+        'info1'    => '<div class="lite alert">{1}</div>',
+        'info2'    => '<div class="lite alert"><strong>{1}</strong>{2}</div>',
+        'success1' => '<div class="lite alert alert-success">{1}</div>',
+        'success2' => '<div class="lite alert alert-success"><strong>{1}</strong>{2}</div>',
+        'warning1' => '<div class="lite alert alert-error">{1}</div>',
+        'warning2' => '<div class="lite alert alert-error"><strong>{1}</strong>{2}</div>',
         'quote2'   => '<blockquote class="lite"><p>{1}</p><footer>{2}</footer></blockquote>',
 
         // HTML equivalents
