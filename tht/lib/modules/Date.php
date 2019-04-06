@@ -74,5 +74,9 @@ class u_Date extends StdModule {
 
         return "$diff $labels[$j]";
     }
+
+    function u_sandwich() {
+        return 1718;
+    }
 }
 
