@@ -2,31 +2,16 @@
 
 namespace o;
 
+require_once('helpers/RequestData.php');
+require_once('helpers/InputValidator.php');
+
 class u_Input extends StdModule {
+
+    // Misc Getters
 
     function u_route ($key) {
         ARGS('s', func_get_args());
         return WebMode::getWebRouteParam($key);
-    }
-
-    function u_get($name, $sRules='id') {
-        $getter = new u_RequestData ('get');
-        return $getter->field($name, $sRules)['value'];
-    }
-
-    function u_post($rules=null, $sRules='id') {
-        $getter = new u_RequestData ('post');
-        return $getter->field($name, $sRules)['value'];
-    }
-
-    function u_get_all($rules) {
-        $getter = new u_RequestData ('get');
-        return $getter->fields($name, $rules);
-    }
-
-    function u_post_all($rules=null) {
-        $getter = new u_RequestData ('post');
-        return $getter->fields($name, $rules);
     }
 
     function u_form ($formId, $schema=null) {
@@ -44,45 +29,60 @@ class u_Input extends StdModule {
         $this->forms[$formId] = $f;
         return $f;
     }
-}
 
-class u_RequestData {
 
-    private $matchesRequestMethod = false;
-    private $dataSource = '';
-    private $rules = null;
+    // Get Single Field
 
-    function __construct($method, $rules=null) {
-
-        $this->dataSource = $method;
-        $this->matchesRequestMethod = Tht::module('Request')->u_method() === $method;
-
-        Security::validatePostRequest();
-
-        $this->rules = $rules;
+    function u_get($name, $sRules='id') {
+        $getter = new u_RequestData ('get');
+        return $getter->field($name, $sRules)['value'];
     }
 
-    function field($fieldName, $sRules) {
-
-        if (!$this->matchesRequestMethod) {
-            return '';
-        }
-
-        $rawVal = Tht::getPhpGlobal($this->dataSource, $fieldName);
-
-        $schema = ['rule' => $sRules];
-        $validator = new u_FormValidator ();
-        $validated = $validator->validateField($fieldName, $rawVal, $schema);
-
-        return $validated;
+    function u_post($name, $sRules='id') {
+        $getter = new u_RequestData ('post');
+        return $getter->field($name, $sRules)['value'];
     }
 
-    function fields() {
-        $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
-        $validator = new u_FormValidator ();
-        $validated = $validator->validateFields($rawVals, $this->rules);
-
-        return v($validated);
+    function u_rest($method, $fieldName, $sRules='id') {
+        $getter = new u_RequestData ($method);
+        return $getter->field($fieldName, $sRules)['value'];
     }
 
+
+    // Get Map of Fields
+
+    function u_get_all($rules) {
+        $getter = new u_RequestData ('get', $rules);
+        return $getter->fields();
+    }
+
+    function u_post_all($rules=null) {
+        $getter = new u_RequestData ('post', $rules);
+        return $getter->fields();
+    }
+
+    function u_rest_all($method, $rules=null) {
+        $getter = new u_RequestData ($method, $rules);
+        return $getter->fields();
+    }
+
+
+    // Meta-Getters
+
+    function u_fields($method) {
+        $getter = new u_RequestData ($method);
+        return OList::create($getter->fieldNames());
+    }
+
+    function u_has_field($method, $fieldName) {
+        $getter = new u_RequestData ($method);
+        return OList::create($getter->hasField($fieldName));
+    }
+
+    function u_validate($fieldName, $val, $rules) {
+        $validator = new u_InputValidator ();
+        $validated = $validator->validateField($fieldName, $val, $rules);
+
+        return OMap::create($validated);
+    }
 }
