@@ -116,7 +116,7 @@ class CliMode {
                 if (substr($id, -4, 4) === 'File') {
                     touch($p);
                 } else {
-                    Tht::module('*File')->u_make_dir($p, 0755);
+                    Tht::module('*File')->u_make_dir($p, '755');
                 }
             }
 
@@ -187,7 +187,7 @@ class CliMode {
             $exampleCssPath = Tht::path('pages', 'css.tht');
 
             CliMode::writeSetupFile($examplePath, "
-                Web.sendPage({
+                Response.sendPage({
                     title: 'Hello World',
                     body: bodyHtml(),
                     css: '/css',
@@ -215,7 +215,7 @@ class CliMode {
 
             CliMode::writeSetupFile($exampleCssPath, "
 
-                Web.sendCss(css());
+                Response.sendCss(css());
 
                 template css() {
 
@@ -223,7 +223,7 @@ class CliMode {
 
                     body {
                         font-size: 2rem;
-                        color: #29296f;
+                        color: #222;
                     }
                     .subline {
                         font-size: 2.5rem;
@@ -261,7 +261,7 @@ class CliMode {
                         timezone: GMT
 
                         // Print performance timing info
-                        showPerfScore: false
+                        showPerfPanel: false
                     }
 
                     // Database settings
