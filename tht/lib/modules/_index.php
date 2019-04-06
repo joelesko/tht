@@ -72,13 +72,13 @@ class LibModules {
         'Litemark',
         'Jcon',
         'Form',
-        'FormValidator',
         'Session',
         'Cache',
         'Net',
         'MapDb',
         'Image',
         'Input',
+        'Settings',
     ];
 
     public static function load () {
