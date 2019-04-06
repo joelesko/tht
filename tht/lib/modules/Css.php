@@ -523,7 +523,7 @@ EOCSS;
         /* Message
         ---------------------------------------------------------- */
 
-        .message {
+        .alert {
             padding: 1rem 1.5rem;
             margin-bottom: 1rem;
             border-radius: 0.3rem;
@@ -531,29 +531,29 @@ EOCSS;
             border: solid 1px #d2dde6;
             background-color: #F8FCFF;
         }
-        .message b, .message strong, .message code {
+        .alert b, .alert strong, .alert code {
             color: inherit;
         }
-        .message strong:first-child {
+        .alert strong:first-child {
             color: #4683c3;
             font-size: inherit;
             margin-right: 1.5rem;
             font-weight: 800;
         }
-        .message.error {
+        .alert.alert-error {
             color: #7d1616;
             background-color: #FFF5F5;
             border-color: #eacece;
         }
-        .message.error strong:first-child {
+        .alert.alert-error strong:first-child {
             color: #B74A4A;
         }
-        .message.success {
+        .alert.alert-success {
             color: #105d10;
             border-color: #c6e0c6;
             background-color: #FBFFFB;
         }
-        .message.success strong:first-child {
+        .alert.alert-success strong:first-child {
             color: #393;
         }
 
