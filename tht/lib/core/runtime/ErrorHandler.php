@@ -270,7 +270,7 @@ class ErrorHandler {
                 if (!$logOut) { $logOut = $plainOut; }
                 $eh->printToLog($logOut);
                 file_put_contents('php://stderr', $plainOut . "\n\n");
-                Tht::module('Web')->u_send_error(500);
+                Tht::module('Response')->u_send_error(500);
             }
         }
 
@@ -336,7 +336,7 @@ class ErrorHandler {
 
     function printToCss ($aOut) {
 
-        $file = Tht::module('Request')->u_url()['relative'];
+        $file = Tht::module('Request')->u_url()['path'];
 
         $out = $aOut;
 
@@ -620,7 +620,7 @@ class ErrorHandler {
             $file = $this->cleanPath($phpFrame['file']);
             $fun = $this->cleanVars($phpFrame['function']);
 
-            if (!Tht::getConfig('_showPhpInTrace') && !$showPhp) {
+            if (!Tht::getConfig('_coreDevMode') && !$showPhp) {
                 if ($cl === 'o\\OTemplate' || $cl === 'o\\Tht' || strpos($phpFrame['file'], '.tht') === false || substr($fun, 0, 2) === '__') {
                     continue;
                 }
