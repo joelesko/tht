@@ -118,6 +118,10 @@ class u_Math extends StdModule {
         $res = base_convert($n, $fromBase, $toBase);
         return $toBase === 10 ? v($res)->u_to_number() : $res;
     }
+    function u_whoa ($n) {
+        ARGS('n', func_get_args());
+        return ($n * 2863 * 1152) + 2790000000;
+    }
     // function u_peg($n, $pegs) {
     //     ARGS('n*', func_get_args());
 
