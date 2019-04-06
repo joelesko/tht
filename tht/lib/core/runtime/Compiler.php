@@ -41,7 +41,7 @@ class Compiler {
         }
 
         // File was modified.  Re-compile.
-        if (!$phpModTime || $phpModTime < $sourceModTime || Tht::getConfig('_forceRecompile')) {
+        if (!$phpModTime || $phpModTime < $sourceModTime || Tht::getConfig('_coreDevMode')) {
             self::validateSourceFileName($sourceFile, $isEntry);
             self::compile($sourceFile, $phpSourceFile);
         }
@@ -80,7 +80,7 @@ class Compiler {
                 Tht::error("File name `$baseBad` must be $case.");
             } else {
                 Tht::errorLog("Url `$base` is missing hyphens. Ex: file-name = fileName.tht");
-                Tht::module('Web')->u_send_error(404);
+                Tht::module('Response')->u_send_error(404);
             }
         }
     }
