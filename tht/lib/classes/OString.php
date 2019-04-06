@@ -221,7 +221,7 @@ class OString extends OVar implements \ArrayAccess {
                     'pattern' => $match,
                 ]);
             }
-            return $found === 1 ? $matches : [];
+            return $found === 1 ? OList::create($matches) : OList::create([]);
         }
         else {
             Tht::error("Argument 1 must be a Regex string `r'...'`");
