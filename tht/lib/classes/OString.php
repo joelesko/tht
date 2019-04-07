@@ -728,7 +728,7 @@ class OString extends OVar implements \ArrayAccess {
         return $f == $i ? $i : $f;
     }
 
-    function u_to_flag () {
+    function u_to_boolean () {
         ARGS('', func_get_args());
         $v = trim($this->val);
         if ($v === '') {

@@ -260,7 +260,7 @@ EOCSS;
                 // numbers
                 c = c.replace(/([^a-zA-Z\\d])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>');
 
-                // flags
+                // booleans
                 c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');
 
                 // strings

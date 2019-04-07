@@ -2,7 +2,7 @@
 
 namespace o;
 
-class OFlag extends OVar {
+class OBoolean extends OVar {
 
     function __toString () {
         return $this->u_to_string();
@@ -14,7 +14,7 @@ class OFlag extends OVar {
         return $this->val ? 1 : 0;
     }
 
-    function u_to_flag () {
+    function u_to_boolean () {
         return $this->val;
     }
 

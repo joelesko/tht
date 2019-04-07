@@ -31,7 +31,7 @@ class ONumber extends OVar {
         return $this->val;
     }
 
-    function u_to_flag () {
+    function u_to_boolean () {
         return $this->val ? true : false;
     }
 

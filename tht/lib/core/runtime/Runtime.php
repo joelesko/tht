@@ -5,13 +5,13 @@ namespace o;
 
 class Runtime {
 
-    static $TYPES = [ 'OList', 'OString', 'ONumber', 'OFlag', 'OFunction', 'ONothing' ];
+    static $TYPES = [ 'OList', 'OString', 'ONumber', 'OBoolean', 'OFunction', 'ONothing' ];
 
     static $PHP_TO_TYPE = [
         'string'  => 'OString',
         'array'   => 'OList',
         'map'     => 'OMap',
-        'boolean' => 'OFlag',
+        'boolean' => 'OBoolean',
         'null'    => 'ONothing',
         'double'  => 'ONumber',
         'integer' => 'ONumber',
@@ -31,7 +31,7 @@ class Runtime {
     static $SIG_TYPE_KEY_TO_LABEL = [
         'n' => 'number',
         's' => 'string',
-        'f' => 'flag',
+        'f' => 'boolean',
         'l' => 'list',
         'm' => 'map',
         'c' => 'callable',

@@ -13,7 +13,7 @@ class LibClasses {
         'ONumber',
         'ORegex',
         'OString',
-        'OFlag',
+        'OBoolean',
         'OFunction',
         'OTagString',
         'ONothing',

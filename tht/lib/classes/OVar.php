@@ -44,7 +44,7 @@ class OVar extends OClass implements \JsonSerializable {
         return is_numeric($this->val);
     }
 
-    function u_is_flag () {
+    function u_is_boolean () {
         return is_bool($this->val);
     }
 

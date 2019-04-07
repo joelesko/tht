@@ -15,7 +15,7 @@ template html(results) {
     <html>
         <head>
           <title>> THT Unit Tests
-          {{ Css.include('base') }}
+          {{ Css.plugin('base') }}
         </>
         <body>
             <main>
@@ -73,7 +73,7 @@ function run(t) {
 
     // Not including these in perf measurement due to artificially long delays
     // or not representative of user code.
-    if (!Input.get('perf', 'flag')) {
+    if (!Input.get('perf', 'boolean')) {
 
         libCache(t);
         libNet(t);
@@ -489,7 +489,7 @@ function testTypes(t) {
     let n = 123;
     t.ok(n.isNumber(), 'number');
     let f = true;
-    t.ok(f.isFlag(), 'flag');
+    t.ok(f.isBoolean(), 'boolean');
     let fn = function () { };
     t.ok(fn.isFunction(), 'function');
 
@@ -503,7 +503,7 @@ function testTypes(t) {
     n = 0;
     t.ok(n.isEmpty(), 'empty num');
     f = false;
-    t.ok(f.isEmpty(), 'empty flag');
+    t.ok(f.isEmpty(), 'empty boolean');
 
     t.ok(![1, 2, 3].isEmpty(), 'non-empty list');
     t.ok(!{ foo: 0 }.isEmpty(), 'non-empty map');
@@ -511,7 +511,7 @@ function testTypes(t) {
     n = 0.1;
     t.ok(!n.isEmpty(), 'non-empty num');
     f = true;
-    t.ok(!f.isEmpty(), 'non-empty flag');
+    t.ok(!f.isEmpty(), 'non-empty boolean');
 
 }
 
@@ -622,7 +622,7 @@ function testFunctions(t) {
     t.ok(t.checkArgs('s', ''), 'string');
     t.ok(t.checkArgs('n', 123), 'number');
     t.ok(t.checkArgs('l', []), 'list');
-    t.ok(t.checkArgs('f', false), 'flag');
+    t.ok(t.checkArgs('f', false), 'boolean');
     t.ok(t.checkArgs('m', {}), 'map');
     t.ok(t.checkArgs('snl', '0', 0, []), 'multi: string, number, list');
 
@@ -746,7 +746,7 @@ function testMaps(t) {
     t.dies(F { {}.remove('Z'); }, 'Map key not found');
     t.dies(F { {}.getKey('VAL'); }, 'Map value not found');
 
-    t.dies(F { {}.getKey(false); }, 'Map.getKey(<flag>);');
+    t.dies(F { {}.getKey(false); }, 'Map.getKey(<boolean>);');
     t.dies(F { {}.merge(['a']); }, 'Map.merge(<list>);');
 
 }
@@ -784,7 +784,7 @@ function testMathAndLogic(t) {
     t.dies(F { R 2 + 'b'; }, 'Add number to string');
     t.dies(F { R 'a' * 2; }, 'Multiply string');
     t.dies(F { R 'a' % 2; }, 'Modulo string');
-    t.dies(F { R true + 2; }, 'Add flag to number');
+    t.dies(F { R true + 2; }, 'Add boolean to number');
     t.dies(F { R {} + 2; }, 'Add Map to number');
     t.dies(F {
         let aa = 1;
@@ -878,11 +878,10 @@ function testMathAndLogic(t) {
 
     t.ok(num.toString() == '1234.56', 'toString');
 
-    t.ok(num.toFlag() == true, 'toFlag');
-    t.ok((0).toFlag() == false, 'toFlag - false');
-    t.ok((-1).toFlag() == true, 'toFlag - negative');
-    t.ok((0.1).toFlag() == true, 'toFlag - float');
-
+    t.ok(num.toBoolean() == true, 'toBoolean');
+    t.ok((0).toBoolean() == false, 'toBoolean - false');
+    t.ok((-1).toBoolean() == true, 'toBoolean - negative');
+    t.ok((0.1).toBoolean() == true, 'toBoolean - float');
 
     t.section('Float & Ints');
 
@@ -1100,10 +1099,10 @@ function testStrings(t) {
     t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode');
 
 
-    t.ok(''.toFlag() == false, 'toFlag - empty string');
-    t.ok('0'.toFlag() == true, 'toFlag - 0');
-    t.ok('false'.toFlag() == true, 'toFlag - false');
-    t.ok('true'.toFlag() == true, 'toFlag - true');
+    t.ok(''.toBoolean() == false, 'toBoolean - empty string');
+    t.ok('0'.toBoolean() == true, 'toBoolean - 0');
+    t.ok('false'.toBoolean() == true, 'toBoolean - false');
+    t.ok('true'.toBoolean() == true, 'toBoolean - true');
 
     t.ok('123'.toNumber() == 123, 'toNumber');
     t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
@@ -2001,6 +2000,10 @@ function libInput(t) {
    // t.ok(formValidate('123') == 123, 'default id ok');
    // t.ok(formValidate('$foo') == '', 'default id not ok');
 
+
+   print(Input.validate('testOptional', 'xx', 'optional|id'));
+   print(Input.validate('testOptionalBlank', '', 'optional|id'));
+
    print(Input.validate('test', '$foo', 'id'));
 
     t.ok(formValidate('id123', 'id') == 'id123', 'id ok');
@@ -2011,11 +2014,11 @@ function libInput(t) {
     t.ok(formValidate('-123', 'int|min:-200') == -123, 'negative float');
     t.ok(formValidate('$1', 'int') == '', 'number not ok');
 
-    t.ok(formValidate('true', 'flag') == true, 'flag ok');
-    t.ok(formValidate('false', 'flag') == false, 'flag ok');
-    t.ok(formValidate('1', 'flag') == true, 'flag ok');
-    t.ok(formValidate('0', 'flag') == false, 'flag ok');
-    t.ok(formValidate('$1', 'flag') == '', 'flag not ok');
+    t.ok(formValidate('true', 'boolean') == true, 'boolean ok');
+    t.ok(formValidate('false', 'boolean') == false, 'boolean ok');
+    t.ok(formValidate('1', 'boolean') == true, 'boolean ok');
+    t.ok(formValidate('0', 'boolean') == false, 'boolean ok');
+    t.ok(formValidate('$1', 'boolean') == '', 'boolean not ok');
 
     t.ok(formValidate('me@mail.com', 'email') == 'me@mail.com', 'email ok');
     t.ok(formValidate('me.com', 'email') == '', 'email not ok');
@@ -2049,8 +2052,8 @@ function libSettings(t) {
     t.section('Module: Settings');
 
     t.ok(Settings.get('num') == -123.45, 'get num');
-    t.ok(Settings.get('flagFalse') == false, 'get flag');
-    t.ok(Settings.get('flagTrue') == true, 'get flag');
+    t.ok(Settings.get('booleanFalse') == false, 'get boolean');
+    t.ok(Settings.get('booleanTrue') == true, 'get boolean');
     t.ok(Settings.get('string') == 'value with spaces, etc.', 'get string');
     t.ok(Settings.get('map').key == 'value', 'get map');
     t.ok(Settings.get('list')[1] == 'value 1', 'get list');

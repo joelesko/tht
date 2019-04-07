@@ -78,7 +78,7 @@ function hasu_ ($v) {
 // sig:
 //   n = number
 //   s = string
-//   f = flag
+//   f = boolean  (TODO: change)
 //   l = list
 //.  m = map
 //   c = callable
@@ -108,9 +108,6 @@ function ARGS($sig, $arguments) {
                 if ($s === 's') {
                     $t = 'string';  // allow numbers to be cast as strings
                 }
-            }
-            else if ($t === 'boolean') {
-                $t = 'flag';
             }
             else if ($t === 'object') {
                 $varg = v($arg);
