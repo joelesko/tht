@@ -49,7 +49,7 @@ class u_Css extends StdModule {
         return 'menlo, consolas, monospace';
     }
 
-    function u_include($id, $arg1=null, $arg2=null) {
+    function u_plugin($id, $arg1=null, $arg2=null) {
 
         ARGS('sn*', func_get_args());
 
