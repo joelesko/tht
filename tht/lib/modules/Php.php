@@ -31,8 +31,8 @@ class u_Php extends StdModule {
         return '\\' . $n;
     }
 
-    function u_version() {
-        return phpversion();
+    function u_version($getId=false) {
+        return $getId ? PHP_VERSION_ID : phpversion();
     }
 
     function u_call () {

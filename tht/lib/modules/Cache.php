@@ -23,7 +23,7 @@ class u_Cache extends StdModule {
 
     function cleanKey($k) {
         $k = preg_replace('/[^a-zA-Z0-9]/', '_', trim(strtolower($k)));
-        $k = $k . '_' . Tht::getThtVersion(true);
+        $k = Tht::getThtPhpVersionToken() . '_' . $k;
         return $k;
     }
 

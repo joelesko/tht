@@ -5,7 +5,8 @@ namespace o;
 class Tht {
 
     static private $VERSION = '0.3.0 - Beta';
-    static private $VERSION_TOKEN = '000300';
+    static private $VERSION_TOKEN = '00300';
+    static private $VERSION_TOKEN_PHP = '';
 
     static private $SRC_EXT = 'tht';
 
@@ -66,6 +67,7 @@ class Tht {
         'frontFile'          => 'thtApp.php',
         'homeFile'           => 'home.tht',
     ];
+
 
 
 
@@ -532,11 +534,13 @@ class Tht {
     static function getPhpPathForTht ($thtFile) {
         $relPath = Tht::module('File')->u_relative_path($thtFile, Tht::$paths['app']);
         $cacheFile = preg_replace('/[\\/]/', '_', $relPath);
-        return Tht::path('phpCache', Tht::getThtVersion(true) . '_' . $cacheFile . '.php');
+        return Tht::path('phpCache', Tht::getThtPhpVersionToken() . '_' . $cacheFile . '.php');
     }
 
     static function getThtPathForPhp ($phpPath) {
-        $phpPath = preg_replace('!\d{6}_!', '', $phpPath);
+        // remove version token
+        $phpPath = preg_replace('!\d+_!', '', $phpPath);
+
         $f = basename($phpPath);
         $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
@@ -622,6 +626,13 @@ class Tht {
 
     static function getThtVersion($token=false) {
         return $token ? Tht::$VERSION_TOKEN : Tht::$VERSION;
+    }
+
+    static function getThtPhpVersionToken() {
+        if (!Tht::$VERSION_TOKEN_PHP) {
+            Tht::$VERSION_TOKEN_PHP = Tht::$VERSION_TOKEN . floor(PHP_VERSION_ID / 100);
+        }
+        return Tht::$VERSION_TOKEN_PHP;
     }
 
     static function module ($name) {
