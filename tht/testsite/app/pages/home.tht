@@ -4,9 +4,16 @@ function main() {
     run(test);
     Response.sendHtml(html(test.resultsHtml()));
 
-    print(Math.whoa(27));
-    print(Math.whoa(1000));
-    print(Math.whoa(10000000));
+    takeString('sdf');
+    takeMap({ a: 1 });
+}
+
+function takeString(str:s) {
+    print(str);
+}
+
+function takeMap(map:m) {
+    print(map);
 }
 
 template html(results) {
@@ -2005,6 +2012,8 @@ function libInput(t) {
    print(Input.validate('testOptionalBlank', '', 'optional|id'));
 
    print(Input.validate('test', '$foo', 'id'));
+
+return;
 
     t.ok(formValidate('id123', 'id') == 'id123', 'id ok');
     t.ok(formValidate('$foo', 'id') == '', 'id not ok');

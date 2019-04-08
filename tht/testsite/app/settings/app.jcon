@@ -23,8 +23,8 @@
     // Custom app settings.  Read via `Global.setting(key)`
     app: {
         num: -123.45
-        flagFalse: false
-        flagTrue: true
+        booleanFalse: false
+        booleanTrue: true
         string: value with spaces, etc.
         map: {
             key: value
