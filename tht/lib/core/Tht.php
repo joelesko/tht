@@ -4,13 +4,14 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.3.0 - Beta';
-    static private $VERSION_TOKEN = '00300';
+    static private $VERSION = '0.5.0 - Beta';
+    static private $VERSION_TOKEN = '00500';
     static private $VERSION_TOKEN_PHP = '';
 
     static private $SRC_EXT = 'tht';
 
     static private $THT_SITE = 'https://tht.help';
+    static private $ERROR_API_URL = 'https://tht.help/remote/error';
 
     static private $MEMORY_BUFFER_KB = 1;
 
@@ -61,11 +62,11 @@ class Tht {
     ];
 
     static private $APP_FILE = [
-        'settingsFile'       => 'app.jcon',
-        'appCompileTimeFile' => '_appCompileTime',
-        'logFile'            => 'app.log',
-        'frontFile'          => 'thtApp.php',
-        'homeFile'           => 'home.tht',
+        'settingsFile'        => 'app.jcon',
+        'appCompileTimeFile'  => '_appCompileTime',
+        'logFile'             => 'app.log',
+        'frontFile'           => 'thtApp.php',
+        'homeFile'            => 'home.tht',
     ];
 
 
@@ -136,6 +137,11 @@ class Tht {
 
     // Serve directly if requested a static file in testServer mode
     static private function serveStaticFile() {
+
+        if (preg_match('/\.[a-z0-9]{2,}$/', $_SERVER['SCRIPT_NAME'])) {
+            return true;
+        }
+
         if (Tht::isMode('testServer')) {
             // Need to construct path manually.
             // See: https://github.com/joelesko/tht/issues/2
@@ -399,19 +405,24 @@ class Tht {
             // internal
             "_devPrint"     => false,
             "_coreDevMode"  => false,
+            "_sendErrorUrl" => THT::$ERROR_API_URL,
 
             // WIP - still working on it
             "tempParseCss"     => false,
 
             // features
-            "adminIp"              => '',
-            "showPerfPanel"        => false,
-            "disableFormatChecker" => false,
-            "minifyCssTemplates"   => true,
-            "minifyJsTemplates"    => true,
-            "compressOutput"       => true,
-            "sessionDurationMins"  => 120,
-            'hitCounter'           => true,
+            "adminIp"                => '',
+            "showPerfPanel"          => false,
+            "disableFormatChecker"   => false,
+            "minifyCssTemplates"     => true,
+            "minifyJsTemplates"      => true,
+            "compressOutput"         => true,
+            "sessionDurationMins"    => 120,
+            'hitCounter'             => true,
+            'hitCounterExcludePaths' => [],
+
+            // telemetry
+            'sendErrors'           => true,
 
             // security
             "contentSecurityPolicy"   => '',
@@ -538,10 +549,8 @@ class Tht {
     }
 
     static function getThtPathForPhp ($phpPath) {
-        // remove version token
-        $phpPath = preg_replace('!\d+_!', '', $phpPath);
-
         $f = basename($phpPath);
+        $f = preg_replace('!\d+_!', '', $f);
         $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
         return Tht::path('app', $f);
@@ -554,6 +563,10 @@ class Tht {
     static function stripAppRoot($value) {
         $value = str_replace(Tht::path('app'), '', $value);
         $value = str_replace(Tht::path('docRoot'), '', $value);
+        if (preg_match('/\.php/', $value)) {
+            $value = preg_replace('#.*tht/#', '', $value);
+        }
+
         return ltrim($value, '/');
     }
 
@@ -628,6 +641,7 @@ class Tht {
         return $token ? Tht::$VERSION_TOKEN : Tht::$VERSION;
     }
 
+    // Get a token that includes the version of THT and PHP
     static function getThtPhpVersionToken() {
         if (!Tht::$VERSION_TOKEN_PHP) {
             Tht::$VERSION_TOKEN_PHP = Tht::$VERSION_TOKEN . floor(PHP_VERSION_ID / 100);
@@ -652,5 +666,6 @@ class Tht {
         $p = str_replace('tht/', '', $p);
         return $p;
     }
+
 }
 
