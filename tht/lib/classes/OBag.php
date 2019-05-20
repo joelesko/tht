@@ -20,7 +20,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
             return $this->val[$plainField];
         } else {
             $tip = $plainField == 'length' ? "  Try: `length()`" : '';
-            Tht::error("Invalid field: `$plainField`" . $tip);
+            Tht::error("Field does not exist: `$plainField`" . $tip);
         }
     }
 
