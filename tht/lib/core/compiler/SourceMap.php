@@ -7,7 +7,8 @@ class SourceMap {
     private $lineNum = 1;
 
     function __construct ($sourceFile) {
-        $this->map = [ 'file' => $sourceFile ];
+        $relPath = Tht::getRelativePath('app', $sourceFile);
+        $this->map = [ 'file' => $relPath ];
     }
 
     function set ($targetSrcLine) {
@@ -19,6 +20,7 @@ class SourceMap {
     }
 
     function out () {
-        return '/* SOURCE=' . json_encode($this->map) . ' */';
+        $out = "/* SOURCE=" . json_encode($this->map) . " */\n";
+        return $out;
     }
 }
