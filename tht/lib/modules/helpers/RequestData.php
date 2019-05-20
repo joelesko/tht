@@ -2,43 +2,36 @@
 
 namespace o;
 
-
 class u_RequestData {
 
     private $matchesRequestMethod = false;
     private $method = '';
     private $dataSource = '';
-    private $rules = null;
+    private $allowExternal = false;
 
-    function __construct($method, $rules=null) {
+    function __construct($method, $allowExternal=false) {
 
-        $this->rules = $rules;
         $this->method = $method;
         $this->dataSource = $method == 'get' ? 'get' : 'post';
         $this->matchesRequestMethod = Tht::module('Request')->u_method() === $method;
 
-        Security::validatePostRequest();
+        if (!$allowExternal) {
+            Security::validatePostRequest();
+        }
     }
 
-    function field($fieldName, $sRules) {
-
-        if (!$this->matchesRequestMethod) {
-            return '';
-        }
-
+    function field($fieldName, $sRule) {
         $rawVal = Tht::getPhpGlobal($this->dataSource, $fieldName);
-
-        $schema = ['rule' => $sRules];
         $validator = new u_InputValidator ();
-        $validated = $validator->validateField($fieldName, $rawVal, $schema);
+        $validated = $validator->validateField($fieldName, $rawVal, $sRule);
 
         return $validated;
     }
 
-    function fields() {
+    function fields($rules) {
         $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
         $validator = new u_InputValidator ();
-        $validated = $validator->validateFields($rawVals, $this->rules);
+        $validated = $validator->validateFields($rawVals, $rules);
 
         return v($validated);
     }
