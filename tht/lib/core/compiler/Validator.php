@@ -21,6 +21,10 @@ class Validator {
         $this->newScope();
     }
 
+    function error($msg, $token) {
+        $this->parser->error('(Name Validator) ' . $msg, $token);
+    }
+
     function validate() {
         $this->validateUndefined();
         $this->validateFunctions();
@@ -43,13 +47,13 @@ class Validator {
 
         $existingName = $this->isDefined($lowerName);
         if ($existingName && !$allowDupe) {
-            $this->parser->error("Name `" . $existingName . "` is already defined in this scope.", $token);
+            $this->error("Name `" . $existingName . "` is already defined in this scope.", $token);
         }
-        if (OBare::isa($lowerName)) {
-            $this->parser->error("Name `" . $lowerName . "` is the name of a core function.", $token);
+        else if (OBare::isa($lowerName)) {
+            $this->error("Name `" . $lowerName . "` is the name of a core function.", $token);
         }
-        if (in_array($lowerName, ParserData::$RESERVED_NAMES)) {
-            $this->parser->error("Name `" . $lowerName . "` is a reserved word.", $token);
+        else if (in_array($lowerName, CompilerConstants::$RESERVED_NAMES)) {
+            $this->error("Name `" . $lowerName . "` is a reserved word.", $token);
         }
 
         $currentScope = count($this->scopes) - 1;
@@ -58,7 +62,7 @@ class Validator {
     }
 
     function isDefined ($name) {
-        if ($name == ParserData::$ANON) {  return false;  }
+        if ($name == CompilerConstants::$ANON) {  return false;  }
         foreach ($this->scopes as $s) {
             if (isset($s['fuzzy'][$name])) {
                 return $s['fuzzy'][$name][TOKEN_VALUE];
@@ -76,7 +80,7 @@ class Validator {
     function validateUndefined () {
         foreach ($this->undefinedVars as $s) {
             if ($s->type === SymbolType::USER_VAR && !$s->getDefined()) {
-                $this->parser->error('Unknown variable: `' . $s->getValue() . '`', $s->token);
+                $this->error('Unknown variable: `' . $s->getValue() . '`', $s->token);
             }
         }
     }
@@ -90,7 +94,7 @@ class Validator {
             if (isset($defined[$fuzzy])) {
                 $exact = $defined[$fuzzy];
                 if ($funName !== $exact) {
-                    $this->parser->error("Function name case mismatch.  Use `$exact` instead.", $funToken);
+                    $this->error("Function name case mismatch.  Use `$exact` instead.", $funToken);
                 }
             }
         }
@@ -113,19 +117,16 @@ class Validator {
             if (preg_match("/^[A-Z]/", $name) && preg_match("/[a-z]/", $name)) {
                 $case = 'UpperCamelCase';
             }
-            $this->parser->error("Word `$name` should be pure $case.", $token);
+            $this->error("Word `$name` should be pure $case.", $token);
         }
         else if (strrpos($name, '_') > -1) {
-            $this->parser->error("Word `$name` should be camelCase. No underscores.", $token);
+            $this->error("Word `$name` should be camelCase. No underscores.", $token);
         }
         else if (strlen($name) === 1 && $name >= 'A' && $name <= 'Z') {
-            $this->parser->error("UpperCamelCase words must be longer than 1 character.", $token);
+            $this->error("UpperCamelCase words must be longer than 1 character.", $token);
         }
-        else if (strlen($name) > ParserData::$MAX_WORD_LENGTH) {
-            $this->parser->error("Words must be " . ParserData::$MAX_WORD_LENGTH . " characters or less.", $token);
-        }
-        else if ($name == 'l') {
-            $this->parser->error("Can't use `l` as an identifier, for readability.  It looks too much like a `1` (number one).", $token);
+        else if (strlen($name) > CompilerConstants::$MAX_WORD_LENGTH) {
+            $this->error("Words must be " . CompilerConstants::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
     }
 
