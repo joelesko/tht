@@ -34,7 +34,7 @@ class WebMode {
             print(file_get_contents($downPage));
         }
         else {
-            $font = Tht::module('Css')->u_sans_serif_font();
+            $font = Tht::module('Css')->u_font('sansSerif');
             echo "<div style='padding: 2rem; text-align: center; font-family: $font'><h1>Temporarily Down for Maintenance</h1><p>Sorry for the inconvenience.  We'll be back soon.</p></div>";
         }
         Tht::exitScript(0);
@@ -74,7 +74,7 @@ class WebMode {
     }
 
     static private function getScriptPath() {
-        $path = Tht::module('Request')->u_url()['path'];
+        $path = Tht::module('Request')->u_url()->u_path();
         Security::validateRoutePath($path);
         return $path;
     }
@@ -200,29 +200,42 @@ class WebMode {
 
         $nameSpace = ModuleManager::getNamespace(Tht::getFullPath($controllerFile));
 
-        $fullController = $nameSpace . '\\u_' . basename($controllerFile);
-        $fullUserFunction = $nameSpace . '\\u_' . $userFunction;
-
-        $mainFunction = 'main';
         $req = Tht::module('Request');
-
-        if ($req->u_is_ajax()) {
-            $mainFunction = 'ajax';
-        } else if ($req->u_method() === 'POST') {
-            $mainFunction = 'post';
-        }
-        $fullMainFunction = $nameSpace . '\\u_' . $mainFunction;
-
 
         $callFunction = '';
         if ($userFunction) {
+            // function defined in app.jcon/routes
+            $fullUserFunction = $nameSpace . '\\u_' . $userFunction;
             if (!function_exists($fullUserFunction)) {
+                $fullController = $nameSpace . '\\u_' . basename($controllerFile);
                 Tht::configError("Function `$userFunction` not found for route target `$fullController`");
             }
             $callFunction = $fullUserFunction;
         }
-        else if (function_exists($fullMainFunction)) {
-            $callFunction = $fullMainFunction;
+        else if (isset(self::$routeParams['action'])) {
+            // e.g. actionFoo()
+            $actionName = self::$routeParams['action'];
+            $actionName = str_replace('-', '_', $actionName);
+            $fullAutoFunction = $nameSpace . '\\u_action_' . $actionName;
+            if (!function_exists($fullAutoFunction)) {
+                Tht::module('Response')->u_send_error(404);
+            }
+            $callFunction = $fullAutoFunction;
+        }
+        else if ($req->u_method() === 'post') {
+            // post()
+            $fullPostFunction = $nameSpace . '\\u_post';
+            if (function_exists($fullPostFunction)) {
+                $callFunction = $fullPostFunction;
+            }
+        }
+
+        // Fall back to main()
+        if (!$callFunction) {
+            $fullMainFunction = $nameSpace . '\\u_main';
+            if (function_exists($fullMainFunction)) {
+                $callFunction = $fullMainFunction;
+            }
         }
 
         if ($callFunction) {
