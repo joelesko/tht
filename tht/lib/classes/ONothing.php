@@ -5,6 +5,15 @@ namespace o;
 class ONothing {
     private $fun = '';
 
+    static private $nothings = [];
+
+    static function create($methodName) {
+        if (!isset(self::$nothings[$methodName])) {
+            self::$nothings[$methodName] = new ONothing ($methodName);
+        }
+        return self::$nothings[$methodName];
+    }
+
     function __construct ($f='(unknown)') {
         $this->fun = $f;
     }
@@ -14,6 +23,6 @@ class ONothing {
     }
 
     function __call ($a, $b) {
-        Tht::error("You have a Nothing value returned from: `" . $this->fun . "`");
+        Tht::error("You have a `Nothing` object returned from: `" . $this->fun . "`");
     }
 }
