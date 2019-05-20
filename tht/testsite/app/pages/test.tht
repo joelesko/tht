@@ -1,0 +1,26 @@
+F main() {
+
+   let data = Input.getAll({ 'names': 'email|list' });
+    print(data);
+
+    Response.sendHtml(formHtml());
+}
+
+
+T formHtml() {
+    <form action="/test" method="post">
+      <p>> ID: <input type="text" name="id" />
+      <p>> Age: <input type="text" name="age" />
+      <str>> Str: <input type="text" name="str" />
+
+      <input type="submit" />
+
+      {{ Web.csrfToken() }}
+    </>
+}
+
+F post() {
+    let data = Input.get('names', 's');
+    print(data);
+
+}

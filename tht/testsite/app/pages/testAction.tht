@@ -1,0 +1,11 @@
+
+F actionFooBar() {
+
+    print('FOO BAR!');
+
+}
+
+F actionDefault() {
+
+    print('DEFAULT!');
+}

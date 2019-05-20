@@ -1,7 +1,7 @@
 {
     // Dynamic URL routes
     routes: {
-        // /post/{postId}:  post.tht
+        /test/{action}: testAction.tht
     }
 
     // Core settings
@@ -10,7 +10,7 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfPanel: false
+        showPerfPanel: true
         adminIp:
 
         memoryLimitMb: 32
@@ -18,6 +18,8 @@
         _coreDevMode: true
 
         hitCounter: true
+
+        _sendErrorUrl: http://localhost:8900/remote/error
     }
 
     // Custom app settings.  Read via `Global.setting(key)`
