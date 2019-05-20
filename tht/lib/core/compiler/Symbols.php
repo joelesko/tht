@@ -28,7 +28,7 @@ class Symbol {
             'Sep',
             'Prefix',
             'Infix',
-            'InfixRight',
+            'InfixWeak',
             'Statement',
             'If',
             'For',
