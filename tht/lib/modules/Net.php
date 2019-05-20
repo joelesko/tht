@@ -72,8 +72,15 @@ class u_Net extends StdModule {
         $context = stream_context_create($opts);
 
         Tht::module('Perf')->u_start('Net.httpRequest', $method . ' ' . $url);
-        // TODO: unable to wrap this in a try catch, or use @supression
+
+        set_error_handler(function() { /* ignore errors */ });
         $responseText = file_get_contents($url, false, $context);
+        restore_error_handler();
+
+        if ($responseText === false) {
+           Tht::error("Unable to open URL: `$url`");
+        }
+
         Tht::module('Perf')->u_stop();
 
         return $responseText;
