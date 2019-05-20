@@ -99,9 +99,14 @@ class OMap extends OBag {
         return OMap::create(array_flip($this->val));
     }
 
-    function u_merge ($a2) {
-        ARGS('m', func_get_args());
-        return OMap::create(array_merge($this->val, $a2->val));
+    function u_merge ($a2, $isSoft = false) {
+        ARGS('mf', func_get_args());
+        if ($isSoft) {
+            // Union + operator
+            return OMap::create($this->val + $a2->val);
+        } else {
+            return OMap::create(array_merge($this->val, $a2->val));
+        }
     }
 
     function u_slice ($keys) {
