@@ -2,6 +2,8 @@
 
 namespace o;
 
+require_once('helpers/InputValidator.php');
+
 class StdModule implements \JsonSerializable {
 
     function __set ($k, $v) {
