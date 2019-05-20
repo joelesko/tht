@@ -90,20 +90,23 @@ class TemplateHtml extends OTemplate {
     function handleTagString($context, $s) {
 
         // if js or css, wrap in appropriate block tags
-        $unlocked = OTagString::getUntagged($s, '');
+        $plain = OTagString::getUntagged($s, '');
 
         $type = $s->u_tag_type();
         if ($type == 'html') {
-            return $unlocked;
+            return $plain;
         }
         else if ($type == 'css') {
-            return Tht::module('Css')->wrap($unlocked);
+            return Tht::module('Css')->wrap($plain);
         }
         else if ($type == 'js') {
-            return Tht::module('Js')->wrap($unlocked);
+            return Tht::module('Js')->wrap($plain);
+        }
+        else if ($type == 'url') {
+            return $this->escape('url', $plain);
         }
 
-        return $this->escape($context, $unlocked);
+        return $this->escape($context, $plain);
     }
 }
 
