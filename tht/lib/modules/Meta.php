@@ -88,8 +88,8 @@ class u_Meta extends StdModule {
     //     }
     // }
 
-    function u_tht_version() {
-        return Tht::getThtVersion();
+    function u_tht_version($numeric = false) {
+        return Tht::getThtVersion($numeric);
     }
 
     function callerError ($msg) {
