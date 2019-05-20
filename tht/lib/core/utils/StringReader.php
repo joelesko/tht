@@ -12,7 +12,7 @@ class StringReader {
     public $i = 0;
 
     protected $lineNum = 1;
-    protected $colNum = 0;
+    protected $colNum = 1;
     protected $tokenPos = [1,1];
     protected $indent = 0;
 
