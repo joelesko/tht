@@ -125,6 +125,8 @@ class Compiler {
         self::writePhpFile($phpSourceFile, $phpCode, $sourceFile);
 
         Tht::module('Perf')->u_stop();
+
+        ErrorHandler::sendErrorTelemetry($sourceFile);
     }
 
     static function parseString ($source) {
@@ -181,7 +183,7 @@ class Compiler {
 
     static function writePhpFile ($phpSourceFile, $phpCode, $sourceFile) {
         file_put_contents($phpSourceFile, $phpCode);
-        touch($sourceFile); // for cache comparison
+        // touch($sourceFile); // for cache comparison // editors don't play nice with this
 
         // Lint file
         $lint = shell_exec('php -l ' . $phpSourceFile);
