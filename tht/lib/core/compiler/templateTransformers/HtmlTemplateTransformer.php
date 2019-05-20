@@ -23,6 +23,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return $str;
     }
 
+    function error($msg) {
+        $this->reader->error('(Template) ' . $msg);
+    }
+
     function transformNext () {
 
         $t = $this->reader;
@@ -95,7 +99,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $c = $t->char();
                 if ($c === "\n") {
                     $t->updateTokenPos();
-                    $t->error('Unexpected newline.');
+                    $this->error('Unexpected newline.');
                 }
                 if ($c === '>') {
                     $t->next();
@@ -120,7 +124,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $c = $t->char();
                 if ($c === "\n") {
                     $t->updateTokenPos();
-                    $t->error('Unexpected newline.');
+                    $this->error('Unexpected newline.');
                 }
                 if ($c === ' ' || $c === '>') {
                     $this->currentTag = $this->newTag($tagName, $t->getTokenPos());
@@ -159,9 +163,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         else if ($c === '=') {
             $nc = $t->nextChar();
             if ($nc == ' ') {
-                $t->error('Please remove the space after `=`.');
+                $this->error('Please remove the space after `=`.');
             } else if ($t->prevChar() == ' ') {
-                $t->error('Please remove the space before `=`.');
+                $this->error('Please remove the space before `=`.');
             }
             $str .= $c;
             $t->next();
@@ -169,7 +173,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         else {
             if ($c === "\n") {
                 $t->updateTokenPos();
-                $t->error('Unexpected newline.');
+                $this->error('Unexpected newline.');
             }
             $c = $t->escape($c, false, true);
             $this->currentTag['html'] .= $c;
@@ -200,7 +204,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $formatBlockIndent = $t->indent();
                 $t->next();
                 if ($t->nextChar() !== "\n") {
-                    $t->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.');
+                    $this->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.');
                 }
                 $t->next();
             }
@@ -209,7 +213,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $this->numLineTags += 1;
 
                 if ($t->nextChar() !== ' ') {
-                    $t->error('`<' . $this->currentTag['name'] . '>>` should be followed by a space.  (It will be trimmed.)');
+                    $this->error('`<' . $this->currentTag['name'] . '>>` should be followed by a space.  (It will be trimmed.)');
                 }
                 else {
                     // slurp whitespace
@@ -237,7 +241,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
         else {
             if (in_array($this->currentTag['name'], self::$VOID_TAGS)) {
-                $t->error("Tag should be self-closing. Ex: `<" . $this->currentTag['name'] ." />`");
+                $this->error("Tag should be self-closing. Ex: `<" . $this->currentTag['name'] ." />`");
             }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
         }
@@ -283,10 +287,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
 
         if (!$hasContent) {
-            $t->error("Content inside of `" . $this->currentTag['name'] . "` must be indented." );
+            $this->error("Content inside of `" . $this->currentTag['name'] . "` must be indented." );
         }
         else if ($t->char() !== '<') {
-            $t->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
+            $this->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
         }
 
         $b = Security::escapeHtml($b);
@@ -300,11 +304,11 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $t->updateTokenPos();
 
         if (!count(HtmlTemplateTransformer::$openTags)) {
-            $t->error('Extra closing tag');
+            $this->error('Extra closing tag');
         }
         $tag = array_pop(HtmlTemplateTransformer::$openTags);
         if ($seeTagName && $seeTagName !== $tag['name']) {
-            $t->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagName>` instead.");
+            $this->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagName>` instead.");
         }
         return "</" . $tag['name'] . ">";
     }
@@ -315,26 +319,26 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $name = $tag['name'];
 
         if (!strlen($name)) {
-            $t->error("Missing tag name", $tag['pos']);
+            $this->error("Missing tag name", $tag['pos']);
         }
-        if (preg_match('/class\s*=.*class\s*=/i', $tag['html'])) {
-            $t->error("Can't have both class name and class attribute for tag.", $tag['pos']);
+        else if (preg_match('/class\s*=.*class\s*=/i', $tag['html'])) {
+            $this->error("Can't have both class name and class attribute for tag.", $tag['pos']);
         }
-        if (preg_match('/#/', $name)) {
-            $t->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
+        else if (preg_match('/#/', $name)) {
+            $this->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
         }
-        if (!preg_match('/[a-z]/', $name) && preg_match('/[A-Z]/', $name)) {
-            $t->error("Tag `$name` should be all lowercase.", $tag['pos']);
+        else if (!preg_match('/[a-z]/', $name) && preg_match('/[A-Z]/', $name)) {
+            $this->error("Tag `$name` should be all lowercase.", $tag['pos']);
         }
-        if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
+        else if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
             $sigil = substr($name, 0, 1);
-            $t->error("Tag `<$name ... $sigil>` should be replaced with `{{ ... }}` or `::`.", $tag['pos']);
+            $this->error("Tag `<$name ... $sigil>` should be replaced with `{{ ... }}` or `::`.", $tag['pos']);
         }
-        if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
-            $t->error("Tag `$name` can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
+        else if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
+            $this->error("Tag `$name` can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
         }
-        if ($name == 'script' && !preg_match('/nonce/', $tag['html'])) {
-            $t->error("`script` tags must have a secure `nonce` attribute.  Either add `nonce=\"{{ Web.nonce() }}\"` or include the script as a Js template.", $tag['pos']);
+        else if ($name == 'script' && !preg_match('/nonce/', $tag['html'])) {
+            $this->error("`script` tags must have a secure `nonce` attribute.  Either add `nonce=\"{{ Web.nonce() }}\"` or include the script as a Js template.", $tag['pos']);
         }
     }
 
@@ -376,7 +380,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $t = $this->reader;
         if (count(HtmlTemplateTransformer::$openTags)) {
             $tag = array_pop(HtmlTemplateTransformer::$openTags);
-            $t->error('Unclosed tag: `' . $tag['name'] . '`', $tag['pos']);
+            $this->error('Unclosed tag: `' . $tag['name'] . '`', $tag['pos']);
         }
     }
 }
