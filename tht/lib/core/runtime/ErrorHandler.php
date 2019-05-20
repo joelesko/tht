@@ -1,5 +1,7 @@
 <?php
 
+// TODO: separate print functions to a separate module and only include when needed
+
 namespace o;
 
 class ThtException extends \Exception {
@@ -32,18 +34,11 @@ class ErrorHandler {
 
         $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
 
-        $message = str_replace('foreach()', 'for()', $message);
-        $message = str_replace('supplied for', 'in', $message);
-
         // PHP 5.6 - missing argument
         if (preg_match('/missing argument/i', $message)) {
             array_shift($trace);
             $phpFile = $trace[0]['file'];
             $phpLine = $trace[0]['line'];
-        }
-
-        if (preg_match("/function '(.*?)' not found or invalid function name/i", $message, $m)) {
-                $message = "PHP function `" . $m[1] . "` does not exist.";
         }
 
         ErrorHandler::printError([
@@ -68,38 +63,30 @@ class ErrorHandler {
             return;
         }
 
-        $error['function'] = '';
-        $trace = [ $error ];
+        self::handleResourceErrors($error);
 
-        // Show minimal error message for memory and execution errors.
-        preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
-        if ($m) {
-            $max = Tht::getConfig('memoryLimitMb');
-            print "<b>Page Error: Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.</b>";
-            Tht::exitScript(1);
-            // $error['file'] = null;
-        }
+        $trace = self::parseInlineTrace($error['message']);
 
-        preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
-        if ($m) {
-            $max = Tht::getConfig('maxExecutionTimeSecs');
-            print "<b>Page Error: Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.</b>";
-            Tht::exitScript(1);
-            // $error['file'] = null;
-        }
-
-        // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false
         // PHP 7
+        // TODO: PHP5: strpos($error['message'], 'Missing argument') !== false
         if (strpos($error['message'], 'ArgumentCountError') !== false) {
 
-            // parse stack trace inside of message
             preg_match('/Too few arguments to function \\S+\\\\(.*?\\(\\))/i', $error['message'], $callee);
             preg_match('/passed in (\S+?) on line (\d+)/i', $error['message'], $caller);
 
+            // TODO: file and line refer to signature line
+
             if ($caller) {
-                $error['message'] = "Not enough argument passed to `" . $callee[1] . "`";
+                $error['message'] = "Not enough arguments passed to `" . $callee[1] . "`";
                 $error['file'] = $caller[1];
                 $error['line'] = $caller[2];
+            }
+        }
+
+        if (strpos($error['message'], 'TypeError') !== false) {
+            if (count($trace)) {
+                $error['file'] = $trace[0]['file'];
+                $error['line'] = $trace[0]['line'];
             }
         }
 
@@ -108,8 +95,25 @@ class ErrorHandler {
             'message' => $error['message'],
             'phpFile' => $error['file'],
             'phpLine' => $error['line'],
-            'trace'   => null
+            'trace'   => $trace,
         ]);
+    }
+
+    static function handleResourceErrors($error) {
+        // Show minimal error message for memory and execution errors.
+        preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
+        if ($m) {
+            $max = Tht::getConfig('memoryLimitMb');
+            print "<b>Page Error: Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.</b>";
+            Tht::exitScript(1);
+        }
+
+        preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
+        if ($m) {
+            $max = Tht::getConfig('maxExecutionTimeSecs');
+            print "<b>Page Error: Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.</b>";
+            Tht::exitScript(1);
+        }
     }
 
     // Errors not related to a source file (e.g. config errors)
@@ -274,17 +278,21 @@ class ErrorHandler {
             }
         }
 
-        // $eh->sendErrorToHq($prepError);
+        $eh->saveErrorTelemetry($prepError);
 
         Tht::exitScript(1);
     }
 
     function prepError($error) {
 
-        $error['message'] = $this->cleanMsg($error['message']);
+        if (preg_match('/TypeError/', $error['message'])) {
+            $error['type'] = 'Argument Checker';
+        }
+
+        $error['message'] = $this->cleanMessage($error['message']);
 
         if (!isset($error['src']) && $error['phpFile']) {
-            $error['src'] = $this->phpToSrc($error['phpFile'], $error['phpLine']);
+            $error['src'] = self::phpToSrc($error['phpFile'], $error['phpLine']);
         }
 
         $error['srcLine'] = '';
@@ -294,6 +302,7 @@ class ErrorHandler {
             } else {
                 $error['srcLine'] = $this->getSourceLine($error['src']['file'], $error['src']['line'], $error['src']['pos']);
                 if ($error['src']['file']) {
+                    $error['src']['filePath'] = $error['src']['file'];
                     $error['src']['file'] = $this->cleanPath($error['src']['file']);
                 }
             }
@@ -302,6 +311,16 @@ class ErrorHandler {
         if ($error['trace']) {
             $forcePhp = isset($error['_rawTrace']) ? $error['_rawTrace'] : false;
             $error['trace'] = $this->cleanTrace($error['trace'], $forcePhp);
+        }
+
+        // e.g. Format Checker
+        if (preg_match('/^\(([a-zA-Z ]+)\)/', $error['message'], $m)) {
+            $error['message'] = preg_replace('/^\([a-zA-Z ]+\)/', '', $error['message']);
+            $error['type'] = str_replace(' ', '', $m[1]);
+        }
+
+        if ($error['type'] == 'Template') {
+            $error['type'] = 'Template Parser';
         }
 
         return $error;
@@ -334,36 +353,7 @@ class ErrorHandler {
         Tht::errorLog($msg);
     }
 
-    function printToCss ($aOut) {
-
-        $file = Tht::module('Request')->u_url()['path'];
-
-        $out = $aOut;
-
-          $out = "Error in CSS action '" . $file . "'\n\n$out";
-
-          $out = str_replace("'", "\\'", $out);
-          $out = str_replace("\n", "\\A ", $out);
-
-          $msg = "body:before { content: '$out'; white-space: pre; background-color: #242; color: #fff; position: absolute; top: 0; left: 0; width: 100%; padding: 40px; font-family: monaco }";
-
-          print "$msg\n\n\n$aOut";
-    }
-
     function printToWeb ($error) {
-
-        // TODO: handle errors differently for non-HTML output
-        // if (Tht::module('Web')->u_request()['isAjax']) {
-        //     print $out;
-        //     return;
-        // }
-        //
-        // if (strpos(Tht::module('Web')->u_request()['url']['relative'], '.css') !== false) {
-        //     $this->printToCss($out);
-        //     return;
-        // }
-
-       // $logPath = Tht::getRelativePath('data', Tht::path('logFile') );
 
         // Format heading
         $heading = v(v($error['type'])->u_to_token_case(' '))->u_to_title_case();
@@ -373,14 +363,8 @@ class ErrorHandler {
         $error['message'] = Security::escapeHtml($error['message']);
         $error['srcLine'] = Security::escapeHtml($error['srcLine']);
 
-        // Formatting for "Got: ..." detail.
-        // TODO: fix this formatting
-        $error['message'] = preg_replace("/\n+Got:(.*)/s", "<br /><br />Got: $1", $error['message']);
-
-        if (preg_match('/Format Checker/', $error['message'])) {
-            $error['message'] = preg_replace('/\(Format Checker\)/i', '', $error['message']);
-            $heading = "Format Checker";
-            $error['context'] = 'See <a href="https://tht.help/reference/format-checker">Format Checker rules</a>.';
+        if ($error['type'] == 'FormatChecker') {
+            $error['context'] = 'See: <a href="https://tht.help/reference/format-checker">Format Checker</a>';
         }
 
         $error['isLongSrc'] = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
@@ -389,7 +373,8 @@ class ErrorHandler {
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="tht-error-code">$1</span>', $error['message']);
 
         // Put hints on a separate line
-        $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Suggestion: $1', $error['message']);
+        $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Try: $1', $error['message']);
+        $error['message'] = preg_replace("/Got:(.*?)/", '<br /><br />Got: $1', $error['message']);
 
         // format caret, wrap for color coding
         if ($error['srcLine']) {
@@ -399,11 +384,8 @@ class ErrorHandler {
 
         $this->printWebTemplate($heading, $error);
 
-        // TODO: wrap in tags
         $plugin = Tht::module('Js')->u_plugin('colorCode', 'dark');
-        $colorCss = Tht::module('Css')->wrap($plugin[0]->u_stringify());
-        print($colorCss);
-        $colorJs = Tht::module('Js')->wrap($plugin[1]->u_stringify());
+        $colorJs = Tht::module('Js')->wrap($plugin->u_stringify());
         print($colorJs);
     }
 
@@ -412,24 +394,30 @@ class ErrorHandler {
         $zIndex = 99998;  // one less than print layer
         $cssMod = Tht::module('Css');
 
+        $fmtFile = '';
+        if (isset($error['src'])) {
+            $fmtFile = preg_replace('#(.*/)(.*)#', '<span class="tht-error-dir">$1</span>$2', $error['src']['file']);
+        }
+
         ?>
 
-        <div style='position: fixed; overflow: auto; z-index: $zIndex; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 40px 80px;  -webkit-font-smoothing: antialiased;'>
+        <div style='position: fixed; overflow: auto; z-index: $zIndex; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 32px 64px; -webkit-font-smoothing: antialiased;'>
             <style scoped>
                 a { color: #ffd267; text-decoration: none; }
                 a:hover { text-decoration: underline;  }
-                .tht-error-header { font-weight: bold; margin-bottom: 40px; font-size: 150%; border-bottom: solid 12px #ecc25f; padding-bottom: 12px;  }
-                .tht-error-message { margin-bottom: 40px; }
-                .tht-error-content { font: 22px <?= $cssMod->u_sans_serif_font() ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
-                .tht-error-hint {   margin-top: 80px; line-height: 2; opacity: 0.5; font-size: 80%; }
-                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 20px; padding: 30px 30px 30px; background-color: #282828; white-space: pre; font-family: <?= $cssMod->u_monospace_font() ?>; overflow: auto; }
+                .tht-error-header { font-weight: bold; margin-bottom: 32px; font-size: 140%; border-bottom: solid 4px #ecc25f; padding-bottom: 12px;  }
+                .tht-error-message { margin-bottom: 32px; }
+                .tht-error-content { font: 22px <?= $cssMod->u_font('sansSerif') ?>; line-height: 1.3; z-index: 1; position: relative; margin: 0 auto; max-width: 700px; }
+                .tht-error-hint {   margin-top: 64px; line-height: 2; opacity: 0.5; font-size: 80%; }
+                .tht-error-srcline { font-size: 90%; border-radius: 4px; margin-bottom: 32px; padding: 24px 24px 24px; background-color: #282828; white-space: pre; font-family: <?= $cssMod->u_font('monospace') ?>; overflow: auto; }
                 .tht-src-small { font-size: 65%; }
-                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 20px; padding: 20px 30px; background-color: #282828; white-space: pre; font-family: <?= $cssMod->u_monospace_font() ?>; }
+                .tht-error-trace { font-size: 70%; border-radius: 4px; margin-bottom: 32px; margin-top: -28px; padding: 24px 24px; background-color: #282828; white-space: pre; line-height: 150%; font-family: <?= $cssMod->u_font('monospace') ?>; }
                 .tht-caret { color: #eac222; font-size: 30px; position: relative; left: -3px; top: 2px; line-height: 0; }
                 .tht-src-small .tht-caret { font-size: 24px; }
-                .tht-error-file { font-size: 90%; margin-bottom: 40px;  }
-                .tht-error-file span { margin-right: 40px; margin-left: 5px; font-size: 105%; font-weight: bold; color: inherit; }
-                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= $cssMod->u_monospace_font() ?>; background-color: rgba(255,255,255,0.1); padding: 2px 8px; }
+                .tht-error-file { margin-bottom: 32px; border-top: solid 1px rgba(255,255,255,0.1); padding-top: 32px; }
+                .tht-error-file .tht-error-dir { opacity: 0.5; margin: 0;  }
+                .tht-error-file span { margin-right: 32px; margin-left: 4px; font-size: 105%; color: inherit; }
+                .tht-error-code {  display: inline-block; margin: 4px 0; border-radius: 4px; font-size: 90%; font-weight: bold; font-family: <?= $cssMod->u_font('monospace') ?>; background-color: rgba(255,255,255,0.1); padding: 2px 8px; }
             </style>
 
             <div class='tht-error-content'>
@@ -439,8 +427,7 @@ class ErrorHandler {
 
                 <?php if (isset($error['src'])) { ?>
                 <div class='tht-error-file'>
-                    File: <span><?= $error['src']['file'] ?></span>
-                    Line: <span><?= $error['src']['line'] ?></span>
+                    File: <span><?= $fmtFile ?></span>
                 </div>
                 <?php } ?>
 
@@ -481,6 +468,27 @@ class ErrorHandler {
 
     /////////  UTILS
 
+    static function parseInlineTrace($message) {
+        if (!preg_match('/Stack trace:/i', $message)) {
+            return null;
+        }
+
+        $trace = [];
+        // example:
+        // #0 /dir/cache/php/00300703_pages_home.tht.php(123): tht\pages\home_x\u_do_something('a')
+        preg_match_all('/#\d+\s+(\S+?)\((\d+)\):\s+(\S+?)\n/', $message, $lines, PREG_SET_ORDER);
+        foreach($lines as $line) {
+            $fun = preg_replace('/\(.*\)/', '', $line[3]);
+            $frame = [
+                'file' => $line[1],
+                'line' => $line[2],
+                'function' => $fun,
+            ];
+            $trace []= $frame;
+        }
+        return $trace;
+    }
+
     static function phpToSrc ($phpFile, $phpLine) {
 
         $phpCode = file_get_contents($phpFile);
@@ -504,9 +512,7 @@ class ErrorHandler {
         return [ 'line' => $phpLine, 'file' => $phpFile, 'pos' => null ];
     }
 
-    function getSourceLine ($srcPath, $srcLineNum1, $pos=null) {
-
-        $srcLineNum = $srcLineNum1 - 1;  // convert to zero-index
+    function getSourceLines($srcPath, $srcLineNum1) {
 
         if (Tht::module('File')->u_is_relative_path($srcPath)) {
             $srcPath = Tht::path('app', $srcPath);
@@ -514,7 +520,16 @@ class ErrorHandler {
 
         $source = file_get_contents($srcPath);
         $lines = preg_split('/\n/', $source);
-        $line = (count($lines) > $srcLineNum) ? $lines[$srcLineNum] : '';
+
+        return $lines;
+    }
+
+    function getSourceLine ($srcPath, $srcLineNum1, $pos=null) {
+
+        $srcLineNum0 = $srcLineNum1 - 1;  // convert to zero-index
+
+        $lines = $this->getSourceLines($srcPath, $srcLineNum1);
+        $line = (count($lines) > $srcLineNum0) ? $lines[$srcLineNum0] : '';
 
         // have to convert to spaces for pointer to line up
         $line = preg_replace('/\t/', '    ', $line);
@@ -547,11 +562,13 @@ class ErrorHandler {
         return $fmtLine . $marker;
     }
 
-
-    function cleanMsg ($raw) {
+    function cleanMessage ($raw) {
 
         $clean = $raw;
         $clean = $this->cleanVars($clean);
+
+        $clean = str_replace('foreach()', 'for()', $clean);
+        $clean = str_replace('supplied for', 'in', $clean);
 
         // Suppress leaked stack trace
         $clean = preg_replace('/stack trace:.*/is', '', $clean);
@@ -561,11 +578,26 @@ class ErrorHandler {
         $clean = preg_replace('/Call to undefined method (.*)\(\)/', 'Unknown method: `$1`', $clean);
         $clean = preg_replace('/Missing argument (\d+) for (.*)\(\)/', 'Missing argument $1 for `$2()`', $clean);
         $clean = preg_replace('/\{closure\}/i', '{function}', $clean);
+        $clean = preg_replace('/callable/i', 'function', $clean);
         $clean = preg_replace('/, called.*/', '', $clean);
         $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
 
+        if (preg_match("/function '(.*?)' not found or invalid function name/i", $clean, $m)) {
+            $clean = "PHP function does not exist: `" . $m[1] . "`";
+        }
+
+        // Convert internal name conventions
+        $clean = preg_replace('/<<<.*?\/(.*?)>>>/', '$1', $clean);
+        $clean = preg_replace('/O(list|map|regex)/', '$1', $clean);
+
         // PHP7 errors
+        if (preg_match('/TypeError/', $clean)) {
+            $clean = preg_replace('/passed to (\S+)/i', 'passed to `$1`', $clean);
+            $clean = preg_replace('/of the type (.*?),/i', 'of type `$1`.', $clean);
+            $clean = preg_replace('/\.\s*(.*?) given/i', '. Got: `$1`', $clean);
+        }
+        $clean = preg_replace('/Uncaught TypeError:\s*/i', '', $clean);
         $clean = preg_replace('/Uncaught error:\s*/i', '', $clean);
         $clean = preg_replace('/in .*?.php:\d+/i', '', $clean);
         $clean = preg_replace('/[a-z_]+\\\\/i', '', $clean);  // namespaces
@@ -594,37 +626,57 @@ class ErrorHandler {
         $clean = preg_replace('/tht.*?\\\\/', '', $clean); // tht namespage
         $clean = preg_replace_callback('/u_([a-z_]+)/', $fnCamel, $clean);  // user methods
         $clean = preg_replace('/(?<=\w)::/', '.', $clean);  // :: to dot .
-        $clean = preg_replace('/\bO(?=[A-Z])/', '', $clean);  // internal classes e.g. "OString"
+        $clean = preg_replace('/->/', '.', $clean);  // :: to dot .
+        $clean = preg_replace('/\bO(?=[A-Z][a-z])/', '', $clean);  // internal classes e.g. "OString"
         $clean = preg_replace('/\bu_/', '', $clean);  // u_ prefix
-        $clean = preg_replace('#.*\\\\#', '', $clean);  // no namespace
+        $clean = preg_replace('#[a-zA-Z0-9_\\\\]*\\\\#', '', $clean);  // no namespace
 
         return $clean;
     }
 
     function cleanPath ($path) {
-
-        $path = Tht::getThtPathForPhp($path);
         $path = Tht::stripAppRoot($path);
-
         return $path;
     }
 
     function cleanTrace ($trace, $showPhp=false) {
 
         $out = '';
-        $frameNum = 0;
+
+        $filterTrace = [];
         foreach ($trace as $phpFrame) {
             if (! isset($phpFrame['file'])) { continue; }
-            $cl = isset($phpFrame['class']) ? $phpFrame['class'] : '';
 
-            $file = $this->cleanPath($phpFrame['file']);
-            $fun = $this->cleanVars($phpFrame['function']);
+            $phpFrame['class'] = isset($phpFrame['class']) ? $phpFrame['class'] : '';
+            $phpFrame['function'] = $fun = $this->cleanVars($phpFrame['function']);
 
+            // Only show internal frames in core dev mode
             if (!Tht::getConfig('_coreDevMode') && !$showPhp) {
-                if ($cl === 'o\\OTemplate' || $cl === 'o\\Tht' || strpos($phpFrame['file'], '.tht') === false || substr($fun, 0, 2) === '__') {
+                if ($phpFrame['class'] === 'o\\OTemplate'
+                    || $phpFrame['class'] === 'o\\Tht'
+                    || strpos($phpFrame['file'], '.tht') === false
+                    || substr($fun, 0, 2) === '__') {
+
                     continue;
                 }
             }
+            $filterTrace []= $phpFrame;
+        }
+
+        if (!count($filterTrace)) {
+            return "";
+        }
+
+        $frameNum = 0;
+        foreach (array_reverse($filterTrace) as $phpFrame) {
+
+            $file = $this->cleanPath(Tht::getThtPathForPhp($phpFrame['file']));
+            $file = preg_replace('/\.tht$/', '', $file);
+
+            $frameNum += 1;
+
+            $cl = $phpFrame['class'];
+            $fun = $phpFrame['function'];
 
             if (OBare::isa($fun)) {
                 $cl = '';
@@ -632,27 +684,23 @@ class ErrorHandler {
             else if ($fun === 'handlePhpRuntimeError') {
                 $fun = '';
             }
-            else if ($cl) {
-                $fun = $this->cleanVars($cl) . '.' . $fun;
+            else if ($phpFrame['class'] ) {
+                $fun = $this->cleanVars($phpFrame['class'] ) . '.' . $fun;
             }
 
-            $src = ErrorHandler::phpToSrc($phpFrame['file'], $phpFrame['line']);
+            $src = self::phpToSrc($phpFrame['file'], $phpFrame['line']);
 
             $lineMsg = abs($src['line']) . ($src['line'] > 0 ? '' : '(?)');
-            $pre = $frameNum . ' |';
-            if (count($trace) >= 10 && $frameNum < 10) { $pre = ' ' . $pre; }
-            $fun = !$fun ? '' : "- $fun()";
+            $fun = !$fun ? '' : "· $fun()";
 
-            $out .= "$pre  $file, line $lineMsg $fun\n";
+            $pre = $frameNum == count($filterTrace) ? '+' : '|';
 
-            $frameNum += 1;
+            $out .= "$pre  $file · $lineMsg $fun\n";
         }
 
-        if ($frameNum <= 1) {
-            return "";
-        }
+        $out = "|  start\n" . $out;
 
-        return  trim("--- Trace ---\n\n" . $out);
+        return trim("- TRACE -\n\n" . $out);
     }
 
     function doDisplayWebErrors () {
@@ -662,15 +710,83 @@ class ErrorHandler {
         return Compiler::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;
     }
 
-    // function sendErrorToHq($error) {
+    // only send if error is followed by a good compile
+    function saveErrorTelemetry($error) {
 
-    //     $sendError = [
-    //         'srcLine' => $error['srcLine'],
-    //         'message' => $error['message'],
-    //         'pos' => $error['src']['pos'] ?: 0,
-    //     ];
-    //     print_r($sendError);
-    // }
+        if (!isset($error['src'])) {
+            return;
+        }
 
+        $cacheKey = 'tht.lastError.' . $error['src']['file'];
 
+        $prevError = Tht::module('Cache')->u_get($cacheKey, '');
+        if ($prevError && $prevError['message'] == $error['message']) {
+            return;
+        }
+
+        $srcLine = preg_replace('/^\d+:\s*/', '', $error['srcLine']);
+        $srcLine = preg_replace('/\s*\^\s*$/', '', $srcLine);
+
+        $sendError = [
+            'type'    => $error['type'],
+            'time'    => time(),
+            'srcFile' => $error['src']['file'],
+            'srcLine' => $srcLine,
+            'message' => $error['message'],
+        ];
+
+        Tht::module('Cache')->u_set($cacheKey, $sendError, 0);
+    }
+
+    static function sendErrorTelemetry($thtFile) {
+
+        if (!Compiler::getDidCompile() || !Tht::getConfig('sendErrors')) {
+            return;
+        }
+
+        $relPath = Tht::getRelativePath('app', $thtFile);
+        $cacheKey = 'tht.lastError.' . $relPath;
+        $error = Tht::module('Cache')->u_get($cacheKey, '');
+        if (!$error) {
+            return;
+        }
+
+        Tht::module('Cache')->u_delete($cacheKey);
+
+        require_once(__DIR__ . '/../compiler/SourceAnalyzer.php');
+
+        $sa = new SourceAnalyzer ($thtFile);
+        $stats = $sa->getCurrentStats();
+
+        $mergeStats = [
+            'linesInFile'      => $stats['numLines'],
+            'functionsInFile'  => $stats['numFunctions'],
+            'linesPerFunction' => $stats['numLinesPerFunction'],
+            'totalWorkTime'    => $stats['totalWorkTime'],
+            'numCompiles'      => $stats['numCompiles'],
+        ];
+
+        $error = array_merge($error, $mergeStats);
+
+        $error['fixDurationSecs'] = time() - $error['time'];
+        $error['thtVersion'] = Tht::getThtVersion(true);
+        $error['phpVersion'] = PHP_VERSION_ID;
+
+        // Get local OS
+        $os = strtolower(PHP_OS);
+        if (substr($os, 0, 3) == 'win') {
+            $os = 'windows';
+        } else if ($os == 'darwin') {
+            $os = 'mac';
+        }
+        $error['os'] = $os;
+
+        try {
+            $tUrl = new UrlTagString(Tht::getConfig('_sendErrorUrl'));
+            Tht::module('Net')->u_http_post($tUrl, OMap::create($error));
+        }
+        catch (\Exception $e) {
+            // Drop on floor
+        }
+    }
 }
