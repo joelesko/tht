@@ -258,7 +258,7 @@ class u_Jcon extends StdModule {
         if ($this->context['type'] == 'map')  {
             // key/value pair
             if ($isLitemark) {
-                $val = Tht::module('Litemark')->u_parse($val);
+                $val = Tht::module('Litemark')->u_parse($val, OMap::create([ 'html' => true ]));
             }
             $this->leaf[$key] = $val;
         }
