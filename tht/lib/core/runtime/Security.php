@@ -52,12 +52,16 @@ class Security {
         'url_exec',
     ];
 
+    static function error($msg) {
+        Tht::error('(Security) ' . $msg);
+    }
+
     // TODO: allow multiple IPs (list in app.jcon)
     static function isAdmin() {
         $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
         $adminIp = Tht::getConfig('adminIp');
         $isWhitelistedIp = $adminIp && $adminIp == $ip;
-        if ($isWhitelistedIp || Tht::isMode('testServer') || $ip = '127.0.0.1') {
+        if ($isWhitelistedIp || Tht::isMode('testServer') || $ip == '127.0.0.1') {
             return true;
         }
         return false;
@@ -196,7 +200,7 @@ class Security {
         self::$isCsrfTokenValid = false;
 
         $localCsrfToken = Tht::module('Session')->u_get('csrfToken', '');
-        $post = Tht::data('phpGlobals', 'post');
+        $post = Tht::data('requestData', 'post');
         $remoteCsrfToken = isset($post['csrfToken']) ? $post['csrfToken'] : '';
 
         if ($localCsrfToken && hash_equals($localCsrfToken, $remoteCsrfToken)) {
@@ -210,7 +214,7 @@ class Security {
         $func = strtolower($func);
         $func = preg_replace('/^\\\\/', '', $func);
         if (in_array($func, self::$PHP_BLACKLIST) || preg_match(self::$PHP_BLACKLIST_MATCH, $func)) {
-            Tht::error("PHP function is blacklisted: `$func`");
+            self::error("PHP function is blacklisted: `$func`");
         }
     }
 
@@ -223,19 +227,19 @@ class Security {
 
         // TODO: revisit ' '
         if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
-            Tht::error("Illegal character in path: `$path`");
+            self::error("Illegal character in path: `$path`");
         }
         else if (!strlen($path)) {
-            Tht::error("File path cannot be empty: `$path`");
+            self::error("File path cannot be empty: `$path`");
         }
         else if (v($path)->u_is_url()) {
-            Tht::error("Remote URL not allowed: `$path`");
+            self::error("Remote URL not allowed: `$path`");
         }
         else if (strpos($path, '..') !== false) {
-            Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+            self::error("Parent shortcut `..` not allowed in path: `$path`");
         }
         else if (strpos($path, './') !== false) {
-            Tht::error("Dot directory `.` not allowed in path: `$path`");
+            self::error("Dot directory `.` not allowed in path: `$path`");
         }
 
         if ($checkSandbox) {
@@ -254,7 +258,7 @@ class Security {
         else {
             $sandboxDir = Tht::path('files');
             if (strpos($path, $sandboxDir) !== 0) {
-                Tht::error("Path must be relative to `data/files`: `$path`");
+                self::error("Path must be relative to `data/files`: `$path`");
             }
             return $path;
         }
@@ -267,20 +271,21 @@ class Security {
         }
         self::$isPostRequestValidated = true;
 
-        $web = Tht::module('Web');
+        $res = Tht::module('Response');
+        $req = Tht::module('Request');
 
-        if (Tht::module('Request')->u_method() === 'get') {
+        if ($req->u_method() === 'get') {
             return;
         }
         else if (Security::isCrossOrigin()) {
-            $web->u_send_error(403, 'Remote Origin Not Allowed');
+            $res->u_send_error(403, 'Remote Origin Not Allowed');
         }
         else if (!Security::validateCsrfToken()) {
-            $web->u_send_error(403, 'Invalid or Missing CSRF Token');
+            $res->u_send_error(403, 'Invalid or Missing CSRF Token');
         }
-        else if (Security::isPossibleBruteForce()) {
-            $web->u_send_error(429, 'Too Many Requests', 'Must wait 2 seconds between POST requests.');
-        }
+        // else if (Security::isPossibleBruteForce()) {
+        //     $web->u_send_error(429, 'Too Many Requests', 'Must wait 2 seconds between POST requests.');
+        // }
     }
 
     // All lowercase, no special characters, hyphen separators, no trailing slash
@@ -293,24 +298,26 @@ class Security {
         }
     }
 
+    // WIP: Wait until we implement an Auth module
+    //
     // https://stackoverflow.com/questions/549/the-definitive-guide-to-form-based-website-authentication
     // See part VI, on brute force attempts
     // Just a simple speed bump -- fast enough to not be noticeable by humans.
-    static function isPossibleBruteForce() {
+    // static function isPossibleBruteForce() {
 
-        // Keep this very general (IP), so that it can't be invalidated client-side
-        $userKey = 'lastPostTime:' . Tht::module('Request')->u_ip();
+    //     // Keep this very general (IP), so that it can't be invalidated by the client
+    //     $userKey = 'lastPostTime:' . Tht::module('Request')->u_ip();
 
-        $lastPostTime = Tht::module('Cache')->u_get($userKey, 0);
-        $now = microtime(true);
-        $threshTime = $lastPostTime + self::$THROTTLE_POST_SECS;
-        $isTooSoon = $now < $threshTime;
+    //     $lastPostTime = Tht::module('Cache')->u_get($userKey, 0);
+    //     $now = microtime(true);
+    //     $threshTime = $lastPostTime + self::$THROTTLE_POST_SECS;
+    //     $isTooSoon = $now < $threshTime;
 
-        $cacheTtlSecs = ceil(self::$THROTTLE_POST_SECS + 5);
-        $cache->u_set($userKey, $now, $cacheTtlSecs);
+    //     $cacheTtlSecs = ceil(self::$THROTTLE_POST_SECS + 5);
+    //     $cache->u_set($userKey, $now, $cacheTtlSecs);
 
-        return $isTooSoon;
-    }
+    //     return $isTooSoon;
+    // }
 
     static function isCrossOrigin () {
 
@@ -322,10 +329,10 @@ class Security {
            $host  = Tht::getWebRequestHeader('host');
            $origin = Tht::getWebRequestHeader('origin');
            $origin = preg_replace('/^https?:\/\//i', '', $origin);
+
            if (!$origin) {
                $referrer = Tht::getWebRequestHeader('referrer');
-
-               if (strpos($referrer, $host)) {
+               if (!$referrer || strpos($referrer, $host) == 0) {
                    self::$isCrossOrigin = false;
                } else {
                    self::$isCrossOrigin = true;
@@ -347,6 +354,11 @@ class Security {
         header('X-Frame-Options: deny');
         header('X-Content-Type-Options: nosniff');
         header("X-UA-Compatible: IE=Edge");
+
+        // HSTS - 1 year duration
+        if (!(Tht::isMode('testServer') || $ip == '127.0.0.1')) {
+            header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+        }
 
         // Content Security Policy (CSP)
         $csp = Tht::getConfig('contentSecurityPolicy');
@@ -473,7 +485,7 @@ class Security {
         return true;
     }
 
-    static function sanitizeHash($hash) {
+    static function sanitizeUrlHash($hash) {
         $hash = preg_replace('![^a-z0-9\-]!', '-', strtolower($hash));
         $hash = rtrim($hash, '-');
         return $hash;
@@ -492,7 +504,7 @@ class Security {
 
         preg_match('!^(.*?)#(.*)$!', $url, $m);
         if (isset($m[2])) {
-            $url = $m[1] . '#' . self::sanitizeHash($m[2]);
+            $url = $m[1] . '#' . self::sanitizeUrlHash($m[2]);
         }
 
         $u = parse_url($url);
@@ -574,36 +586,6 @@ class Security {
     static function getFileMimeType($file) {
         $finfo = new \finfo();
         return $finfo->file($file, FILEINFO_MIME_TYPE);
-    }
-}
-
-// Wrapper for incoming passwords to prevent leakage of plaintext
-class OPassword {
-
-    private $plainText = '';
-    private $hash = '';
-
-     function __construct ($plainText) {
-         $this->plainText = $plainText;
-     }
-
-     function __toString() {
-         return '[Password]';
-     }
-
-     function u_hash() {
-         if (!$this->hash) {
-             $this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
-         }
-         return $this->hash;
-     }
-
-     function u_is_correct($correctHash) {
-         return password_verify($this->plainText, $correctHash);
-     }
-
-    function u_danger_danger_plain_text() {
-        return $this->plainText;
     }
 }
 
