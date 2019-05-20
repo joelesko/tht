@@ -1,20 +1,10 @@
 <?php
 
-/*
-
-modifiers
-  list
-
-civilize
-
-*/
-
-
 namespace o;
 
 class u_InputValidator {
 
-    private $data = [];
+    private $allRules;
 
     private $defaultRule = [
         'required' => true,
@@ -23,6 +13,7 @@ class u_InputValidator {
         'min' => 4,
         'max' => 100,
         'regex' => '',
+        'default' => '',
 
         'removeHtml'        => true,
         'removeNewlines'    => true,
@@ -32,44 +23,50 @@ class u_InputValidator {
 
     private $baseRules = [
 
-        'flag' => [
+        // Type Rules
+        //-------------------------------------------
+
+        'b' => [
             'min' => 1,
             'max' => 5,
+            'default' => false,
         ],
 
-        'int' => [
+        'i' => [
             'min' => 0,
-            'max' => 10000,
+            'max' => 'none',
             'regex' => '[0-9\-]+',
             'type' => 'int',
+            'default' => 0,
         ],
 
-        'float' => [
+        'f' => [
             'min' => 0,
-            'max' => 10000,
-            'chars' => '[0-9\-\.]+',
+            'max' => 'none',
+            'regex' => '[0-9\-\.]+',
             'type' => 'float',
+            'default' => '0',
         ],
 
-        'text' => [
-            'min' => 4,
+        's' => [
+            'min' => 1,
             'max' => 100,
             'removeQuotes' => false,
         ],
 
-        'textbody' => [
-            'min' => 10,
-            'max' => 'none',
-            'removeNewlines' => false,
-            'removeQuotes' => false,
-        ],
-
-        //----------
+        // Semantic Rules
+        //-------------------------------------------
 
         'id' => [
             'min' => 1,
             'max' => 100,
             'regex' => '[a-zA-Z0-9\-\._]+',
+        ],
+
+        'accepted' => [
+            'min' => 1,
+            'max' => 5,
+            'default' => false,
         ],
 
         // same as reddit
@@ -83,6 +80,8 @@ class u_InputValidator {
         'password' => [
             'min' => 8,
             'max' => 100,
+            'removeQuotes' => false,
+            'removeHtml'   => false,
         ],
 
         'url' => [
@@ -102,6 +101,13 @@ class u_InputValidator {
             'regex' => '[0-9\(\)\.\-\+ext ]+',
         ],
 
+        'body' => [
+            'min' => 10,
+            'max' => 'none',
+            'removeNewlines' => false,
+            'removeQuotes' => false,
+        ],
+
         'json' => [
             'min' => 1,
             'max' => 'none',
@@ -110,6 +116,16 @@ class u_InputValidator {
             'removeNewlines'    => false,
             'removeHtml'        => false,
         ],
+
+        'dangerdangerraw' => [
+            'min' => 1,
+            'max' => 'none',
+            'removeQuotes'      => false,
+            'removeExtraSpaces' => false,
+            'removeNewlines'    => false,
+            'removeHtml'        => false,
+        ],
+
     ];
 
     private $modifierRules = [
@@ -120,75 +136,79 @@ class u_InputValidator {
 
         'dangerdangerhtml' => [
             'removeHtml' => false,
+            'removeQuotes' => false,
         ],
+
+        'civilize' => [],
+
+        'list' => [],
 
     ];
 
-    private $overrideRules = [
+    private $constraintRules = [
         'min', 'max', 'regex',
     ];
 
     private $variableRules = [
-        'in', 'notin', 'same', 'different'
+        'in', 'notin', 'same', 'notsame'
     ];
 
-    function validateFields($data, $schema) {
+    function __construct() {
+        $this->allRules = array_keys($this->baseRules);
+        $this->allRules = array_merge($this->allRules, array_keys($this->modifierRules));
+        $this->allRules = array_merge($this->allRules, $this->constraintRules);
+        $this->allRules = array_merge($this->allRules, $this->variableRules);
+        $this->allRules []= 'required';
+    }
 
-        $this->data = $data;
+    public function validateFields($data, $fields) {
 
         $allFieldsOk = true;
         $errors = [];
         $results = [];
 
-        foreach (uv($schema) as $fieldName => $fieldSchema) {
+        foreach (uv($fields) as $fieldName => $rules) {
 
-            if (!isset($data[$fieldName])) {
-                // Tht::error("Missing form data for field: `$fieldName`");
-                $val = '';
-            }
-            else {
-                $val = $data[$fieldName];
-            }
-
-            $result = $this->validateField($fieldName, $val, $fieldSchema);
+            $val = isset($data[$fieldName]) ? $data[$fieldName] : '';
+            $result = $this->validateField($fieldName, $val, $rules);
 
             if (!$result['ok']) {
                 $allFieldsOk = false;
-                $errors []= $result;
-                $results[$fieldName] = '';
-            }
-            else {
-                $results[$fieldName] = $result['value'];
+                $result = OMap::create($result);
+                $errors []= $result->u_slice(OList::create(['field', 'error']));
             }
 
+            $results[$fieldName] = $result['value'];
         }
 
-        return [
+        return OMap::create([
             'ok' => $allFieldsOk,
-            'errors' => $errors,
-            'fields' => $results,
-        ];
+            'errors' => OList::create($errors),
+            'fields' => OMap::create($results),
+        ]);
     }
 
-    function validateField($fieldName, $origVal, $rawRules) {
+    public function validateField($fieldName, $origVal, $rawRules, $inList=false) {
 
-        $rules = $this->initRules($rawRules);
-
+        $rules = $this->initRules($rawRules, $fieldName);
         $constraints = $this->initConstraints($fieldName, $rules);
+
+        if (is_array($origVal) || OLIst::isa($origVal)) {
+            if (!in_array('list', $rules)) {
+                $origVal = '';
+            }
+            else if ($inList) {
+                return $this->errorValue($fieldName, 'Nested lists not allowed.', '');
+            }
+            else {
+                return $this->validateList($fieldName, $origVal, $rawRules);
+            }
+        }
 
         $val = $this->filterValue($origVal, $constraints);
 
-        if ($val == '') {
-            if (!$constraints['required']) {
-                return $this->okValue($fieldName, $val);
-            }
-            else {
-                return $this->errorValue($fieldName, 'Field is required.');
-            }
-        }
-
         // Add Constraints
-        foreach (['min', 'max', 'regex'] as $c) {
+        foreach (['regex', 'min', 'max', 'required'] as $c) {
             $limit = $constraints[$c];
             array_unshift($rules, 'constraint_' . $c . ':' . $limit);
         }
@@ -197,13 +217,59 @@ class u_InputValidator {
         foreach ($rules as $r) {
             $result = $this->validateRule($val, $r);
             if (!$result['ok']) {
-                return $this->errorValue($fieldName, $result['error']);
+                return $this->errorValue($fieldName, $result['error'], $constraints['default']);
             }
             $val = $result['cleanValue'];
         }
 
         return $this->okValue($fieldName, $val);
     }
+
+    // TODO: make this error more useful, retain good values
+    private function validateList($fieldName, $origVal, $rawRules) {
+        $vals = [];
+        foreach ($origVal as $v) {
+            $listElResult = $this->validateField($fieldName, $v, $rawRules, true);
+            if (!$listElResult['ok']) {
+                return $this->errorValue($fieldName, $listElResult['error'], OList::create([]));
+            }
+            else {
+                $vals []= $listElResult['value'];
+            }
+        }
+        return $this->okValue($fieldName, OList::create($vals));
+    }
+
+    public function validateRule($val, $rule) {
+
+        $rule = trim($rule);
+        $arg = '';
+        if (strpos($rule, ':') !== false) {
+            $parts = explode(':', $rule, 2);
+            $rule = trim($parts[0]);
+            $arg = trim($parts[1]);
+        }
+
+        $fnValidate = 'validate_' . strtolower($rule);
+        $checkRule = str_replace('constraint_', '', $rule);
+
+        $result = $val;
+        if (preg_match('/[^a-zA-Z_]/', $rule) || !in_array($checkRule, $this->allRules)) {
+            $result = ["Unknown validation rule: `$fnValidate`"];
+        } else {
+            if (method_exists($this, $fnValidate)) {
+                $result = call_user_func([$this, $fnValidate], $val, $arg);
+            }
+        }
+
+        $isOk = !is_array($result);
+        return [
+            'ok' => $isOk,
+            'cleanValue' => $isOk ? $result : '',
+            'error' => $isOk ? '' : $result[0]
+        ];
+    }
+
 
     function okValue($fieldName, $value) {
         return [
@@ -214,19 +280,22 @@ class u_InputValidator {
         ];
     }
 
-    function errorValue($fieldName, $msg) {
+    function errorValue($fieldName, $msg, $defaultValue) {
         return [
             'ok'    => false,
             'error' => $msg,
             'field' => $fieldName,
-            'value' => '',
+            'value' => $defaultValue,
         ];
     }
 
-    function initRules($rawRules) {
-        if (!is_array($rawRules)) {
-            $rawRules = explode('|', $rawRules);
+    function initRules($rawRules, $fieldName) {
+        if ($rawRules == '') {
+            $rawRules = [$this->autoRule($fieldName)];
         }
+
+        $rawRules = explode('|', $rawRules);
+
         $rules = [];
         foreach ($rawRules as $r) {
             $rules []= trim($r);
@@ -235,9 +304,70 @@ class u_InputValidator {
         return $rules;
     }
 
+    /*
+
+        TODO:
+        COMMON FIELDS (taken from browser autocomplete)
+
+        initial
+        name
+        birth
+        email
+        address
+        city
+        state
+        zip
+        postal
+        country
+        areacode
+        phone
+        company
+
+        password
+        -Id
+        accept
+
+        subject
+        title
+        comment
+        body
+
+    */
+    function autoRule($af) {
+
+        $f = strtolower($af);
+
+        if (preg_match('#(email)#', $f)) {
+            return 'email';
+        }
+        else if (preg_match('#(password|passwd|pass)#', $f)) {
+            return 'password';
+        }
+        else if (preg_match('#(user|username)#', $f)) {
+            return 'userName';
+        }
+        else if (preg_match('#id$#', $f)) {
+            return 'id';
+        }
+        else if (preg_match('#url#', $f)) {
+            return 'url';
+        }
+        else if (preg_match('#phone#', $f)) {
+            return 'phone';
+        }
+        else if (preg_match('#accept#', $f)) {
+            return 'accepted';
+        }
+        else if (preg_match('#body#', $f)) {
+            return 'body';
+        }
+
+        Tht::error("Can't auto-detect validation rule for field `$af`");
+    }
+
     function initConstraints($fieldName, $rules) {
 
-        // Build up constraints
+        // Build up constraints (min, max, regex, required)
         $constraints = $this->defaultRule;
 
         // Base Rules
@@ -247,7 +377,7 @@ class u_InputValidator {
                 if ($baseRule) {
                    Tht::error("Can't have more than 1 base rule for field: `$fieldName`. Got: `$baseRule` and `$rule`");
                 }
-                $contraints = array_merge($constraints, $this->baseRules[$rule]);
+                $constraints = array_merge($constraints, $this->baseRules[$rule]);
                 $baseRule = $rule;
             }
         }
@@ -258,23 +388,22 @@ class u_InputValidator {
         // Modifier Rules
         foreach ($rules as $rule) {
             if (isset($this->modifierRules[$rule])) {
-                $contraints = array_merge($constraints, $this->modifierRules[$rule]);
+                $constraints = array_merge($constraints, $this->modifierRules[$rule]);
             }
         }
 
-        // Override Rules
-        foreach ($rules as $rule) {
-            if (isset($this->overrideRules[$rule])) {
-                $parts = explode(':', $rules, 2);
+        // Constraint Rules
+        foreach ($rules as $rawRule) {
+            $parts = explode(':', $rawRule, 2);
+            if (in_array($parts[0], $this->constraintRules)) {
                 if (count($parts) !== 2) {
-                    Tht::error('Rule is missing an argument. Tip: `' . $parts[0] . ':argument`');
+                    Tht::error("Rule for field `$fieldName` is missing an argument. Tip: `" . $parts[0] . ':argument`');
                 }
                 $constraints[$parts[0]] = $parts[1];
             }
         }
 
         return $constraints;
-
     }
 
     function filterValue($val, $constraints) {
@@ -290,55 +419,43 @@ class u_InputValidator {
         }
 
         if ($constraints['removeNewlines']) {
-            $val = preg_replace('/\n+/', '', $val);
+            $val = preg_replace('/\n+/', ' ', $val);
         }
 
         if ($constraints['removeExtraSpaces']) {
-            $val = preg_replace('/\s+/', ' ', $val);
+            $val = preg_replace('/[\t ]+/', ' ', $val);
         }
 
-        if ($constraints['type'] == 'int' && $val !== '') {
-            $val = intval($val);
-        }
-        else if ($constraints['type'] == 'float' && $val !== '') {
-            $val = floatval($val);
+        if ($val !== '') {
+            if ($constraints['type'] == 'int') {
+                $val = intval($val);
+            }
+            else if ($constraints['type'] == 'float') {
+                $val = floatval($val);
+            }
         }
 
         return $val;
     }
 
-    function validateRule($val, $rule) {
-
-        $rule = trim($rule);
-        $arg = '';
-        if (strpos($rule, ':') !== false) {
-            $parts = explode(':', $rule, 2);
-            $rule = trim($parts[0]);
-            $arg = trim($parts[1]);
-        }
-
-        $fnValidate = 'validate_' . strtolower($rule);
-
-        $result = [];
-        if (preg_match('/[^a-zA-Z_]/', $rule) || !method_exists($this, $fnValidate)) {
-            $result = ["Unknown validation rule: `$fnValidate`"];
-        } else {
-            $result = call_user_func([$this, $fnValidate], $val, $arg);
-        }
-
-        $isOk = !is_array($result);
-        return [
-            'ok' => $isOk,
-            'cleanValue' => $isOk ? $result : '',
-            'error' => $isOk ? '' : $result[0]
-        ];
-    }
-
 
 
     //  Validation Rules
-    // -----------------------------------------------------------
+    //     Return the filtered value, or a List with an error message
+    // -------------------------------------------------------------------
 
+
+    function validate_constraint_required($val, $required) {
+        if ($val == '') {
+            if (!$required) {
+                return $val;
+            }
+            else {
+                return ['Must be filled.'];
+            }
+        }
+        return $val;
+    }
 
     function validate_constraint_min($val, $limit) {
         if ($limit === 'none') {
@@ -346,7 +463,7 @@ class u_InputValidator {
         }
 
         $limit = intval($limit);
-        if (is_numeric($val)) {
+        if (is_int($val) || is_float($val)) {
             if ($val < $limit) {
                 return ["Must be $limit or more."];
             }
@@ -363,7 +480,7 @@ class u_InputValidator {
             return $val;
         }
         $limit = intval($limit);
-        if (is_numeric($val)) {
+        if (is_int($val) || is_float($val)) {
             if ($val > $limit) {
                 return ["Must be $limit or less."];
             }
@@ -376,38 +493,23 @@ class u_InputValidator {
     }
 
     function validate_constraint_regex($val, $pattern) {
+
         if ($pattern === '') {
             return $val;
         }
+
         $pattern = str_replace(':OR:', '|', $pattern);
         if (!preg_match('#^' . $pattern . '$#', $val)) {
-            return ['Did not match pattern: `$pattern`'];
+            return ["Please double-check."];
         }
         return $val;
     }
 
-    function validate_username($val) {
-        return $val;
-    }
-    function validate_text($val) {
-        return $val;
-    }
-    function validate_id($val) {
-        return $val;
-    }
-    function validate_int($val) {
-        return $val;
-    }
-    function validate_float($val) {
-        return $val;
-    }
-
-
-    function validate_flag($val) {
+    function validate_b($val) {
         return ($val === 'true' || $val === '1');
     }
 
-    function validate_textbody($val) {
+    function validate_body($val) {
         $val = preg_replace('/ +/', ' ', $val);
         $val = preg_replace('/\n{2,}/', "\n\n", $val);
 
@@ -421,8 +523,8 @@ class u_InputValidator {
         return $val;
     }
 
-    function validate_accept($val) {
-        $val = $this->validate_flag($val);
+    function validate_accepted($val) {
+        $val = $this->validate_b($val);
         if ($val === true) {
             return true;
         }
@@ -439,6 +541,14 @@ class u_InputValidator {
     }
 
 
+    function validate_list($val) {
+        return $val;
+    }
+
+    function validate_civilize($val) {
+        return v($val)->u_civilize();
+    }
+
 
     //===== Variable Rules
 
@@ -453,9 +563,9 @@ class u_InputValidator {
         return $val;
     }
 
-    function validate_different($val, $arg) {
+    function validate_notsame($val, $arg) {
         if (!isset($this->data[$arg])) {
-            return ["RULE ERROR: 'different:$arg'."];
+            return ["RULE ERROR: 'notsame:$arg'."];
         }
         if (trim($val) === trim($this->data[$arg])) {
             $arg = ucfirst($arg);
@@ -481,7 +591,4 @@ class u_InputValidator {
     }
 
 }
-
-
-
 
