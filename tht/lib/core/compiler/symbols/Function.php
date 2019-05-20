@@ -37,7 +37,7 @@ class S_Function extends S_Statement {
             // anonymous function. e.g. function () { ... }
             $anon = $p->makeSymbol(
                 TokenType::WORD,
-                ParserData::$ANON,
+                CompilerConstants::$ANON,
                 SymbolType::USER_FUN
             );
             $this->addKid($anon);
@@ -78,6 +78,7 @@ class S_Function extends S_Statement {
                     break;
                 }
 
+                // splat
                 $isSplat = false;
                 if ($p->symbol->token[TOKEN_VALUE] === '...') {
                     $p->space('*...x');
@@ -86,7 +87,7 @@ class S_Function extends S_Statement {
                 }
 
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
-                    $p->error("Expected an argument name.  Ex: `fun myFun (argument) { ... }`");
+                    $p->error("Expected an argument name.  Ex: `function myFun (argument)`");
                 }
 
                 $p->validator->define($p->symbol, true);
@@ -94,21 +95,49 @@ class S_Function extends S_Statement {
                 $sArg = $p->symbol;
                 $sArg->updateType($isSplat ? SymbolType::FUN_ARG_SPLAT : SymbolType::FUN_ARG);
 
+                // Prevent duplicate arguments
+                $argName = $sArg->token[TOKEN_VALUE];
+                if (isset($seenName[$argName])) {
+                    $p->error("Duplicate argument `$argName`", $sArg->token);
+                }
+                $seenName[$argName] = true;
+
                 if (count($argSymbols) > 0 && !$isSplat) {
                     $p->space('Sarg*');
                 }
 
                 $sNext = $p->next();
 
+                // Type declaration
+                $sArgType = null;
+                if ($sNext->isValue(':')) {
+                    $p->space('x:x');
+                    $p->next();
+                    $sArgType = $p->symbol;
+                    if ($sArgType->token[TOKEN_TYPE] !== TokenType::WORD) {
+                        $p->error("Expected a type.  Ex: `function myFun (arg:s)`");
+                    }
+                    $type = $sArgType->token[TOKEN_VALUE];
+                    if (!in_array($type, CompilerConstants::$TYPE_DECLARATIONS)) {
+                        $types = implode(' ', CompilerConstants::$TYPE_DECLARATIONS);
+                        $p->error("Unknown type: `$type`. Supported types: `$types`");
+                    }
+                    $sArgType->updateType(SymbolType::FUN_ARG_TYPE);
+
+                    $sArg->addKid($sArgType);
+
+                    $sNext = $p->next();
+                }
+
+                // Argument with default
                 if ($sNext->isValue('=')) {
 
                     if ($isSplat) {
-                        $p->error("Spread operator `...` can not have a default value.");
+                        $p->error("Spread operator `...` can't have a default value.");
                     }
 
                     $p->space(' = ');
 
-                    // argument with default.
                     // e.g. function foo (a = 1) { ... }
                     $p->next();
                     $sDefault = $p->parseExpression(0);
@@ -120,26 +149,14 @@ class S_Function extends S_Statement {
                     $p->error("Required arguments should appear before optional arguments.", $sArg->token);
                 }
 
-                // Prevent duplicate arguments
-                $argName = $sArg->token[TOKEN_VALUE];
-                if (isset($seenName[$argName])) {
-                    $p->error("Duplicate argument `$argName`", $sArg->token);
-                }
-                $seenName[$argName] = true;
-
                 $argSymbols []= $sArg;
-
                 if (!$p->symbol->isValue(",")) {
                     break;
                 }
                 $p->space('x,S');
+
                 $p->next();
             }
-
-            // $maxArgs = ParserData::$MAX_FUN_ARGS;
-            // if (count($argSymbols) > ParserData::$MAX_FUN_ARGS) {
-            //     $p->error("Too many arguments in function (Max: $maxArgs). Try: Take a Map of options as one argument.", [], true);
-            // }
 
             $this->addKid($p->makeSequence(SequenceType::ARGS, $argSymbols));
 
