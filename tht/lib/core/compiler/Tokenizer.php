@@ -164,9 +164,9 @@ class Tokenizer extends StringReader {
     }
 
     function onNewline() {
-        if ($this->colNum > ParserData::$MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
+        if ($this->colNum > CompilerConstants::$MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
             && !$this->inMultiLineString && !$this->inComment) {
-            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . ParserData::$MAX_LINE_LENGTH . '.');
+            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . CompilerConstants::$MAX_LINE_LENGTH . '.');
         }
     }
 
@@ -272,13 +272,13 @@ class Tokenizer extends StringReader {
         if ($this->templateMode === TemplateMode::CODE_LINE && $c === "\n") {
             $prev = $this->prevChar();
             if ($prev !== '{' && $prev !== ';' && $prev !== '}') {
-                $this->error("Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end with a semicolon `;` or brace `{ }`");
+                $this->error("(Template) Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end with a semicolon `;` or brace `{ }`");
             }
             $this->templateMode = TemplateMode::BODY;
         }
         else if ($this->templateMode === TemplateMode::EXPR && $c === "\n") {
             $this->updateTokenPos();
-            $this->error("Unexpected newline inside of template expression `{{ ... }}`.");
+            $this->error("(Template) Unexpected newline inside of template expression `{{ ... }}`.");
         }
 
         if ($c === "\n") {
@@ -443,11 +443,11 @@ class Tokenizer extends StringReader {
             $str = v($str)->u_trim_indent();
         }
 
-        if ($type === TokenType::STRING) {
-            if (preg_match('#\?\S+=#', $str)) {
-                $this->error("URL should be created as a TagString. Try: e.g. `url'/page'.query({ foo: 123 })`");
-            }
-        }
+        // if ($type === TokenType::STRING) {
+        //     if (preg_match('#\?\S+=#', $str)) {
+        //         $this->error("URL should be created as a TagString. Try: e.g. `url'/page'.query({ foo: 123 })`");
+        //     }
+        // }
 
         $this->checkAdjacentAtom('string', $str);
         $this->makeToken($type, $str);
@@ -523,10 +523,10 @@ class Tokenizer extends StringReader {
         if ($this->isGlyph('{') && $this->templateMode == TemplateMode::PRE) {
 
             // start of template body
-            $foundType = preg_match('/(' . ParserData::$TEMPLATE_TYPES . ')$/i', $this->templateName, $m);
+            $foundType = preg_match('/(' . CompilerConstants::$TEMPLATE_TYPES . ')$/i', $this->templateName, $m);
             if (!$foundType) {
                 $rec = lcfirst($this->templateName) . "Html";
-                $this->error("Missing type in template function name.  e.g. `template $rec`");
+                $this->error("(Template) Missing type in template function name.  e.g. `template $rec`");
             }
             $this->templateMode = TemplateMode::BODY;
             $this->templateType = strtolower($m[1]);
@@ -536,7 +536,7 @@ class Tokenizer extends StringReader {
             $this->nextFor('{');
             $this->makeToken(TokenType::GLYPH, '{');
             if ($this->char() !== "\n") {
-                $this->error("Opening template brace `{` must be followed by a newline.");
+                $this->error("(Template) Opening template brace `{` must be followed by a newline.");
             }
             return;
         }
@@ -577,14 +577,6 @@ class Tokenizer extends StringReader {
         }
 
         $t = $this->makeToken(TokenType::GLYPH, $str);
-        $this->checkAltToken($str, $t);
-    }
-
-    function checkAltToken ($altValue, $token) {
-        if (isset(ParserData::$ALT_TOKENS[$altValue])) {
-            $correct = ParserData::$ALT_TOKENS[$altValue];
-            $this->error("Unknown token: `$altValue`  Try: `$correct`", $token);
-        }
     }
 
     function addTemplateString ($str) {
@@ -619,7 +611,7 @@ class Tokenizer extends StringReader {
 
                 // end of template body '}'
                 if (!$this->isGlyph('}')) {
-                    $this->error("Line should be indented inside template `" . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
+                    $this->error("(Template) Line should be indented inside template `" . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
                 }
 
                 $this->currentTemplateTransformer->onEndTemplateBody();
@@ -635,7 +627,7 @@ class Tokenizer extends StringReader {
                 $this->templateName = '';
 
                 if ($this->char() !== "\n") {
-                    $this->error("Missing newline after closing brace `}`.");
+                    $this->error("(Template) Missing newline after closing brace `}`.");
                 }
 
                 return TemplateMode::NONE;
@@ -646,7 +638,7 @@ class Tokenizer extends StringReader {
                 $this->addTemplateString($str);
                 $this->nextFor(Glyph::TEMPLATE_CODE_LINE);
                 if ($this->char() !== " ") {
-                    $this->error("Missing space after `" . Glyph::TEMPLATE_CODE_LINE . "`.");
+                    $this->error("(Template) Missing space after `" . Glyph::TEMPLATE_CODE_LINE . "`.");
                 }
                 return TemplateMode::CODE_LINE;
 
