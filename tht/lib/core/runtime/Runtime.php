@@ -77,13 +77,13 @@ class Runtime {
     }
 
     static function concat ($a, $b) {
-        $sa = OTagString::isa($a);
-        $sb = OTagString::isa($b);
+        $sa = OTypeString::isa($a);
+        $sb = OTypeString::isa($b);
         if ($sa || $sb) {
             if (!($sa && $sb)) {
-                Tht::error("Can't combine (~) a TagString with a non-TagString.");
+                Tht::error("Can't combine (~) a TypeString with a non-TypeString.");
             }
-            return OTagString::concat($a, $b);
+            return OTypeString::concat($a, $b);
         } else {
             return Runtime::concatVal($a) . Runtime::concatVal($b);
         }

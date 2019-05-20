@@ -241,7 +241,7 @@ class WebMode {
         if ($callFunction) {
             try {
                 $ret = call_user_func($callFunction);
-                if (OTagString::isa($ret)) {
+                if (OTypeString::isa($ret)) {
                     Tht::module('Response')->sendByType($ret);
                 }
 

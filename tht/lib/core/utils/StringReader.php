@@ -324,7 +324,7 @@ class TemplateStringReader extends StringReader {
         $str = $this->templateTransfomer->onEndString($str);
         $this->templateTransfomer->onEndFile();
 
-        return new HtmlTagString ($str);
+        return new HtmlTypeString ($str);
     }
 }
 

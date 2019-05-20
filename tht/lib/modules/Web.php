@@ -19,7 +19,7 @@ class u_Web extends StdModule {
         }
         else {
             $h = '<input type="hidden" name="csrfToken" value="' . $t . '" />';
-            return new HtmlTagString($h);
+            return new HtmlTypeString($h);
         }
     }
 
@@ -51,19 +51,19 @@ class u_Web extends StdModule {
         }
         $str .= "</table>\n";
 
-        return new \o\HtmlTagString ($str);
+        return new \o\HtmlTypeString ($str);
     }
 
     function u_link($lUrl, $label, $params=[]) {
 
         ARGS('*sm', func_get_args());
 
-        $url = OTagString::getUntagged($lUrl, 'url');
+        $url = OTypeString::getUntagged($lUrl, 'url');
 
         $params['href'] = $url;
         $rawLink = $this->openTag('a', $params) . Security::escapeHtml($label) . '</a>';
 
-        return OTagString::create('html', $rawLink);
+        return OTypeString::create('html', $rawLink);
     }
 
     function openTag($name, $params) {
@@ -105,7 +105,7 @@ class u_Web extends StdModule {
         $params['mainClass'] = 'breadcrumbs';
         $h = $this->openTag('div', $params) . $h . "</div>";
 
-        return OTagString::create('html', $h);
+        return OTypeString::create('html', $h);
     }
 
     function getClassProp($raw) {
@@ -213,10 +213,10 @@ class u_Web extends StdModule {
         $icons = $this->icons();
         if (!isset($icons[$id])) { Tht::error("Unknown icon: `$id`"); }
         if (substr($icons[$id], 0, 4) == '<svg') {
-            return new \o\HtmlTagString($icons[$id]);
+            return new \o\HtmlTypeString($icons[$id]);
         }
         $rawTag = '<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>';
-        return new \o\HtmlTagString($rawTag);
+        return new \o\HtmlTypeString($rawTag);
     }
 
     function u_mask_email($email) {
@@ -244,7 +244,7 @@ class u_Web extends StdModule {
         $xe = $begin . "<span class=\"$r\">$e</span><span class=\"$r2\">" . $end . "</span>";
         $xe .= "<style> .$r { display: none; } </style>";
 
-        return new HtmlTagString ($xe);
+        return new HtmlTypeString ($xe);
     }
 
     function u_skip_hit_counter($doSkip) {

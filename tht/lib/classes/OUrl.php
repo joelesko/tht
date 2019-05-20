@@ -8,7 +8,7 @@ namespace o;
 // https://nodejs.org/api/url.html#url_url_strings_and_url_objects
 // https://docs.oracle.com/javase/7/docs/api/java/net/URI.html
 
-class UrlTagString extends OTagString {
+class UrlTypeString extends OTypeString {
 
     protected $type = 'url';
     private $query = null;
@@ -33,7 +33,7 @@ class UrlTagString extends OTagString {
     function parse($sUrl) {
 
         if (preg_match('!\?.*\{.*\}!', $sUrl)) {
-            Tht::error("UrlTagString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
+            Tht::error("UrlTypeString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
         }
 
         $u = Security::parseUrl($sUrl);
@@ -202,7 +202,7 @@ class UrlTagString extends OTagString {
 
         if (strpos($this->str, '//') !== false) {
             $s = preg_replace('#.*//[^/]*#', '', $this->str);
-            return new UrlTagString ($s);
+            return new UrlTypeString ($s);
         }
 
         return $this;

@@ -170,7 +170,7 @@ class EmitterPHP extends Emitter {
         $value = str_replace('"', '\\"', $value);
         list($type, $str) = explode('::', $value, 2);
         //if ($type == 'text') { $type = 'O'; }
-        return $this->format('\\o\\OTagString::create("###", "###")', $type, $str);
+        return $this->format('\\o\\OTypeString::create("###", "###")', $type, $str);
     }
 
     function pRString ($value, $k) {

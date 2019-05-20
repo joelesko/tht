@@ -2,50 +2,50 @@
 
 namespace o;
 
-class JconTagString extends OTagString {  protected $type = 'jcon';  }
+class JconTypeString extends OTypeString {  protected $type = 'jcon';  }
 
-class HtmlTagString extends OTagString {
+class HtmlTypeString extends OTypeString {
     protected $type = 'html';
     // protected function u_z_escape_param($v) {
     //     return Security::escapeHtml($v);
     // }
     function u_fill($params) {
-        Tht::error('(Security) HtmlTagString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
+        Tht::error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
     }
 }
 
-class JsTagString extends OTagString {
+class JsTypeString extends OTypeString {
     protected $type = 'js';
     protected function u_z_escape_param($v) {
         return Tht::module('Js')->escape($v);
     }
 }
 
-class CssTagString extends OTagString {
+class CssTypeString extends OTypeString {
     protected $type = 'css';
     protected function u_z_escape_param($v) {
         return Tht::module('Css')->escape($v);
     }
 }
 
-class SqlTagString extends OTagString {
+class SqlTypeString extends OTypeString {
     protected $type = 'sql';
     protected function u_z_escape_param($v) {
         Tht::error('SQL escaping must be handled internally.');
     }
     function u_stringify() {
-        Tht::error('SqlTagStrings can only be stringified internally, by the `Db` module.');
+        Tht::error('SqlTypeStrings can only be stringified internally, by the `Db` module.');
     }
 }
 
-class CmdTagString extends OTagString {
+class CmdTypeString extends OTypeString {
     protected $type = 'cmd';
     protected function u_z_escape_param($v) {
         return escapeshellarg($v);
     }
 }
 
-class PlainTagString  extends OTagString {
+class PlainTypeString  extends OTypeString {
     protected $type = 'plain';
     protected function u_z_escape_param($k) {
         return $k;
@@ -53,7 +53,7 @@ class PlainTagString  extends OTagString {
 }
 
 // Relying on File module security measures instead.
-// class FileTagString extends OTagString {
+// class FileTypeString extends OTypeString {
 //     protected $type = 'file';
 //     protected function u_z_escape_param($v) {
 //         return preg_replace('/[^A-Za-z0-9_]/', '_', $v);

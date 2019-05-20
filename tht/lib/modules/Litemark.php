@@ -85,7 +85,7 @@ class u_Litemark extends StdModule {
     }
 
     function u_parse ($raw, $flags=[]) {
-        $raw = \o\OTagString::getUntaggedNoError($raw);
+        $raw = \o\OTypeString::getUntaggedNoError($raw);
         Tht::module('Perf')->u_start('Litemark.parse', $raw);
 
         $this->flags = $flags;
@@ -114,7 +114,7 @@ class u_Litemark extends StdModule {
 
         Tht::module('Perf')->u_stop();
 
-        return new \o\HtmlTagString ($out);
+        return new \o\HtmlTypeString ($out);
     }
 
     function createToc() {

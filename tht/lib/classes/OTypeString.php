@@ -2,16 +2,16 @@
 
 namespace o;
 
-abstract class OTagString extends OVar {
+abstract class OTypeString extends OVar {
 
     protected $str = '';
     protected $type = 'text';
     protected $bindParams = [];
     protected $overrideParams = [];
-    protected $appendedTagStrings = [];
+    protected $appendedTypeStrings = [];
 
     function __construct ($s) {
-        if (OTagString::isa($s)) {
+        if (OTypeString::isa($s)) {
             $s = $s->getString();
         }
         $this->str = $s;
@@ -25,7 +25,7 @@ abstract class OTagString extends OVar {
             $s .= '…';
         }
         // This format is recognized by the Json formatter
-        return "<<<TagString = $s>>>";
+        return "<<<TypeString = $s>>>";
     }
 
     function jsonSerialize() {
@@ -33,42 +33,42 @@ abstract class OTagString extends OVar {
     }
 
     static function concat($a, $b) {
-        return $a->appendTagString($b);
+        return $a->appendTypeString($b);
     }
 
     static function create ($tagType, $s) {
-        $nsClassName = '\\o\\' . ucfirst($tagType) . 'TagString';
+        $nsClassName = '\\o\\' . ucfirst($tagType) . 'TypeString';
         if (!class_exists($nsClassName)) {
-            Tht::error("TagString of type `$nsClassName` not supported.");
+            Tht::error("TypeString of type `$nsClassName` not supported.");
         }
         return new $nsClassName ($s);
     }
 
     static function getUntagged ($s, $type) {
-        if (!OTagString::isa($s)) {
+        if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a TagString.  Ex: `$type'...'`");
+            Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
         return self::_getUntagged($s, $type, false);
     }
 
     static function getUntaggedRaw ($s, $type) {
-        if (!OTagString::isa($s)) {
+        if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a TagString.  Ex: `$type'...'`");
+            Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
         return self::_getUntagged($s, $type, true);
     }
 
     private static function _getUntagged ($s, $type, $getRaw) {
         if ($type && $s->type !== $type) {
-            Tht::error("TagString must be of type `$type`. Got: `$s->type`");
+            Tht::error("TypeString must be of type `$type`. Got: `$s->type`");
         }
         return $getRaw ? $s->u_raw_string() : $s->u_stringify();
     }
 
     static function getUntaggedNoError ($s) {
-        if (!OTagString::isa($s)) {
+        if (!OTypeString::isa($s)) {
             return $s;
         }
         return $s->u_raw_string();
@@ -78,7 +78,7 @@ abstract class OTagString extends OVar {
 
         $escParams = [];
         foreach($this->bindParams as $k => $v) {
-            if (OTagString::isa($v)) {
+            if (OTypeString::isa($v)) {
                 $plain = $v->u_stringify();
                 if ($v->u_tag_type() === $this->u_tag_type()) {
                     // If same lock type, don't escape
@@ -109,12 +109,12 @@ abstract class OTagString extends OVar {
         return true;
     }
 
-    // TODO: support other TagString types & regular strings
-    function appendTagString($l) {
+    // TODO: support other TypeString types & regular strings
+    function appendTypeString($l) {
         $t1 = $this->u_tag_type();
         $t2 = $l->u_tag_type();
         if ($t1 !== $t2) {
-            Tht::error("Can only append TagStrings of the same type. Got: `$t1` and `$t2`");
+            Tht::error("Can only append TypeStrings of the same type. Got: `$t1` and `$t2`");
         }
         $this->str .= $l->u_raw_string();
         return $this;
@@ -135,9 +135,9 @@ abstract class OTagString extends OVar {
             $out = v($this->str)->u_fill($escParams);
         }
 
-        if (count($this->appendedTagStrings)) {
+        if (count($this->appendedTypeStrings)) {
             $num = 0;
-            foreach ($this->appendedTagStrings as $s) {
+            foreach ($this->appendedTypeStrings as $s) {
                 $us = $s->u_stringify();
                 $out = str_replace("[LOCK_STRING_$num]", $us, $out);
                 $num += 1;

@@ -10,8 +10,8 @@ class JconParser {
     private $leafs = [];
     private $leaf = [];
 
-    private $bTagString = '';
-    private $bTagStringKey = '';
+    private $bTypeString = '';
+    private $bTypeStringKey = '';
 
     private $file = '';
     private $line = '';
@@ -65,7 +65,7 @@ class JconParser {
             if ($this->context['type'] == 'list') {
                 $missingBrace = ']';
             }
-            else if ($this->bTagString) {
+            else if ($this->bTypeString) {
                 $missingBrace = "'''";
             }
             $this->error("Reached end of file with unclosed `$missingBrace`");
@@ -104,14 +104,14 @@ class JconParser {
         $line = trim($rawLine);
 
         // in multi-line string
-        if ($this->bTagString !== null) {
+        if ($this->bTypeString !== null) {
             if ($line === "'''") {
                 // close quotes
-                $trimmed = v($this->bTagString)->u_trim_indent();  //!!!
-                $this->assignVal($this->bTagStringKey, $trimmed);
-                $this->bTagString = null;
+                $trimmed = v($this->bTypeString)->u_trim_indent();  //!!!
+                $this->assignVal($this->bTypeStringKey, $trimmed);
+                $this->bTypeString = null;
             } else {
-                $this->bTagString .= $rawLine . "\n";
+                $this->bTypeString .= $rawLine . "\n";
             }
             return;
         }
@@ -179,8 +179,8 @@ class JconParser {
             $this->openChild('list', $key);
         }
         else if ($val === "'''") {
-            $this->bTagStringKey = $key;
-            $this->bTagString = '';
+            $this->bTypeStringKey = $key;
+            $this->bTypeString = '';
         }
         else {
             // literal value

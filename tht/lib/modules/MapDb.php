@@ -68,7 +68,7 @@ class u_MapDb extends StdModule {
         if (!is_numeric($id)) {
             Tht::error('selectMap() argument `id` must be a Number.');
         }
-        $sql = new \o\SqlTagString('select * from maps where bucket = {bucket} and id = {id} limit 1');
+        $sql = new \o\SqlTypeString('select * from maps where bucket = {bucket} and id = {id} limit 1');
         $sql->u_fill([ 'bucket' => $bucket, 'id' => $id ]);
 
         $row = $this->dbh->u_select_row($sql);
@@ -82,7 +82,7 @@ class u_MapDb extends StdModule {
     //     if (!is_numeric($id)) {
     //         Tht::error('selectMap() argument `id` must be a Number.');
     //     }
-    //     $where = new \o\SqlTagString('where bucket = {bucket} and id = {id} limit 1');
+    //     $where = new \o\SqlTypeString('where bucket = {bucket} and id = {id} limit 1');
     //     $where->u_fill([ 'bucket' => $bucket, 'id' => $id, 'data' => ]);
 
     //     $row = $this->dbh->u_update_rows('map_db', [ 'data' => $map ], $where);
@@ -97,7 +97,7 @@ class u_MapDb extends StdModule {
 
         $this->connect();
 
-        $sql = new \o\SqlTagString('select * from maps where bucket = {bucket} and key = {key} order by id desc limit {limit}');
+        $sql = new \o\SqlTypeString('select * from maps where bucket = {bucket} and key = {key} order by id desc limit {limit}');
         $sql->u_fill([ 'bucket' => $bucket, 'key' => $key, 'limit' => $limit ]);
 
         $rows = $this->dbh->u_select_rows($sql);
@@ -120,7 +120,7 @@ class u_MapDb extends StdModule {
 
     public function u_buckets() {
         $this->connect();
-        $sql = new \o\SqlTagString('select bucket, count(*) numMaps from maps group by bucket order by bucket ASC');
+        $sql = new \o\SqlTypeString('select bucket, count(*) numMaps from maps group by bucket order by bucket ASC');
         $rows = $this->dbh->u_select_rows($sql);
         foreach ($rows as $row) {
             $row['numMaps'] = intval($row['numMaps']);
@@ -130,7 +130,7 @@ class u_MapDb extends StdModule {
 
     public function u_delete_bucket($bucket) {
         $this->connect();
-        $where = new OTagString('bucket = {0}');
+        $where = new OTypeString('bucket = {0}');
         $where->u_fill($bucket);
         $this->dbh->u_delete_rows('maps', $where);
         return true;
@@ -138,7 +138,7 @@ class u_MapDb extends StdModule {
 
     public function u_delete_id($bucket, $id) {
         $this->connect();
-        $where = new OTagString('bucket = {0} and id = {1}');
+        $where = new OTypeString('bucket = {0} and id = {1}');
         $where->u_fill($bucket, $id);
         $this->dbh->u_delete_rows('maps', $where);
         return true;
@@ -146,7 +146,7 @@ class u_MapDb extends StdModule {
 
     public function u_delete_key($bucket, $key) {
         $this->connect();
-        $where = new OTagString('bucket = {0} and key = {1}');
+        $where = new OTypeString('bucket = {0} and key = {1}');
         $where->u_fill($bucket, $key);
         $this->dbh->u_delete_rows('maps', $where);
         return true;

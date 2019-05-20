@@ -15,7 +15,7 @@ class u_Response extends StdModule {
     function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
-        $url = OTagString::getUntagged($lUrl, 'url');
+        $url = OTypeString::getUntagged($lUrl, 'url');
         header('Location: ' . $url, true, $code);
         Tht::exitScript(0);
     }
@@ -51,7 +51,7 @@ class u_Response extends StdModule {
     // --------------------------------------------
 
     // function u_print_block($h, $title='') {
-    //     $html = OTagString::getUntagged($h);
+    //     $html = OTypeString::getUntagged($h);
     //     $this->u_send_json([
     //         'status' => 'ok',
     //         'title' => $title,
@@ -77,14 +77,14 @@ class u_Response extends StdModule {
 
     function renderChunks($chunks) {
 
-        // Normalize. Could be a single TagString, OList, or a PHP array
+        // Normalize. Could be a single TypeString, OList, or a PHP array
         if (! (is_object($chunks) && v($chunks)->u_is_list())) {
             $chunks = OList::create([ $chunks ]);
         }
 
         $out = '';
         foreach ($chunks->val as $c) {
-            $out .= OTagString::getUntagged($c, '');
+            $out .= OTypeString::getUntagged($c, '');
         }
         return $out;
     }
@@ -135,7 +135,7 @@ class u_Response extends StdModule {
     }
 
     function u_send_html ($html) {
-        $html = OTagString::getUntagged($html, 'html');
+        $html = OTypeString::getUntagged($html, 'html');
         $this->output($html);
         return new \o\ONothing('sendHtml');
     }
@@ -164,7 +164,7 @@ class u_Response extends StdModule {
             }
 
             foreach ($chunks as $c) {
-                $val['body'] .= OTagString::getUntagged($c, 'html');
+                $val['body'] .= OTypeString::getUntagged($c, 'html');
             }
         }
 
@@ -286,9 +286,9 @@ HTML;
         $includes = [];
         $blocks = [];
         foreach ($paths as $path) {
-            if (OTagString::isa($path)) {
+            if (OTypeString::isa($path)) {
                 // Inline it in the HTML document
-                $str = OTagString::getUntagged($path, $type);
+                $str = OTypeString::getUntagged($path, $type);
                 if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
                     $str = "(function(){" + $str + "})();";
                 }

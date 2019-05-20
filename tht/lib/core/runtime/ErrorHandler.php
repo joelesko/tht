@@ -782,7 +782,7 @@ class ErrorHandler {
         $error['os'] = $os;
 
         try {
-            $tUrl = new UrlTagString(Tht::getConfig('_sendErrorUrl'));
+            $tUrl = new UrlTypeString(Tht::getConfig('_sendErrorUrl'));
             Tht::module('Net')->u_http_post($tUrl, OMap::create($error));
         }
         catch (\Exception $e) {

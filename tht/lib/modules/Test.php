@@ -142,7 +142,7 @@ class u_Test extends StdModule {
             $str .= "Failed:  " . $this->stats['numFailed'] . "\n\n";
         }
 
-        return new HtmlTagString ($str);
+        return new HtmlTypeString ($str);
     }
 
     function u_check_args() {

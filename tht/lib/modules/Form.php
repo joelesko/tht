@@ -152,7 +152,7 @@ class u_Form extends StdModule {
         Tht::module('Session')->u_set_flash('form.done:' . $this->formId, true);
         Tht::module('Response')->u_send_json(OMap::create([
             'status' => 'ok',
-            'next' => OTagString::getUntagged($next, 'url'),
+            'next' => OTypeString::getUntagged($next, 'url'),
         ]));
 
         return new \o\ONothing('sendOk');

@@ -66,7 +66,7 @@ class u_Jcon extends StdModule {
     function parse($text) {
         Tht::module('Perf')->start('Jcon.parse', $text);
 
-        $text = OTagString::getUntaggedNoError($text);
+        $text = OTypeString::getUntaggedNoError($text);
 
         $text = trim($text);
 

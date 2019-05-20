@@ -445,7 +445,7 @@ class Tokenizer extends StringReader {
 
         // if ($type === TokenType::STRING) {
         //     if (preg_match('#\?\S+=#', $str)) {
-        //         $this->error("URL should be created as a TagString. Try: e.g. `url'/page'.query({ foo: 123 })`");
+        //         $this->error("URL should be created as a TypeString. Try: e.g. `url'/page'.query({ foo: 123 })`");
         //     }
         // }
 

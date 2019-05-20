@@ -98,7 +98,7 @@ class u_Request extends StdModule {
         $hostWithPort = Tht::getPhpGlobal('server', 'HTTP_HOST');
         $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
-        $lUrl = new UrlTagString($fullUrl);
+        $lUrl = new UrlTypeString($fullUrl);
 
         $this->url = $lUrl;
         return $this->url;

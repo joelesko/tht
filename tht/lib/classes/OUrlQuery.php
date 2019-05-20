@@ -45,7 +45,7 @@ class UrlQuery {
         ARGS('*f', func_get_args());
 
         $qClass = get_class($q);
-        if ($qClass == 'o\UrlTagString') {
+        if ($qClass == 'o\UrlTypeString') {
             $q = $q->u_query()->u_danger_danger_get_raw();
         } else if ($qClass == 'o\UrlQuery') {
             $q = $q->u_danger_danger_get_raw();

@@ -96,7 +96,7 @@ class u_Js extends StdModule {
             };
         ");
 
-        return new JsTagString("window.JsData=(function(){var data=$data;var frozen={}; $min })();");
+        return new JsTypeString("window.JsData=(function(){var data=$data;var frozen={}; $min })();");
     }
 
     function incLazyLoadImages () {
@@ -171,7 +171,7 @@ EOLAZY;
 EOLAZY;
 
         $js = self::u_minify($js);
-        return new JsTagString($js);
+        return new JsTypeString($js);
     }
 
     function getArg($args, $i, $def) {
@@ -312,7 +312,7 @@ EOCSS;
 EOSYNTAX;
 
         $js = self::u_minify($js);
-        return new JsTagString($js);
+        return new JsTypeString($js);
     }
 }
 

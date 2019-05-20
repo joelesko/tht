@@ -19,7 +19,7 @@ class OTemplate {
         }
 
         if ($this->returnTagType) {
-            return OTagString::create($this->returnTagType, $str);
+            return OTypeString::create($this->returnTagType, $str);
         } else {
             return $str;
         }
@@ -42,8 +42,8 @@ class OTemplate {
                 $out .= $this->handleDynamic($context, $chunk);
             }
         }
-        else if (OTagString::isa($in)) {
-            $out = $this->handleTagString($context, $in);
+        else if (OTypeString::isa($in)) {
+            $out = $this->handleTypeString($context, $in);
         }
         else {
             $out = $this->escape($context, $in);
@@ -61,8 +61,8 @@ class OTemplate {
     }
 
     // Hot Path
-    function handleTagString($context, $s) {
-        $plain = OTagString::getUntagged($s, '');
+    function handleTypeString($context, $s) {
+        $plain = OTypeString::getUntagged($s, '');
         if ($s->u_tag_type() == $this->returnTagType) {
             return $plain;
         }
@@ -87,10 +87,10 @@ class TemplateHtml extends OTemplate {
         return $esc;
     }
 
-    function handleTagString($context, $s) {
+    function handleTypeString($context, $s) {
 
         // if js or css, wrap in appropriate block tags
-        $plain = OTagString::getUntagged($s, '');
+        $plain = OTypeString::getUntagged($s, '');
 
         $type = $s->u_tag_type();
         if ($type == 'html') {

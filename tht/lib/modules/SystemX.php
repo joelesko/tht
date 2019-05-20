@@ -33,7 +33,7 @@ class u_System extends StdModule {
         Tht::module('Meta')->u_no_web_mode();
         Tht::module('Meta')->u_no_template_mode();
 
-        $cmd = OTagString::getUntagged($taggedCmd, 'cmd');
+        $cmd = OTypeString::getUntagged($taggedCmd, 'cmd');
 
         Tht::module('Perf')->u_start('System.command', $cmd);
         $ret = '';

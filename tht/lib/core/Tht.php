@@ -458,7 +458,7 @@ class Tht {
     }
 
     static function parseTemplateString ($type, $lRawText) {
-        $rawText = OTagString::getUntagged($lRawText, $type);
+        $rawText = OTypeString::getUntagged($lRawText, $type);
         $tsr = new TemplateStringReader ($type, $rawText);
         return $tsr->parse();
     }
