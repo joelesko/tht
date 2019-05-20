@@ -23,8 +23,8 @@ abstract class TokenType {
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#.';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~.';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#.?';
+    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~.?';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
     const BLOCK_COMMENT_START = '/*';
@@ -75,8 +75,9 @@ abstract class SymbolType {
     const NEW_OBJECT    =  'NEW_OBJECT';     // new Foo ()
     const BARE_FUN      =  'BARE_FUN';       // print
     const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
-    const FUN_ARG       =  'FUN_ARG';        // function foo (arg) {}
-    const FUN_ARG_SPLAT =  'FUN_ARG_SPLAT';  // function foo (...arg) {}
+    const FUN_ARG       =  'FUN_ARG';        // function foo (arg)
+    const FUN_ARG_SPLAT =  'FUN_ARG_SPLAT';  // function foo (...arg)
+    const FUN_ARG_TYPE  =  'FUN_ARG_TYPE';   // function foo (arg:s)
     const USER_FUN      =  'USER_FUN';       // myFunction
     const USER_VAR      =  'USER_VAR';       // myVar
 
@@ -99,7 +100,7 @@ abstract class SequenceType {
 }
 
 
-class ParserData {
+class CompilerConstants {
 
     static public $MAX_LINE_LENGTH = 100;
     static public $MAX_WORD_LENGTH = 40;
@@ -159,6 +160,7 @@ class ParserData {
         '&&' => 'S_Logic',
         '||:' => 'S_ValGate',
         '&&:' => 'S_ValGate',
+        '>>>' => 'S_InfixStatement',
 
         '+&' => 'S_Bitwise',
         '+|' => 'S_Bitwise',
@@ -243,6 +245,8 @@ class ParserData {
         '&'   => '&& or +& (bitwise and)',
         '|'   => '|| or +| (bitwise or)',
         '#'   => '// line comment',
+        '?:'  => '||: (default or)',
+        '??'  => '||: (default or)',
 
         '"'   => 'single quote (\')',
         '`'   => 'multi-line quote fence (\'\'\')',
@@ -278,5 +282,11 @@ class ParserData {
         'trait',
         'interface',
     ];
+
+    static $TYPE_DECLARATIONS = [
+        's', 'b', 'i', 'f', 'l', 'm', 'fn', 'o', 'any'
+    ];
+
+    static $ANON_FUNCTION_REGEX = '/^fn[A-Z]/';
 }
 
