@@ -37,16 +37,20 @@ class u_Css extends StdModule {
     }
 
 
-    function u_sans_serif_font () {
-        return 'helvetica neue, helvetica, arial, sans-serif';
-    }
+    function u_font($fontId) {
+        ARGS('s', func_get_args());
+        $fonts = [
+            'serif'     => 'Georgia, Times New Roman, serif',
+            'sansSerif' => 'Helvetica Neue, Helvetica, Arial, sans-serif',
+            'monospace' => 'Menlo, Consolas, monospace',
+            'system'    => '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+        ];
 
-    function u_serif_font () {
-        return 'georgia, times new roman, serif';
-    }
+        if (!isset($fonts[$fontId])) {
+            Tht::error("Unknown fontId `$fontId`.  Try: `serif`, `sansSerif`, `monospace`, `system`");
+        }
 
-    function u_monospace_font () {
-        return 'menlo, consolas, monospace';
+        return $fonts[$fontId];
     }
 
     function u_plugin($id, $arg1=null, $arg2=null) {
@@ -520,7 +524,7 @@ EOCSS;
 
 
 
-        /* Message
+        /* Alerts
         ---------------------------------------------------------- */
 
         .alert {
@@ -583,18 +587,7 @@ EOCSS;
 
         img {
             max-width: 100%;
-        }
-
-        .responsive {
-            display: block;
-            max-width: 100%;
             height: auto;
-        }
-
-        .framed {
-            border: solid 1px #ddd;
-            padding: 2rem;
-            border-radius: 0.5rem;
         }
 
 
@@ -630,7 +623,7 @@ EOCSS;
         ---------------------------------------------------------- */
 
         .click { cursor: pointer; user-select: none; }
-        .wide { width: 100%; max-width: 100%; }
+        .wide { width: 100%; max-width: 100%; height: auto; }
         .block { display: block; }
         .break { margin-bottom: 2rem; }
 
@@ -791,8 +784,6 @@ EOCSS;
 
                     $blockStack []= $currentBlock;
                     $currentBlock = [$selector];
-
-                  //  print_r($blockStack);
                 }
                 else {
                     // rule
