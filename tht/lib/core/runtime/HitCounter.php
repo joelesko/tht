@@ -4,11 +4,13 @@ namespace o;
 
 class HitCounter {
 
+    static public $skipThisPage = false;
+
     static private $BOT_REGEX = '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
 
     static public function add() {
 
-        if (!Tht::getConfig('hitCounter') || Security::isAdmin()) {
+        if (!Tht::getConfig('hitCounter')) {
             return;
         }
 
@@ -27,13 +29,17 @@ class HitCounter {
 
     static private function skip() {
 
+        if (self::$skipThisPage) {
+            return true;
+        }
+
         // bots
         $ua = Tht::module('Request')->u_user_agent();
         if (preg_match(self::$BOT_REGEX, $ua['full'])) {
             return true;
         }
         // only count routes
-        $path = Tht::module('Request')->u_url()['path'];
+        $path = Tht::module('Request')->u_url()->u_path();
         if (strpos($path, '.') !== false) {
             return true;
         }
@@ -59,7 +65,7 @@ class HitCounter {
     // Page counter - 1 byte per hit
     static private function countPage() {
 
-        Tht::module('Request')->u_url()['path'];
+        $page = Tht::module('Request')->u_url()->u_path();
 
         $page = preg_replace('#/+#', '__', $page);
         $page = preg_replace('/[^a-zA-Z0-9_\-]+/', '_', $page);
@@ -80,7 +86,7 @@ class HitCounter {
 
         $ref = Tht::module('Request')->u_referrer();
         if ($ref) {
-            if (stripos($ref, $url['host']) === false) {
+            if (stripos($ref, $url->u_parts()['host']) === false) {
                 // format search query
                 if (preg_match('/(google|bing|yahoo|duckduckgo|ddg)\./i', $ref) && strpos($ref, 'q=') !== false) {
                     preg_match('/q=(.*)(&|$)/', $ref, $m);
@@ -90,7 +96,7 @@ class HitCounter {
                 $logDate = strftime('%Y%m');
                 $lineDate = strftime('%Y-%m-%d');
                 $referrerLogPath = self::logPath('referrer', $logDate);
-                file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $url['path'] . "\n", FILE_APPEND|LOCK_EX);
+                file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $url->u_path() . "\n", FILE_APPEND|LOCK_EX);
             }
         }
     }
