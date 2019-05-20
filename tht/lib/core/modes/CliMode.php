@@ -97,7 +97,9 @@ class CliMode {
             Tht::exitScript(1);
         }
 
-        if (!Tht::module('System')->u_confirm("\nYour Document Root is:\n  " . Tht::path('docRoot') . "\n\nInstall THT app for this directory?")) {
+        $msg = "\nYour Document Root is:\n  " . Tht::path('docRoot') . "\n\n";
+        $msg .= "Install THT app?";
+        if (!Tht::module('System')->u_confirm($msg)) {
             echo "\nPlease 'cd' to your public Document Root directory.  Then rerun this command.\n\n";
             Tht::exitScript(0);
         }
@@ -165,20 +167,6 @@ class CliMode {
 
             ");
 
-            // We are doing compression for THT-processed files
-            //
-            // # Compression
-            // <IfModule mod_deflate.c>
-            //     <IfModule mod_filter.c>
-            //         AddOutputFilterByType DEFLATE
-            //           \"application/javascript\" \
-            //           \"application/json\" \
-            //           \"text/css\" \
-            //           \"text/html\" \
-            //           \"text/javascript\" \
-            //     </IfModule>
-            // </IfModule>
-
             // Starter App
             $exampleFile = 'home.tht';
             $examplePath = Tht::path('pages', $exampleFile);
@@ -243,12 +231,20 @@ class CliMode {
             // Starting config file
             CliMode::writeSetupFile(Tht::path('configFile'), "
                 {
+                    //
+                    //  App Settings
+                    //
+                    //  See: https://tht.help/reference/app-settings
+                    //
+
                     // Dynamic URL routes
+                    // See: https://tht.help/reference/url-router
                     routes: {
                         // /post/{postId}:  post.tht
                     }
 
-                    // Custom app settings.  Read via `Global.setting(key)`
+
+                    // Custom app settings.  Read via `Settings.get(key)`
                     app: {
                         // myVar: 1234
                     }
@@ -257,11 +253,22 @@ class CliMode {
                     tht: {
                         // Server timezone
                         // See: http://php.net/manual/en/timezones.php
-                        // Example: America/Los_Angeles
+                        // Examples:
+                        //    America/Los_Angeles
+                        //    America/Chicago
+                        //    America/New_York
+                        //    Australia/Sydney
+                        //    Europe/Amsterdam
                         timezone: GMT
 
                         // Print performance timing info
+                        // See: https://tht.help/reference/perf-panel
                         showPerfPanel: false
+
+                        // Auto-send anonymous error messages to the THT
+                        // developers. This helps us improve the usability
+                        // of THT. THanks!
+                        sendErrors: true
                     }
 
                     // Database settings
@@ -273,8 +280,9 @@ class CliMode {
                             file: app.db
                         }
 
-                        // Other database accessible via 'Db.use'
-                        // example: {
+                        // Other database
+                        // Accessible via e.g. `Db.use('exampleDb')`
+                        // exampleDb: {
                         //     driver: 'mysql', // or 'pgsql'
                         //     server: 'localhost',
                         //     database: 'example',
@@ -285,7 +293,7 @@ class CliMode {
                 }
             ");
 
-          //  Tht::installDatabases();
+            Tht::installDatabases();
 
         } catch (\Exception $e) {
             echo "Sorry, something went wrong.\n\n";
@@ -319,38 +327,13 @@ class CliMode {
 
         $initDb = function ($dbId) {
             $dbFile = $dbId . '.db';
-         //   touch(Tht::getAppDataPath($dbFile));
+            touch(Tht::getAppDataPath($dbFile));
             $dbh = Tht::module('Db')->u_use($dbId);
             return $dbh;
         };
 
         // app
         $dbh = $initDb('app');
-
-        // cache
-        $dbh = $initDb('cache');
-        $dbh->u_danger_danger_query("CREATE TABLE cache (
-            key VARCHAR(64),
-            value TEXT,
-            isJson TINYINT DEFAULT 0,
-            expireDate UNSIGNED INT
-        )");
-        CliMode::createDbIndex($dbh, 'cache', 'key');
-        CliMode::createDbIndex($dbh, 'cache', 'expireDate');
-
-        // session
-        // $dbh = $initDb('session');
-        // $dbh->u_danger_danger_query("CREATE TABLE session (
-        //     cookieId VARCHAR(64) PRIMARY KEY,
-        //     ip VARCHAR(64),
-        //     createTime UNSIGNED INT,
-        //     updateTime UNSIGNED INT,
-        //     userId UNSIGNED INT DEFAULT 0,
-        //     loggedIn UNSIGNED TINYINT DEFAULT 0,
-        //     sessionData TEXT
-        // )");
-
-        echo " [OK]\n";
     }
 
     static function startTestServer ($port=0, $docRoot='.') {
