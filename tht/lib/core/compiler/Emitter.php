@@ -18,8 +18,7 @@ class Emitter {
 
     function appendSourceMap ($targetSrc, $sourceFile) {
         $lines = explode("\n", $targetSrc);
-        $relPath = Tht::getRelativePath('app', $sourceFile);
-        $sourceMap = new SourceMap ($relPath);
+        $sourceMap = new SourceMap ($sourceFile);
         $fnFind = function ($m) use ($sourceMap) {
             $sourceMap->set(\floor($m[1]));
             return '';
@@ -33,6 +32,11 @@ class Emitter {
         $out []= $sourceMap->out();
 
         return implode("\n", $out);
+    }
+
+    function getSourceStats($sourceFile) {
+        $sa = new SourceAnalyzer ($sourceFile);
+        return $sa->analyze(true);
     }
 
     function lineMarker ($lineNum) {
