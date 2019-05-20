@@ -309,7 +309,7 @@ class u_Perf extends StdModule {
 
         ?>
         <style nonce="<?= $nonce ?>" scoped>
-            #perf-score-container { background-color: #f6f6f6; border-top: solid 16px #ddd; color: #111; font: 18px <?= Tht::module('Css')->u_monospace_font() ?>; padding-bottom: 32px; margin-top: 64px; text-align: center; }
+            #perf-score-container { background-color: #f6f6f6; border-top: solid 16px #ddd; color: #111; font: 18px <?= Tht::module('Css')->u_font('monospace') ?>; padding-bottom: 32px; margin-top: 64px; text-align: center; }
             .bench-result { font-size: 14px; border-collapse: collapse; margin: 32px auto; }
             .bench-result td,
             .bench-result th { text-align: left; padding: 8px 12px; border-bottom: solid 1px #ccc; }
