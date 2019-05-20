@@ -6,6 +6,12 @@ class u_Response extends StdModule {
 
     private $gzipBufferOpen = false;
 
+    function u_run_route($path) {
+        ARGS('s', func_get_args());
+        WebMode::runRoute($path);
+        return new \o\ONothing('runRoute');
+    }
+
     function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
@@ -190,7 +196,7 @@ class u_Response extends StdModule {
 
         $val['image'] = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
         $val['icon'] = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
-        $val['bodyClass'] = Tht::module('Web')->getClassProp($doc['bodyClasses']);
+        $val['bodyClass'] = Tht::module('Web')->getClassProp($doc['bodyClass']);
 
         $val['comment'] = '';
         if (isset($doc['comment'])) {
@@ -249,7 +255,7 @@ HTML;
             }
 
             ?><html><head><title><?= $title ?></title></head><body>
-            <div style="text-align: center; color:#333; font-family: <?= Tht::module('Css')->u_sans_serif_font() ?>;">
+            <div style="text-align: center; color:#333; font-family: <?= Tht::module('Css')->u_font('sansSerif') ?>;">
             <h1 style="margin-top: 40px;"><?= $title ?></h1>
             <?php if ($desc) { ?>
             <div style="margin-top: 40px;"><?= $desc ?></div>
