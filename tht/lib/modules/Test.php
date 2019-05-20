@@ -111,7 +111,7 @@ class u_Test extends StdModule {
         ARGS('', func_get_args());
         $this->u_section('Results');
 
-        $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_monospace_font() . "}\n\n </style>\n\n";
+        $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_font('monospace') . "}\n\n </style>\n\n";
         foreach ($this->out as $l) {
             if (isset($l['section'])) {
                 if (Tht::isMode('web')) {
