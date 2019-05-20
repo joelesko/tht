@@ -21,7 +21,7 @@ class S_Class extends S_Statement {
         //     $this->space('*keywordS', true);
         //     $s = $p->symbol;
         //     $keyword = $s->token[TOKEN_VALUE];
-        //     if (in_array($keyword, ParserData::$QUALIFIER_KEYWORDS)) {
+        //     if (in_array($keyword, CompilerConstants::$QUALIFIER_KEYWORDS)) {
         //         $quals []= $keyword;
         //         $p->next();
         //     }
