@@ -37,3 +37,14 @@ class S_Concat extends S_Infix {
     var $bindingPower = 50;
     var $type = SymbolType::OPERATOR;
 }
+
+class S_InfixStatement extends S_Infix {
+    var $bindingPower = 1;
+    function asInner($p, $left) {
+        $this->space('S>>>S');
+        $p->allowAssignmentExpression = true;
+        parent::asInner($p, $left);
+        $p->allowAssignmentExpression = false;
+        return $this;
+    }
+}
