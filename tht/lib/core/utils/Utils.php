@@ -90,7 +90,7 @@ function ARGS($sig, $arguments) {
     $err = '';
 
     if (count($arguments) > strlen($sig)) {
-        $err = 'expects ' . strlen($sig) . ' arguments.  Got ' . count($arguments) . ' instead.';
+        $err = 'expects ' . strlen($sig) . ' arguments.';
     }
     else {
         $i = 0;
@@ -125,7 +125,7 @@ function ARGS($sig, $arguments) {
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
                 $name = $t;
-                $err = "expects argument $i to be type `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got a `" . $name . "` instead.";
+                $err = "expects argument $i to be a `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got: `" . $name . "`";
                 break;
             }
             $i += 1;
@@ -134,7 +134,7 @@ function ARGS($sig, $arguments) {
 
     if ($err) {
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
-        Tht::error("`$caller()`" . $err);
+        Tht::error("(Argument Checker) Function `$caller()`" . $err);
     }
 }
 
