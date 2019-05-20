@@ -123,7 +123,18 @@ class u_Js extends StdModule {
             }
 EOLAZY;
 
+        $minCss = Tht::module('Css')->u_minify($css);
+
+
         $js = <<<EOLAZY
+
+            if (document.body.classList.contains('no-lazy-load')) {
+                return;
+            }
+
+            var css = document.createElement('style');
+            css.innerHTML = '$minCss';
+            document.body.appendChild(css);
 
             var preloadMarginY = 500;
             var throttleTime = 0;
@@ -159,13 +170,15 @@ EOLAZY;
 
 EOLAZY;
 
-        return OList::create([new CssTagString($css), new JsTagString($js)]);
+        $js = self::u_minify($js);
+        return new JsTagString($js);
     }
 
     function getArg($args, $i, $def) {
         return isset($args[$i]) ? $args[$i] : $def;
     }
 
+    // 2.3k minified
     function incSyntaxHighlight($args) {
 
         $theme    = $this->getArg($args, 0, 'light');
@@ -180,13 +193,13 @@ EOLAZY;
             /* Syntax Highlighting
             ---------------------------------------------------------- */
 
-            .has-color-code .sh-value span,
-            .has-color-code .sh-comment span,
-            .has-color-code .sh-prompt {
+            .has-color-code .cc-value span,
+            .has-color-code .cc-comment span,
+            .has-color-code .cc-prompt {
                 color: inherit !important;
                 font-weight: inherit !important;
             }
-            .has-color-code .sh-prompt {
+            .has-color-code .cc-prompt {
                 opacity: 0.5;
                 user-select: none;
             }
@@ -196,14 +209,14 @@ EOLAZY;
             .has-color-code {
                 color: #000;
             }
-            .has-color-code .sh-comment {
+            .has-color-code .cc-comment {
                 color: #36963f;
             }
-            .has-color-code .sh-value {
+            .has-color-code .cc-value {
                 color: #c33524;
             }
-            .has-color-code .sh-tag,
-            .has-color-code .sh-keyword {
+            .has-color-code .cc-tag,
+            .has-color-code .cc-keyword {
                 color: #177bad;
                 font-weight: bold;
             }
@@ -215,23 +228,34 @@ EOLAZY;
                 color: #ddd;
                 border: 0;
             }
-            .has-color-code.theme-dark .sh-comment {
+            .has-color-code.theme-dark .cc-comment {
                 color: #9a9a9a;
             }
-            .has-color-code.theme-dark .sh-value {
+            .has-color-code.theme-dark .cc-value {
                 color: #a0e092;
             }
-            .has-color-code.theme-dark .sh-tag,
-            .has-color-code.theme-dark .sh-keyword {
+            .has-color-code.theme-dark .cc-tag,
+            .has-color-code.theme-dark .cc-keyword {
                 color: #f3ac5b;
             }
 
 
 EOCSS;
 
+        $minCss = Tht::module('Css')->u_minify($css);
+
+
         $js = <<<EOSYNTAX
 
         window.highlightSyntax = function () {
+
+            if (document.body.classList.contains('no-color-code')) {
+                return;
+            }
+
+            var css = document.createElement('style');
+            css.innerHTML = '$minCss';
+            document.body.appendChild(css);
 
             var themeClass = "theme-$theme";
             var hiClass = 'has-color-code';
@@ -252,29 +276,29 @@ EOCSS;
                 var c = block.innerHTML;
 
                 // keywords
-                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)sh-keyword(qq)>$1</span>$2');
+                c = c.replace(/\\b($keyWords)\\b([^=:])/gi, '<span class=(qq)cc-keyword(qq)>$1</span>$2');
 
                 // HTML tags
-                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)sh-tag(qq)>$1</span>');
+                c = c.replace(/(&lt;\S.*?(&gt;)+)/g, '<span class=(qq)cc-tag(qq)>$1</span>');
 
                 // numbers
-                c = c.replace(/([^a-zA-Z\\d])(\\d[\\d\\.]*)/g, '$1<span class=(qq)sh-value(qq)>$2</span>');
+                c = c.replace(/([^a-zA-Z\\d])(\\d[\\d\\.]*)/g, '$1<span class=(qq)cc-value(qq)>$2</span>');
 
                 // booleans
-                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)sh-value(qq)>$1</span>');
+                c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)cc-value(qq)>$1</span>');
 
                 // strings
-                c = c.replace(/("(.*?)")/g, '<span class=(qq)sh-value(qq)>$1</span>');
-                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)sh-value(qq)>$1</span>');
+                c = c.replace(/("(.*?)")/g, '<span class=(qq)cc-value(qq)>$1</span>');
+                c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)cc-value(qq)>$1</span>');
 
                 // command prompt ($ or %)
-                c = c.replace(/(^|\\n)(\\$|\\%)(\s+)/gi, '<span class=(qq)sh-prompt(qq)>$1$2$3</span>');
+                c = c.replace(/(^|\\n)(\\$|\\%)(\s+)/gi, '<span class=(qq)cc-prompt(qq)>$1$2$3</span>');
 
                 // block comments
-                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)sh-comment(qq)>$1</span>');
+                c = c.replace(/(\\/\\*([\\w\\W]*?)\\*\\/)/gm, '<span class=(qq)cc-comment(qq)>$1</span>');
 
                 // single-line comments
-                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)sh-comment(qq)>$2</span>');
+                c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)cc-comment(qq)>$2</span>');
 
                 // replace quotes
                 c = c.replace(/\(qq\)/g, '"');
@@ -287,7 +311,8 @@ EOCSS;
 
 EOSYNTAX;
 
-        return OList::create([new CssTagString($css), new JsTagString($js)]);
+        $js = self::u_minify($js);
+        return new JsTagString($js);
     }
 }
 
