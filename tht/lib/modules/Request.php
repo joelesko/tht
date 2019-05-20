@@ -99,12 +99,8 @@ class u_Request extends StdModule {
         $fullUrl = $scheme . '://' . $hostWithPort . $relativeUrl;
 
         $lUrl = new UrlTagString($fullUrl);
-        $url = $lUrl->u_parts();
-        // $url['full']  = $lUrl;
-        // $url['query'] = '(in full.query())';
-        // $url['hash']  = '(in full.hash())';
 
-        $this->url = $url;
+        $this->url = $lUrl;
         return $this->url;
     }
 
