@@ -9,6 +9,7 @@ class Parser {
     var $inClass = false;
     var $blockDepth = 0;
     var $expressionDepth = 0;
+    var $allowAssignmentExpression = false;
     var $foreverDepth = 0;
     var $symbolTable = null;
     var $prevToken = null;
@@ -54,6 +55,7 @@ class Parser {
         $sStatements = [];
         $sMain = $this->makeSequence(SequenceType::BLOCK, []);
         $this->next();
+        $hasFunction = false;
         while (true) {
             $s = $this->symbol;
             if ($s->type === SymbolType::END) {
@@ -63,6 +65,13 @@ class Parser {
             if ($sStatement) {
                 $this->validateOneStatementPerLine($sStatement);
                 $sStatements []= $sStatement;
+
+                $type = $sStatement->type;
+                if ($type === SymbolType::NEW_FUN || $type === SymbolType::NEW_TEMPLATE || $type === SymbolType::NEW_CLASS) {
+                    $hasFunction = true;
+                } else if ($hasFunction) {
+                    $this->error("Top-level statements can only be declared before functions.", $sStatement->token);
+                }
             }
         }
         $sMain->setKids($sStatements);
@@ -108,8 +117,6 @@ class Parser {
     // A Statement is a tree of Expressions.
     function parseStatement () {
 
-        Tht::devPrint("START STATEMENT:\n");
-
         $this->expressionDepth = 0;
 
         $s = $this->symbol;
@@ -139,8 +146,6 @@ class Parser {
     function parseExpression ($baseBindingPower=0) {
 
         $this->expressionDepth += 1;
-
-        Tht::devPrint("START EXPRESSION bp=$baseBindingPower d=" . $this->expressionDepth . " :\n");
 
         $s = $this->symbol;
         $left = $s->asLeft($this);
@@ -224,8 +229,8 @@ class Parser {
 
     function checkAltToken ($altValue, $token) {
         $tokenValue = $token[TOKEN_VALUE];
-        if (isset(ParserData::$ALT_TOKENS[$tokenValue])) {
-            $correct = ParserData::$ALT_TOKENS[$tokenValue];
+        if (isset(CompilerConstants::$ALT_TOKENS[$tokenValue])) {
+            $correct = CompilerConstants::$ALT_TOKENS[$tokenValue];
             $this->error("Unknown token: `$tokenValue`  Try: `$correct`", $token);
         }
     }
@@ -236,14 +241,14 @@ class Parser {
         $tokenType = $token[TOKEN_TYPE];
         $tokenValue = $token[TOKEN_VALUE];
 
-        if (isset(ParserData::$LITERAL_TYPES[$tokenType])) {
+        if (isset(CompilerConstants::$LITERAL_TYPES[$tokenType])) {
             $symbol = new S_Literal ($token, $this, $tokenType);
         }
         else if ($tokenType === TokenType::TSTRING) {
             $symbol = new S_TemplateString ($token, $this);
         }
-        else if (isset(ParserData::$SYMBOL_CLASS[$tokenValue])) {
-            $symbolClass = 'o\\' . ParserData::$SYMBOL_CLASS[$tokenValue];
+        else if (isset(CompilerConstants::$SYMBOL_CLASS[$tokenValue])) {
+            $symbolClass = 'o\\' . CompilerConstants::$SYMBOL_CLASS[$tokenValue];
             $symbol = new $symbolClass ($token, $this);
         }
         else if ($tokenType === TokenType::WORD) {
@@ -258,7 +263,7 @@ class Parser {
             else if (OBare::isa($tokenValue)) {
                 $type = SymbolType::BARE_FUN;
             }
-            else if (in_array(strtolower($tokenValue), ParserData::$RESERVED_NAMES)) {
+            else if (in_array(strtolower($tokenValue), CompilerConstants::$RESERVED_NAMES)) {
                 $type = SymbolType::KEYWORD;
             }
             else {
@@ -277,8 +282,6 @@ class Parser {
             $this->checkAltToken($tokenValue, $token);
             $this->error("Unknown token: `$tokenValue`", $token);
         }
-
-        Tht::devPrint($tokenValue . "  ==>  " . get_class($symbol));
 
         return $symbol;
     }
