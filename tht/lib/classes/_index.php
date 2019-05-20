@@ -16,9 +16,13 @@ class LibClasses {
         'OBoolean',
         'OFunction',
         'OTagString',
+        'OTagStrings',
         'ONothing',
         'OModule',
         'OTemplate',
+        'OUrl',
+        'OUrlQuery',
+        'OPassword',
     ];
 
     static public function load () {
