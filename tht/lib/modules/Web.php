@@ -6,20 +6,21 @@ class u_Web extends StdModule {
 
     private $icons = null;
 
-    function u_run_route($path) {
-        ARGS('s', func_get_args());
-        WebMode::runRoute($path);
-        return new \o\ONothing('runRoute');
-    }
-
     function u_nonce () {
         ARGS('', func_get_args());
         return Security::getNonce();
     }
 
-    function u_csrf_token() {
-        ARGS('', func_get_args());
-        return Security::getCsrfToken();
+    function u_csrf_token($onlyToken=false) {
+        ARGS('f', func_get_args());
+        $t = Security::getCsrfToken();
+        if ($onlyToken) {
+            return $t;
+        }
+        else {
+            $h = '<input type="hidden" name="csrfToken" value="' . $t . '" />';
+            return new HtmlTagString($h);
+        }
     }
 
     function u_parse_html($raw) {
@@ -244,6 +245,12 @@ class u_Web extends StdModule {
         $xe .= "<style> .$r { display: none; } </style>";
 
         return new HtmlTagString ($xe);
+    }
+
+    function u_skip_hit_counter($doSkip) {
+        ARGS('f', func_get_args());
+        HitCounter::$skipThisPage = $doSkip;
+        return $doSkip;
     }
 }
 
