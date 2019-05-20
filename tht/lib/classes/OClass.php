@@ -82,6 +82,12 @@ class OClass implements \JsonSerializable {
         }
         $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
 
+        if (!$suggest) {
+            if (method_exists($this, u_($field))) {
+                $suggest = 'Try: `' . $field . '()`';
+            }
+        }
+
         Tht::error("Unknown field: `$field` $suggest");
     }
 
