@@ -11,6 +11,7 @@ class ThtLib {
         'Parser',
         'Validator',
         'SourceMap',
+        'SourceAnalyzer',
         'Emitter',
         'EmitterPHP',
     ];
