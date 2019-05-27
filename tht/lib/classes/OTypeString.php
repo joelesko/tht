@@ -44,30 +44,30 @@ abstract class OTypeString extends OVar {
         return new $nsClassName ($s);
     }
 
-    static function getUntagged ($s, $type) {
+    static function getUntyped ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
             Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
-        return self::_getUntagged($s, $type, false);
+        return self::_getUntyped($s, $type, false);
     }
 
-    static function getUntaggedRaw ($s, $type) {
+    static function getUntypedRaw ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
             Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
-        return self::_getUntagged($s, $type, true);
+        return self::_getUntyped($s, $type, true);
     }
 
-    private static function _getUntagged ($s, $type, $getRaw) {
+    private static function _getUntyped ($s, $type, $getRaw) {
         if ($type && $s->type !== $type) {
             Tht::error("TypeString must be of type `$type`. Got: `$s->type`");
         }
         return $getRaw ? $s->u_raw_string() : $s->u_stringify();
     }
 
-    static function getUntaggedNoError ($s) {
+    static function getUntypedNoError ($s) {
         if (!OTypeString::isa($s)) {
             return $s;
         }

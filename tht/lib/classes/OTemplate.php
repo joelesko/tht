@@ -62,7 +62,7 @@ class OTemplate {
 
     // Hot Path
     function handleTypeString($context, $s) {
-        $plain = OTypeString::getUntagged($s, '');
+        $plain = OTypeString::getUntyped($s, '');
         if ($s->u_tag_type() == $this->returnTagType) {
             return $plain;
         }
@@ -90,7 +90,7 @@ class TemplateHtml extends OTemplate {
     function handleTypeString($context, $s) {
 
         // if js or css, wrap in appropriate block tags
-        $plain = OTypeString::getUntagged($s, '');
+        $plain = OTypeString::getUntyped($s, '');
 
         $type = $s->u_tag_type();
         if ($type == 'html') {
