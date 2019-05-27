@@ -5,8 +5,9 @@ function main() {
     Response.sendHtml(html(test.resultsHtml()));
 }
 
-
-
+F isPerfMode {
+    return Input.get('perf', 'b');
+}
 
 template html(results) {
 
@@ -73,7 +74,7 @@ function run(t:o) {
 
     // Not including these in perf measurement due to artificially long delays
     // or not representative of user code.
-    if (!Input.get('perf', 'b')) {
+    if (!isPerfMode()) {
 
         libTest(t);
         libCache(t);
@@ -467,13 +468,6 @@ function testOop(t) {
     let meths = tc.zGetMethods();
     t.ok(meths.contains('getId') && meths.contains('getFullName'), 'zGetMethods()');
 
-    t.dies(F { print(Php.version); }, 'version()');
-
-    t.ok(Php.functionExists('strpos'), 'function exists');
-    t.ok(!Php.functionExists('strposxx'), 'function exists (not)');
-    t.ok(Php.classExists('DateTime'), 'class exists');
-    t.ok(!Php.classExists('FooBar'), 'class exists (not)');
-    t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)');
 
 
 
@@ -658,41 +652,30 @@ function testTypeDeclarations(t) {
 
     t.ok(takesString('a'), 'string');
     t.ok(takesString(''), 'string');
-    t.dies(F { takesString(123); }, 'string - num');
-    t.dies(F { takesString(true); }, 'string - bool');
-    t.dies(F { takesString([]); }, 'string - list');
     t.dies(F { takesString(); }, 'string - none');
 
     t.ok(takesInt(1), 'int - 1');
     t.ok(takesInt(0), 'int - 0');
     t.ok(takesInt(1.0), 'int - 1.0');
-    t.dies(F { takesInt(1.1); }, 'int - 1.1');
 
     t.ok(takesFloat(1), 'float - 1');
     t.ok(takesFloat(1.1), 'float - 1.1');
     t.ok(takesFloat(-1.1), 'float - -1.1');
-    t.dies(F { takesFloat('1.1'); }, 'float - string');
 
     t.ok(takesBool(true), 'boolean - 1');
     t.ok(takesBool(false), 'boolean - 1');
-    t.dies(F { takesBool(1); }, 'boolean - 1');
-    t.dies(F { takesBool(0); }, 'boolean - 0 ');
-    t.dies(F { takesBool(''); }, 'boolean - ``');
 
     t.ok(takesMap({ a: 1 }), 'map - map');
     t.ok(takesMap({}), 'map - empty map');
-    t.dies(F { takesMap(['a']); }, 'map - list');
 
     t.ok(takesList(['a']), 'list - list');
     t.ok(takesList([]), 'list - empty list');
-    t.dies(F { takesList({ a: 1 }); }, 'list - map');
 
     t.ok(takesFunction(F { R 1; }), 'function - function');
     let f = F { };
     t.ok(takesFunction(f), 'function - bareword');
 
     t.ok(takesObject(t), 'object');
-    t.dies(F { takesObject(1); }, 'object - number');
     t.ok(takesObject({ a: 1 }), 'object - map');
 
     t.ok(takesAny(1), 'any - int');
@@ -702,6 +685,20 @@ function testTypeDeclarations(t) {
     t.ok(takesStringDefault() == 'default', 'default');
     t.ok(takesMultipleDefault(3) == '3,default', 'multiple');
     t.ok(takesMultipleDefault(5, 'a') == '5,a', 'multiple, default');
+
+    if (Php.version(true) >= 70100) {
+        t.dies(F { takesString(123); }, 'string - num');
+        t.dies(F { takesString(true); }, 'string - bool');
+        t.dies(F { takesString([]); }, 'string - list');
+        t.dies(F { takesInt(1.1); }, 'int - 1.1');
+        t.dies(F { takesFloat('1.1'); }, 'float - string');
+        t.dies(F { takesBool(1); }, 'boolean - 1');
+        t.dies(F { takesBool(0); }, 'boolean - 0 ');
+        t.dies(F { takesBool(''); }, 'boolean - ``');
+        t.dies(F { takesMap(['a']); }, 'map - list');
+        t.dies(F { takesList({ a: 1 }); }, 'list - map');
+        t.dies(F { takesObject(1); }, 'object - number');
+    }
 }
 
 F takesString(val:s) {
@@ -827,7 +824,7 @@ function testMaps(t) {
 
     // remove
     t.ok(map.remove('b') == 2, 'delete - key exists');
-    t.dies(function () keep(map) { map.remove('Z'); }, 'delete - key nonexistent');
+    t.ok(map.remove('Z') == '', 'delete - key nonexistent');
     t.ok(map.keys().length() == 1, 'delete - modified map');
 
     // reverse
@@ -851,9 +848,7 @@ function testMaps(t) {
 
     t.section('Maps - Misc Errors');
 
-    t.dies(F { {}.remove('Z'); }, 'Map key not found');
     t.dies(F { {}.getKey('VAL'); }, 'Map value not found');
-
     t.dies(F { {}.getKey(false); }, 'Map.getKey(<boolean>);');
     t.dies(F { {}.merge(['a']); }, 'Map.merge(<list>);');
 
@@ -1222,6 +1217,10 @@ function testStrings(t) {
     t.ok('123'.toNumber() == 123, 'toNumber');
     t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters');
 
+    if (!isPerfMode()) {
+        t.ok('hi'.toPassword().hash().left(3) == '$2y', 'hash');
+        t.dies(F { 'hey'.toPassword().hash().toPassword().hash(); }, 'no re-hash');
+    }
 
     t.section('String Methods - Unicode');
 
@@ -1276,7 +1275,11 @@ function testStrings(t) {
     t.ok('Abc DEF ⒶⒷⒸ'.toUpperCase() == 'ABC DEF ⒶⒷⒸ', 'upperCase');
 
     // NOTE: pre php 7.3, the unicode chars are not lowercased
-    t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⓐⓑⓒ', 'lowerCase');
+    if (Php.version(true) >= 70300) {
+        t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⓐⓑⓒ', 'lowerCase');
+    } else {
+        t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⒶⒷⒸ', 'lowerCase');
+    }
 
     t.ok('fòôbàř'.toUpperCase() == 'FÒÔBÀŘ', 'upperCase - extended');
     t.ok('FÒÔBÀŘ'.toLowerCase() == 'fòôbàř', 'lowerCase - extended');
@@ -2126,6 +2129,14 @@ function libPhp(t) {
     t.ok(vc.zSet('ALL_CAP_FIELD', 789), 'Vendor class - ALL_CAP_FIELD');
     t.ok(vc.zGet('ALL_CAP_FIELD') == 789, 'Vendor class - ALL_CAP_FIELD');
     t.ok(vc.zCall('ALL_CAP_METHOD') == 'FOO', 'Vendor class - ALL_CAP_METHOD');
+
+    t.dies(F { print(Php.version); }, 'version()');
+
+    t.ok(Php.functionExists('strpos'), 'function exists');
+    t.ok(!Php.functionExists('strposxx'), 'function exists (not)');
+    t.ok(Php.classExists('DateTime'), 'class exists');
+    t.ok(!Php.classExists('FooBar'), 'class exists (not)');
+    t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)');
 }
 
 function libTest(t) {
@@ -2223,13 +2234,15 @@ function libInput(t) {
 
     t.ok(formValidate('user 123', 'username') == '', 'username - space');
     t.ok(formValidate('user123', 'username') == 'user123', 'username ok');
-    t.ok(formValidate('asdfasdf', 'password') == '', 'password - weak');
 
-    let correctHash = '$2y$10$YmeQNjEKwOu4kMS/bszSvu7Sn09z5R5OqJaULriM4JVIB.S5W7an.';
-    let pw = formValidate('rewjg23jiwof', 'password');
-    t.ok(pw.match(correctHash), 'password - match()');
-    t.ok(!pw.match('nope'), 'password - no match()');
+    if (!isPerfMode()) {
+        t.ok(formValidate('asdfasdf', 'password') == '', 'password - weak');
 
+        let correctHash = '$2y$10$YmeQNjEKwOu4kMS/bszSvu7Sn09z5R5OqJaULriM4JVIB.S5W7an.';
+        let pw = formValidate('rewjg23jiwof', 'password');
+        t.ok(pw.match(correctHash), 'password - match()');
+        t.ok(!pw.match('nope'), 'password - no match()');
+    }
 
     // TODO: test get, post, and post w/out csrf
 

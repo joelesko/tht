@@ -10,14 +10,14 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfPanel: true
+        showPerfPanel: false
         adminIp:
 
         memoryLimitMb: 32
 
-        _coreDevMode: true
+        _coreDevMode: false
 
-        hitCounter: true
+        hitCounter: false
 
         _sendErrorUrl: http://localhost:8900/remote/error
     }
