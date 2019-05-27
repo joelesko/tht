@@ -115,8 +115,8 @@ class Tht {
         return true;
     }
 
-    // TODO: put all these in one registry function/file?
-    // Includes take less than a 1ms (?)
+    // Includes take 0.25ms
+    // TODO: can cut in half or more by consolidating all these to 1 file.
     static private function includeLibs() {
 
         Tht::loadLib('utils/Utils.php');
@@ -458,7 +458,7 @@ class Tht {
     }
 
     static function parseTemplateString ($type, $lRawText) {
-        $rawText = OTypeString::getUntagged($lRawText, $type);
+        $rawText = OTypeString::getUntyped($lRawText, $type);
         $tsr = new TemplateStringReader ($type, $rawText);
         return $tsr->parse();
     }
