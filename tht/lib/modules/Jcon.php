@@ -66,7 +66,7 @@ class u_Jcon extends StdModule {
     function parse($text) {
         Tht::module('Perf')->start('Jcon.parse', $text);
 
-        $text = OTypeString::getUntaggedNoError($text);
+        $text = OTypeString::getUntypedNoError($text);
 
         $text = trim($text);
 
@@ -241,7 +241,6 @@ class u_Jcon extends StdModule {
         $this->leaf = $parentLeaf;
         $this->context = $parentContext;
     }
-
 
     function assignVal($key, $val) {
 

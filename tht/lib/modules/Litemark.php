@@ -85,7 +85,7 @@ class u_Litemark extends StdModule {
     }
 
     function u_parse ($raw, $flags=[]) {
-        $raw = \o\OTypeString::getUntaggedNoError($raw);
+        $raw = \o\OTypeString::getUntypedNoError($raw);
         Tht::module('Perf')->u_start('Litemark.parse', $raw);
 
         $this->flags = $flags;
