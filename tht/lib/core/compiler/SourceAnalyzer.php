@@ -127,6 +127,10 @@ class SourceAnalyzer {
 
         $prevStats = $this->getCurrentStats($this->file);
 
+        if (!isset($prevStats['numCompiles'])) {
+            $prevStats = $this->emptyStats();
+        }
+
         $stats['numCompiles'] = $prevStats['numCompiles'] + 1;
 
         $timeSinceLastCompile = time() - $prevStats['lastCompileTime'];
