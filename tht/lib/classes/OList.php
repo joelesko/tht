@@ -92,6 +92,11 @@ class OList extends OBag {
         return -1;
     }
 
+    function u_last_index() {
+        ARGS('', func_get_args());
+        return count($this->val) - 1;
+    }
+
     function u_slice($pos, $len=-1) {
         ARGS('nn', func_get_args());
         $vlen = count($this->val);
