@@ -99,7 +99,7 @@ EOCSS;
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
 
-        $css = OTypeString::getUntagged($this->inc_reset(), 'css');
+        $css = OTypeString::getUntyped($this->inc_reset(), 'css');
 
         $gridCss = $this->inc_grid($nSizeX, $breakCss)->u_stringify();
 
@@ -649,7 +649,7 @@ EOCSS;
         $breakX = ($nSizeX + 20) . 'px';
         $sizeX = $nSizeX . 'px';
 
-        $breakCss = is_null($breakCss) ? '' : \o\OTypeString::getUntagged($breakCss);
+        $breakCss = is_null($breakCss) ? '' : \o\OTypeString::getUntyped($breakCss);
 
         $css = <<<EOCSS
 

@@ -203,7 +203,7 @@ class u_Db extends StdModule {
     function u_update_rows ($tTable, $vals, $lWhere) {
 
         $table = $this->untaintName($tTable, 'table');
-        $where = OTypeString::getUntaggedRaw($lWhere, 'sql');
+        $where = OTypeString::getUntypedRaw($lWhere, 'sql');
 
         // create SET expression
         $cols = [];
@@ -230,7 +230,7 @@ class u_Db extends StdModule {
 
     function u_delete_rows ($tTable, $lWhere) {
 
-        $where = OTypeString::getUntaggedRaw($lWhere, 'sql');
+        $where = OTypeString::getUntypedRaw($lWhere, 'sql');
         $table = $this->untaintName($tTable, 'table');
 
         $sql = "DELETE FROM $table WHERE $where";
@@ -240,16 +240,16 @@ class u_Db extends StdModule {
         $this->query($lSql);
     }
 
-    function u_query ($taggedSql) {
-        $this->query($taggedSql);
+    function u_query ($typedSql) {
+        $this->query($typedSql);
     }
 
-    function query ($taggedSql) {
+    function query ($typedSql) {
 
         Tht::module('Meta')->u_no_template_mode();
 
-        $sql = OTypeString::getUntaggedRaw($taggedSql, 'sql');
-        $params = $taggedSql->u_params();
+        $sql = OTypeString::getUntypedRaw($typedSql, 'sql');
+        $params = $typedSql->u_params();
 
         $this->lastStatus['insertId'] = -1;
         $this->lastStatus['numRows'] = -1;
