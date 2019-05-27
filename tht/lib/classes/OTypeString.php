@@ -104,7 +104,7 @@ abstract class OTypeString extends OVar {
         return $escParams;
     }
 
-    function u_is_tag_string () {
+    function u_is_type_string () {
         ARGS('', func_get_args());
         return true;
     }

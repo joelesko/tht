@@ -39,7 +39,7 @@ function run(t:o) {
 
     testMathAndLogic(t);
     testStrings(t);
-    testTagStrings(t);
+    testTypeStrings(t);
     testUrlTagStrings(t);
     testBitwise(t);
     testControlFlow(t);
@@ -1498,12 +1498,12 @@ function testStrings(t) {
     Perf.stop();
 }
 
-F testTagStrings(t) {
+F testTypeStrings(t) {
 
-    t.section('TagStrings');
+    t.section('TypeStrings');
 
-    t.ok(sql'abc'.isTagString(), 'isTagString = true');
-    t.ok(!'abc'.isTagString(), 'isTagString = false');
+    t.ok(sql'abc'.isTypeString(), 'isTypeString = true');
+    t.ok(!'abc'.isTypeString(), 'isTypeString = false');
 
     t.dies(F { return plain'a' ~ 'b'; }, 'Can`t combine');
     t.dies(F { return 'a' ~ plain'b'; }, 'Can`t combine');
