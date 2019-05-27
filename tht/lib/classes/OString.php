@@ -6,6 +6,7 @@ namespace o;
 class OString extends OVar implements \ArrayAccess {
 
     public $val = '';
+    private $prevHash = '';
     private $encoding = 'UTF-8';
 
     protected $suggestMethod = [
@@ -397,6 +398,16 @@ class OString extends OVar implements \ArrayAccess {
         $v = preg_replace('/[^a-z0-9]+/', $delim, $v);
         $v = rtrim($v, $delim);
         return $v;
+    }
+
+    function u_to_password() {
+        ARGS('', func_get_args());
+        return Security::createPassword($this->val);
+    }
+
+    function u_hash() {
+        ARGS('', func_get_args());
+        return Security::hashString($this->val);
     }
 
 

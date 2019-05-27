@@ -20,6 +20,8 @@ class Security {
     static private $isPostRequestValidated = false;
     static private $isAdmin = false;
 
+    static private $prevHash = null;
+
     static private $PHP_BLACKLIST_MATCH = '/pcntl_|posix_|proc_|ini_|mysql|sqlite/i';
 
     static private $PHP_BLACKLIST = [
@@ -125,7 +127,29 @@ class Security {
         return $headers;
     }
 
+    static function checkPrevHash($raw) {
+        if (!is_null(self::$prevHash) && $raw == self::$prevHash) {
+            Tht::error('(security) Hashing an already-hashed value results in a value that is easier to attack.');
+        }
+    }
 
+    static function hashString($raw) {
+        self::checkPrevHash($raw);
+
+        $hash = hash('sha256', $raw);
+        self::$prevHash = $hash;
+
+        return $hash;
+    }
+
+    static function hashPassword($raw) {
+        self::checkPrevHash($raw);
+
+        $hash = password_hash($raw, PASSWORD_DEFAULT);
+        self::$prevHash = $hash;
+
+        return $hash;
+    }
 
     static function createPassword ($plainText) {
         return new OPassword ($plainText);
@@ -462,7 +486,7 @@ class Security {
          return htmlspecialchars_decode($in, ENT_QUOTES|ENT_HTML5);
     }
 
-    // prevent the most common password mistakes
+    // Prevent the most common password mistakes
     static function validatePasswordStrength($val) {
 
         // all same character

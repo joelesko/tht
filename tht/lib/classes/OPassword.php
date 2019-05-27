@@ -19,7 +19,7 @@ class OPassword extends OClass {
     function u_hash() {
         ARGS('', func_get_args());
         if (!$this->hash) {
-            $this->hash = password_hash($this->plainText, PASSWORD_DEFAULT);
+            $this->hash = Security::hashPassword($this->plainText);
         }
         return $this->hash;
     }
