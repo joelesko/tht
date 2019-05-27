@@ -53,7 +53,7 @@ class OMap extends OBag {
             if (isset($this->default)) {
                 return $this->default;
             } else {
-                Tht::error("Map key not found: `$k`");
+                return '';
             }
         }
         return $v;
