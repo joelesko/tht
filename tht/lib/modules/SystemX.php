@@ -28,12 +28,12 @@ class u_System extends StdModule {
         return OList::create($argv);
     }
 
-    function u_command ($taggedCmd, $isPassThru=false) {
+    function u_command ($typedCmd, $isPassThru=false) {
 
         Tht::module('Meta')->u_no_web_mode();
         Tht::module('Meta')->u_no_template_mode();
 
-        $cmd = OTypeString::getUntagged($taggedCmd, 'cmd');
+        $cmd = OTypeString::getUntyped($typedCmd, 'cmd');
 
         Tht::module('Perf')->u_start('System.command', $cmd);
         $ret = '';

@@ -58,7 +58,7 @@ class u_Web extends StdModule {
 
         ARGS('*sm', func_get_args());
 
-        $url = OTypeString::getUntagged($lUrl, 'url');
+        $url = OTypeString::getUntyped($lUrl, 'url');
 
         $params['href'] = $url;
         $rawLink = $this->openTag('a', $params) . Security::escapeHtml($label) . '</a>';

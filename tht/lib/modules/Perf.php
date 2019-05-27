@@ -13,6 +13,7 @@ class u_Perf extends StdModule {
     private $taskCounts = [];
 
     static private $MAX_TASKS = 100;
+    static private $MIN_TASK_THRESHOLD_MS = 0.1;
 
     function isActive () {
         $show = Tht::getConfig('showPerfPanel') || $this->forceActive;
@@ -74,7 +75,7 @@ class u_Perf extends StdModule {
         $result['durationMs'] = round($thisTimeDelta * 1000, 2);
         $result['memoryMb'] = round($thisMemDelta / 1048576, 2);
 
-        if ($result['durationMs'] >= 0.1) {
+        if ($result['durationMs'] >= self::$MIN_TASK_THRESHOLD_MS) {
             $this->results []= $result;
         }
 
@@ -153,14 +154,14 @@ class u_Perf extends StdModule {
         $thtDocLink = Tht::getThtSiteUrl('/reference/perf-score');
         $compileMessage = Compiler::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
 
-        $table = OTypeString::getUntagged(
+        $table = OTypeString::getUntyped(
             Tht::module('Web')->u_table(OList::create($results['single']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Detail' ]),
                 OMap::create(['class' => 'bench-result'])
         ), 'html');
 
-        $tableGroup = OTypeString::getUntagged(
+        $tableGroup = OTypeString::getUntyped(
             Tht::module('Web')->u_table(OList::create($results['group']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'numCalls' ]),
                 OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Calls' ]),

@@ -15,7 +15,7 @@ class u_Response extends StdModule {
     function u_redirect ($lUrl, $code=303) {
         ARGS('*n', func_get_args());
 
-        $url = OTypeString::getUntagged($lUrl, 'url');
+        $url = OTypeString::getUntyped($lUrl, 'url');
         header('Location: ' . $url, true, $code);
         Tht::exitScript(0);
     }
@@ -51,7 +51,7 @@ class u_Response extends StdModule {
     // --------------------------------------------
 
     // function u_print_block($h, $title='') {
-    //     $html = OTypeString::getUntagged($h);
+    //     $html = OTypeString::getUntyped($h);
     //     $this->u_send_json([
     //         'status' => 'ok',
     //         'title' => $title,
@@ -84,7 +84,7 @@ class u_Response extends StdModule {
 
         $out = '';
         foreach ($chunks->val as $c) {
-            $out .= OTypeString::getUntagged($c, '');
+            $out .= OTypeString::getUntyped($c, '');
         }
         return $out;
     }
@@ -135,7 +135,7 @@ class u_Response extends StdModule {
     }
 
     function u_send_html ($html) {
-        $html = OTypeString::getUntagged($html, 'html');
+        $html = OTypeString::getUntyped($html, 'html');
         $this->output($html);
         return new \o\ONothing('sendHtml');
     }
@@ -164,7 +164,7 @@ class u_Response extends StdModule {
             }
 
             foreach ($chunks as $c) {
-                $val['body'] .= OTypeString::getUntagged($c, 'html');
+                $val['body'] .= OTypeString::getUntyped($c, 'html');
             }
         }
 
@@ -288,7 +288,7 @@ HTML;
         foreach ($paths as $path) {
             if (OTypeString::isa($path)) {
                 // Inline it in the HTML document
-                $str = OTypeString::getUntagged($path, $type);
+                $str = OTypeString::getUntyped($path, $type);
                 if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
                     $str = "(function(){" + $str + "})();";
                 }

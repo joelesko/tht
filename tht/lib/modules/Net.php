@@ -33,7 +33,7 @@ class u_Net extends StdModule {
 
     private function request($functionName, $method, $lUrl, $postData, $headers) {
 
-        $url = OTypeString::getUntagged($lUrl, 'url');
+        $url = OTypeString::getUntyped($lUrl, 'url');
         if (!preg_match('/http(s?):\/\//i', $url)) {
             Tht::error('`' . $functionName . '()` expects a URL starting with `http://` or `https://`');
         }
