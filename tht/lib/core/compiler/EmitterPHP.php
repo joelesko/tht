@@ -108,7 +108,11 @@ class EmitterPHP extends Emitter {
         $nameSpacePhp = 'namespace ' . $nameSpace . ";\n\\o\\ModuleManager::registerUserModule('$relPath','$escNamespace');\n";
 
         $finalCode = "<?php\n\n";
-        $finalCode .= "declare(strict_types=1);\n";
+
+        if (PHP_VERSION_ID >= 70100) {
+            $finalCode .= "declare(strict_types=1);\n";
+        }
+
         $finalCode .= "$nameSpacePhp\n";
         $finalCode .= "$php\n\n";
         $finalCode = $this->appendSourceMap($finalCode, $filePath);
