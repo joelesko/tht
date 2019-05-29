@@ -4,6 +4,8 @@ namespace o;
 
 class OMap extends OBag {
 
+    protected $type = 'map';
+
     protected $suggestMethod = [
         'count'   => 'length()',
         'size'    => 'length()',

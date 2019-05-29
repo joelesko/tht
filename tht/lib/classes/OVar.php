@@ -19,49 +19,5 @@ class OVar extends OClass implements \JsonSerializable {
         }
         return false;
     }
-
-    function getVal () {
-        return $this->val;
-    }
-
-    function setVal ($v) {
-        $this->val = $v;
-    }
-
-    function u_is_list () {
-        return is_array($this->val) && \get_called_class() !== 'o\OMap';
-    }
-
-    function u_is_string () {
-        return is_string($this->val);
-    }
-
-    function u_is_tag_string () {
-        return false;
-    }
-
-    function u_is_number () {
-        return is_numeric($this->val);
-    }
-
-    function u_is_boolean () {
-        return is_bool($this->val);
-    }
-
-    function u_is_function () {
-        return is_callable($this->val);
-    }
-
-    function u_is_empty () {
-        return $this->val ? false : true;
-    }
-
-    function u_is_regex () {
-        return ORegex::isa($this->val);
-    }
-
-    function u_is_map () {
-        return \get_called_class() === 'o\OMap';
-    }
 }
 

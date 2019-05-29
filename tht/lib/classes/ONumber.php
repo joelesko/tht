@@ -4,6 +4,8 @@ namespace o;
 
 class ONumber extends OVar {
 
+    protected $type = 'number';
+
     // TODO: zero pad
 
     function u_format ($numDec=0, $thousandSep=',', $decimalPt='.') {

@@ -78,7 +78,7 @@ class u_Response extends StdModule {
     function renderChunks($chunks) {
 
         // Normalize. Could be a single TypeString, OList, or a PHP array
-        if (! (is_object($chunks) && v($chunks)->u_is_list())) {
+        if (! (is_object($chunks) && v($chunks)->u_is_type('list'))) {
             $chunks = OList::create([ $chunks ]);
         }
 

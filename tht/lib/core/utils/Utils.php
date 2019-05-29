@@ -111,10 +111,11 @@ function ARGS($sig, $arguments) {
             }
             else if ($t === 'object') {
                 $varg = v($arg);
-                if ($varg->u_is_map()) {
+                $type = $varg->u_type();
+                if ($type == 'map') {
                     $t = 'map';
                 }
-                else if ($varg->u_is_list()) {
+                else if ($type == 'list') {
                     $t = 'list';
                 }
                 else if (get_class($arg) == 'Closure') {

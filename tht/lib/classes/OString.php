@@ -5,6 +5,8 @@ namespace o;
 
 class OString extends OVar implements \ArrayAccess {
 
+    protected $type = 'string';
+
     public $val = '';
     private $prevHash = '';
     private $encoding = 'UTF-8';
@@ -153,7 +155,7 @@ class OString extends OVar implements \ArrayAccess {
         return $this->val;
     }
 
-    function u_danger_danger_tag ($type) {
+    function u_danger_danger_set_type ($type) {
         ARGS('s', func_get_args());
         return OTypeString::create($type, $this->val);
     }

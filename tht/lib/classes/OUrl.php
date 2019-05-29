@@ -10,7 +10,7 @@ namespace o;
 
 class UrlTypeString extends OTypeString {
 
-    protected $type = 'url';
+    protected $stringType = 'url';
     private $query = null;
     private $parts = null;
     private $host = '';

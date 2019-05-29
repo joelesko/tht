@@ -10,6 +10,12 @@ class OClass implements \JsonSerializable {
 
     protected $suggestMethod = [];
 
+    protected $type = 'object';
+
+    static private $types = [
+        'boolean', 'string', 'number', 'list', 'map', 'object', 'regex', 'function', 'typeString', 'nothing'
+    ];
+
     function _init($args) {
 
         $this->u_state = OMap::create([]);
@@ -54,9 +60,28 @@ class OClass implements \JsonSerializable {
         }
     }
 
-    function u_get_type() {
-        return str_replace('o\O', '', get_called_class());
+    function u_type() {
+        ARGS('', func_get_args());
+        return $this->type;
     }
+
+    function u_is_type($t) {
+        ARGS('s', func_get_args());
+        $type = $this->u_type();
+        if ($t === $type) {
+            return true;
+        } else {
+            if (!in_array($t, self::$types)) {
+                if (preg_match('/^[^a-z]/', $t)) {
+                    Tht::error("Type `$t` must be lower camelCase.");
+                }
+                Tht::error("Unknown type: `$t`");
+            }
+            return false;
+        }
+    }
+
+
 
     // TODO: toJson
 

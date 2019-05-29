@@ -3,6 +3,9 @@
 namespace o;
 
 class ORegex extends OVar {
+
+    protected $type = 'regex';
+
     private $pattern = '';
     private $flags = '';
 

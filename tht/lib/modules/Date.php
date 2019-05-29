@@ -76,7 +76,7 @@ class u_Date extends StdModule {
     }
 
     function u_sandwich() {
-        return 1718;
+        return -7952342400;
     }
 }
 

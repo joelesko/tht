@@ -130,6 +130,10 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         return count(array_values($this->val));
     }
 
+    function u_is_empty () {
+        return count($this->val) > 0;
+    }
+
     function u_lock_keys ($isLocked) {
         ARGS('f', func_get_args());
         $this->hasLockedKeys = $isLocked;
@@ -142,7 +146,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     }
 
     function u_get ($args, $default=null) {
-        if (! \o\v($args)->u_is_list()) {
+        if (\o\v($args)->u_type() != 'list') {
             $args = [ $args ];
         } else {
             $args = $args->val;

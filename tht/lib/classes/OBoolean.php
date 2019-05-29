@@ -4,6 +4,8 @@ namespace o;
 
 class OBoolean extends OVar {
 
+    protected $type = 'boolean';
+
     function __toString () {
         return $this->u_to_string();
     }

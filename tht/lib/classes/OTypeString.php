@@ -4,8 +4,10 @@ namespace o;
 
 abstract class OTypeString extends OVar {
 
+    protected $type = 'typeString';
+
     protected $str = '';
-    protected $type = 'text';
+    protected $stringType = 'text';
     protected $bindParams = [];
     protected $overrideParams = [];
     protected $appendedTypeStrings = [];
@@ -36,8 +38,8 @@ abstract class OTypeString extends OVar {
         return $a->appendTypeString($b);
     }
 
-    static function create ($tagType, $s) {
-        $nsClassName = '\\o\\' . ucfirst($tagType) . 'TypeString';
+    static function create ($type, $s) {
+        $nsClassName = '\\o\\' . ucfirst($type) . 'TypeString';
         if (!class_exists($nsClassName)) {
             Tht::error("TypeString of type `$nsClassName` not supported.");
         }
@@ -61,8 +63,8 @@ abstract class OTypeString extends OVar {
     }
 
     private static function _getUntyped ($s, $type, $getRaw) {
-        if ($type && $s->type !== $type) {
-            Tht::error("TypeString must be of type `$type`. Got: `$s->type`");
+        if ($type && $s->stringType !== $type) {
+            Tht::error("TypeString must be of type `$type`. Got: `$s->stringType`");
         }
         return $getRaw ? $s->u_raw_string() : $s->u_stringify();
     }
@@ -80,7 +82,7 @@ abstract class OTypeString extends OVar {
         foreach($this->bindParams as $k => $v) {
             if (OTypeString::isa($v)) {
                 $plain = $v->u_stringify();
-                if ($v->u_tag_type() === $this->u_tag_type()) {
+                if ($v->u_string_type() === $this->u_string_type()) {
                     // If same lock type, don't escape
                     $escParams[$k] = $plain;
                 } else {
@@ -104,15 +106,9 @@ abstract class OTypeString extends OVar {
         return $escParams;
     }
 
-    function u_is_type_string () {
-        ARGS('', func_get_args());
-        return true;
-    }
-
-    // TODO: support other TypeString types & regular strings
     function appendTypeString($l) {
-        $t1 = $this->u_tag_type();
-        $t2 = $l->u_tag_type();
+        $t1 = $this->u_string_type();
+        $t2 = $l->u_string_type();
         if ($t1 !== $t2) {
             Tht::error("Can only append TypeStrings of the same type. Got: `$t1` and `$t2`");
         }
@@ -165,9 +161,9 @@ abstract class OTypeString extends OVar {
         return $this->bindParams;
     }
 
-    function u_tag_type() {
+    function u_string_type() {
         ARGS('', func_get_args());
-        return $this->type;
+        return $this->stringType;
     }
 
     // Allow user to provide pre-escaped params

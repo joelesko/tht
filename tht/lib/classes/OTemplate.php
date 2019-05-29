@@ -4,7 +4,7 @@ namespace o;
 
 class OTemplate {
     protected $chunks = [];
-    protected $returnTagType = '_';
+    protected $returnStringType = '_';
 
     function getString() {
         $str = '';
@@ -18,8 +18,8 @@ class OTemplate {
             $str = v($str)->u_trim_indent() . "\n";
         }
 
-        if ($this->returnTagType) {
-            return OTypeString::create($this->returnTagType, $str);
+        if ($this->returnStringType) {
+            return OTypeString::create($this->returnStringType, $str);
         } else {
             return $str;
         }
@@ -63,7 +63,7 @@ class OTemplate {
     // Hot Path
     function handleTypeString($context, $s) {
         $plain = OTypeString::getUntyped($s, '');
-        if ($s->u_tag_type() == $this->returnTagType) {
+        if ($s->u_string_type() == $this->returnStringType) {
             return $plain;
         }
         else {
@@ -77,7 +77,7 @@ class OTemplate {
 ////////// TYPES //////////
 
 class TemplateHtml extends OTemplate {
-    protected $returnTagType = 'html';
+    protected $returnStringType = 'html';
 
     function escape($context, $in) {
         $esc = Security::escapeHtml($in);
@@ -92,7 +92,7 @@ class TemplateHtml extends OTemplate {
         // if js or css, wrap in appropriate block tags
         $plain = OTypeString::getUntyped($s, '');
 
-        $type = $s->u_tag_type();
+        $type = $s->u_string_type();
         if ($type == 'html') {
             return $plain;
         }
@@ -113,21 +113,21 @@ class TemplateHtml extends OTemplate {
 class TemplateLite extends TemplateHtml {}
 
 class TemplateJs extends OTemplate {
-    protected $returnTagType = 'js';
+    protected $returnStringType = 'js';
     function escape($context, $in) {
         return Tht::module('Js')->escape($in);
     }
 }
 
 class TemplateCss extends OTemplate {
-    protected $returnTagType = 'css';
+    protected $returnStringType = 'css';
     function escape($context, $in) {
         return Tht::module('Css')->escape($in);
     }
 }
 
 class TemplateJcon extends OTemplate {
-    protected $returnTagType = '';
+    protected $returnStringType = '';
 
     function escape($context, $in) {
         if (is_bool($in)) {
@@ -146,7 +146,7 @@ class TemplateJcon extends OTemplate {
 }
 
 class TemplateText extends OTemplate {
-    protected $returnTagType = '';
+    protected $returnStringType = '';
 
     function postProcess($s) {
         return $s;

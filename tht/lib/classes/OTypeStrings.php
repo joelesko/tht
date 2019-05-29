@@ -2,10 +2,12 @@
 
 namespace o;
 
-class JconTypeString extends OTypeString {  protected $type = 'jcon';  }
+class JconTypeString extends OTypeString {
+    protected $stringType = 'jcon';
+}
 
 class HtmlTypeString extends OTypeString {
-    protected $type = 'html';
+    protected $stringType = 'html';
     // protected function u_z_escape_param($v) {
     //     return Security::escapeHtml($v);
     // }
@@ -15,21 +17,21 @@ class HtmlTypeString extends OTypeString {
 }
 
 class JsTypeString extends OTypeString {
-    protected $type = 'js';
+    protected $stringType = 'js';
     protected function u_z_escape_param($v) {
         return Tht::module('Js')->escape($v);
     }
 }
 
 class CssTypeString extends OTypeString {
-    protected $type = 'css';
+    protected $stringType = 'css';
     protected function u_z_escape_param($v) {
         return Tht::module('Css')->escape($v);
     }
 }
 
 class SqlTypeString extends OTypeString {
-    protected $type = 'sql';
+    protected $stringType = 'sql';
     protected function u_z_escape_param($v) {
         Tht::error('SQL escaping must be handled internally.');
     }
@@ -39,14 +41,14 @@ class SqlTypeString extends OTypeString {
 }
 
 class CmdTypeString extends OTypeString {
-    protected $type = 'cmd';
+    protected $stringType = 'cmd';
     protected function u_z_escape_param($v) {
         return escapeshellarg($v);
     }
 }
 
 class PlainTypeString  extends OTypeString {
-    protected $type = 'plain';
+    protected $stringType = 'plain';
     protected function u_z_escape_param($k) {
         return $k;
     }

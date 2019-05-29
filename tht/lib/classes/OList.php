@@ -4,6 +4,8 @@ namespace o;
 
 class OList extends OBag {
 
+    protected $type = 'list';
+
     protected $hasNumericKeys = true;
 
     protected $suggestMethod = [
