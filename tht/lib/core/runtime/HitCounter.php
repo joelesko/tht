@@ -48,11 +48,16 @@ class HitCounter {
     }
 
     static private function logPath($dir, $file) {
-        return realpath(DATA_ROOT . '/counter/' . $dir) . '/' . $file . '.txt';
+        return self::logDir($dir) . '/' . $file . '.txt';
     }
 
     static private function logDir($dir) {
-        return realpath(DATA_ROOT . '/counter/' . $dir);
+        $root = DATA_ROOT . '/counter/' . $dir;
+        $path = realpath($root);
+        if ($path == '') {
+            Tht::error("Unable to find counter directory: `$root`");
+        }
+        return $path;
     }
 
     // Date counter - 1 byte per hit
