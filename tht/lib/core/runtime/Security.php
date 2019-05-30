@@ -386,7 +386,8 @@ class Security {
         header("X-UA-Compatible: IE=Edge");
 
         // HSTS - 1 year duration
-        if (!(Tht::isMode('testServer') || $ip == '127.0.0.1')) {
+        $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
+        if (!Tht::isMode('testServer') && $ip != '127.0.0.1') {
             header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
         }
 
