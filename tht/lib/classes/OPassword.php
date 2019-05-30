@@ -26,7 +26,7 @@ class OPassword extends OClass {
 
     function u_match($correctHash) {
         ARGS('s', func_get_args());
-        return password_verify($this->plainText, $correctHash);
+        return Security::verifyPassword($this->plainText, $correctHash);
     }
 
     function u_danger_danger_plain_text() {

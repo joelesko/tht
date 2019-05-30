@@ -145,10 +145,16 @@ class Security {
     static function hashPassword($raw) {
         self::checkPrevHash($raw);
 
+        Tht::module('Perf')->u_start('Password.hash');
         $hash = password_hash($raw, PASSWORD_DEFAULT);
         self::$prevHash = $hash;
+        Tht::module('Perf')->u_stop();
 
         return $hash;
+    }
+
+    static function verifyPassword($plainText, $correctHash) {
+        return password_verify($plainText, $correctHash);
     }
 
     static function createPassword ($plainText) {
