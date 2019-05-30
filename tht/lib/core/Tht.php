@@ -138,11 +138,13 @@ class Tht {
     // Serve directly if requested a static file in testServer mode
     static private function serveStaticFile() {
 
-        if (preg_match('/\.[a-z0-9]{2,}$/', $_SERVER['SCRIPT_NAME'])) {
-            return true;
-        }
-
         if (Tht::isMode('testServer')) {
+
+            // Dotted filename
+            if (preg_match('/\.[a-z0-9]{2,}$/', $_SERVER['SCRIPT_NAME'])) {
+                return true;
+            }
+
             // Need to construct path manually.
             // See: https://github.com/joelesko/tht/issues/2
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
