@@ -15,7 +15,7 @@ class CliMode {
     ];
 
     static private $FRONT_PATH_APP     = '../app';
-    static private $FRONT_PATH_DATA    = '../data';
+    static private $FRONT_PATH_DATA    = '../app/data';
     static private $FRONT_PATH_RUNTIME = '../app/.tht/bin/tht.php';
 
 
@@ -97,7 +97,7 @@ class CliMode {
             Tht::exitScript(1);
         }
 
-        $msg = "\nYour Document Root is:\n  " . Tht::path('docRoot') . "\n\n";
+        $msg = "Your Document Root is:\n  " . Tht::path('docRoot') . "\n\n";
         $msg .= "Install THT app?";
         if (!Tht::module('System')->u_confirm($msg)) {
             echo "\nPlease 'cd' to your public Document Root directory.  Then rerun this command.\n\n";
@@ -173,47 +173,73 @@ class CliMode {
             $exampleRelPath =  Tht::getRelativePath('app', $examplePath);
             $publicPath = Tht::getRelativePath('app', Tht::path('pages'));
             $exampleCssPath = Tht::path('pages', 'css.tht');
+            $exampleModulePath = Tht::path('modules', 'App.tht');
 
-            CliMode::writeSetupFile($examplePath, "
-                Response.sendPage({
-                    title: 'Hello World',
-                    body: bodyHtml(),
-                    css: '/css',
-                });
+            self::writeSetupFile($exampleModulePath, "
 
-                template bodyHtml() {
+                // Functions that are usable by all pages via `App.functionName()`
+
+                function sendPage(title, bodyHtml) {
+
+                    Response.sendPage({
+                        title: title,
+                        body: siteHtml(bodyHtml),
+                        css: '/css',  // route to `pages/css.tht`
+                    });
+                }
+
+                template siteHtml(body) {
+
+                    <header>Example App</>
 
                     <main>
-                        <div style='margin: 2em'>
-
-                            <h1>> Hello World
-                            <.subline>> {{ Web.icon('check') }}  Congratulations!  The hard part is over.
-
-                            <p>> Add new pages to:<br /> <code>> app/pages
-
-                            <p>> For example, when you add this file...<br /> <code>> app/pages/testPage.tht
-
-                            <p>> ... it will automatically become this URL:<br /> <code>> http://yoursite.com/test-page
-
-                            <p style=\"margin-top: 4rem\">> For more info, see <a href=\"https://tht.help/tutorials/how-to-create-a-basic-web-app\">How to Create a Basic Web App</a>.
-                        </>
+                        {{ body }}
                     </>
                 }
             ");
 
-            CliMode::writeSetupFile($exampleCssPath, "
+            self::writeSetupFile($examplePath, "
+
+                // Call function in 'app/modules/App.tht'
+                App.sendPage('Hello World', bodyHtml());
+
+                template bodyHtml() {
+
+                    <div class=\"row\">
+
+                        <h1>Hello World</>
+
+                        <div class=\"subline\">{{ Web.icon('check') }}  Congratulations!  The hard part is over.</>
+
+                        <p>
+                            You can edit this page at:<br />
+                            <code>app/pages/home.tht</>
+                        </>
+
+                    </>
+                }
+            ");
+
+            self::writeSetupFile($exampleCssPath, "
 
                 Response.sendCss(css());
 
                 template css() {
 
-                    {{ Css.include('base', 700) }}
+                    {{ Css.plugin('base', 700) }}
+
+                    header {
+                        padding: 1rem 2rem;
+                        background-color: #f6f6f6;
+                    }
 
                     body {
                         font-size: 2rem;
                         color: #222;
                     }
+
                     .subline {
+                        width: 100%;
                         font-size: 2.5rem;
                         color: #394;
                         margin-bottom: 4rem;
@@ -221,15 +247,15 @@ class CliMode {
                         border-bottom: solid 1px #d6d6e6;
                         padding-bottom: 2rem;
                     }
+
                     code {
                         font-weight: bold;
                     }
-
                 }
             ");
 
             // Starting config file
-            CliMode::writeSetupFile(Tht::path('configFile'), "
+            self::writeSetupFile(Tht::path('settingsFile'), "
                 {
                     //
                     //  App Settings
@@ -293,7 +319,7 @@ class CliMode {
                 }
             ");
 
-            Tht::installDatabases();
+            self::installDatabases();
 
         } catch (\Exception $e) {
             echo "Sorry, something went wrong.\n\n";
@@ -327,13 +353,10 @@ class CliMode {
 
         $initDb = function ($dbId) {
             $dbFile = $dbId . '.db';
-            touch(Tht::getAppDataPath($dbFile));
-            $dbh = Tht::module('Db')->u_use($dbId);
-            return $dbh;
+            touch(Tht::path('db', $dbFile));
         };
 
-        // app
-        $dbh = $initDb('app');
+        $initDb('app');
     }
 
     static function startTestServer ($port=0, $docRoot='.') {
