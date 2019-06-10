@@ -212,11 +212,11 @@ class WebMode {
             }
             $callFunction = $fullUserFunction;
         }
-        else if (isset(self::$routeParams['action'])) {
-            // e.g. actionFoo()
-            $actionName = self::$routeParams['action'];
-            $actionName = str_replace('-', '_', $actionName);
-            $fullAutoFunction = $nameSpace . '\\u_action_' . $actionName;
+        else if (isset(self::$routeParams['mode'])) {
+            // e.g. modeFoo()
+            $modeName = self::$routeParams['mode'];
+            $modeName = v($modeName)->u_to_token_case('_');
+            $fullAutoFunction = $nameSpace . '\\u_mode_' . $modeName;
             if (!function_exists($fullAutoFunction)) {
                 Tht::module('Response')->u_send_error(404);
             }
@@ -225,7 +225,17 @@ class WebMode {
         else if ($req->u_method() === 'post') {
             // post()
             $fullPostFunction = $nameSpace . '\\u_post';
-            if (function_exists($fullPostFunction)) {
+
+            $modeParam = Tht::getPhpGlobal('post', 'mode', '');
+            if ($modeParam) {
+                $modeName = v($modeParam)->u_to_token_case('_');
+                $fullAutoFunction = $nameSpace . '\\u_mode_' . $modeName;
+                if (!function_exists($fullAutoFunction)) {
+                    Tht::module('Response')->u_send_error(404);
+                }
+                $callFunction = $fullAutoFunction;
+            }
+            else if (function_exists($fullPostFunction)) {
                 $callFunction = $fullPostFunction;
             }
         }
@@ -241,8 +251,14 @@ class WebMode {
         if ($callFunction) {
             try {
                 $ret = call_user_func($callFunction);
-                if (OTypeString::isa($ret)) {
+                if (UrlTypeString::isa($ret)) {
+                    Tht::module('Response')->u_redirect($ret);
+                }
+                else if (OTypeString::isa($ret)) {
                     Tht::module('Response')->sendByType($ret);
+                }
+                else if (OMap::isa($ret)) {
+                    Tht::module('Response')->u_send_json($ret);
                 }
 
             } catch (ThtException $e) {
