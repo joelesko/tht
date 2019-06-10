@@ -16,6 +16,16 @@ class OClass implements \JsonSerializable {
         'boolean', 'string', 'number', 'list', 'map', 'object', 'regex', 'function', 'typeString', 'nothing'
     ];
 
+    static function isa ($s) {
+        if (is_object($s)) {
+            $called = get_called_class();
+            if ($called === get_class($s) || $called === get_parent_class($s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function _init($args) {
 
         $this->u_state = OMap::create([]);
