@@ -7,9 +7,8 @@ class u_Css extends StdModule {
     private $included = [];
 
     function wrap($str) {
-        $nonce = Tht::module('Web')->u_nonce();
         $min = $this->u_minify($str);
-        return "<style nonce=\"$nonce\">$min</style>";
+        return "<style>$min</style>";
     }
 
     function escape($v) {
@@ -336,6 +335,18 @@ EOCSS;
             padding: 1rem 1.8rem;
             font-size: 1.4rem;
             line-height: 1rem;
+        }
+        .button-link {
+            color: #1572d4;
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: inline;
+            padding: 0;
+        }
+        .button-link:hover {
+            text-decoration: underline;
+            background-color: transparent;
         }
 
 
