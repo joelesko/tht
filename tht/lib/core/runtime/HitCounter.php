@@ -266,7 +266,7 @@ class HitCounter {
         $nonce = Tht::module('Web')->u_nonce();
 
         ?>
-        <style nonce="<?= $nonce ?>" scoped>
+        <style scoped>
 
             .chart-container {
                 height: 250px;
