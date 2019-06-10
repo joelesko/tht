@@ -6,6 +6,8 @@ require_once('helpers/RequestData.php');
 
 class u_Input extends StdModule {
 
+    private $forms = [];
+
     // Misc Getters
 
     function u_route ($key) {
@@ -24,6 +26,7 @@ class u_Input extends StdModule {
             }
         }
 
+        require_once('Form.php');
         $f = new u_Form ($formId, $schema);
         $this->forms[$formId] = $f;
         return $f;

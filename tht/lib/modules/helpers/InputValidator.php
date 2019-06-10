@@ -161,6 +161,11 @@ class u_InputValidator {
         $this->allRules []= 'required';
     }
 
+    function error($msg) {
+        ErrorHandler::setErrorDoc('/reference/input-validation', 'Input Validation');
+        Tht::error($msg);
+    }
+
     public function validateFields($data, $fields) {
 
         $allFieldsOk = true;
@@ -213,7 +218,7 @@ class u_InputValidator {
             array_unshift($rules, 'constraint_' . $c . ':' . $limit);
         }
 
-        // Validate rules
+        // Validate values
         foreach ($rules as $r) {
             $result = $this->validateRule($val, $r);
             if (!$result['ok']) {
@@ -255,7 +260,7 @@ class u_InputValidator {
 
         $result = $val;
         if (preg_match('/[^a-zA-Z_]/', $rule) || !in_array($checkRule, $this->allRules)) {
-            $result = ["Unknown validation rule: `$fnValidate`"];
+            $this->error("Unknown validation rule: `$checkRule`");
         } else {
             if (method_exists($this, $fnValidate)) {
                 $result = call_user_func([$this, $fnValidate], $val, $arg);
@@ -298,11 +303,23 @@ class u_InputValidator {
 
         $rules = [];
         foreach ($rawRules as $r) {
-            $rules []= trim($r);
+            $r = trim($r);
+            $rules []= $r;
+
+            // TODO: handle arg/name splitting in one place, instead of in multiple places
+            if (strpos($r, ':') !== false) {
+                $parts = explode(':', $r, 2);
+                $r = trim($parts[0]);
+            }
+
+            if (!in_array($r, $this->allRules)) {
+                $this->error("Unknown validation rule for field `$fieldName`: `$r`");
+            }
         }
 
         return $rules;
     }
+
 
     /*
 
@@ -362,7 +379,7 @@ class u_InputValidator {
             return 'body';
         }
 
-        Tht::error("Can't auto-detect validation rule for field `$af`");
+        $this->error("Can't auto-detect validation rule for field `$af`");
     }
 
     function initConstraints($fieldName, $rules) {
@@ -374,15 +391,9 @@ class u_InputValidator {
         $baseRule = '';
         foreach ($rules as $rule) {
             if (isset($this->baseRules[$rule])) {
-                if ($baseRule) {
-                   Tht::error("Can't have more than 1 base rule for field: `$fieldName`. Got: `$baseRule` and `$rule`");
-                }
                 $constraints = array_merge($constraints, $this->baseRules[$rule]);
-                $baseRule = $rule;
+                break;
             }
-        }
-        if ($baseRule === '') {
-            Tht::error("Must have at least one base rule for field: `$fieldName`.");
         }
 
         // Modifier Rules
@@ -397,7 +408,7 @@ class u_InputValidator {
             $parts = explode(':', $rawRule, 2);
             if (in_array($parts[0], $this->constraintRules)) {
                 if (count($parts) !== 2) {
-                    Tht::error("Rule for field `$fieldName` is missing an argument. Tip: `" . $parts[0] . ':argument`');
+                    $this->error("Rule for field `$fieldName` is missing an argument. Tip: `" . $parts[0] . ':argument`');
                 }
                 $constraints[$parts[0]] = $parts[1];
             }
@@ -415,7 +426,7 @@ class u_InputValidator {
         }
 
         if ($constraints['removeHtml']) {
-            $val = preg_replace('/<.*>/', '', $val);
+            $val = preg_replace('/<.*?>/', '', $val);
         }
 
         if ($constraints['removeNewlines']) {
