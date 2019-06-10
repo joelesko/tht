@@ -8,7 +8,7 @@ namespace o;
 // https://nodejs.org/api/url.html#url_url_strings_and_url_objects
 // https://docs.oracle.com/javase/7/docs/api/java/net/URI.html
 
-class UrlQuery {
+class UrlQuery extends OClass {
 
     private $query;
 
@@ -97,5 +97,18 @@ class UrlQuery {
     function u_stringify() {
         ARGS('', func_get_args());
         return Security::stringifyQuery($this->query);
+    }
+
+    function u_keep($keepKeys) {
+        ARGS('l', func_get_args());
+        $params = [];
+        foreach($keepKeys as $k) {
+            if (isset($this->query[$k])) {
+                $params[$k] = $this->query[$k];
+            }
+        }
+        $this->query = $params;
+
+        return $this;
     }
 }

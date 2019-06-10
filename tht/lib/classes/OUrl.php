@@ -109,6 +109,12 @@ class UrlTypeString extends OTypeString {
         }
     }
 
+    function u_clear_query() {
+        $this->query = new UrlQuery ([]);
+        $this->updateString();
+        return $this;
+    }
+
 
 
 
@@ -137,7 +143,7 @@ class UrlTypeString extends OTypeString {
         ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = strtolower($v);
-            $v = preg_replace('/[^a-z0-9\.]/', '', $v);
+            $v = preg_replace('/[^a-z0-9\.\-_]/', '', $v);
         }
         return $this->updatePart('host', $v);
     }
