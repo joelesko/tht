@@ -5,6 +5,7 @@ namespace o;
 class u_Response extends StdModule {
 
     private $gzipBufferOpen = false;
+    public $sentResponseType = '';
 
     function u_run_route($path) {
         ARGS('s', func_get_args());
@@ -65,13 +66,16 @@ class u_Response extends StdModule {
     }
 
     function sendByType($lout) {
-        $type = $lout->u_get_string_type();
+        $type = $lout->u_string_type();
 
         if ($type == 'css') {
             return $this->u_send_css($lout);
         }
         else if ($type == 'js') {
             return $this->u_send_js($lout);
+        }
+        else if ($type == 'url') {
+            Tht::module('Response')->u_redirect($lout);
         }
     }
 
@@ -95,6 +99,8 @@ class u_Response extends StdModule {
         $this->u_set_header('Content-Type', 'application/json');
         $this->output(json_encode(uv($map)));
 
+        $this->sentResponseType = 'json';
+
         return new \o\ONothing('sendJson');
     }
 
@@ -104,6 +110,9 @@ class u_Response extends StdModule {
         $this->u_set_header('Content-Type', 'text/plain');
 
         $this->output($text);
+
+        $this->sentResponseType = 'text';
+
         return new \o\ONothing('sendText');
     }
 
@@ -116,6 +125,9 @@ class u_Response extends StdModule {
 
         $out = $this->renderChunks($chunks);
         $this->output($out);
+
+        $this->sentResponseType = 'css';
+
         return new \o\ONothing('sendCss');
     }
 
@@ -131,18 +143,25 @@ class u_Response extends StdModule {
         $out .= "\n})();";
 
         $this->output($out);
+
+        $this->sentResponseType = 'js';
+
         return new \o\ONothing('sendJs');
     }
 
     function u_send_html ($html) {
         $html = OTypeString::getUntyped($html, 'html');
         $this->output($html);
+
+        $this->sentResponseType = 'html';
+
         return new \o\ONothing('sendHtml');
     }
 
     function u_danger_danger_send ($s) {
         ARGS('s', func_get_args());
         print $s;
+        $this->sentResponseType = 'raw';
         return new \o\ONothing('dangerDangerSend');
     }
 
@@ -176,26 +195,24 @@ class u_Response extends StdModule {
         $val['css'] = $this->assetTags(
             'css',
             $doc['css'],
-            '<link rel="stylesheet" href="{URL}" />',
-            '<style nonce="{NONCE}">{BODY}</style>'
+            OTypeString::create('html', '<link rel="stylesheet" href="{url}" />'),
+            OTypeString::create('html', '<style>{body}</style>')
         );
 
         $val['js'] = $this->assetTags(
             'js',
             $doc['js'],
-            '<script src="{URL}" nonce="{NONCE}"></script>',
-            '<script nonce="{NONCE}">{BODY}</script>'
+            OTypeString::create('html', '<script src="{url}" nonce="{nonce}"></script>'),
+            OTypeString::create('html', '<script nonce="{nonce}">{body}</script>')
         );
 
         $val['title'] = $doc['title'];
         $val['description'] = isset($doc['description']) ? $doc['description'] : '';
 
-        // TODO: get updateTime of the files
-        // TODO: allow base64 urls
-        $cacheTag = '';
+        // TODO: get updateTime of the files, allow base64 urls
+        $val['image'] = $this->headTag($doc['image'], '<meta property="og:image" content="{url}">');
+        $val['icon'] = $this->headTag($doc['icon'], '<link rel="icon" href="{url}">');
 
-        $val['image'] = isset($doc['image']) ? '<meta property="og:image" content="'. $doc['image'] . $cacheTag .'">' : "";
-        $val['icon'] = isset($doc['icon']) ? '<link rel="icon" href="'. $doc['icon'] . $cacheTag .'">' : "";
         $val['bodyClass'] = Tht::module('Web')->getClassProp($doc['bodyClass']);
 
         $val['comment'] = '';
@@ -206,6 +223,8 @@ class u_Response extends StdModule {
         $out = $this->pageTemplate($val);
 
         $this->output($out);
+
+        $this->sentResponseType = 'html';
 
         return new \o\ONothing('sendPage');
     }
@@ -267,6 +286,12 @@ HTML;
         Tht::exitScript(1);
     }
 
+    function headTag($val, $template) {
+        if (!$val) { return ''; }
+        $tHtml = OTypeString::create('html', $template);
+        return $tHtml->u_fill(OMap::create(['url' => $val]))->u_stringify();
+    }
+
     // print css & js tags
     function assetTags ($type, $paths, $incTag, $blockTag) {
 
@@ -274,10 +299,10 @@ HTML;
         if (!is_array($paths)) {
             $paths = !$paths ? [] : [$paths];
         }
-        if ($type == 'js') {
-            $jsData = Tht::module('Js')->u_plugin('jsData');
-            if ($jsData) { array_unshift($paths, $jsData); }
-        }
+        // if ($type == 'js') {
+        //     $jsData = Tht::module('Js')->u_plugin('jsData');
+        //     if ($jsData) { array_unshift($paths, $jsData); }
+        // }
 
         if (!count($paths)) { return ''; }
 
@@ -286,35 +311,53 @@ HTML;
         $includes = [];
         $blocks = [];
         foreach ($paths as $path) {
-            if (OTypeString::isa($path)) {
-                // Inline it in the HTML document
-                $str = OTypeString::getUntyped($path, $type);
-                if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
-                    $str = "(function(){" + $str + "})();";
-                }
-                $tag = str_replace('{BODY}', $str, $blockTag);
-                $tag = str_replace('{NONCE}', $nonce, $tag);
+
+            if (!OTypeString::isa($path)) {
+                Tht::error("Path must be a `url` or `$type` TypeString: `$path`");
+            }
+
+            if (HtmlTypeString::isa($path)) {
+                $tag = $path->u_stringify();
                 $blocks []= $tag;
             }
-            else {
+            else if (!UrlTypeString::isa($path)){
 
-                if (preg_match('/^http(s?):/i', $path)) {
-
-                } else {
-                    // Link to asset, with cache time set to file modtime
-                    $basePath = preg_replace('/\?.*/', '', $path);
-                    if (defined('BASE_URL')) {
-                        $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
-                    }
-                    $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
-                    $cacheTag = strpos($path, '?') === false ? '?' : '&';
-                    $cacheTag .= 'cache=' . filemtime($filePath);
-                    $path .= $cacheTag;
+                // Inline it in the HTML document
+                $str = $path->u_stringify();
+                if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
+                    $str = "(function(){" . $str . "})();";
                 }
 
-                $tag = str_replace('{URL}', $path, $incTag);
-                $tag = str_replace('{NONCE}', $nonce, $tag);
-                $includes []= $tag;
+                $vals = [
+                    'body' => OTypeString::create('html', $str),
+                ];
+                if ($type == 'js') {
+                    $vals['nonce'] = $nonce;
+                }
+                $blockTag->u_fill(OMap::create($vals));
+                $blocks []= $blockTag->u_stringify();
+            }
+            else {
+                if ($path->u_is_relative()) {
+                    // TODO: Link to asset, with cache time set to file modtime
+
+                    // $basePath = ;
+                    // if (defined('BASE_URL')) {
+                    //     $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
+                    // }
+
+                    // $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
+                    // $path->u_query([ 'cache' => filemtime($filePath));
+                }
+
+                $vals = [
+                    'url' => $path
+                ];
+                if ($type == 'js') {
+                    $vals['nonce'] = $nonce;
+                }
+                $incTag->u_fill(OMap::create($vals));
+                $includes []= $incTag->u_stringify();
             }
         }
 
