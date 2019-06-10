@@ -19,6 +19,7 @@ class ErrorHandler {
 
     static private $trapErrors = false;
     static private $trappedError = null;
+    static private $errorDoc = null;
 
     static function startTrapErrors() {
         ErrorHandler::$trapErrors = true;
@@ -28,6 +29,12 @@ class ErrorHandler {
     static function endTrapErrors() {
         ErrorHandler::$trapErrors = false;
         return ErrorHandler::$trappedError;
+    }
+
+    static function setErrorDoc($link, $name) {
+        $link = str_replace('o\\u_', '', $link);
+        $name = str_replace('o\\u_', '', $name);
+        self::$errorDoc = ['link' => $link, 'name' => $name];
     }
 
     static function handlePhpRuntimeError ($severity, $message, $phpFile, $phpLine) {
@@ -145,8 +152,8 @@ class ErrorHandler {
         ErrorHandler::printError([
             'type'    => 'ThtException',
             'message' => $error->getMessage(),
-            'phpFile' => $frame['file'],
-            'phpLine' => $frame['line'],
+            'phpFile' => isset($f['file']) ? $f['file'] : '',
+            'phpLine' => isset($f['line']) ? $f['line'] : '',
             'trace'   => $trace
         ]);
     }
@@ -364,7 +371,7 @@ class ErrorHandler {
         $error['srcLine'] = Security::escapeHtml($error['srcLine']);
 
         if ($error['type'] == 'FormatChecker') {
-            $error['context'] = 'See: <a href="https://tht.help/reference/format-checker">Format Checker</a>';
+            $error['context'] = 'See: <a href="https://tht-lang.org/reference/format-checker">Format Checker</a>';
         }
 
         $error['isLongSrc'] = strlen(rtrim($error['srcLine'], "^ \n")) > 50;
@@ -373,8 +380,12 @@ class ErrorHandler {
         $error['message'] = preg_replace("/`(.*?)`/", '<span class="tht-error-code">$1</span>', $error['message']);
 
         // Put hints on a separate line
-        $error['message'] = preg_replace("/Try:(.*?)/", '<br /><br />Try: $1', $error['message']);
-        $error['message'] = preg_replace("/Got:(.*?)/", '<br /><br />Got: $1', $error['message']);
+        $error['message'] = preg_replace("/(Try|See|Got):(.*?)/", '<br /><br />$1: $2', $error['message']);
+
+        if (!is_null(self::$errorDoc)) {
+            $url = 'https://tht-lang.org' . self::$errorDoc['link'] . '?fromError=1';
+            $error['message'] .= "<br /><br />Manual: <a href=\"$url\">" . self::$errorDoc['name'] . "</a>";
+        }
 
         // format caret, wrap for color coding
         if ($error['srcLine']) {
@@ -401,7 +412,7 @@ class ErrorHandler {
 
         ?>
 
-        <div style='position: fixed; overflow: auto; z-index: $zIndex; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 32px 64px; -webkit-font-smoothing: antialiased;'>
+        <div style='position: fixed; overflow: auto; z-index: <?= $zIndex ?>; background-color: #333; color: #eee; margin: 0; top: 0; left: 0; right: 0; bottom: 0; color: #fff; padding: 32px 64px; -webkit-font-smoothing: antialiased;'>
             <style scoped>
                 a { color: #ffd267; text-decoration: none; }
                 a:hover { text-decoration: underline;  }
@@ -585,6 +596,11 @@ class ErrorHandler {
 
         if (preg_match("/function '(.*?)' not found or invalid function name/i", $clean, $m)) {
             $clean = "PHP function does not exist: `" . $m[1] . "`";
+        }
+
+        // TODO: link to timezone list. Make this a Config Error with source line.
+        if (preg_match("/Timezone ID '(.*?)' is invalid/i", $clean, $m)) {
+            $clean = "Timezone in `settings/app.jcon` is invalid: `" . $m[1] . "`";
         }
 
         // Convert internal name conventions
