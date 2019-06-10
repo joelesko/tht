@@ -11,18 +11,8 @@ class StdModule implements \JsonSerializable {
     }
 
     function __get ($f) {
-        $try = '';
-
-        // if (method_exists($this, $f)) {
-        //     $try = 'Try: `.' . unu_($f) . '()`';
-        //    // Tht::error("Expected a method call. $try");
-        //     Tht::error("Can't get field `$f`. Did you mean $try?");
-        // }
-        // else {
-            $try = '`.' . unu_($f) . '()`';
-            Tht::error("Unknown field. Did you mean to call method $try?");
-     //   }
-
+        $try = '`.' . unu_($f) . '()`';
+        Tht::error("Unknown field. Did you mean to call method $try?");
     }
 
     function __toString() {
@@ -41,10 +31,24 @@ class StdModule implements \JsonSerializable {
             $umethod = strtolower(unu_($method));
             $suggestion = isset($this->suggestMethod[$umethod]) ? $this->suggestMethod[$umethod] : '';
         }
+
+        if (!$suggestion) {
+            $possibles = [];
+            foreach (LibModules::$files as $lib) {
+                if (method_exists(Tht::module($lib), $method)) {
+                    $possibles []= $lib . '.' . $method;
+                }
+            }
+            if (count($possibles)) {
+                $suggestion = implode(', ', $possibles);
+            }
+        }
+
         $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
 
         $c = get_called_class();
 
+        ErrorHandler::setErrorDoc('/manual/module/' . strtolower($c), $c);
         Tht::error("Unknown method `$method` for module `$c`. $suggest");
     }
 }
@@ -73,7 +77,6 @@ class LibModules {
         'Response',
         'Litemark',
         'Jcon',
-        'Form',
         'Session',
         'Cache',
         'Net',
