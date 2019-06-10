@@ -107,8 +107,7 @@ class u_Litemark extends StdModule {
         $out = implode("\n", $e->html);
 
         if (count($e->toc)) {
-            $nonce = Tht::module('Web')->u_nonce();
-            $out .= "\n\n<style nonce='$nonce'> .toc-anchor { position: relative; top: -2rem; display: inline-block; width: 0; visibility: hidden } </style>";
+            $out .= "\n\n<style> .toc-anchor { position: relative; top: -2rem; display: inline-block; width: 0; visibility: hidden } </style>";
             $out = str_replace('<<<<<TOC>>>>>', $e->createToc(), $out);
         }
 
