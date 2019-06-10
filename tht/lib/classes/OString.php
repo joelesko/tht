@@ -537,6 +537,7 @@ class OString extends OVar implements \ArrayAccess {
         return $out;
     }
 
+    // TODO: undocumented - necessary?
     function u_squeeze ($char='') {
         ARGS('s', func_get_args());
         $char = $char === '' ? '\s' : preg_quote($char);
