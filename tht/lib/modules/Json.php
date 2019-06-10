@@ -15,18 +15,29 @@ class u_Json extends StdModule {
     static function u_decode ($v) {
         $dec = json_decode($v, false);
         if (is_null($dec)) {
-            Tht::error("Unable to decode JSON string");
+            Tht::error("Unable to decode JSON string: `" . v($v)->u_limit(20) . "`");
         }
-        return u_Json::convertToMaps($dec);
+        return u_Json::convertToBags($dec);
     }
 
-    static function convertToMaps ($obj) {
-        if (!is_object($obj)) { return $obj; }
-        $map = [];
-        foreach (get_object_vars($obj) as $key => $val) {
-            $map[$key] = u_Json::convertToMaps($val);
+    // Recursively convert to THT Lists and Maps
+    static function convertToBags ($obj) {
+        if (is_object($obj)) {
+            $map = [];
+            foreach (get_object_vars($obj) as $key => $val) {
+                $map[$key] = u_Json::convertToBags($val);
+            }
+            return OMap::create($map);
         }
-        return OMap::create($map);
+        else if (is_array($obj)){
+            foreach ($obj as $i => $val) {
+                $obj[$i] = u_Json::convertToBags($obj[$i]);
+            }
+            return OList::create($obj);
+        }
+        else {
+            return $obj;
+        }
     }
 
     static function deepSortKeys ($obj) {
