@@ -9,8 +9,6 @@ class u_Session extends StdModule {
     private $flashData = [];
     private $sessionIdName = 'sid';
 
-
-
     public function startSession() {
         if ($this->sessionStarted) {
             return;
@@ -46,13 +44,21 @@ class u_Session extends StdModule {
             if (is_null($value)) {
                 Tht::error('Session.set() missing 2nd `value` argument.');
             }
-            $_SESSION[$keyOrMap] = $value;
+            $_SESSION[$keyOrMap] = $this->wrapVal($value);
         }
         else {
             foreach($keyOrMap as $k => $v) {
-                $_SESSION[$k] = $v;
-            }   
+                $_SESSION[$k] = $this->wrapVal($v);
+            }
         }
+    }
+
+    function wrapVal($val) {
+        return Tht::module('Json')->u_encode(OMap::create(['v' => $val]));
+    }
+
+    function unwrapVal($val) {
+        return Tht::module('Json')->u_decode($val)['v'];
     }
 
     function u_get($key, $default=null) {
@@ -63,11 +69,11 @@ class u_Session extends StdModule {
         if (!isset($_SESSION[$key])) {
             if (is_null($default)) {
                 Tht::error('Unknown session key: `' . $key . '`');
-            } 
+            }
             return $default;
         }
         else {
-            return $_SESSION[$key];
+            return $this->unwrapVal($_SESSION[$key]);
         }
     }
 
@@ -82,7 +88,7 @@ class u_Session extends StdModule {
         ARGS('s', func_get_args());
         $this->startSession();
         if (isset($_SESSION[$key])) {
-            $val = $_SESSION[$key];
+            $val = $this->unwrapVal($_SESSION[$key]);
             unset($_SESSION[$key]);
             return $val;
         }
@@ -115,9 +121,14 @@ class u_Session extends StdModule {
         ARGS('s*', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$key])) {
-            $_SESSION[$key] = [];
+            $list = OList::create([]);
         }
-        $_SESSION[$key] []= $value;
+        else {
+            $list = $this->unwrapVal($_SESSION[$key]);
+        }
+
+        $list []= $value;
+        $_SESSION[$key] = $this->wrapVal($list);
     }
 
     function u_get_flash($key, $default='') {
@@ -125,7 +136,7 @@ class u_Session extends StdModule {
         $this->startSession();
         if (isset($this->flashData[$key])) {
             return $this->flashData[$key];
-        } 
+        }
         return $default;
     }
 
