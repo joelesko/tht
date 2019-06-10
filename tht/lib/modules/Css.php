@@ -343,6 +343,7 @@ EOCSS;
             cursor: pointer;
             display: inline;
             padding: 0;
+            margin: 0 1rem;
         }
         .button-link:hover {
             text-decoration: underline;
