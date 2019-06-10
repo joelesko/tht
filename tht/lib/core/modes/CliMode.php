@@ -179,18 +179,18 @@ class CliMode {
 
                 // Functions that are usable by all pages via `App.functionName()`
 
-                function sendPage(title, bodyHtml) {
+                function sendPage(appName, bodyHtml) {
 
                     Response.sendPage({
-                        title: title,
-                        body: siteHtml(bodyHtml),
+                        title: appName,
+                        body: siteHtml(appName, bodyHtml),
                         css: '/css',  // route to `pages/css.tht`
                     });
                 }
 
-                template siteHtml(body) {
+                template siteHtml(appName, body) {
 
-                    <header>Example App</>
+                    <header>{{ appName }}</>
 
                     <main>
                         {{ body }}
@@ -201,21 +201,23 @@ class CliMode {
             self::writeSetupFile($examplePath, "
 
                 // Call function in 'app/modules/App.tht'
-                App.sendPage('Hello World', bodyHtml());
+                App.sendPage('My App', bodyHtml());
 
                 template bodyHtml() {
 
                     <div class=\"row\">
+                        <div class=\"col\">
 
-                        <h1>Hello World</>
+                            <h1>App Ready</>
 
-                        <div class=\"subline\">{{ Web.icon('check') }}  Congratulations!  The hard part is over.</>
+                            <div class=\"subline\">{{ Web.icon('check') }}  This app is ready for development.</>
 
-                        <p>
-                            You can edit this page at:<br />
-                            <code>app/pages/home.tht</>
+                            <p>
+                                You can edit this page at:<br />
+                                <code>app/pages/home.tht</>
+                            </>
+
                         </>
-
                     </>
                 }
             ");
@@ -230,7 +232,13 @@ class CliMode {
 
                     header {
                         padding: 1rem 2rem;
-                        background-color: #f6f6f6;
+                        background-color: #eee;
+                        font-weight: bold;
+                    }
+
+                    header a {
+                        text-decoration: none;
+                        color: #333;
                     }
 
                     body {
@@ -260,11 +268,11 @@ class CliMode {
                     //
                     //  App Settings
                     //
-                    //  See: https://tht.help/reference/app-settings
+                    //  See: https://tht-lang.org/reference/app-settings
                     //
 
                     // Dynamic URL routes
-                    // See: https://tht.help/reference/url-router
+                    // See: https://tht-lang.org/reference/url-router
                     routes: {
                         // /post/{postId}:  post.tht
                     }
@@ -281,14 +289,11 @@ class CliMode {
                         // See: http://php.net/manual/en/timezones.php
                         // Examples:
                         //    America/Los_Angeles
-                        //    America/Chicago
-                        //    America/New_York
-                        //    Australia/Sydney
-                        //    Europe/Amsterdam
-                        timezone: GMT
+                        //    Europe/Berlin
+                        timezone: UTC
 
                         // Print performance timing info
-                        // See: https://tht.help/reference/perf-panel
+                        // See: https://tht-lang.org/reference/perf-panel
                         showPerfPanel: false
 
                         // Auto-send anonymous error messages to the THT
@@ -298,7 +303,7 @@ class CliMode {
                     }
 
                     // Database settings
-                    // See: https://tht.help/manual/module/db
+                    // See: https://tht-lang.org/manual/module/db
                     databases: {
 
                         // Default sqlite file in 'data/db'
