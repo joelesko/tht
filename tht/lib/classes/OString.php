@@ -310,13 +310,13 @@ class OString extends OVar implements \ArrayAccess {
         return implode(array_reverse($chars[0]));
     }
 
-    function u_to_upper_case ($pos=null) {
-        ARGS('n', func_get_args());
+    function u_to_upper_case () {
+        ARGS('', func_get_args());
         return mb_strtoupper($this->val);
     }
 
-    function u_to_lower_case ($pos=null) {
-        ARGS('n', func_get_args());
+    function u_to_lower_case () {
+        ARGS('', func_get_args());
         return mb_strtolower($this->val);
     }
 
