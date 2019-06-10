@@ -178,22 +178,18 @@ class OList extends OBag {
         return $this;
     }
 
-    // TODO: remove multiple
-    function u_remove ($pos) {
-        ARGS('n', func_get_args());
+    function u_remove ($pos, $numItems = 1) {
+        ARGS('nn', func_get_args());
         $len = count($this->val);
         if (!$len) {
             Tht::error("Can not `remove()` from an empty List.");
         }
-        if ($pos === -1) {
-            return array_pop($this->val);
-        }
-        $removed = array_splice($this->val, $pos, 1);
+        $removed = array_splice($this->val, $pos, $numItems);
         if (!count($removed)) {
             $vlen = count($this->val);
-            Tht::error("Can not `remove()` at `index=$pos` from List with length `$vlen`.");
+            Tht::error("Can't `remove()` at `index=$pos` from List with length `$vlen`.");
         }
-        return $removed[0];
+        return $numItems == 1 ? $removed[0] : OList::create($removed);
     }
 
 
