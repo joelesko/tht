@@ -6,6 +6,10 @@ abstract class OTypeString extends OVar {
 
     protected $type = 'typeString';
 
+    protected $suggestMethod = [
+        'tostring'   => 'stringify()',
+    ];
+
     protected $str = '';
     protected $stringType = 'text';
     protected $bindParams = [];

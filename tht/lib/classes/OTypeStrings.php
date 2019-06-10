@@ -8,12 +8,13 @@ class JconTypeString extends OTypeString {
 
 class HtmlTypeString extends OTypeString {
     protected $stringType = 'html';
-    // protected function u_z_escape_param($v) {
-    //     return Security::escapeHtml($v);
-    // }
-    function u_fill($params) {
-        Tht::error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
+    protected function u_z_escape_param($v) {
+        return Security::escapeHtml($v);
     }
+    // TODO: Security - review how this compares to security in HtmlTemplateTransformer (inTag context)
+    // function u_fill($params) {
+    //     Tht::error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
+    // }
 }
 
 class JsTypeString extends OTypeString {
