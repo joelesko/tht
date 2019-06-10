@@ -526,7 +526,7 @@ class Tokenizer extends StringReader {
             $foundType = preg_match('/(' . CompilerConstants::$TEMPLATE_TYPES . ')$/i', $this->templateName, $m);
             if (!$foundType) {
                 $rec = lcfirst($this->templateName) . "Html";
-                $this->error("(Template) Missing type in template function name.  e.g. `template $rec`");
+                $this->error("(Template) Missing type at end of template function name.  e.g. `template $rec`");
             }
             $this->templateMode = TemplateMode::BODY;
             $this->templateType = strtolower($m[1]);
