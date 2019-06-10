@@ -136,6 +136,11 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                     continue;
                 }
             }
+
+            if ($tagName == 'script') {
+                $nonce = Tht::module('Web')->u_nonce();
+                $str .= " nonce=\"$nonce\"";
+            }
         }
 
         return $str;
@@ -243,6 +248,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             if (in_array($this->currentTag['name'], self::$VOID_TAGS)) {
                 $this->error("Tag should be self-closing. Ex: `<" . $this->currentTag['name'] ." />`");
             }
+
+            if ($this->currentTag['name'] == 'form') {
+                $str .= Tht::module('Web')->u_csrf_token(true)->u_stringify();
+            }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
         }
 
@@ -336,9 +345,6 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
         else if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
             $this->error("Tag `$name` can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
-        }
-        else if ($name == 'script' && !preg_match('/nonce/', $tag['html'])) {
-            $this->error("`script` tags must have a secure `nonce` attribute.  Either add `nonce=\"{{ Web.nonce() }}\"` or include the script as a Js template.", $tag['pos']);
         }
     }
 
