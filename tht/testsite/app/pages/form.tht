@@ -1,5 +1,5 @@
 
-Web.form('testForm', {
+Input.form('testForm', {
     // name: {
     //     label: 'Name',
     //     type: 'text',
@@ -60,7 +60,7 @@ Web.form('testForm', {
 });
 
 
-Web.form('otherForm', {
+Input.form('otherForm', {
     userName: {
         label: 'Username',
         type: 'text',
@@ -75,10 +75,10 @@ Web.form('otherForm', {
 
 F main() {
 
-    let form = Web.form('testForm');
+    let form = Input.form('testForm');
 
     let html = '';
-    if (Web.query('done')) {
+    if (Input.get('done', 'b')) {
         let latest = Session.get('formData');
         html = thanksHtml(latest);
     }
@@ -88,21 +88,21 @@ F main() {
 
     Js.data('form', { hello: 123, there: true });
 
-    Web.sendPage({
+    Response.sendPage({
         body: html,
         title: 'Test Form',
-        css: Css.include('base'),
+        css: Css.plugin('base'),
     });
 }
 
 F ajax() {
-    let form = Web.form('testForm');
+    let form = Input.form('testForm');
     if (form.check()) {
        Session.set('formData', form.dataFields());
        form.sendOk(url''.query({ done: 1 }));
     }
 
-    let form2 = Web.form('otherForm');
+    let form2 = Input.form('otherForm');
     if (form2.check()) {
         form.sendOk(url''.query({ login: 1 }));
     }

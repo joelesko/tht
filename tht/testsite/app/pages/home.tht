@@ -417,7 +417,7 @@ function testMisc(t) {
     import('subDir/OtherModule');
     t.ok(OtherModule.ok('Joe') == 'ok:Joe', 'import from subfolder');
 
-    t.dies(F { import('http://tht.help'); }, 'import remote url');
+    t.dies(F { import('http://tht-lang.org'); }, 'import remote url');
     t.dies(F { import('../Foo'); }, 'import with dots');
     t.dies(F { import('Foo%'); }, 'import with illegal char');
     t.dies(F { import('Foo.tht'); }, 'import with tht extension');
@@ -1569,6 +1569,10 @@ F testUrlTagStrings(t) {
     let originUrl = url'http://site.com'.toRelative().stringify();
     t.ok(originUrl == '/', 'toRelative `http://site.com`');
 
+    let urlWithQuery = url'/foo'.query({ a: 1 });
+    urlWithQuery.clearQuery();
+    t.ok(urlWithQuery.stringify() == '/foo', 'clearQuery');
+
 
     t.section('UrlQuery');
 
@@ -1600,6 +1604,12 @@ F testUrlTagStrings(t) {
     t.ok(fQuery.hasField('foo'), 'hasField');
     t.ok(!fQuery.hasField('no'), 'not hasField');
     t.ok(fQuery.fields().join('|') == 'foo|bar', 'fields');
+
+    let kQuery = url'/page?a=11&b=22&c=33'.query();
+    kQuery.keep(['b', 'c']);
+    t.ok(kQuery.stringify() == '?b=22&c=33', 'keep');
+
+
 }
 
 template deepEscHtml(val) {
@@ -1663,6 +1673,9 @@ function testLists(t) {
 
     t.ok([0, 1, 2].remove(-1) == 2, 'remove index -1');
     t.ok([0, 1, 2].remove(-2) == 1, 'remove index -2');
+
+    t.ok([0, 1, 2].remove(0, 2).join('|') == '0|1', 'remove index 0, items = 2');
+    t.ok([0, 1, 2].remove(-2, 2).join('|') == '1|2', 'remove index -2, items = 2');
 
     ary = [1, 2, 3];
     ary.pop();
@@ -2368,7 +2381,7 @@ function libNet(t) {
 
     t.section('Module: Net');
 
-    let content = Net.httpGet(url'https://tht.help');
+    let content = Net.httpGet(url'https://tht-lang.org');
     t.ok(content.match(r'programming language'.flags('i')), 'Net get');
 
     // TODO
@@ -2391,7 +2404,7 @@ function libRequest(t) {
 
     let ua = Request.userAgent();
     t.ok(ua.os == 'mac', 'userAgent - os');
-    t.ok(ua.browser == 'chrome', 'userAgent - browser');
+    t.ok(ua.browser == 'chrome' || ua.browser == 'firefox', 'userAgent - browser');
     t.ok(ua.full.contains('Mozilla'), 'userAgent - full');
     t.ok(Request.languages()[0] == 'en-us', 'languages');
 

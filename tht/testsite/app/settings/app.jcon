@@ -15,7 +15,7 @@
 
         memoryLimitMb: 32
 
-        _coreDevMode: false
+        _coreDevMode: true
 
         hitCounter: false
 

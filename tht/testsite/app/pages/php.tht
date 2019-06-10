@@ -7,7 +7,7 @@ print(faker.name, faker.address);
 print(faker.numerify('Hello ###'));
 
 
-let res = Php.call('Requests::get', 'http://tht.help');
+let res = Php.call('Requests::get', 'http://tht-lang.org');
 print(res.body);
 
 
