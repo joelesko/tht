@@ -309,7 +309,7 @@ class u_Perf extends StdModule {
         $nonce = Tht::module('Web')->u_nonce();
 
         ?>
-        <style nonce="<?= $nonce ?>" scoped>
+        <style scoped>
             #perf-score-container { background-color: #f6f6f6; border-top: solid 16px #ddd; color: #111; font: 18px <?= Tht::module('Css')->u_font('monospace') ?>; padding-bottom: 32px; margin-top: 64px; text-align: center; }
             .bench-result { font-size: 14px; border-collapse: collapse; margin: 32px auto; }
             .bench-result td,
