@@ -11,10 +11,10 @@ class u_Web extends StdModule {
         return Security::getNonce();
     }
 
-    function u_csrf_token($onlyToken=false) {
+    function u_csrf_token($asTag=false) {
         ARGS('f', func_get_args());
         $t = Security::getCsrfToken();
-        if ($onlyToken) {
+        if (!$asTag) {
             return $t;
         }
         else {
@@ -66,7 +66,48 @@ class u_Web extends StdModule {
         return OTypeString::create('html', $rawLink);
     }
 
-    function openTag($name, $params) {
+    function u_form_link($params) {
+
+        ARGS('m', func_get_args());
+
+        // TODO create a general util function to validate map of arguments
+
+        if (!isset($params['action'])){
+            $params['action'] = Tht::module('Request')->u_url();
+        }
+        if (!isset($params['data'])){
+            Tht::error('formLink() arguments must have a `data` field (map).');
+        }
+        if (!isset($params['class'])){
+            $params['class'] = '';
+        }
+        if (!isset($params['label'])){
+            Tht::error('formLink() arguments must have a `label` field (string).');
+        }
+
+        $params['data']['csrfToken'] = $this->u_csrf_token();
+        $fields = '';
+        foreach ($params['data'] as $k => $v) {
+            $k = Security::escapeHtml($k);
+            $dataParam = [ 'type' => 'hidden' ];
+            $dataParam['name'] = $k;
+            $dataParam['value'] = $v;
+            $fields .= $this->openTag('input', $dataParam, true);
+        }
+
+        $klass = Security::escapeHtml($params['class']);
+        $action = $url = OTypeString::getUntyped($params['action'], 'url');
+        $label = OTypeString::getUntypedNoError($params['label']);
+        $html = trim("
+<form method=\"post\" action=\"$action\" style=\"display: inline-block;\">
+$fields
+<button type=\"submit\" class=\"$klass\">$label</button>
+</form>
+        ");
+        return OTypeString::create('html', $html);
+    }
+
+    function openTag($name, $params, $selfClose=false) {
         $out = '<' . $name . ' ';
         $lParams = [];
 
@@ -82,6 +123,7 @@ class u_Web extends StdModule {
             }
         }
         $out .= implode(' ', $lParams);
+        if ($selfClose) { $out .= '/'; }
         $out .= '>';
         return $out;
     }
@@ -182,7 +224,7 @@ class u_Web extends StdModule {
             'cancel'       => '<path d="M20,20 80,80z M80,20 20,80z"/>',
             'check'        => '<polyline points="15,45 40,70 85,15"/>',
 
-            'home'   => '<path class="svgfill" d="M0,50 50,15 100,50z"/><rect class="svgfill" x="15" y="50" height="40" width="25" /><rect class="svgfill" x="60" y="50" height="40" width="25" /><rect class="svgfill" x="40" y="50" height="15" width="40" /><rect class="svgfill" x="70" y="20" height="20" width="15" />',
+            'home'   => '<path class="svgfill" d="M0,50 50,15 100,50z"/><rect class="svgfill" x="15" y="50" height="40" width="25" /><rect class="svgfill" x="60" y="50" height="40" width="25" /><rect class="svgfill" x="40" y="50" height="15" width="40" />',
             'download' => '<path class="svgfill" d="M10,40 50,75 90,40z"/><rect class="svgfill" x="35" y="0" height="42" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
             'upload'   => '<path class="svgfill" d="M10,35 50,0 90,35z"/><rect class="svgfill" x="35" y="33" height="40" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
             'search'    => '<circle cx="45" cy="45" r="30"/><path d="M95,95 65,65z"/>',
