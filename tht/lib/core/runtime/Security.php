@@ -86,10 +86,16 @@ class Security {
             $data['env'] = $_ENV;
         }
 
-        if (isset($HTTP_RAW_POST_DATA)) {
+        if (isset($data['headers']['content-type']) && $data['headers']['content-type'] == 'application/json') {
+            $raw = file_get_contents("php://input");
+            $data['post'] = Tht::module('Json')->u_decode($raw);
+            $data['post']['_raw'] = $raw;
+        }
+        else if (isset($HTTP_RAW_POST_DATA)) {
             $data['post']['_raw'] = $HTTP_RAW_POST_DATA;
             unset($HTTP_RAW_POST_DATA);
         }
+
 
         // remove all php globals
         unset($_ENV);
@@ -163,11 +169,10 @@ class Security {
 
     static function getCsrfToken() {
         $token = Tht::module('Session')->u_get('csrfToken', '');
-        if (empty($token)) {
+        if (!$token) {
             $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
             Tht::module('Session')->u_set('csrfToken', $token);
         }
-
         return $token;
     }
 
@@ -203,6 +208,7 @@ class Security {
         ini_set('session.use_strict_mode', 0);
         ini_set('session.cookie_httponly', 1);
         ini_set('session.use_trans_sid', 1);
+        ini_set('session.cookie_samesite', 'Lax');
 
         ini_set('session.gc_maxlifetime',  Tht::getConfig('sessionDurationMins') * 60);
         ini_set('session.cookie_lifetime', self::$SESSION_COOKIE_DURATION);
@@ -311,7 +317,7 @@ class Security {
             $res->u_send_error(403, 'Remote Origin Not Allowed');
         }
         else if (!Security::validateCsrfToken()) {
-            $res->u_send_error(403, 'Invalid or Missing CSRF Token');
+            $res->u_send_error(403, 'Invalid or Missing \'csrfToken\' Field');
         }
         // else if (Security::isPossibleBruteForce()) {
         //     $web->u_send_error(429, 'Too Many Requests', 'Must wait 2 seconds between POST requests.');
@@ -407,6 +413,7 @@ class Security {
 
         // locale
         date_default_timezone_set(Tht::getConfig('timezone'));
+
         ini_set('default_charset', 'utf-8');
         mb_internal_encoding('utf-8');
 
@@ -486,6 +493,9 @@ class Security {
     }
 
     static function escapeHtml($in) {
+        if (OTypeString::isa($in)) {
+            return 'xxx';
+        }
         return htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
     }
 
