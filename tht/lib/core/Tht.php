@@ -10,8 +10,8 @@ class Tht {
 
     static private $SRC_EXT = 'tht';
 
-    static private $THT_SITE = 'https://tht.help';
-    static private $ERROR_API_URL = 'https://tht.help/remote/error';
+    static private $THT_SITE = 'https://tht-lang.org';
+    static private $ERROR_API_URL = 'https://tht-lang.org/remote/error';
 
     static private $MEMORY_BUFFER_KB = 1;
 
@@ -199,8 +199,7 @@ class Tht {
     //---------------------------------------------
 
     static private function printPerf () {
-        // TODO: Only when response type = html
-        if (Tht::isMode('web') && !Tht::module('Request')->u_is_ajax()) {
+        if (Tht::isMode('web') && !Tht::module('Request')->u_is_ajax() && Tht::module('Response')->sentResponseType == 'html') {
             Tht::module('Perf')->printResults();
         }
     }
@@ -232,12 +231,13 @@ class Tht {
         ErrorHandler::handleConfigError($msg);
     }
 
-    static private function errorVars($msg, $vars=null) {
+    static private function errorVars($msg, $vars) {
         if (!is_null($vars)) {
             $msg .= "\n\nGot: " . Tht::module('Json')->u_format(json_encode($vars));
         }
         return $msg;
     }
+
 
 
 
@@ -385,6 +385,9 @@ class Tht {
         $def = Tht::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
+                if ($mainKey == 'tht') {
+                    ErrorHandler::setErrorDoc('/reference/app-settings', 'App Settings');
+                }
                 Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['settingsFile'] . "`.");
             }
         }
@@ -440,7 +443,7 @@ class Tht {
             'maxInputTimeSecs'     => 10, // starts at request start, ends when request received, execution starts
 
             // server
-            "timezone" => 'GMT',
+            "timezone" => 'UTC',
 
             'downtime' => ''
         ];
