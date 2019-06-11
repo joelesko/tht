@@ -66,28 +66,13 @@ class u_Web extends StdModule {
         return OTypeString::create('html', $rawLink);
     }
 
-    function u_form_link($params) {
+    function u_form_link($label, $actionUrl, $data, $klass='') {
 
-        ARGS('m', func_get_args());
+        ARGS('**ms', func_get_args());
 
-        // TODO create a general util function to validate map of arguments
-
-        if (!isset($params['action'])){
-            $params['action'] = Tht::module('Request')->u_url();
-        }
-        if (!isset($params['data'])){
-            Tht::error('formLink() arguments must have a `data` field (map).');
-        }
-        if (!isset($params['class'])){
-            $params['class'] = '';
-        }
-        if (!isset($params['label'])){
-            Tht::error('formLink() arguments must have a `label` field (string).');
-        }
-
-        $params['data']['csrfToken'] = $this->u_csrf_token();
+        $data['csrfToken'] = $this->u_csrf_token();
         $fields = '';
-        foreach ($params['data'] as $k => $v) {
+        foreach ($data as $k => $v) {
             $k = Security::escapeHtml($k);
             $dataParam = [ 'type' => 'hidden' ];
             $dataParam['name'] = $k;
@@ -95,16 +80,15 @@ class u_Web extends StdModule {
             $fields .= $this->openTag('input', $dataParam, true);
         }
 
-        $klass = Security::escapeHtml($params['class']);
-        $action = $url = OTypeString::getUntyped($params['action'], 'url');
-        $label = OTypeString::getUntypedNoError($params['label']);
+        $klass = Security::escapeHtml($klass);
+        $action = $url = OTypeString::getUntyped($actionUrl, 'url');
         $html = trim("
 <form method=\"post\" action=\"$action\" style=\"display: inline-block;\">
 $fields
-<button type=\"submit\" class=\"$klass\">$label</button>
+<button type=\"submit\" class=\"$klass\">{}</button>
 </form>
         ");
-        return OTypeString::create('html', $html);
+        return OTypeString::create('html', $html)->u_fill($label);
     }
 
     function openTag($name, $params, $selfClose=false) {
