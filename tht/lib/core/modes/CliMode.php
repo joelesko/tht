@@ -184,7 +184,7 @@ class CliMode {
                     Response.sendPage({
                         title: appName,
                         body: siteHtml(appName, bodyHtml),
-                        css: '/css',  // route to `pages/css.tht`
+                        css: url'/css',  // route to `pages/css.tht`
                     });
                 }
 
