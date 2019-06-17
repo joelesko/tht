@@ -31,7 +31,7 @@ abstract class Glyph {
     const BLOCK_COMMENT_END = '*/';
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
-    const TEMPLATE_CODE_LINE = '::';
+    const TEMPLATE_CODE_LINE = '--';
     const STRING_MODS = 'r';
     const LIST_MOD = 'Q';
     const REGEX_MOD = 'r';

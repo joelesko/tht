@@ -268,7 +268,7 @@ class Tokenizer extends StringReader {
 
     function handleWhitespace ($c) {
 
-        // Template. End of single-line code block '::'
+        // Template. End of single-line code block '--'
         if ($this->templateMode === TemplateMode::CODE_LINE && $c === "\n") {
             $prev = $this->prevChar();
             if ($prev !== '{' && $prev !== ';' && $prev !== '}') {
@@ -634,7 +634,7 @@ class Tokenizer extends StringReader {
 
             } else if ($this->atStartOfLine() && $this->isGlyph(Glyph::TEMPLATE_CODE_LINE)) {
 
-                // One line of THT code e.g. ':: let a = 1;'
+                // One line of THT code e.g. '-- let a = 1;'
                 $this->addTemplateString($str);
                 $this->nextFor(Glyph::TEMPLATE_CODE_LINE);
                 if ($this->char() !== " ") {

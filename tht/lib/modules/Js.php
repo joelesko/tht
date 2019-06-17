@@ -195,7 +195,8 @@ EOLAZY;
 
             .has-color-code .cc-value span,
             .has-color-code .cc-comment span,
-            .has-color-code .cc-prompt {
+            .has-color-code .cc-prompt,
+            .has-color-code .cc-template-code span {
                 color: inherit !important;
                 font-weight: inherit !important;
             }
@@ -219,6 +220,9 @@ EOLAZY;
             .has-color-code .cc-keyword {
                 color: #177bad;
                 font-weight: bold;
+            }
+            .has-color-code .cc-template-code {
+                color: #831ec0;
             }
 
             /* Dark Theme */
@@ -299,6 +303,12 @@ EOCSS;
 
                 // single-line comments
                 c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)cc-comment(qq)>$2</span>');
+
+                // template: single-line code
+                c = c.replace(/(^|\\s)((--)\s+.*)/gm, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
+
+                // template: expression
+                // c = c.replace(/(\{\{(.*?)\}\})/gm, '<span class=(qq)cc-template-expr(qq)>$1</span>');
 
                 // replace quotes
                 c = c.replace(/\(qq\)/g, '"');

@@ -15,7 +15,7 @@ class u_Php extends StdModule {
 
         Security::validatePhpFunction($func);
 
-        if (strpos($func, '::') !== false) {
+        if (strpos($func, '--') !== false) {
             // TODO: validate method_exists
         }
         else if (!function_exists($this->name($func))) {
