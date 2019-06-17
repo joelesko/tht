@@ -4,8 +4,8 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.5.0 - Beta';
-    static private $VERSION_TOKEN = '00500';
+    static private $VERSION = '0.5.1 - Beta';
+    static private $VERSION_TOKEN = '00501';
     static private $VERSION_TOKEN_PHP = '';
 
     static private $SRC_EXT = 'tht';
