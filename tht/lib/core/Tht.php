@@ -619,7 +619,7 @@ class Tht {
         return Tht::$data['config'];
     }
 
-    static function getPhpGlobal ($g, $key) {
+    static function getPhpGlobal ($g, $key, $def='') {
 
         if (!isset(Tht::$data['requestData'][$g])) {
             return $def;
