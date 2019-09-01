@@ -186,7 +186,7 @@ class Compiler {
         // touch($sourceFile); // for cache comparison // editors don't play nice with this
 
         // Lint file
-        $lint = shell_exec('php -l ' . $phpSourceFile);
+        $lint = shell_exec('php -l ' . escapeshellarg($phpSourceFile));
         if (strpos(strtolower($lint), 'no syntax errors') === false) {
             touch($phpSourceFile, time() - 100);  // make sure re-compile is forced next time
             ErrorHandler::handlePhpParseError($lint);

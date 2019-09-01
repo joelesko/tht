@@ -314,11 +314,11 @@ class CliMode {
                         // Other database
                         // Accessible via e.g. `Db.use('exampleDb')`
                         // exampleDb: {
-                        //     driver: 'mysql', // or 'pgsql'
-                        //     server: 'localhost',
-                        //     database: 'example',
-                        //     username: 'dbuser',
-                        //     password: '12345'
+                        //     driver: mysql // or 'pgsql'
+                        //     server: localhost
+                        //     database: example
+                        //     username: dbuser
+                        //     password: 12345
                         // }
                     }
                 }
@@ -389,7 +389,7 @@ class CliMode {
 
         $controller = realpath('thtApp.php');
 
-        passthru("php -S $hostName:$port $controller");
+        passthru("php -S $hostName:$port " . escapeshellarg($controller));
     }
 }
 
