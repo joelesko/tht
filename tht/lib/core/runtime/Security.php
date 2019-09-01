@@ -262,10 +262,10 @@ class Security {
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
         // TODO: revisit ' '
-        if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
-            self::error("Illegal character in path: `$path`");
-        }
-        else if (!strlen($path)) {
+        // if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
+        //     self::error("Illegal character in path: `$path`");
+        // }
+        if (!strlen($path)) {
             self::error("File path cannot be empty: `$path`");
         }
         else if (v($path)->u_is_url()) {
@@ -401,11 +401,14 @@ class Security {
         $csp = Tht::getConfig('contentSecurityPolicy');
         if (!$csp) {
             $nonce = "'nonce-" . Tht::module('Web')->u_nonce() . "'";
-            $eval = Tht::getConfig('dangerDangerAllowJsEval') ? 'unsafe-eval' : '';
-            $scriptSrc = "script-src $eval $nonce";
-            $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src *; font-src *; " . $scriptSrc;
+            $eval = Tht::getConfig('dangerDangerAllowJsEval') ? '\'unsafe-eval\'' : '';
+            $scriptSrc = "script-src $eval 'report-sample' $nonce";
+            $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src data: *; font-src *; " . $scriptSrc;
         }
-        header("Content-Security-Policy: $csp");
+        if ($csp != 'dangerDangerNone') {
+            header("Content-Security-Policy: $csp");
+        }
+
     }
 
     // set PHP ini
