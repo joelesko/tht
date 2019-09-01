@@ -4,6 +4,11 @@ namespace o;
 
 class u_Json extends StdModule {
 
+    protected $suggestMethod = [
+        'stringify' => 'encode()',
+        'parse'     => 'decode()',
+    ];
+
     static function u_encode ($v) {
         $json = json_encode($v, JSON_UNESCAPED_UNICODE);
 
