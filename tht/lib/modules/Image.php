@@ -358,7 +358,7 @@ class u_Image {
         return $audit;
     }
 
-    function optimizeImages($dir=null) {
+    function optimizeImages($dir=null, $maxSize=1024) {
 
         CliMode::printHeaderBox('Optimize Images');
 
@@ -406,7 +406,7 @@ class u_Image {
             echo $relPath . "\n";
 
             try {
-                $result = Tht::module('Image')->optimize($f['fullPath'], 1000);
+                $result = Tht::module('Image')->optimize($f['fullPath'], $maxSize);
             } catch (\Exception $e) {
                 $result = [ 'error' => $e->getMessage() ];
             }
