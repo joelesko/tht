@@ -21,6 +21,7 @@ class u_Db extends StdModule {
         Tht::module('Perf')->u_start('db.connect', $dbId);
 
         $dbConfig = $this->u_get_database_config($dbId);
+
         if (isset($dbConfig['file'])) {
             $dbFilePath = Tht::path('db', $dbConfig['file']);
             if (! file_exists($dbFilePath)) {
@@ -32,7 +33,7 @@ class u_Db extends StdModule {
                  $dbConfig['driver'] . ':host=' . $dbConfig['server'] . ';dbname=' . $dbConfig['database'],
                  $dbConfig['username'],
                  $dbConfig['password'],
-                 array(PDO::ATTR_PERSISTENT => false)
+                 array(\PDO::ATTR_PERSISTENT => false)
              );
         }
         $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
