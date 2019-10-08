@@ -171,8 +171,8 @@ class WebMode {
         $thtPath = Tht::path('pages', Tht::getThtFileName($apath));
 
         if (!file_exists($thtPath)) {
-            $defaultPath = Tht::path('pages', Tht::getThtFileName('default'));
-            if (!file_exists($defaultPath)) {
+            $thtPath = Tht::path('pages', Tht::getThtFileName('default'));
+            if (!file_exists($thtPath)) {
                 Tht::module('Response')->u_send_error(404);
             }
         }
@@ -205,9 +205,10 @@ class WebMode {
         $callFunction = '';
         if ($userFunction) {
             // function defined in app.jcon/routes
-            $fullUserFunction = $nameSpace . '\\u_' . $userFunction;
+            // e.g. /foo: foo.tht@someFunction
+            $fullUserFunction = $nameSpace . '\\u_' . v($userFunction)->u_to_token_case('_');
             if (!function_exists($fullUserFunction)) {
-                $fullController = $nameSpace . '\\u_' . basename($controllerFile);
+                $fullController = basename($controllerFile);
                 Tht::configError("Function `$userFunction` not found for route target `$fullController`");
             }
             $callFunction = $fullUserFunction;
@@ -250,6 +251,8 @@ class WebMode {
 
         if ($callFunction) {
             try {
+                ErrorHandler::setTopLevelFunction($controllerFile, $callFunction);
+
                 $ret = call_user_func($callFunction);
                 if (UrlTypeString::isa($ret)) {
                     Tht::module('Response')->u_redirect($ret);
@@ -261,8 +264,8 @@ class WebMode {
                     Tht::module('Response')->u_send_json($ret);
                 }
 
-            } catch (ThtException $e) {
-                ErrorHandler::handleThtException($e, Tht::getPhpPathForTht($controllerFile));
+            } catch (ThtError $e) {
+                ErrorHandler::handleThtRuntimeError($e, Tht::getPhpPathForTht($controllerFile));
             }
         }
     }

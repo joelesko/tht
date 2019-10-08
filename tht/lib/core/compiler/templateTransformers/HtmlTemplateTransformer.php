@@ -7,6 +7,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     private $currentTag = null;
     static private $openTags = [];
     private $numLineTags = 0;
+    private $currentTagPos = 0;
+    private $inQuote = '';
 
     static $VOID_TAGS = [
         'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
@@ -23,8 +25,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return $str;
     }
 
-    function error($msg) {
-        $this->reader->error('(Template) ' . $msg);
+    function error($msg, $pos=null) {
+        ErrorHandler::addSubOrigin('template');
+        ErrorHandler::setErrorDoc('/reference/templates#html-templates', 'HTML Templates');
+        $this->reader->error($msg, $pos);
     }
 
     function transformNext () {
@@ -74,6 +78,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         $t = $this->reader;
 
+        $t->updateTokenPos();
+        $this->currentTagPos = $t->getTokenPos();
+
         $c = $t->char();
         $str = '';
 
@@ -122,11 +129,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             while (true) {
                 $t->next();
                 $c = $t->char();
-                if ($c === "\n") {
-                    $t->updateTokenPos();
-                    $this->error('Unexpected newline.');
-                }
-                if ($c === ' ' || $c === '>') {
+                if ($c === "\n" || $c === ' ' || $c === '>') {
                     $this->currentTag = $this->newTag($tagName, $t->getTokenPos());
                     $str .= $this->currentTag['html'];
                     break;
@@ -165,20 +168,26 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         if ($c === '>') {
             $str .= $this->readTagEnd($isSelfClosing);
         }
-        else if ($c === '=') {
+        else if ($c === '=' && !$this->inQuote) {
             $nc = $t->nextChar();
             if ($nc == ' ') {
                 $this->error('Please remove the space after `=`.');
             } else if ($t->prevChar() == ' ') {
                 $this->error('Please remove the space before `=`.');
             }
+            else if ($nc != '"' && $nc != "'") {
+                $this->error('Missing quote `"` after `=`.');
+            }
             $str .= $c;
             $t->next();
         }
         else {
-            if ($c === "\n") {
+            if ($c === "\n" && $this->inQuote) {
                 $t->updateTokenPos();
-                $this->error('Unexpected newline.');
+                $this->error('Unexpected newline inside parameter.');
+            }
+            else if ($c == '"' || $c == "'") {
+                $this->inQuote = $this->inQuote ? '' : $c;
             }
             $c = $t->escape($c, false, true);
             $this->currentTag['html'] .= $c;
@@ -209,7 +218,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $formatBlockIndent = $t->indent();
                 $t->next();
                 if ($t->nextChar() !== "\n") {
-                    $this->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.');
+                    $this->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.', $this->currentTagPos);
                 }
                 $t->next();
             }
@@ -218,7 +227,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $this->numLineTags += 1;
 
                 if ($t->nextChar() !== ' ') {
-                    $this->error('`<' . $this->currentTag['name'] . '>>` should be followed by a space.  (It will be trimmed.)');
+                    $this->error('`<' . $this->currentTag['name'] . '>>` should be followed by a space.  (It will be trimmed.)', $this->currentTagPos);
                 }
                 else {
                     // slurp whitespace
@@ -239,17 +248,13 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $this->currentContext = 'none';
         $this->validateTag($this->currentTag);
 
-        if ($isSelfClosing) {
+        if ($isSelfClosing || in_array($this->currentTag['name'], self::$VOID_TAGS)) {
             if (!in_array($this->currentTag['name'], self::$VOID_TAGS)) {
                 $str .= '</' . $this->currentTag['name'] . '>';
             }
         }
         else {
-            if (in_array($this->currentTag['name'], self::$VOID_TAGS)) {
-                $this->error("Tag should be self-closing. Ex: `<" . $this->currentTag['name'] ." />`");
-            }
-
-            if ($this->currentTag['name'] == 'form') {
+            if ($this->currentTag['name'] == 'form' && preg_match('/method\s*=.*get/i', $this->currentTag['html'])) {
                 $str .= Tht::module('Web')->u_csrf_token(true)->u_stringify();
             }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
@@ -310,16 +315,27 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         $t = $this->reader;
 
+        if (!count(HtmlTemplateTransformer::$openTags)) {
+            if (!$seeTagName) {
+                $this->error('Extra closing tag. Try: Add a tag name if this is intentional.', $this->currentTagPos);
+            }
+            return;
+        }
+
         $t->updateTokenPos();
 
-        if (!count(HtmlTemplateTransformer::$openTags)) {
-            $this->error('Extra closing tag');
-        }
+        $seeTagNameBase = preg_replace('/\.\.\.$/', '', $seeTagName);
         $tag = array_pop(HtmlTemplateTransformer::$openTags);
-        if ($seeTagName && $seeTagName !== $tag['name']) {
-            $this->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagName>` instead.");
+        if ($seeTagName && $seeTagNameBase !== $tag['name']) {
+            $this->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagNameBase>` instead.", $this->currentTagPos);
         }
-        return "</" . $tag['name'] . ">";
+
+        if (preg_match('/\.\.\.$/', $seeTagName)) {
+            // ghost tag
+            return '';
+        } else {
+            return "</" . $tag['name'] . ">";
+        }
     }
 
     function validateTag ($tag) {
@@ -345,6 +361,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
         else if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
             $this->error("Tag `$name` can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
+        }
+        else if ($this->inQuote) {
+            $this->error("Tag `$name` is missing a closing quote `\"`.", $tag['pos']);
         }
     }
 
@@ -375,18 +394,17 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         ];
     }
 
-
     function onEndString($str) {
         return self::cleanHtmlSpaces($str);
     }
 
-    function onEndTemplateBody() {}
-
-    function onEndFile() {
+    function onEndTemplateBody() {
         $t = $this->reader;
         if (count(HtmlTemplateTransformer::$openTags)) {
             $tag = array_pop(HtmlTemplateTransformer::$openTags);
-            $this->error('Unclosed tag: `' . $tag['name'] . '`', $tag['pos']);
+            $this->error('Missing closing tag `</>` within block: `' . $tag['name'] . '` Try: If this is intentional, add a ghost tag. e.g. `</' . $tag['name'] . '...>`', $tag['pos']);
         }
     }
+
+    function onEndFile() {}
 }

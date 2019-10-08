@@ -12,6 +12,8 @@ class OClass implements \JsonSerializable {
 
     protected $type = 'object';
 
+    protected $errorContext = '';
+
     static private $types = [
         'boolean', 'string', 'number', 'list', 'map', 'object', 'regex', 'function', 'typeString', 'nothing'
     ];
@@ -24,6 +26,29 @@ class OClass implements \JsonSerializable {
             }
         }
         return false;
+    }
+
+    function getClass() {
+        $plain = preg_replace('/o\\\\O?/', '', get_called_class());
+        if (preg_match('/typeString/i', $plain)) {
+            return 'TypeString';
+        }
+        return $plain;
+    }
+
+    function error($msg, $args=null) {
+        $c = $this->errorContext ? $this->errorContext : $this->type;
+        ErrorHandler::addOrigin($c);
+        $classToken = strtolower(v($this->getClass())->u_to_token_case('-'));
+        ErrorHandler::setErrorDoc('/manual/class/' . $classToken, $this->getClass());
+        Tht::error($msg, $args);
+    }
+
+    function ARGS($sig, $args) {
+        $err = ARGS($sig, $args);
+        if ($err) {
+            $this->error($err);
+        }
     }
 
     function _init($args) {
@@ -71,21 +96,21 @@ class OClass implements \JsonSerializable {
     }
 
     function u_type() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->type;
     }
 
     function u_is_type($t) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $type = $this->u_type();
         if ($t === $type) {
             return true;
         } else {
             if (!in_array($t, self::$types)) {
                 if (preg_match('/^[^a-z]/', $t)) {
-                    Tht::error("Type `$t` must be lower camelCase.");
+                    $this->error("Type `$t` must be lower camelCase.");
                 }
-                Tht::error("Unknown type: `$t`");
+                $this->error("Unknown type: `$t`");
             }
             return false;
         }
@@ -123,12 +148,13 @@ class OClass implements \JsonSerializable {
             }
         }
 
-        Tht::error("Unknown field: `$field` $suggest");
+        $this->error("Unknown field: `$field` $suggest");
     }
 
     function __set ($field, $value) {
 
         $unfield = unu_($field);
+
         $autoSetter = u_('set' . ucfirst($unfield));
         if (method_exists($this, $autoSetter)) {
             return $this->$autoSetter($value);
@@ -138,15 +164,17 @@ class OClass implements \JsonSerializable {
         }
 
         if ($this->_fieldsLocked) {
-            Tht::error("Can not create field `$field` after object is constructed.");
+            $this->error("Can not create field `$field` after object is constructed.");
         }
         $this->$field = $value;
     }
 
     function __call ($method, $args) {
 
+        $method = unu_($method);
+
         if (method_exists($this, 'u_z_dynamic_call')) {
-            $result = $this->u_z_dynamic_call(unu_($method), v($args));
+            $result = $this->u_z_dynamic_call($method, v($args));
             if ($result->u_ok()) {
                 return $result->u_get();
             }
@@ -154,46 +182,46 @@ class OClass implements \JsonSerializable {
 
         $suggestion = '';
         if (property_exists($this, 'suggestMethod')) {
-            $umethod = strtolower(unu_($method));
+            $umethod = strtolower($method);
             $suggestion = isset($this->suggestMethod[$umethod]) ? $this->suggestMethod[$umethod] : '';
         }
         $suggest = $suggestion ? " Try: `"  . $suggestion . "`" : '';
 
         $c = get_called_class();
 
-        Tht::error("Unknown method `$method` for class `$c`. $suggest");
+        $this->error("Unknown method `$method` for class `$c`. $suggest");
     }
 
     function u_z_call_method($method, $args=[]) {
-        ARGS('sl', func_get_args());
+        $this->ARGS('sl', func_get_args());
         $uMethod = u_($method);
         return call_user_func_array([ $this, $uMethod ], uv($args));
     }
 
     function u_z_set_field($field, $value) {
-        ARGS('s*', func_get_args());
+        $this->ARGS('s*', func_get_args());
         $uField = u_($field);
         $this->$uField = $value;
     }
 
     function u_z_get_field($field) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $uField = u_($field);
         return $this->$uField;
     }
 
     function u_z_has_method ($method) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return method_exists($this, u_($method));
     }
 
     function u_z_has_field ($field) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return property_exists($this, u_($field));
     }
 
     function u_z_get_fields () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         // When cast as an array, we can look at the prop keys.
         // Private and protected keys start with a null \0 character.
@@ -209,14 +237,14 @@ class OClass implements \JsonSerializable {
     }
 
     function u_z_set_fields ($fieldMap) {
-        ARGS('m', func_get_args());
+        $this->ARGS('m', func_get_args());
         foreach (uv($fieldMap) as $k => $v) {
             $this->u_z_set_field($k, $v);
         }
     }
 
     function u_z_get_methods () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $methods = get_class_methods(get_called_class());
         return $this->userDefinedElements($methods);
     }

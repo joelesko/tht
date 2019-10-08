@@ -126,7 +126,7 @@ class Compiler {
 
         Tht::module('Perf')->u_stop();
 
-        ErrorHandler::sendErrorTelemetry($sourceFile);
+        ErrorHandler::sendTelemetry($sourceFile);
     }
 
     static function parseString ($source) {

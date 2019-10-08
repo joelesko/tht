@@ -4,7 +4,7 @@ namespace o;
 
 class S_OpenBrace extends Symbol {
 
-    var $type = SymbolType::SEQUENCE;
+    var $type = SymbolType::AST_LIST;
 
     // Map Literal { ... }
     function asLeft($p) {
@@ -38,7 +38,7 @@ class S_OpenBrace extends Symbol {
             $p->next();
 
             // colon
-            $p->now(':', 'Map key')->space('x: ', true)->next();
+            $p->now(':', 'map.colon')->space('x: ', true)->next();
 
             // value
             $val = $p->parseExpression(0);
@@ -55,9 +55,9 @@ class S_OpenBrace extends Symbol {
 
         if (count($pairs) > 0) {  $p->space(' }*');  }
 
-        $p->now('}', 'Map - Missed a comma?')->next();
+        $p->now('}', 'map.close')->next();
         $this->setKids($pairs);
-        $this->value = SequenceType::MAP;
+        $this->value = AstList::MAP;
         return $this;
     }
 }

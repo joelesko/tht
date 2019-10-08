@@ -16,6 +16,13 @@ class S_Infix extends Symbol {
     }
 }
 
+// ~
+class S_Concat extends S_Infix {
+    var $bindingPower = 50;
+    var $type = SymbolType::OPERATOR;
+}
+
+// e.g. +, -
 class S_Add extends S_Infix {
     var $bindingPower = 51;
 
@@ -29,22 +36,13 @@ class S_Add extends S_Infix {
     }
 }
 
+// e.g. *, /
 class S_Multiply extends S_Infix {
     var $bindingPower = 52;
 }
 
-class S_Concat extends S_Infix {
-    var $bindingPower = 50;
-    var $type = SymbolType::OPERATOR;
+// e.g. **
+class S_Power extends S_Infix {
+    var $bindingPower = 53;
 }
 
-class S_InfixStatement extends S_Infix {
-    var $bindingPower = 1;
-    function asInner($p, $left) {
-        $this->space('S>>>S');
-        $p->allowAssignmentExpression = true;
-        parent::asInner($p, $left);
-        $p->allowAssignmentExpression = false;
-        return $this;
-    }
-}

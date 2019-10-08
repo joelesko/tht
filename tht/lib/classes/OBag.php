@@ -20,7 +20,13 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
             return $this->val[$plainField];
         } else {
             $tip = $plainField == 'length' ? "  Try: `length()`" : '';
-            Tht::error("Field does not exist: `$plainField`" . $tip);
+            foreach (array_keys($this->val) as $key) {
+                if (strtolower($key) == strtolower($plainField)) {
+                    $tip = "Try: `$key`";
+                }
+            }
+            // ErrorHandler::addObjectDetails('Fields', array_keys($this->val));
+            $this->error("Field does not exist: `$plainField`" . $tip);
         }
     }
 
@@ -34,7 +40,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         } else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField] = $val;
         } else {
-            Tht::error("Can't directly set new field: `$plainField`.  Tip: Use `[]` instead of dot `.`");
+            $this->error("Unknown field `$plainField`. Try: Check spelling, or add field with e.g. `\$map['fieldName']`");
         }
     }
 
@@ -57,7 +63,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
                 return;
             }
             if (!is_int($k)) {
-                Tht::error("List keys must be numeric.  Saw `$k` instead.");
+                $this->error("List keys must be numeric.  Saw `$k` instead.");
             }
         }
     }
@@ -86,7 +92,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
                 $this->val []= $v;
             }
             else {
-                Tht::error("Can't append item to Map.");
+                $this->error("Can't append item to Map.");
             }
         } else {
             $this->val[$k] = $v;
@@ -135,7 +141,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     }
 
     function u_lock_keys ($isLocked) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         $this->hasLockedKeys = $isLocked;
         return $this;
     }
@@ -146,39 +152,33 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     }
 
     function u_get ($args, $default=null) {
-        if (\o\v($args)->u_type() != 'list') {
-            $args = [ $args ];
-        } else {
-            $args = $args->val;
+        if (v($args)->u_type() != 'list') {
+            $args = [$args];
         }
+
         $obj = $this->getDeep($args);
+
         if ($obj === null) {
             if ($default === null) {
-                // soft get
-                return s_null($this->default) ? '' : $this->default;
+                // built-in default
+                return is_null($this->default) ? '' : $this->default;
             } else {
+                // passed-in default
                 return $default;
             }
         }
         return $obj;
     }
 
-    function getDeep ($ary) {
+    function getDeep ($keys) {
         $obj = $this;
-        foreach ($ary as $a) {
-            $obj = \o\v($obj)->getOne($a);
-            if ($obj == null) {
+        foreach ($keys as $key) {
+            if (! isset($obj->val[$key])) {
                 return null;
             }
+            $obj = $obj->val[$key];
         }
         return $obj;
-    }
-
-    function getOne ($key) {
-        if (! isset($this->val[$key])) {
-            return null;
-        }
-        return $this->val[$key];
     }
 }
 

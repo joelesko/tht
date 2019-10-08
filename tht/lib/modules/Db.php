@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Db extends StdModule {
+class u_Db extends OStdModule {
 
     private $connectionCache = [];
     private $dbId = 'default';
@@ -25,7 +25,7 @@ class u_Db extends StdModule {
         if (isset($dbConfig['file'])) {
             $dbFilePath = Tht::path('db', $dbConfig['file']);
             if (! file_exists($dbFilePath)) {
-                Tht::error("Can not find database file `$dbFilePath`.");
+                $this->error("Can not find database file `$dbFilePath`.");
             }
             $dbh = new \PDO('sqlite:' . $dbFilePath);
         } else {
@@ -53,17 +53,17 @@ class u_Db extends StdModule {
     }
 
     function u_get_database_config ($dbId) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return Tht::getTopConfig('databases', $dbId);
     }
 
     function u_last_insert_id () {
-        if ($this->lastStatus['insertId'] < 0) { Tht::error('No Database insert has been executed.'); }
+        if ($this->lastStatus['insertId'] < 0) { $this->error('No Database insert has been executed.'); }
         return $this->lastStatus['insertId'];
     }
 
     function u_last_row_count () {
-        if ($this->lastStatus['numRows'] < 0) { Tht::error('No Database query has been executed.'); }
+        if ($this->lastStatus['numRows'] < 0) { $this->error('No Database query has been executed.'); }
         return $this->lastStatus['numRows'];
     }
 
@@ -91,7 +91,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_table_exists($tableName) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $lSql = new \o\SqlTypeString ("SELECT name FROM sqlite_master WHERE type='table' AND name = {0} LIMIT 1");
         $lSql->u_fill($tableName);
         $rows = $this->u_select_rows($lSql);
@@ -100,9 +100,9 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_get_columns ($tableName){
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (preg_match('/[^a-zA-Z0-9_-]/', $tableName)) {
-            Tht::error("Invalid character in table name: `$tableName`");
+            $this->error("Invalid character in table name: `$tableName`");
         }
         $lSql = new \o\SqlTypeString ("PRAGMA table_info(" . $tableName . ")");
         return $this->u_select_rows($lSql);
@@ -110,7 +110,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_create_table($table, $cols)  {
-        ARGS('sm', func_get_args());
+        $this->ARGS('sm', func_get_args());
         $table = $this->untaintName($table, 'table');
         $sql = "CREATE TABLE IF NOT EXISTS $table (\n";
         $aCols = [];
@@ -126,7 +126,7 @@ class u_Db extends StdModule {
 
     // TODO: support more than just sqlite
     function u_create_index($table, $col)  {
-        ARGS('ss', func_get_args());
+        $this->ARGS('ss', func_get_args());
         $table = $this->untaintName($table, 'table');
         $col = $this->untaintName($col, 'column');
         $sql = "CREATE INDEX i_{$table}_{$col} ON $table ($col)";
@@ -136,7 +136,7 @@ class u_Db extends StdModule {
     function untaintName($n, $label) {
         $n = trim($n);
         if (!strlen($n) || preg_match('/[^a-zA-Z0-9_]/', $n)) {
-            Tht::error("Invalid $label name: `$n`");
+            $this->error("Invalid $label name: `$n`");
         }
         return $n;
     }
@@ -144,7 +144,7 @@ class u_Db extends StdModule {
     function untaintArg($n, $label) {
         $n = trim($n);
         if (!strlen($n) || preg_match('/[^a-zA-Z0-9_() ]/', $n)) {
-            Tht::error("Invalid $label: `$n`");
+            $this->error("Invalid $label: `$n`");
         }
         return $n;
     }
@@ -168,7 +168,7 @@ class u_Db extends StdModule {
     function u_select_row ($sql) {
         $rows = $this->u_select_rows($sql);
         if (count($rows) > 1) {
-            Tht::error('selectRow got ' . count($rows) . " rows.  Expected only one.\n\nTry adding a `LIMIT 1` clause to your query.");
+            $this->error('selectRow got ' . count($rows) . " rows.  Expected only one.\n\nTry adding a `LIMIT 1` clause to your query.");
         }
         $row = isset($rows[0]) ? $rows[0] : '';
 
@@ -177,7 +177,7 @@ class u_Db extends StdModule {
 
     function u_insert_row ($tTable, $fields){
 
-        ARGS('sm', func_get_args());
+        $this->ARGS('sm', func_get_args());
 
         $table = $this->untaintName($tTable, 'table');
 
@@ -219,7 +219,7 @@ class u_Db extends StdModule {
         $params = array_merge(uv($vals), uv($lWhere->u_params()));
 
         if (strpos(strtolower($where), 'where') !== false) {
-            Tht::error('Please remove `WHERE` keyword from `where` argument', array('table' => $table, 'where' => $where));
+            $this->error('Please remove `WHERE` keyword from `where` argument', array('table' => $table, 'where' => $where));
         }
 
         $sql = "UPDATE $table SET $sSets WHERE $where";
@@ -272,7 +272,7 @@ class u_Db extends StdModule {
         Tht::module('Perf')->u_start('Db.query', $sql);
 
         if (!trim($sql)) {
-            Tht::error('Empty SQL query');
+            $this->error('Empty SQL query');
         }
 
         $sth = null;
@@ -303,7 +303,7 @@ class u_Db extends StdModule {
                 $fparams = array();
                 foreach ($placeholders[1] as $ph) {
                     if (!isset($params[$ph])) {
-                        Tht::error("Missing placeholder value for `$ph`." , array('placeholders' => $placeholders[1], 'params' => $params));
+                        $this->error("Missing placeholder value for `$ph`." , array('placeholders' => $placeholders[1], 'params' => $params));
                     }
                     $fparams[$ph] = $params[$ph];
                 }
@@ -314,7 +314,7 @@ class u_Db extends StdModule {
             $this->lastStatus['insertId'] = $dbh->lastInsertId();
         }
         catch (\PDOException $e) {
-            Tht::error('Database error: ' . $e->getMessage(), array('databaseId' => $this->dbId, 'query' => $sql, 'params' => $params));
+            $this->error('Database error: ' . $e->getMessage(), array('databaseId' => $this->dbId, 'query' => $sql, 'params' => $params));
         }
 
         Tht::module('Perf')->u_stop();

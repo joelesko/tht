@@ -3,23 +3,23 @@
 namespace o;
 
 // TODO: replace with CURL
-class u_Net extends StdModule {
+class u_Net extends OStdModule {
 
     function u_http_get($lUrl, $headers=[]) {
 
-        ARGS('*mm', func_get_args());
+        $this->ARGS('*mm', func_get_args());
         return $this->request('httpGet', 'GET', $lUrl, '', $headers);
     }
 
     function u_http_post($lUrl, $postData, $headers=[]) {
 
-        ARGS('**m', func_get_args());
+        $this->ARGS('**m', func_get_args());
         return $this->request('httpPost', 'POST', $lUrl, $postData, $headers);
     }
 
     function u_http_request($method, $lUrl, $postData='', $headers=[]) {
 
-        ARGS('s**m', func_get_args());
+        $this->ARGS('s**m', func_get_args());
         return $this->request('httpRequest', $method, $lUrl, $postData, $headers);
     }
 

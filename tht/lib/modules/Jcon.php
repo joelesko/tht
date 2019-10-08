@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Jcon extends StdModule {
+class u_Jcon extends OStdModule {
 
     private $context = [ 'type' => '' ];
     private $contexts = [];
@@ -20,7 +20,7 @@ class u_Jcon extends StdModule {
 
     function u_parse_file($file) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $cacheKey = 'jcon:' . $file;
 
@@ -45,7 +45,7 @@ class u_Jcon extends StdModule {
     }
 
     function u_parse($text) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return $this->start($text, '');
     }
 

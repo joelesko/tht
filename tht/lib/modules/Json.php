@@ -2,14 +2,14 @@
 
 namespace o;
 
-class u_Json extends StdModule {
+class u_Json extends OStdModule {
 
     protected $suggestMethod = [
         'stringify' => 'encode()',
         'parse'     => 'decode()',
     ];
 
-    static function u_encode ($v) {
+    function u_encode ($v) {
         $json = json_encode($v, JSON_UNESCAPED_UNICODE);
 
         // TODO: this is duplicated in u_format()
@@ -17,26 +17,26 @@ class u_Json extends StdModule {
         return $json;
     }
 
-    static function u_decode ($v) {
+    function u_decode ($v) {
         $dec = json_decode($v, false);
         if (is_null($dec)) {
-            Tht::error("Unable to decode JSON string: `" . v($v)->u_limit(20) . "`");
+            $this->error("Unable to decode JSON string: `" . v($v)->u_limit(20) . "`");
         }
-        return u_Json::convertToBags($dec);
+        return $this->convertToBags($dec);
     }
 
     // Recursively convert to THT Lists and Maps
-    static function convertToBags ($obj) {
+    function convertToBags ($obj) {
         if (is_object($obj)) {
             $map = [];
             foreach (get_object_vars($obj) as $key => $val) {
-                $map[$key] = u_Json::convertToBags($val);
+                $map[$key] = $this->convertToBags($val);
             }
             return OMap::create($map);
         }
         else if (is_array($obj)){
             foreach ($obj as $i => $val) {
-                $obj[$i] = u_Json::convertToBags($obj[$i]);
+                $obj[$i] = $this->convertToBags($obj[$i]);
             }
             return OList::create($obj);
         }
@@ -45,19 +45,49 @@ class u_Json extends StdModule {
         }
     }
 
-    static function deepSortKeys ($obj) {
+    function deepSortKeys ($obj) {
         ksort($obj);
         foreach ($obj as $key => $value) {
             $uvObj = uv($obj[$key]);
             if (is_array($uvObj)) {
-                $obj[$key] = u_Json::deepSortKeys($uvObj);
+                $obj[$key] = $this->deepSortKeys($uvObj);
             }
         }
         return $obj;
     }
 
+    function formatOneLineSummary($obj, $maxLen) {
+        $json = $this->u_format($obj);
+
+        // make object bare
+        $json = preg_replace('/\'<<</', "<", $json);
+        $json = preg_replace('/>>>\'/', ">", $json);
+
+        $json = preg_replace('/,\n/', ', ', $json);
+        $json = preg_replace('/{\s+/', '{ ', $json);
+        $json = preg_replace('/\s+}/', ' }', $json);
+        $json = preg_replace('/\s*\n+\s*/', '', $json);
+        $json = preg_replace('/\s+/', ' ', $json);
+
+        // truncate
+        if (strlen($json) > $maxLen) {
+            $json = substr($json, 0, $maxLen - 1) . ' ...';
+            if ($json[0] == '[') {
+                $json .= ' ]';
+            }
+            else if ($json[0] == '{') {
+                $json .= ' }';
+            }
+            else if ($json[0] == "'") {
+                $json .= "'";
+            }
+        }
+
+        return $json;
+    }
+
     // Make JSON output human-readable
-    static function u_format($obj, $isStrict=false) {
+    function u_format($obj, $isStrict=false) {
 
         $tab = str_repeat(' ', 4);
         $out = '';
@@ -75,7 +105,7 @@ class u_Json extends StdModule {
             $obj = json_decode($obj);
         }
         else if (is_array(uv($obj))) {
-            $obj = u_Json::deepSortKeys(uv($obj));
+            $obj = $this->deepSortKeys(uv($obj));
         }
 
         $rawJson = self::u_encode($obj);

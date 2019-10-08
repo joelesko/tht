@@ -30,8 +30,11 @@ abstract class OTypeString extends OVar {
         if ($len > $maxLen) {
             $s .= '…';
         }
+        $s = preg_replace('/\n+/', ' ', $s);
+
         // This format is recognized by the Json formatter
-        return "<<<TypeString = $s>>>";
+        $c = preg_replace('/.*\\\\/', '', get_class($this));
+        return "<<<$c: $s>>>";
     }
 
     function jsonSerialize() {
@@ -42,10 +45,15 @@ abstract class OTypeString extends OVar {
         return $a->appendTypeString($b);
     }
 
+    static function staticError($msg) {
+        ErrorHandler::addOrigin('typeString');
+        Tht::error($msg);
+    }
+
     static function create ($type, $s) {
         $nsClassName = '\\o\\' . ucfirst($type) . 'TypeString';
         if (!class_exists($nsClassName)) {
-            Tht::error("TypeString of type `$nsClassName` not supported.");
+            self::staticError("TypeString of type `$nsClassName` not supported.");
         }
         return new $nsClassName ($s);
     }
@@ -53,7 +61,7 @@ abstract class OTypeString extends OVar {
     static function getUntyped ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
+            self::staticError("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
         return self::_getUntyped($s, $type, false);
     }
@@ -61,14 +69,14 @@ abstract class OTypeString extends OVar {
     static function getUntypedRaw ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            Tht::error("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
+            self::staticError("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
         }
         return self::_getUntyped($s, $type, true);
     }
 
     private static function _getUntyped ($s, $type, $getRaw) {
         if ($type && $s->stringType !== $type) {
-            Tht::error("TypeString must be of type `$type`. Got: `$s->stringType`");
+            self::staticError("TypeString must be of type `$type`. Got: `$s->stringType`");
         }
         return $getRaw ? $s->u_raw_string() : $s->u_stringify();
     }
@@ -95,7 +103,7 @@ abstract class OTypeString extends OVar {
             }
             else if ($this->overrideParams) {
                 if (isset($this->overrideParams[$k])) {
-                    Tht::error("Must provide an update value for key `$k`.");
+                    $this->error("Must provide an update value for key `$k`.");
                 }
                 $escParams[$k] = $this->overrideParams[$k];
             }
@@ -114,7 +122,7 @@ abstract class OTypeString extends OVar {
         $t1 = $this->u_string_type();
         $t2 = $l->u_string_type();
         if ($t1 !== $t2) {
-            Tht::error("Can only append TypeStrings of the same type. Got: `$t1` and `$t2`");
+            $this->error("Can only append TypeStrings of the same type. Got: `$t1` and `$t2`");
         }
         $this->str .= $l->u_raw_string();
         return $this;
@@ -127,7 +135,7 @@ abstract class OTypeString extends OVar {
 
     function u_stringify () {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $out = $this->str;
 
         if (count($this->bindParams)) {
@@ -156,17 +164,17 @@ abstract class OTypeString extends OVar {
     }
 
     function u_raw_string () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->str;
     }
 
     function u_params () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->bindParams;
     }
 
     function u_string_type() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->stringType;
     }
 

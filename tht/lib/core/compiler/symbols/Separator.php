@@ -2,7 +2,7 @@
 
 namespace o;
 
-class S_Sep extends Symbol {
+class S_Separator extends Symbol {
     var $kids = 0;
     var $type = SymbolType::SEPARATOR;
     function asLeft($p) {
@@ -11,6 +11,6 @@ class S_Sep extends Symbol {
     }
 }
 
-class S_End extends S_Sep {
+class S_End extends S_Separator {
     var $type = SymbolType::END;
 }

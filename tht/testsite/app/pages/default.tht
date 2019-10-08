@@ -1,4 +1,4 @@
 
 
-print(Request.url().pathParts);
+print(Request.url().pathParts());
 

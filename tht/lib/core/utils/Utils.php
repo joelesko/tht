@@ -47,7 +47,7 @@ function uv ($v) {
 // Assert Number type value
 function vn ($v, $isAdd) {
     if (!is_numeric($v)) {
-        $tag = $isAdd ? "Did you mean '~'?" : '';
+        $tag = $isAdd ? "Did you mean `~`?" : '';
         Tht::error("Can't use math on non-number value. $tag");
     }
     return $v;
@@ -56,14 +56,19 @@ function vn ($v, $isAdd) {
 // Convert camelCase to user_underscore_case (with u_ prefix)
 function u_ ($s) {
    // $out = preg_replace('/([^_])([A-Z])/', '$1_$2', $s);
+ //   $out = preg_replace('/_/', '__', $s);
     $out = preg_replace('/([A-Z])/', '_$1', $s);
-    return 'u_' . strtolower($out);
+    return 'u_' . $out;
 }
 
 // user_underscore_case back to camelCase (without u_ prefix)
 function unu_ ($s) {
+
     $s = preg_replace('/^u_/', '', $s);
-    return v($s)->u_to_camel_case();
+    $s = preg_replace('/_([A-Z])/', '$1', $s);
+//    $s = preg_replace('/__/', '_', $s);
+
+    return $s;
 }
 
 // var has a u_ prefix
@@ -84,13 +89,15 @@ function hasu_ ($v) {
 //   c = callable
 //   * = any
 
-// NOTE: Fewer args are already handled by PHP.
+// NOTE: Fewer args are caught by PHP at runtime.
 function ARGS($sig, $arguments) {
 
     $err = '';
 
     if (count($arguments) > strlen($sig)) {
-        $err = 'expects ' . strlen($sig) . ' arguments.';
+        $num = strlen($sig);
+        $arguments = v('argument')->u_to_plural($num);
+        $err = ' expects ' . strlen($sig) . " $arguments.";
     }
     else {
         $i = 0;
@@ -126,7 +133,8 @@ function ARGS($sig, $arguments) {
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
                 $name = $t;
-                $err = "expects argument $i to be a `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got: `" . $name . "`";
+                $argName = ['1st', '2nd', '3rd', '4th', '5th'][$i];
+                $err = "expects $argName argument to be a `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got: `" . $name . "`";
                 break;
             }
             $i += 1;
@@ -134,8 +142,13 @@ function ARGS($sig, $arguments) {
     }
 
     if ($err) {
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[1]['function'];
-        Tht::error("(Argument Checker) Function `$caller()`" . $err);
+        // getting function name 2 levels deep
+        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['function'];
+        ErrorHandler::addSubOrigin('arguments');
+        return "Function `$caller()`" . $err;
+    }
+    else {
+        return false;
     }
 }
 

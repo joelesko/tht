@@ -117,13 +117,27 @@ class u_InputValidator {
             'removeHtml'        => false,
         ],
 
-        'dangerdangerraw' => [
+        'dangerDangerRaw' => [
             'min' => 1,
             'max' => 'none',
             'removeQuotes'      => false,
             'removeExtraSpaces' => false,
             'removeNewlines'    => false,
             'removeHtml'        => false,
+        ],
+
+        // MISC
+
+        'age' => [
+            'min' => 0,
+            'max' => 130,
+            'regex' => '[0-9]+',
+        ],
+
+        'name' => [
+            'min' => 1,
+            'max' => 100,
+            'removeQuotes' => false,
         ],
 
     ];
@@ -134,7 +148,7 @@ class u_InputValidator {
             'required' => false,
         ],
 
-        'dangerdangerhtml' => [
+        'dangerdDangerHtml' => [
             'removeHtml' => false,
             'removeQuotes' => false,
         ],
@@ -150,7 +164,7 @@ class u_InputValidator {
     ];
 
     private $variableRules = [
-        'in', 'notin', 'same', 'notsame'
+        'in', 'notIn', 'same', 'notSame'
     ];
 
     function __construct() {
@@ -296,7 +310,7 @@ class u_InputValidator {
 
     function initRules($rawRules, $fieldName) {
         if ($rawRules == '') {
-            $rawRules = [$this->autoRule($fieldName)];
+            $rawRules = $this->autoRule($fieldName);
         }
 
         $rawRules = explode('|', $rawRules);
@@ -350,6 +364,7 @@ class u_InputValidator {
         body
 
     */
+    // TODO: clean this up, DRY
     function autoRule($af) {
 
         $f = strtolower($af);
@@ -361,7 +376,7 @@ class u_InputValidator {
             return 'password';
         }
         else if (preg_match('#(user|username)#', $f)) {
-            return 'userName';
+            return 'username';
         }
         else if (preg_match('#id$#', $f)) {
             return 'id';
@@ -377,6 +392,12 @@ class u_InputValidator {
         }
         else if (preg_match('#body#', $f)) {
             return 'body';
+        }
+        else if (preg_match('#name#', $f)) {
+            return 'name';
+        }
+        else if ($f == 'age') {
+            return 'age';
         }
 
         $this->error("Can't auto-detect validation rule for field `$af`");
@@ -457,7 +478,7 @@ class u_InputValidator {
 
 
     function validate_constraint_required($val, $required) {
-        if ($val == '') {
+        if ($val === '') {
             if (!$required) {
                 return $val;
             }

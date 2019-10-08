@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Php extends StdModule {
+class u_Php extends OStdModule {
 
     private $isRequired = [];
     private $phpFunctionOk = [];
@@ -55,7 +55,7 @@ class u_Php extends StdModule {
     }
 
     function u_options($options) {
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
         $n = 0;
         foreach ($options as $o) {
             $n |= constant($o);
@@ -68,8 +68,8 @@ class u_Php extends StdModule {
         if (!isset($this->isRequired[$phpFile])) {
             try {
                 require_once(Tht::path('phpLib', $phpFile));
-            } catch (Exception $e) {
-                Tht::error("Can not require PHP file: `$phpFile`");
+            } catch (\Exception $e) {
+                $this->error("Can not require PHP file: `$phpFile`");
             }
             $this->isRequired[$phpFile] = true;
         }

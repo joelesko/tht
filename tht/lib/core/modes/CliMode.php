@@ -10,7 +10,7 @@ class CliMode {
     static private $CLI_OPTIONS = [
         'new'    => 'new',
         'server' => 'server',
-        'images' => 'images',
+   //     'images' => 'images',
     //  'run'    => 'run',
     ];
 

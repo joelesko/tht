@@ -4,10 +4,12 @@ namespace o;
 
 class S_Function extends S_Statement {
     var $type = SymbolType::NEW_FUN;
+    var $isExpression = false;
 
     // Function as an expression (anonymous)
-    // e.g. let funFoo = function () { ... };
+    // e.g. $funFoo = function () { ... };
     function asLeft($p) {
+        $this->isExpression = true;
         return $this->asStatement($p);
     }
 
@@ -27,13 +29,15 @@ class S_Function extends S_Statement {
             if (strlen($sName) < 2) {
                 $p->error("Function name `$sName` should be longer than 1 letter.  Try: Be more descriptive.");
             }
-            $p->validator->define($p->symbol);
             $sFunName->updateType(SymbolType::USER_FUN);
             $this->addKid($sFunName);
             $p->registerUserFunction('defined', $sFunName->token);
             $p->space(' name*')->next();
         }
         else {
+            if ($p->expressionDepth == 0) {
+                $p->error("Function must have a name, or be part of an expression.", $p->prevToken);
+            }
             // anonymous function. e.g. function () { ... }
             $anon = $p->makeSymbol(
                 TokenType::WORD,
@@ -43,6 +47,7 @@ class S_Function extends S_Statement {
             $this->addKid($anon);
         }
 
+        $p->validator->newFunctionScope();
         $p->validator->newScope();
 
         $this->parseArgs($p, $hasName);
@@ -50,13 +55,19 @@ class S_Function extends S_Statement {
         $closureVars = $this->parseClosureVars($p);
 
         // block. { ... }
-        $this->addKid($p->parseBlock());
+        $p->functionDepth += 1;
+        $this->addKid($p->parseBlock(true));
+        $p->functionDepth -= 1;
 
-        $p->validator->popScope();
+        // Make sure next symbol is out of this scope
+        $p->validator->popScope();  // block
+        $p->validator->popScope();  // function
+        $p->validator->popFunctionScope();
 
+        $p->next();
 
         if ($closureVars) {
-            $this->addKid($p->makeSequence(SequenceType::ARGS, $closureVars));
+            $this->addKid($p->makeAstList(AstList::ARGS, $closureVars));
         }
 
         return $this;
@@ -68,7 +79,7 @@ class S_Function extends S_Statement {
         if ($p->symbol->isValue("(")) {
 
             $space = $hasName ? 'x(x' : ' (x';
-            $p->now('(', 'function')->space($space, true)->next();
+            $p->now('(', 'function.args.open')->space($space, true)->next();
             $argSymbols = [];
             $hasOptionalArg = false;
             $seenName = [];
@@ -86,21 +97,23 @@ class S_Function extends S_Statement {
                     $isSplat = true;
                 }
 
-                if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
-                    $p->error("Expected an argument name.  Ex: `function myFun (argument)`");
+                if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
+                    $p->error("Expected an argument name.  Ex: `function myFun (\$argument)`");
                 }
 
-                $p->validator->define($p->symbol, true);
+                $p->validator->defineVar($p->symbol, true);
 
                 $sArg = $p->symbol;
                 $sArg->updateType($isSplat ? SymbolType::FUN_ARG_SPLAT : SymbolType::FUN_ARG);
 
                 // Prevent duplicate arguments
-                $argName = $sArg->token[TOKEN_VALUE];
-                if (isset($seenName[$argName])) {
-                    $p->error("Duplicate argument `$argName`", $sArg->token);
-                }
-                $seenName[$argName] = true;
+                // technically this is caught earlier
+                // $argName = $sArg->token[TOKEN_VALUE];
+                // $lowerArgName = strtolower($argName);
+                // if (isset($seenName[$lowerArgName])) {
+                //     $p->error("Duplicate argument `$" . $argName . "`", $sArg->token);
+                // }
+                // $seenName[$lowerArgName] = true;
 
                 if (count($argSymbols) > 0 && !$isSplat) {
                     $p->space('Sarg*');
@@ -138,7 +151,6 @@ class S_Function extends S_Statement {
 
                     $p->space(' = ');
 
-                    // e.g. function foo (a = 1) { ... }
                     $p->next();
                     $sDefault = $p->parseExpression(0);
 
@@ -158,12 +170,12 @@ class S_Function extends S_Statement {
                 $p->next();
             }
 
-            $this->addKid($p->makeSequence(SequenceType::ARGS, $argSymbols));
+            $this->addKid($p->makeAstList(AstList::ARGS, $argSymbols));
 
-            $p->now(')')->space('x) ')->next();
+            $p->now(')', 'function.args.close')->space('x) ')->next();
         }
         else {
-            $this->addKid($p->makeSequence(SequenceType::ARGS, []));
+            $this->addKid($p->makeAstList(AstList::ARGS, []));
         }
     }
 
@@ -172,12 +184,20 @@ class S_Function extends S_Statement {
 
         $closureVars = [];
         if ($p->symbol->isValue('keep')) {
+
+            if (!$this->isExpression) {
+                ErrorHandler::setErrorDoc('/language-tour/intermediate-features#anonymous-functions', 'Anonymous Functions');
+                $p->error("Keyword `keep` can only be used with anonymous functions.");
+            }
+
             $p->next();
             $p->now('(', 'keep')->next();
             while (true) {
-                if ($p->symbol->token[TOKEN_TYPE] !== TokenType::WORD) {
-                    $p->error("Expected an outer variable inside `keep`.  Ex: `fun () keep (name) { ... }`");
+                if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
+                    $p->error("Expected an outer variable inside `keep`.  Ex: `F () keep (\$name) { ... }`");
                 }
+
+                $p->validator->defineVar($p->symbol, true);
 
                 $sArg = $p->symbol;
                 $sArg->updateType(SymbolType::USER_VAR);
@@ -187,9 +207,9 @@ class S_Function extends S_Statement {
                 if (!$s->isValue(',')) {
                     break;
                 }
-                $p->now(',')->next();
+                $p->now(',', 'function.keep.comma')->next();
             }
-            $p->now(')')->space('x) ')->next();
+            $p->now(')', 'function.keep.close')->space('x) ')->next();
         }
 
         return $closureVars;

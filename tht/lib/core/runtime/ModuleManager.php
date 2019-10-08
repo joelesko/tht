@@ -4,8 +4,9 @@ namespace o;
 
 class ModuleManager {
 
-    static $fileToNameSpace = [];
-    static $moduleRegistry = [];
+    static private $fileToNameSpace = [];
+    static private $moduleRegistry = [ '_page' => -1 ];
+    static private $moduleCache = [];
 
     static function init() {
         self::initAutoloading();
@@ -73,25 +74,45 @@ class ModuleManager {
     static function getModuleFromNamespace($ns) {
         $parts = explode('\\', $ns);
         $name = array_pop($parts);
+        if ($parts[1] == 'pages') {
+            return self::loadPageModule();
+        }
         return self::getModule($name);
     }
 
     static function getModule ($modName) {
 
-        $modName = preg_replace('/_x$/', '', $modName);
+        if (isset(self::$moduleCache[$modName])) {
+            return self::$moduleCache[$modName];
+        }
 
         // Already loaded user module
-        $cacheKey = 'u//' . $modName;
+        $cleanModName = preg_replace('/_x$/', '', $modName);
+        $cacheKey = 'u//' . $cleanModName;
         if (isset(self::$moduleRegistry[$cacheKey])) {
-            return self::$moduleRegistry[$cacheKey];
+            $mod = self::$moduleRegistry[$cacheKey];
         }
         // Built-in module
-        else if (isset(self::$moduleRegistry[$modName])) {
-            return self::loadBuiltinModule($modName);
+        else if (isset(self::$moduleRegistry[$cleanModName])) {
+            $mod = self::loadBuiltinModule($cleanModName);
+        }
+        else {
+            // User module
+            $mod = self::loadUserModule($cleanModName);
         }
 
-        // User module
-        return self::loadUserModule($modName);
+        self::$moduleCache[$modName] = $mod;
+
+        return $mod;
+    }
+
+    static function loadPageModule() {
+        // Create a dummy module so users can use @@ to create "local" globals for the current page.
+        $modName = '_page';
+        if (self::$moduleRegistry[$modName] === -1) {
+            self::$moduleRegistry[$modName] = new OModule ($modName, $modName);
+        }
+        return self::$moduleRegistry[$modName];
     }
 
     static function loadBuiltinModule($modName) {

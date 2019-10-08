@@ -8,7 +8,7 @@ class S_TryCatch extends S_Statement {
     // try { ... } catch (e) { ... }
     function asStatement ($p) {
 
-        $p->space(' tryS', true);
+        $p->space('*tryS', true);
 
         $p->next();
 
@@ -16,16 +16,19 @@ class S_TryCatch extends S_Statement {
         $this->addKid($p->parseBlock());
 
         // catch
-        $p->now('catch')->space(' catchS', true)->next();
 
-        // exception var
-        $p->now('(', 'try/catch')->next();
-        $p->validator->define($p->symbol);
-        $this->addKid($p->symbol);
+        $p->validator->newScope();
+        $p->now('catch', 'try.catch')->space(' catchS', true)->next();
+
+        $errorVar = $p->parseExpression();
+        $p->validator->defineVar($errorVar);
+        $this->addKid($errorVar);
+
+        $this->addKid($p->parseBlock(true));
+
+        $p->validator->popScope(); // block
+        $p->validator->popScope(); // catch
         $p->next();
-        $p->now(')')->next();
-
-        $this->addKid($p->parseBlock());
 
         // finally
         if ($p->symbol->isValue('finally')) {

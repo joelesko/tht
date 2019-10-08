@@ -2,13 +2,13 @@
 
 namespace o;
 
-class u_Request extends StdModule {
+class u_Request extends OStdModule {
 
     private $userAgent = null;
     private $url = null;
 
     function u_ip($allIps=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
 
         $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
         $ips = preg_split('/\s*,\s*/', $ip);
@@ -22,7 +22,7 @@ class u_Request extends StdModule {
 
     // TODO: support proxies (via HTTP_X_FORWARDED_PROTO?)
     function u_is_https () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $https = Tht::getPhpGlobal('server', 'HTTPS');
         $port = Tht::getPhpGlobal('server', 'SERVER_PORT');
 
@@ -30,7 +30,7 @@ class u_Request extends StdModule {
     }
 
     function u_user_agent() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         if ($this->userAgent) {
             return $this->userAgent;
         }
@@ -41,19 +41,19 @@ class u_Request extends StdModule {
     }
 
     function u_method() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
         return $method;
     }
 
     function u_referrer() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Tht::getPhpGlobal('headers', 'referrer');
     }
 
     // THANKS: http://www.thefutureoftheweb.com/blog/use-accept-language-header
     function u_languages () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         $langs = [];
         $acceptLang = strtolower(Tht::getPhpGlobal('server', 'HTTP_ACCEPT_LANGUAGE'));
@@ -73,19 +73,19 @@ class u_Request extends StdModule {
     }
 
     function u_is_ajax () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $requestedWith = Tht::getWebRequestHeader('x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 
     function u_headers() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $headers = Tht::getPhpGlobal('headers', '*');
         return OMap::create($headers);
     }
 
     function u_url() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         if ($this->url) {
             return $this->url;

@@ -8,25 +8,25 @@ class S_OpenParen extends Symbol {
 
     // Grouping (...)
     function asLeft($p) {
-        $this->space('*(N');
+        $this->space('*(x');
         $p->next();
         $this->updateType(SymbolType::OPERATOR);
         $e = $p->parseExpression(0);
-        $p->now(')')->next();
+        $p->now(')', 'group.close')->space('x)*')->next();
         return $e;
     }
 
     // Function call. foo()
     function asInner ($p, $left) {
 
-        $this->space('x(N', true);
+        $this->space('x(x', true);
 
         $p->next();
         $this->updateType(SymbolType::CALL);
 
         // Check for bare function like "print"
         if ($left->token[TOKEN_TYPE] === TokenType::WORD) {
-            $type = OBare::isa($left->getValue()) ? SymbolType::BARE_FUN : SymbolType::USER_FUN;
+            $type = u_Bare::isa($left->getValue()) ? SymbolType::BARE_FUN : SymbolType::USER_FUN;
             $left->updateType($type);
             if ($type === SymbolType::USER_FUN) {
                 $p->registerUserFunction('called', $left->token);
@@ -42,10 +42,10 @@ class S_OpenParen extends Symbol {
             if (!$p->symbol->isValue(",")) { break; }
             $p->space('x, ')->next();
         }
-        $argSymbol = $p->makeSequence(SequenceType::FLAT, $args);
+        $argSymbol = $p->makeAstList(AstList::FLAT, $args);
         $this->addKid($argSymbol);
 
-        $p->now(')')->space('x)*')->next();
+        $p->now(')', 'function.call.close')->space('x)*')->next();
 
         return $this;
     }

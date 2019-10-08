@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Css extends StdModule {
+class u_Css extends OStdModule {
 
     private $included = [];
 
@@ -17,7 +17,7 @@ class u_Css extends StdModule {
 
     function u_minify ($str) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         if (!trim($str)) { return ''; }
 
@@ -37,7 +37,7 @@ class u_Css extends StdModule {
 
 
     function u_font($fontId) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $fonts = [
             'serif'     => 'Georgia, Times New Roman, serif',
             'sansSerif' => 'Helvetica Neue, Helvetica, Arial, sans-serif',
@@ -46,7 +46,7 @@ class u_Css extends StdModule {
         ];
 
         if (!isset($fonts[$fontId])) {
-            Tht::error("Unknown fontId `$fontId`.  Try: `serif`, `sansSerif`, `monospace`, `system`");
+            $this->error("Unknown fontId `$fontId`.  Try: `serif`, `sansSerif`, `monospace`, `system`");
         }
 
         return $fonts[$fontId];
@@ -54,7 +54,7 @@ class u_Css extends StdModule {
 
     function u_plugin($id, $arg1=null, $arg2=null) {
 
-        ARGS('sn*', func_get_args());
+        $this->ARGS('sn*', func_get_args());
 
         if (isset($this->included[$id])) {
             return '';
@@ -74,7 +74,7 @@ class u_Css extends StdModule {
             return $this->inc_grid();
         }
 
-        Tht::error("Unknown CSS include: `$id`.  Allowed: `base`, `reset`, `grid`, `icons`");
+        $this->error("Unknown CSS include: `$id`.  Allowed: `base`, `reset`, `grid`, `icons`");
     }
 
     function inc_reset () {
@@ -93,7 +93,7 @@ EOCSS;
 
     function inc_base ($nSizeX=0, $breakCss=null) {
 
-        ARGS('n*', func_get_args());
+        $this->ARGS('n*', func_get_args());
 
         $nSizeX = $nSizeX ?: 760;
         $sizeX = $nSizeX . 'px';
@@ -656,7 +656,7 @@ EOCSS;
     // TODO: widths in rems?
     function inc_grid($nSizeX = 760, $breakCss = null) {
 
-        ARGS('n*', func_get_args());
+        $this->ARGS('n*', func_get_args());
 
         $breakX = ($nSizeX + 20) . 'px';
         $sizeX = $nSizeX . 'px';
@@ -748,7 +748,7 @@ EOCSS;
 
     function u_parse($str) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $s = trim($str);
         if ($s === '') { return $str; }

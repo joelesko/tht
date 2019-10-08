@@ -13,7 +13,7 @@ class u_Image {
     private $quantizeStep = 8;
 
     function u_thumb($oldFile) {
-        return $this->u_optimize($oldFile, 300, 'thumb');
+        return $this->optimize($oldFile, 300, 'thumb');
     }
 
     function optimize ($oldFile, $maxResizeWidth=1024, $fileTag='optimized') {

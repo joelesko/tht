@@ -13,7 +13,7 @@ class HtmlTypeString extends OTypeString {
     }
     // TODO: Security - review how this compares to security in HtmlTemplateTransformer (inTag context)
     // function u_fill($params) {
-    //     Tht::error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
+    //     $this->error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
     // }
 }
 
@@ -34,10 +34,10 @@ class CssTypeString extends OTypeString {
 class SqlTypeString extends OTypeString {
     protected $stringType = 'sql';
     protected function u_z_escape_param($v) {
-        Tht::error('SQL escaping must be handled internally.');
+        $this->error('SQL escaping must be handled internally.');
     }
     function u_stringify() {
-        Tht::error('SqlTypeStrings can only be stringified internally, by the `Db` module.');
+        $this->error('SqlTypeStrings can only be stringified internally, by the `Db` module.');
     }
 }
 

@@ -4,7 +4,7 @@ namespace o;
 
 class u_Global extends OClass {
     function u_constant ($key, $ary) {
-        ARGS('sl', func_get_args());
+        $this->ARGS('sl', func_get_args());
 
         $v = [];
         foreach (uv($ary) as $a) {

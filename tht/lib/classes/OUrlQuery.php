@@ -27,7 +27,13 @@ class UrlQuery extends OClass {
         $pairs = explode('&', $s);
 
         foreach ($pairs as $i) {
-            list($name, $value) = explode('=', $i, 2);
+            $parts = explode('=', $i, 2);
+            if (count($parts) > 1) {
+                list($name, $value) = $parts;
+            } else {
+                $name = $parts[0];
+                $value = '';
+            }
             if (in_array($name, $multiKeys)) {
                 if (!isset($ary[$name])) {
                     $ary[$name] = OList::create([]);
@@ -42,7 +48,7 @@ class UrlQuery extends OClass {
     }
 
     function u_set($q, $isSoft = false) {
-        ARGS('*f', func_get_args());
+        $this->ARGS('*f', func_get_args());
 
         $qClass = get_class($q);
         if ($qClass == 'o\UrlTypeString') {
@@ -65,7 +71,7 @@ class UrlQuery extends OClass {
     }
 
     function u_get($name, $rule='id') {
-        ARGS('ss', func_get_args());
+        $this->ARGS('ss', func_get_args());
 
         $v = isset($this->query[$name]) ? $this->query[$name] : '';
 
@@ -80,27 +86,27 @@ class UrlQuery extends OClass {
     }
 
     function u_fields() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return OList::create(array_keys($this->query));
     }
 
     function u_has_field($key) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return isset($this->query[$key]);
     }
 
     function u_danger_danger_get_raw() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return OMap::create($this->query);
     }
 
     function u_stringify() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Security::stringifyQuery($this->query);
     }
 
     function u_keep($keepKeys) {
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
         $params = [];
         foreach($keepKeys as $k) {
             if (isset($this->query[$k])) {

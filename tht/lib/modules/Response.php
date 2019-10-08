@@ -2,19 +2,19 @@
 
 namespace o;
 
-class u_Response extends StdModule {
+class u_Response extends OStdModule {
 
     private $gzipBufferOpen = false;
     public $sentResponseType = '';
 
     function u_run_route($path) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         WebMode::runRoute($path);
         return new \o\ONothing('runRoute');
     }
 
     function u_redirect ($lUrl, $code=303) {
-        ARGS('*n', func_get_args());
+        $this->ARGS('*n', func_get_args());
 
         $url = OTypeString::getUntyped($lUrl, 'url');
         header('Location: ' . $url, true, $code);
@@ -22,14 +22,14 @@ class u_Response extends StdModule {
     }
 
     function u_set_response_code ($code) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         http_response_code($code);
 
         return new \o\ONothing('setResponseCode');
     }
 
     function u_set_header ($name, $value, $multiple=false) {
-        ARGS('ssf', func_get_args());
+        $this->ARGS('ssf', func_get_args());
 
         $value = preg_replace('/\s+/', ' ', $value);
         $name = preg_replace('/[^a-z0-9\-]/', '', strtolower($name));
@@ -39,7 +39,7 @@ class u_Response extends StdModule {
     }
 
     function u_set_cache_header ($expiry='+1 year') {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime($expiry)));
 
@@ -94,7 +94,7 @@ class u_Response extends StdModule {
     }
 
     function u_send_json ($map) {
-        ARGS('m', func_get_args());
+        $this->ARGS('m', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/json');
         $this->output(json_encode(uv($map)));
@@ -105,7 +105,7 @@ class u_Response extends StdModule {
     }
 
     function u_send_text ($text) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $this->u_set_header('Content-Type', 'text/plain');
 
@@ -118,7 +118,7 @@ class u_Response extends StdModule {
 
     function u_send_css ($chunks) {
 
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
 
         $this->u_set_header('Content-Type', 'text/css');
         $this->u_set_cache_header();
@@ -133,7 +133,7 @@ class u_Response extends StdModule {
 
     function u_send_js ($chunks) {
 
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/javascript');
         $this->u_set_cache_header();
@@ -159,7 +159,7 @@ class u_Response extends StdModule {
     }
 
     function u_danger_danger_send ($s) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         print $s;
         $this->sentResponseType = 'raw';
         return new \o\ONothing('dangerDangerSend');
@@ -168,7 +168,7 @@ class u_Response extends StdModule {
     // Print a well-formed HTML document with sensible defaults
     function u_send_page ($doc) {
 
-        ARGS('m', func_get_args());
+        $this->ARGS('m', func_get_args());
 
         $val = [];
 
@@ -251,7 +251,7 @@ HTML;
 
     function u_send_error ($code, $title='', $desc='') {
 
-        ARGS('nss', func_get_args());
+        $this->ARGS('nss', func_get_args());
 
         http_response_code($code);
 

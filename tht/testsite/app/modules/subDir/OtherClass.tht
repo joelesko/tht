@@ -2,8 +2,8 @@
 
 class OtherClass {
 
-    F new(fields) {
-        @.zSetFields(fields);
+    F new($fields) {
+        @.zSetFields($fields);
     }
 
     F ok {

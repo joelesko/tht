@@ -14,7 +14,7 @@ class S_TemplateExpr extends S_Statement {
         $p->next();
         $this->addKid($p->parseExpression(0));
      //   $p->space(' }}*');
-        $p->now(Glyph::TEMPLATE_EXPR_END)->next();
+        $p->now(Glyph::TEMPLATE_EXPR_END, 'template.expr.end')->next();
         return $this;
     }
 }

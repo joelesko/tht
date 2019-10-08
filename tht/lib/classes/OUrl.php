@@ -33,7 +33,7 @@ class UrlTypeString extends OTypeString {
     function parse($sUrl) {
 
         if (preg_match('!\?.*\{.*\}!', $sUrl)) {
-            Tht::error("UrlTypeString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
+            $this->error("UrlTypeString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
         }
 
         $u = Security::parseUrl($sUrl);
@@ -92,7 +92,7 @@ class UrlTypeString extends OTypeString {
     //---------------------------------
 
     function u_query($q=null) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
 
         // lazy init
         if (!$this->query) {
@@ -132,7 +132,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_hash($v = null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = Security::sanitizeUrlHash($v);
         }
@@ -140,7 +140,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_host($v = null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = strtolower($v);
             $v = preg_replace('/[^a-z0-9\.\-_]/', '', $v);
@@ -149,12 +149,12 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_port($v = null) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $this->updatePart('port', $v);
     }
 
     function u_scheme($v = null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = strtolower($v);
             $v = preg_replace('/[^a-z]/', '', $v);
@@ -163,7 +163,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_path($v = null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = preg_replace('#[^a-zA-Z0-9\-\.~/]#', '', $v);
         }
@@ -171,7 +171,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_path_parts($v = null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (!is_null($v)) {
             $v = preg_replace('#[^a-zA-Z0-9\-\.~/]#', '', $v);
         }
@@ -179,7 +179,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_origin() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->origin;
     }
 
@@ -188,12 +188,12 @@ class UrlTypeString extends OTypeString {
     //----------------------------------
 
     function u_is_absolute() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return !!$this->parts['host'];
     }
 
     function u_is_relative() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return !$this->parts['host'];
     }
 
@@ -202,7 +202,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_to_relative() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         $parts = $this->parts;
 
@@ -215,7 +215,7 @@ class UrlTypeString extends OTypeString {
     }
 
     function u_link($label, $params=[]) {
-        ARGS('sm', func_get_args());
+        $this->ARGS('sm', func_get_args());
         return Tht::module('Web')->u_link($this, $label, $params);
     }
 }

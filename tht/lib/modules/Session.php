@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Session extends StdModule {
+class u_Session extends OStdModule {
 
     private $sessionStarted = false;
     private $flashKey = '**flash';
@@ -63,7 +63,7 @@ class u_Session extends StdModule {
 
     function u_get($key, $default=null) {
 
-        ARGS('s*', func_get_args());
+        $this->ARGS('s*', func_get_args());
 
         $this->startSession();
         if (!isset($_SESSION[$key])) {
@@ -85,7 +85,7 @@ class u_Session extends StdModule {
     }
 
     function u_delete($key) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $this->startSession();
         if (isset($_SESSION[$key])) {
             $val = $this->unwrapVal($_SESSION[$key]);
@@ -101,13 +101,13 @@ class u_Session extends StdModule {
     }
 
     function u_has_key($key) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $this->startSession();
         return isset($_SESSION[$key]);
     }
 
     function u_add_counter($key) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = 0;
@@ -118,7 +118,7 @@ class u_Session extends StdModule {
     }
 
     function u_add_to_list($key, $value) {
-        ARGS('s*', func_get_args());
+        $this->ARGS('s*', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $list = OList::create([]);
@@ -132,7 +132,7 @@ class u_Session extends StdModule {
     }
 
     function u_get_flash($key, $default='') {
-        ARGS('s*', func_get_args());
+        $this->ARGS('s*', func_get_args());
         $this->startSession();
         if (isset($this->flashData[$key])) {
             return $this->flashData[$key];
@@ -141,7 +141,7 @@ class u_Session extends StdModule {
     }
 
     function u_set_flash($key, $value) {
-        ARGS('s*', func_get_args());
+        $this->ARGS('s*', func_get_args());
         $this->startSession();
         if (!isset($_SESSION[$this->flashKey])) {
             $_SESSION[$this->flashKey] = [];
@@ -150,7 +150,7 @@ class u_Session extends StdModule {
     }
 
     function u_has_flash($key) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $this->startSession();
         return isset($_SESSION[$this->flashKey]);
     }
