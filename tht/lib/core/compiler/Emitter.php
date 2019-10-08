@@ -13,7 +13,8 @@ class Emitter {
     }
 
     function error ($msg, $token) {
-        ErrorHandler::handleCompilerError($msg, $token, Compiler::getCurrentFile());
+        ErrorHandler::addSubOrigin('emitter');
+        ErrorHandler::handleThtCompilerError($msg, $token, Compiler::getCurrentFile());
     }
 
     function appendSourceMap ($targetSrc, $sourceFile) {

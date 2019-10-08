@@ -20,18 +20,18 @@ class Symbol {
     var $parser = null;
     var $token = null;
     var $symbolId = 0;
-    var $isDefined = false;
 
     static function loadSymbols() {
         $symbols = [
             'Literal',
-            'Sep',
+            'Separator',
             'Prefix',
             'Infix',
             'InfixWeak',
             'Statement',
             'If',
-            'For',
+            'ForEach',
+            'Loop',
             'Function',
             'Template',
             'OpenParen',
@@ -41,13 +41,15 @@ class Symbol {
             'New',
             'Class',
             'Ternary',
-            'Var',
+       //     'Var',
             'TryCatch',
             'TemplateExpr',
             'TemplateString',
             'Command',
             'Return',
+            'Match',
             'Unsupported',
+            'Lambda',
         ];
 
         foreach ($symbols as $s) {
@@ -64,10 +66,12 @@ class Symbol {
         $this->parser->symbolTable->add($this);
     }
 
+    // Add child node
     function addKid ($kid) {
         $this->parser->symbolTable->addKid($this->symbolId, $kid);
     }
 
+    // Set child nodes
     function setKids ($kids) {
         $this->parser->symbolTable->setKids($this->symbolId, $kids);
     }
@@ -82,14 +86,6 @@ class Symbol {
 
     function getValue () {
         return $this->token[TOKEN_VALUE];
-    }
-
-    function getDefined () {
-        return $this->isDefined;
-    }
-
-    function setDefined () {
-        $this->isDefined = true;
     }
 
     // (Override) - parse top level expression
@@ -122,10 +118,6 @@ class Symbol {
     // '*|B' = anything before, newline required (hard break) after
     // '*|S' = anything before, space (not newline) required after
     function space ($pattern, $isHard=false) {
-
-        // if (Tht::getConfig('disableFormatChecker') && !$isHard) {
-        //     return $this;
-        // }
 
         $this->spacePos('L', $pattern[0]);
         $this->spacePos('R', $pattern[strlen($pattern) - 1]);
@@ -192,8 +184,8 @@ class Symbol {
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 
             $fullMsg = 'Please ' . $msg . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
-            $fullMsg = '(Format Checker) ' . $fullMsg;
 
+            ErrorHandler::addSubOrigin('formatChecker');
             $p->error($fullMsg, $t);
         }
 

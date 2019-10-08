@@ -3,45 +3,45 @@
 namespace o;
 
 
-class u_Date extends StdModule {
+class u_Date extends OStdModule {
 
     function u_now ($inMillisecs=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         return $inMillisecs ? ceil(microtime(true) * 1000) : time();
     }
 
     function u_days ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num * 24 * 3600;
     }
 
     function u_hours ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num * 3600;
     }
 
     function u_minutes ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num * 60;
     }
 
     function u_to_days ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num / (24 * 3600);
     }
 
     function u_to_hours ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num / 3600;
     }
 
     function u_to_minutes ($num) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $num / 60;
     }
 
     function u_format ($format, $time=null) {
-        ARGS('sn', func_get_args());
+        $this->ARGS('sn', func_get_args());
         if ($time === null) { $time = time(); }
         return strftime($format, $time);
     }
@@ -49,7 +49,7 @@ class u_Date extends StdModule {
     // THANKS: https://css-tricks.com/snippets/php/time-ago-function/
     function u_difference ($time1, $time2=null, $labels=null) {
 
-        ARGS('nnl', func_get_args());
+        $this->ARGS('nnl', func_get_args());
 
         if ($labels == null) {
             $labels = ["now", "second", "minute", "hour", "day", "week", "month", "year"];

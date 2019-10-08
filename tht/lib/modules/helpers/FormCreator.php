@@ -30,7 +30,7 @@ trait FormCreator {
 
     function u_tag($fieldName, $atts=[]) {
 
-        ARGS('sm', func_get_args());
+        $this->ARGS('sm', func_get_args());
 
         if (!isset($this->formConfig[$fieldName])) {
             Tht::error('Unknown form tag name: `' . $fieldName . '`');
@@ -90,7 +90,7 @@ trait FormCreator {
             $tags = $this->formConfig->u_keys();
         }
 
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
 
         $html = '';
         foreach ($tags as $tag) {
@@ -102,7 +102,7 @@ trait FormCreator {
 
     function u_open ($actionUrl='', $atts=[]) {
 
-        ARGS('sm', func_get_args());
+        $this->ARGS('sm', func_get_args());
 
         if ($this->isOpen) { Tht::error("A form is already open."); }
         $this->isOpen = true;
@@ -414,7 +414,7 @@ trait FormCreator {
 
     function formJs() {
 
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
 
         $CSRF_TOKEN = Tht::module('Web')->u_csrf_token();
         $FORM_ID = $this->formId;

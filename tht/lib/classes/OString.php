@@ -11,11 +11,13 @@ class OString extends OVar implements \ArrayAccess {
     private $prevHash = '';
     private $encoding = 'UTF-8';
 
+    protected $errorContext = 'string';
+
     protected $suggestMethod = [
         'count'   => 'length()',
         'size'    => 'length()',
         'explode' => 'split(delimiter)',
-        'find'    => 'indexOf(item) or contains(item)',
+        'find'    => 'indexOf(item), contains(item), match(regex)',
 
         'upper'   => 'toUpperCase()',
         'toupper' => 'toUpperCase()',
@@ -59,6 +61,7 @@ class OString extends OVar implements \ArrayAccess {
     //// Basic
 
     function u_length() {
+        $this->ARGS('', func_get_args());
         return mb_strlen($this->val);
     }
 
@@ -83,59 +86,54 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_char_at($i) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return mb_substr($this->val, $i, 1);
     }
 
     function u_char_code_at ($i) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         $char = mb_substr($this->val, $i, 1);
         return unpack('V', iconv('UTF-8', 'UCS-4LE', $char))[1];
     }
 
     function u_left($n) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $n <= 0 ? '' : $this->u_substring(0, $n);
     }
 
     function u_right($n) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $n <= 0 ? '' : $this->u_substring(-1 * $n, $n);
     }
 
     function u_index_of($s, $offset=0, $ignoreCase=false) {
-        ARGS('snf', func_get_args());
+        $this->ARGS('snf', func_get_args());
         return $this->_strpos($s, $ignoreCase, $offset);
     }
 
     function u_last_index_of($s, $offset=0, $ignoreCase=false) {
-        ARGS('snf', func_get_args());
+        $this->ARGS('snf', func_get_args());
         return $this->_strrpos($s, $ignoreCase, $offset);
     }
 
     function u_substring($start, $len=null) {
-        ARGS('nn', func_get_args());
+        $this->ARGS('nn', func_get_args());
         $len = $len === null ? $this->u_length() : $len;
         return mb_substr($this->val, $start, $len);
     }
 
     function u_contains($s, $ignoreCase=false) {
-        ARGS('*f', func_get_args());
-        if (ORegex::isa($s)) {
-            return $this->u_match($s)->u_length() > 0;
-        }
-        else {
-            return $this->_strpos($s, $ignoreCase) !== false;
-        }
+        $this->ARGS('sf', func_get_args());
+        return $this->_strpos($s, $ignoreCase) !== false;
     }
 
     function u_starts_with($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
         return $this->_strpos($s, $ignoreCase) === 0;
     }
 
     function u_ends_with($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
         $x = $this->val;
         $suffLen = v($s)->u_length();
         $this->val = $x;
@@ -151,12 +149,12 @@ class OString extends OVar implements \ArrayAccess {
 
     // Just for convenience if mixing and matching with OTypeStrings
     function u_stringify () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->val;
     }
 
     function u_danger_danger_set_type ($type) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return OTypeString::create($type, $this->val);
     }
 
@@ -168,28 +166,29 @@ class OString extends OVar implements \ArrayAccess {
         return array_flip(get_defined_constants(true)['pcre'])[preg_last_error()];
     }
 
-    function u_match ($match) {
-        ARGS('*n', func_get_args());
+    function u_match ($match, $offset = 0) {
+        $this->ARGS('*n', func_get_args());
         if (ORegex::isa($match)) {
-            $found = preg_match($match->getPattern(), $this->val, $matches);
+            $found = preg_match($match->getPattern(), $this->val, $matches, 0, $offset);
             if ($found === false) {
-                Tht::error('Error in match: ' . $this->pregErrorMessage(), [
+                $this->error('Error in match: ' . $this->pregErrorMessage(), [
                     'var' => $this->val,
                     'pattern' => $match,
                 ]);
             }
-            return $found === 1 ? OList::create($matches) : OList::create([]);
+            return $found === 1 ? OList::create($matches) : false;
         }
         else {
-            Tht::error("Argument 1 must be a Regex string `r'...'`");
+            $this->error("Argument 1 must be a Regex string `r'...'`");
         }
     }
 
-    function u_match_all ($match) {
+    function u_match_all ($match, $offset = 0) {
+        $this->ARGS('*n', func_get_args());
         if (ORegex::isa($match)) {
-            $matched = preg_match_all($match->getPattern(), $this->val, $matches, PREG_SET_ORDER);
+            $matched = preg_match_all($match->getPattern(), $this->val, $matches, PREG_SET_ORDER, $offset);
             if (!$matched) {
-                $matches = [];
+                return false;
             }
             foreach ($matches as &$m) {
                 $m = OList::create($m);
@@ -197,15 +196,14 @@ class OString extends OVar implements \ArrayAccess {
             return OList::create($matches);
         }
         else {
-            Tht::error("Argument 1 must be a Regex string `r'...'`");
+            $this->error("Argument 1 must be a Regex string `r'...'`");
         }
     }
 
     function u_replace ($find, $replace, $limit=-1) {
-        ARGS('*sn', func_get_args());
+        $this->ARGS('*sn', func_get_args());
         if (ORegex::isa($find)) {
             $fn = is_callable($replace) ? 'preg_replace_callback' : 'preg_replace';
-          //  print $find->getPattern(); exit();
             return $fn($find->getPattern(), $replace, $this->val, $limit);
         } else {
             return str_replace($find, $replace, $this->val, $limit);
@@ -213,7 +211,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_remove_left($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
         if ($this->u_starts_with($s, $ignoreCase)) {
             $orig = $this->val;  // save after singleton changes
             $len = v($s)->u_length();
@@ -223,7 +221,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_remove_right($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
         if ($this->u_ends_with($s, $ignoreCase)) {
             $orig = $this->val;  // save after singleton changes
             $len = $this->u_length() - v($s)->u_length();
@@ -233,7 +231,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_remove_first($s, $ignoreCase=false) {
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
         if ($this->u_ends_with($s, $ignoreCase)) {
             $orig = $this->val;  // save after singleton changes
             $len = $this->u_length() - v($s)->u_length();
@@ -244,7 +242,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_insert($s, $index) {
 
-        ARGS('sn', func_get_args());
+        $this->ARGS('sn', func_get_args());
 
         $len = $this->u_length();
         if ($index > $len) {
@@ -262,7 +260,7 @@ class OString extends OVar implements \ArrayAccess {
     // To Arrays
 
     function u_split ($delim='', $limit=0) {
-        ARGS('*n', func_get_args());
+        $this->ARGS('*n', func_get_args());
         if ($limit <= 0) { $limit = PHP_INT_MAX; }
         if (ORegex::isa($delim)) {
             return preg_split($delim->getPattern(), $this->val, $limit);
@@ -274,13 +272,13 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_split_chars() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         preg_match_all('/./us', $this->val, $chars);
         return $chars[0];
     }
 
     function u_split_lines ($keepWhitespace=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         if ($keepWhitespace) {
             return preg_split("/\n/u", $this->val);
         }
@@ -290,7 +288,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_split_words ($bareWords=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         $v = $this->val;
         if ($bareWords) {
             $v = str_replace("'", '', $v);
@@ -305,35 +303,35 @@ class OString extends OVar implements \ArrayAccess {
     // Transforms
 
     function u_reverse () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         preg_match_all('/./us', $this->val, $chars);
         return implode(array_reverse($chars[0]));
     }
 
     function u_to_upper_case () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_strtoupper($this->val);
     }
 
     function u_to_lower_case () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_strtolower($this->val);
     }
 
     function u_to_upper_case_first () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $first = mb_strtoupper(mb_substr($this->val, 0, 1));
         return $first . mb_substr($this->val, 1);
     }
 
     function u_to_lower_case_first () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $first = mb_strtolower(mb_substr($this->val, 0, 1));
         return $first . mb_substr($this->val, 1);
     }
 
     function u_to_title_case ($skipWords=null) {
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
         if (is_null($skipWords)) {
             $skipWords = ['the', 'a', 'is', 'to', 'at', 'by', 'for', 'in', 'of'];
         }
@@ -353,7 +351,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_plural ($num=2, $plural='') {
-        ARGS('ns', func_get_args());
+        $this->ARGS('ns', func_get_args());
         $match = strtolower($this->val);
         $last = substr($this->val, -1, 1);
         if ($plural === '') {
@@ -369,7 +367,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_to_camel_case ($isUpperCamel=false) {
 
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
 
         $v = $this->val;
 
@@ -388,7 +386,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_to_token_case($delim = '-') {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $v = $this->val;
 
@@ -403,12 +401,12 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_password() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Security::createPassword($this->val);
     }
 
     function u_hash() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Security::hashString($this->val);
     }
 
@@ -417,23 +415,23 @@ class OString extends OVar implements \ArrayAccess {
     // Whitespace
 
     function u_pad($padLen, $padStr = ' ') {
-        ARGS('ns', func_get_args());
+        $this->ARGS('ns', func_get_args());
         return $this->pad($padLen, $padStr, 'both');
     }
 
     function u_pad_left($padLen, $padStr = ' ') {
-        ARGS('ns', func_get_args());
+        $this->ARGS('ns', func_get_args());
         return $this->pad($padLen, $padStr, 'left');
     }
 
     function u_pad_right($padLen, $padStr = ' ') {
-        ARGS('ns', func_get_args());
+        $this->ARGS('ns', func_get_args());
         return $this->pad($padLen, $padStr, 'right');
     }
 
     function pad ($padLen, $padStr = ' ', $dir = 'right') {
 
-        ARGS('nss', func_get_args());
+        $this->ARGS('nss', func_get_args());
 
         $str = $this->val;
 
@@ -454,7 +452,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_trim ($mask=null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (is_null($mask)) {
             return trim($this->val);
         } else {
@@ -465,7 +463,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_trim_left ($mask=null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (is_null($mask)) {
             return ltrim($this->val);
         } else {
@@ -476,7 +474,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_trim_right ($mask=null) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         if (is_null($mask)) {
             return rtrim($this->val);
         } else {
@@ -487,7 +485,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_trim_lines () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         $trimmed = rtrim($this->val);
 
@@ -505,7 +503,7 @@ class OString extends OVar implements \ArrayAccess {
 
     function u_trim_indent () {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $minIndent = 999;
         $trimmed = $this->u_trim_lines();
         if (!strlen($trimmed)) { return ''; }
@@ -526,7 +524,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_indent($level) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         $lines = explode("\n", $this->val);
         $out = '';
         foreach ($lines as $line) {
@@ -539,13 +537,13 @@ class OString extends OVar implements \ArrayAccess {
 
     // TODO: undocumented - necessary?
     function u_squeeze ($char='') {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $char = $char === '' ? '\s' : preg_quote($char);
         return preg_replace('/([' . $char . '])+/u', '$1', $this->val);
     }
 
     function u_limit ($numChars, $end='...') {
-        ARGS('ns', func_get_args());
+        $this->ARGS('ns', func_get_args());
         $s = $this->val;
         if (mb_strlen($s) > $numChars) {
             $s = mb_substr($s, 0, $numChars);
@@ -558,8 +556,10 @@ class OString extends OVar implements \ArrayAccess {
 
     // Format
 
+    // This is a little wonky.  Using statics for preg_callback below.
     static private $fillArg;
     static private $fillArgNum;
+    static private $me;
 
     static function cbFill ($matches) {
         $key = $matches[1];
@@ -568,7 +568,7 @@ class OString extends OVar implements \ArrayAccess {
             self::$fillArgNum += 1;
         }
         if (!isset(self::$fillArg[$key])) {
-            Tht::error("Key `$key` is not found in fill value.", [ 'fill' => OString::$fillArg ]);
+            self::$me->error("Key `$key` is not found in fill value.", [ 'fill' => OString::$fillArg ]);
         }
         return self::$fillArg[$key];
     }
@@ -585,6 +585,7 @@ class OString extends OVar implements \ArrayAccess {
         }
         self::$fillArg = $args;
         self::$fillArgNum = 0;
+        self::$me = $this;
         $filled = preg_replace_callback('/{([a-zA-Z0-9]*)}/', '\o\OString::cbFill', $this->val);
 
         return $filled;
@@ -594,7 +595,7 @@ class OString extends OVar implements \ArrayAccess {
     // Encoding
 
     function u_encode_html ($all = false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         if ($all) {
             $str = mb_convert_encoding($this->val , 'UTF-32', 'UTF-8');
             $t = unpack("N*", $str);
@@ -605,32 +606,32 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_decode_html () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Security::unescapeHtml($this->val);
     }
 
     function u_encode_url () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return rawurlencode($this->val);
     }
 
     function u_decode_url () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return rawurldecode($this->val);
     }
 
     function u_encode_base64 () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return base64_encode($this->val);
     }
 
     function u_decode_base64 () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return base64_decode($this->val);
     }
 
     function u_escape_regex () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return preg_quote($this->val, '`');
     }
 
@@ -638,52 +639,52 @@ class OString extends OVar implements \ArrayAccess {
     // Checks
 
     function u_is_upper_case() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->u_has_upper_case() && !$this->u_has_lower_case();
     }
 
     function u_has_upper_case() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('.*[[:upper:]]', $this->val);
     }
 
     function u_is_lower_case() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->u_has_lower_case() && !$this->u_has_upper_case();
     }
 
     function u_has_lower_case() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('.*[[:lower:]]', $this->val);
     }
 
     function u_is_space() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('^[[:space:]]+$', $this->val);
     }
 
     function u_has_space() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('.*[[:space:]]', $this->val);
     }
 
     function u_is_alpha() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('^[[:alpha:]]+$', $this->val);
     }
 
     function u_is_alpha_numeric() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('^[[:alnum:]]+$', $this->val);
     }
 
     function u_is_number() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('^-?[[:digit:]]+\.?[[:digit:]]*$', $this->val);
     }
 
     function u_is_ascii() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return mb_ereg_match('^[[:ascii:]]*$', $this->val);
     }
 
@@ -694,7 +695,7 @@ class OString extends OVar implements \ArrayAccess {
     // Casting
 
     function u_to_number () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $f = floatval($this->val);
         $i = intval($this->val);
 
@@ -702,7 +703,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_boolean () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $v = trim($this->val);
         if ($v === '') {
             return false;
@@ -711,12 +712,12 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_string () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->val;
     }
 
     function u_to_value () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         $v = trim($this->val);
         if ($v === '') { return ''; }
@@ -746,7 +747,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_to_url () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return OTypeString::create('url', $this->val);
     }
 
@@ -754,7 +755,7 @@ class OString extends OVar implements \ArrayAccess {
     // Checks
 
     function u_is_url ($isStrict=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         if ($isStrict) {
             $v = ltrim($this->val);
             return preg_match('~^(https?:)?//~i', $v);
@@ -771,7 +772,7 @@ class OString extends OVar implements \ArrayAccess {
     // not on every output.
     function u_civilize () {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $s = trim($this->val);
 
         // trim and squeeze spaces

@@ -42,8 +42,8 @@ class StringReader {
         $this->fullText = $fullText;
         $this->len = strlen($fullText);
 
-        $this->char1 = $this->fullText[0];
-        $this->char2 = $this->fullText[1];
+        $this->char1 = $this->len > 0 ? $this->fullText[0] : '';
+        $this->char2 = $this->len > 1 ? $this->fullText[1] : '';
 
         $this->isDigit       = static::$SisDigit;
         $this->isAlpha       = static::$SisAlpha;
@@ -249,7 +249,7 @@ class StringReader {
         $str = '';
         while (true) {
             $c = $this->fullText[$this->i];
-            if (isset($this->isAlpha[$c]) || isset($this->isDigit[$c]) || $c === '_') {
+            if (isset($this->isAlpha[$c]) || isset($this->isDigit[$c]) || $c === '_' || $c === '$') {
                 $str .= $c;
             }
             else {

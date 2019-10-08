@@ -6,7 +6,7 @@ namespace o;
 // bind/call/methods/getClass
 // bind = via Closure class
 // equivalent of __filename, __dirname?
-class u_Meta extends StdModule {
+class u_Meta extends OStdModule {
 
     function getCallerNamespace () {
         $trace = debug_backtrace(0, 2);
@@ -15,29 +15,29 @@ class u_Meta extends StdModule {
     }
 
     function u_function_exists ($fn) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $fullFn = $this->getCallerNamespace() . '\\' . u_($fn);
         return function_exists($fullFn);
     }
 
     function u_call_function ($fn, $params=[]) {
-        ARGS('sl', func_get_args());
+        $this->ARGS('sl', func_get_args());
         $fullFn = $this->getCallerNamespace() . '\\' . u_($fn);
         if (! function_exists($fullFn)) {
-            Tht::error("Function does not exist: `$fullFn`");
+            $this->error("Function does not exist: `$fullFn`");
         }
         return call_user_func_array($fullFn, uv($params));
     }
 
     function u_new_object($cls, $params=[]) {
-        ARGS('sl', func_get_args());
+        $this->ARGS('sl', func_get_args());
         $o = \o\ModuleManager::newObject($cls, uv($params));
 
         return $o;
     }
 
     function u_parse ($source) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return Compiler::safeParseString($source);
     }
 
@@ -71,14 +71,15 @@ class u_Meta extends StdModule {
 
     function u_no_template_mode () {
         if (Runtime::inTemplate()) {
-            $this->callerError('can not be called in Template mode. Try: Pass as data into the template.');
+            Runtime::resetTemplateLevel();
+            $this->callerError('can not be called in Template mode. Try: Process data outside the template and pass it in.');
         }
         return true;
     }
 
     function u_no_web_mode () {
         if (!Tht::isMode('cli')) {
-            $this->callerError('can not be called in Web mode.');
+            $this->callerError('can not be called in Web mode. Try: Process data in a scheduled job (e.g. via cron).');
         }
     }
     //
@@ -93,7 +94,7 @@ class u_Meta extends StdModule {
     }
 
     function callerError ($msg) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $frames = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
         $callerFrame = false;
         foreach ($frames as $f) {
@@ -110,6 +111,7 @@ class u_Meta extends StdModule {
 
         $caller = $callerFrame['function'];
         $class = $callerFrame['class'];
-        Tht::error("`$class.$caller()` " . $msg);
+
+        $this->error("`$class.$caller()` " . $msg);
     }
 }

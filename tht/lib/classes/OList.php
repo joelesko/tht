@@ -10,16 +10,16 @@ class OList extends OBag {
 
     protected $suggestMethod = [
         'shift'   => 'remove(0)',
-        'unshift' => 'insert(0)',
+        'unshift' => 'insert($item, 0)',
         'count'   => 'length()',
         'size'    => 'length()',
         'empty'   => 'isEmpty()',
         'delete'  => 'remove()',
-        'splice'  => 'remove(pos, num = 1) & insertAll(pos, items)',
-        'find'    => 'indexOf(item) or contains(item)',
+        'splice'  => 'remove($pos, $num = 1) & insertAll($pos, $items)',
+        'find'    => 'indexOf($item) or contains($item)',
         'random'  => 'shuffle()',
-        'merge'   => 'pushAll(items)',
-        'append'  => 'pushAll(items)',
+        'merge'   => 'pushAll($items)',
+        'append'  => 'pushAll($items)',
     ];
 
     static function create ($a) {
@@ -29,14 +29,14 @@ class OList extends OBag {
     }
 
     function u_copy() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         // php apparently copies the array when assigned to a new var
         $a = $this->val;
         return OList::create($a);
     }
 
     function u_is_empty () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return count($this->val) === 0;
     }
 
@@ -45,15 +45,15 @@ class OList extends OBag {
 
 
     function u_contains ($v) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         return in_array($v, $this->val, true);
     }
 
     function u_first ($n=1) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         $len = count($this->val);
         if ($n > $len) {
-            Tht::error("Argument `numItems = $n` is greater than List length `$len`.");
+            $this->error("Argument `numItems = $n` is greater than List length `$len`.");
         }
         if ($n === 1) {
             return $this->val[0];
@@ -64,10 +64,10 @@ class OList extends OBag {
     }
 
     function u_last ($n=1) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         $len = count($this->val);
         if ($n > $len) {
-            Tht::error("Argument `numItems = $n` is greater than List length `$len`.");
+            $this->error("Argument `numItems = $n` is greater than List length `$len`.");
         }
         if ($n === 1) {
             return $this->val[$len - 1];
@@ -78,13 +78,13 @@ class OList extends OBag {
     }
 
     function u_index_of($v) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         $i = array_search($v, $this->val, true);
         return ($i === false) ? -1 : $i;
     }
 
     function u_last_index_of($v) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         $len = count($this->val);
         for ($i = 0; $i < $len; $i += 1) {
             if ($this->val[$i] === $v) {
@@ -95,19 +95,19 @@ class OList extends OBag {
     }
 
     function u_last_index() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return count($this->val) - 1;
     }
 
     function u_slice($pos, $len=-1) {
-        ARGS('nn', func_get_args());
+        $this->ARGS('nn', func_get_args());
         $vlen = count($this->val);
         if ($pos < 0) {
             $pos = $vlen + $pos;
         }
         if ($pos + abs($len) > $vlen) {
             $alen = abs($len);
-            Tht::error("Argument `index = $pos` + `length = $alen` is greater than List length `$vlen`.");
+            $this->error("Argument `index = $pos` + `length = $alen` is greater than List length `$vlen`.");
         }
 
         if ($len < 0) {
@@ -121,25 +121,25 @@ class OList extends OBag {
     // ADD / REMOVE
 
     function u_push ($v) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         array_push($this->val, $v);
         return $this;
     }
 
     // function u_push_first ($v) {
-    //     ARGS('*', func_get_args());
+    //     $this->ARGS('*', func_get_args());
     //     array_unshift($this->val, $v);
     //     return $this->val;
     // }
 
     function u_push_all ($a2) {
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
         $this->val = array_merge($this->val, $a2->val);
         return $this;
     }
 
     function u_pop () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return array_pop($this->val);
     }
 
@@ -148,12 +148,12 @@ class OList extends OBag {
     // }
 
     function u_insert ($v, $pos) {
-        ARGS('*n', func_get_args());
+        $this->ARGS('*n', func_get_args());
         return $this->insert($v, $pos, false);
     }
 
     function u_insert_all ($v, $pos) {
-        ARGS('ln', func_get_args());
+        $this->ARGS('ln', func_get_args());
         return $this->insert($v, $pos, true);
     }
 
@@ -179,15 +179,15 @@ class OList extends OBag {
     }
 
     function u_remove ($pos, $numItems = 1) {
-        ARGS('nn', func_get_args());
+        $this->ARGS('nn', func_get_args());
         $len = count($this->val);
         if (!$len) {
-            Tht::error("Can not `remove()` from an empty List.");
+            $this->error("Can not `remove()` from an empty List.");
         }
         $removed = array_splice($this->val, $pos, $numItems);
         if (!count($removed)) {
             $vlen = count($this->val);
-            Tht::error("Can't `remove()` at `index=$pos` from List with length `$vlen`.");
+            $this->error("Can't `remove()` at `index=$pos` from List with length `$vlen`.");
         }
         return $numItems == 1 ? $removed[0] : OList::create($removed);
     }
@@ -212,25 +212,25 @@ class OList extends OBag {
     // ORDER / FILTER
 
     function u_reverse () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return OList::create(array_reverse($this->val));
     }
 
     function u_shuffle () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         shuffle($this->val);
         return $this;
     }
 
     function u_random () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $i = array_rand($this->val);
         return $this->val[$i];
     }
 
     function u_sort ($fnOrArgs=false) {
 
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
 
         if (is_callable($fnOrArgs)) {
             usort($this->val, $fnOrArgs);
@@ -275,7 +275,7 @@ class OList extends OBag {
 
     function u_sort_table ($key, $isDesc=false) {
 
-        ARGS('sf', func_get_args());
+        $this->ARGS('sf', func_get_args());
 
         usort($this->val, function($a, $b) use ($key, $isDesc) {
             $sort = $isDesc ? -1 : +1;
@@ -289,7 +289,7 @@ class OList extends OBag {
     }
 
     function u_unique () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return OList::create(array_unique($this->val));
     }
 
@@ -298,15 +298,15 @@ class OList extends OBag {
     // MISC
 
     function u_join ($delim='') {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return implode($this->val, $delim);
     }
 
     function u_to_map() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         if (count($this->val) % 2 !== 0) {
-            Tht::error('List.toMap() requires an even number of elements (key/value pairs).');
+            $this->error('List.toMap() requires an even number of elements (key/value pairs).');
         }
         $out = [];
         for ($i = 1; $i < count($this->val); $i += 2) {
@@ -327,7 +327,7 @@ class OList extends OBag {
     // }
 
     function u_flat ($maxDepth = 999) {
-        ARGS('n', func_get_args());
+        $this->ARGS('n', func_get_args());
         return $this->flat($this, 0, $maxDepth);
     }
 

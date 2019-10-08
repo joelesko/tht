@@ -10,14 +10,14 @@ class S_OpenBracket extends S_Infix {
         $this->updateType(SymbolType::MEMBER);
         $this->space('x[x', true);
         $this->setKids([$left, $p->parseExpression(0)]);
-        $p->now(']')->space('x]*')->next();
+        $p->now(']', 'index.close')->space('x]*')->next();
         return $this;
     }
 
     // List literal.  [ ... ]
     function asLeft($p) {
         $p->space('*[N')->next();
-        $this->updateType(SymbolType::SEQUENCE);
+        $this->updateType(SymbolType::AST_LIST);
         $els = [];
         while (true) {
             if ($p->symbol->isValue("]")) {
@@ -25,7 +25,7 @@ class S_OpenBracket extends S_Infix {
             }
             $els []= $p->parseExpression(0);
             if (!$p->symbol->isValue(',')) {
-                $p->now(']', 'Missed a comma?');
+                $p->now(']', 'list.close');
                 break;
             }
             $p->space('x, ');

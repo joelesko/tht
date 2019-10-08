@@ -9,17 +9,17 @@ const TOKEN_VALUE = 3;
 
 define('TOKEN_SEP', '┃');  // unicode vertical line
 
+// Very short vars to minimize memory overhead
 abstract class TokenType {
-    const NUMBER   = 'NUMBER';    // 123
-    const STRING   = 'STRING';    // 'hello'
-    const LSTRING  = 'LSTRING';   // sql'hello'
-    const TSTRING  = 'TSTRING';   // (template)
-    const RSTRING  = 'RSTRING';   // r'\w+'
-    const GLYPH    = 'GLYPH';     // +=
-    const WORD     = 'WORD';      // myVar
-    const NEWLINE  = 'NEWLINE';   // \n
-    const SPACE    = 'SPACE';     // ' '
-    const END      = 'END';       // (end of stream)
+    const NUMBER   = 'N';    // 123
+    const STRING   = 'S';    // 'hello'
+    const LSTRING  = 'LS';   // sql'hello'
+    const TSTRING  = 'TS';   // (template)
+    const RSTRING  = 'RS';   // r'\w+'
+    const GLYPH    = 'G';    // +=
+    const WORD     = 'W';    // myVar
+    const END      = 'END';  // (end of stream)
+    const VAR      = 'V';    // $fooBar
 }
 
 abstract class Glyph {
@@ -32,71 +32,75 @@ abstract class Glyph {
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
     const TEMPLATE_CODE_LINE = '--';
-    const STRING_MODS = 'r';
-    const LIST_MOD = 'Q';
-    const REGEX_MOD = 'r';
-  //  const LOCK_MOD = 'L';
+    const STRING_PREFIXES = 'r';
+    const QUOTED_LIST_PREFIX = 'q';
+    const REGEX_PREFIX = 'r';
+    const LAMBDA_PREFIX = 'x';
     const QUOTE = "'";
     const QUOTE_FENCE = "'''";
 }
 
 abstract class SymbolType {
     const SEPARATOR     =  'SEPARATOR';  // ;
-    const SPACE         =  'SPACE';      // ' '
-    const NEWLINE       =  'NEWLINE';    // \n
     const END           =  'END';        // (end of stream)
-    const SEQUENCE      =  'SEQUENCE';   // (list of symbols)
+    const AST_LIST      =  'AST_LIST';   // (list of symbols)
 
+    const NUMBER        =  'NUMBER';     // 123
     const STRING        =  'STRING';     // 'hello'
     const LSTRING       =  'LSTRING';    // sql'hello'
     const TSTRING       =  'TSTRING';    // tem { ... }
     const RSTRING       =  'RSTRING';    // r'...'
+
     const KEYWORD       =  'KEYWORD';
-    const NUMBER        =  'NUMBER';     // 123
     const CONSTANT      =  'CONSTANT';   // this
     const FLAG          =  'FLAG';       // true
 
-    const PREFIX        =  'PREFIX';     // ! a
-    const INFIX         =  'INFIX';      // a + b
-    const BITWISE       =  'BITWISE';    // a +| b +~ c
-    const BITSHIFT      =  'BITSHIFT';   // a +> b
-    const VALGATE       =  'VALGATE';    // a |: b &: c
-    const TERNARY       =  'TERNARY';    // c ? b1 : b2
-    const ASSIGN        =  'ASSIGN';     // foo = 123
+    const PREFIX        =  'PREFIX';     // ! $a
+    const INFIX         =  'INFIX';      // $a + $b
+    const BITWISE       =  'BITWISE';    // $a +| $b +~ $c
+    const BITSHIFT      =  'BITSHIFT';   // $a +> $b
+    const VALGATE       =  'VALGATE';    // $a |: $b &: $c
+    const TERNARY       =  'TERNARY';    // $c ? $b1 : $b2
+    const ASSIGN        =  'ASSIGN';     // $foo = 123
     const OPERATOR      =  'OPERATOR';   // if (...) {}
     const COMMAND       =  'COMMAND';    // break;
 
-    const TEMPLATE_EXPR =  'TEMPLATE_EXPR';  // (( fobar ))
+    const TEMPLATE_EXPR =  'TEMPLATE_EXPR';  // (( $foobar ))
     const CALL          =  'CALL';           // foo()
     const TRY_CATCH     =  'TRY_CATCH';      // try {} catch {}
-    const NEW_VAR       =  'NEW_VAR';        // let foo = 1
+//    const NEW_VAR       =  'NEW_VAR';        // let foo = 1
     const NEW_FUN       =  'NEW_FUN';        // function foo () {}
     const NEW_CLASS     =  'NEW_CLASS';      // class Foo {}
     const NEW_OBJECT    =  'NEW_OBJECT';     // new Foo ()
     const BARE_FUN      =  'BARE_FUN';       // print
     const NEW_TEMPLATE  =  'NEW_TEMPLATE';   // template fooHtml() {}
-    const FUN_ARG       =  'FUN_ARG';        // function foo (arg)
-    const FUN_ARG_SPLAT =  'FUN_ARG_SPLAT';  // function foo (...arg)
-    const FUN_ARG_TYPE  =  'FUN_ARG_TYPE';   // function foo (arg:s)
+    const FUN_ARG       =  'FUN_ARG';        // function foo ($arg)
+    const FUN_ARG_SPLAT =  'FUN_ARG_SPLAT';  // function foo (...$arg)
+    const FUN_ARG_TYPE  =  'FUN_ARG_TYPE';   // function foo ($arg:$s)
     const USER_FUN      =  'USER_FUN';       // myFunction
-    const USER_VAR      =  'USER_VAR';       // myVar
+    const USER_VAR      =  'USER_VAR';       // $myVar
+    const BARE_WORD     =  'BARE_WORD';      // myVar (illegal)
 
-    const MEMBER        =  'MEMBER';     // foo[...]
-    const MEMBER_VAR    =  'MEMBER_VAR'; // foo.bar
+    const MATCH          =  'MATCH';          // match $foo { ... }
+    const MATCH_PATTERN  =  'MATCH_PATTERN';  // range(0, 10) { ... }
+
+    const MEMBER        =  'MEMBER';     // $foo[...]
+    const MEMBER_VAR    =  'MEMBER_VAR'; // $foo.bar
     const MAP_KEY       =  'MAP_KEY';    // _foo_: bar
     const PAIR          =  'PAIR';       // foo: 'bar'
 
     const PACKAGE           = 'PACKAGE';           // MyClass
     const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
-    const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private myVar = 123;
+    const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private $myVar = 123;
 }
 
-abstract class SequenceType {
+abstract class AstList {
     const FLAT  = 'FLAT';
     const ARGS  = 'ARGS';
     const BLOCK = 'BLOCK';
     const XLIST = 'LIST';
     const MAP   = 'MAP';
+    const MATCH = 'MATCH';
 }
 
 
@@ -107,10 +111,10 @@ class CompilerConstants {
     static public $MAX_FUN_ARGS = 4;
 
     static $LITERAL_TYPES = [
-        TokenType::NUMBER  => 1,
-        TokenType::STRING  => 1,
-        TokenType::RSTRING => 1,
-        TokenType::LSTRING => 1,
+        TokenType::NUMBER  => SymbolType::NUMBER,
+        TokenType::STRING  => SymbolType::STRING,
+        TokenType::RSTRING => SymbolType::RSTRING,
+        TokenType::LSTRING => SymbolType::LSTRING,
     ];
 
     static public $SYMBOL_CLASS = [
@@ -119,13 +123,14 @@ class CompilerConstants {
         '(end)' => 'S_End',
 
         // separators / terminators
-        ';'  => 'S_Sep',
-        ','  => 'S_Sep',
-        ':'  => 'S_Sep',
-        ')'  => 'S_Sep',
-        ']'  => 'S_Sep',
-        '}'  => 'S_Sep',
-        '}}' => 'S_Sep',
+        ';'  => 'S_Separator',
+        ','  => 'S_Separator',
+        ':'  => 'S_Separator',
+        ')'  => 'S_Separator',
+        ']'  => 'S_Separator',
+        '}'  => 'S_Separator',
+        '}}' => 'S_Separator',
+        'as' => 'S_Separator',
 
         // constants
         'true'  => 'S_Flag',
@@ -145,9 +150,9 @@ class CompilerConstants {
         '+'  => 'S_Add',
         '-'  => 'S_Add',
         '*'  => 'S_Multiply',
-        '**' => 'S_Multiply',
         '/'  => 'S_Multiply',
         '%'  => 'S_Multiply',
+        '**' => 'S_Power',
         '==' => 'S_Compare',
         '!=' => 'S_Compare',
         '<'  => 'S_Compare',
@@ -160,7 +165,6 @@ class CompilerConstants {
         '&&' => 'S_Logic',
         '||:' => 'S_ValGate',
         '&&:' => 'S_ValGate',
-        '>>>' => 'S_InfixStatement',
 
         '+&' => 'S_Bitwise',
         '+|' => 'S_Bitwise',
@@ -190,24 +194,26 @@ class CompilerConstants {
         '{{'  => 'S_TemplateExpr',
 
         // keywords
-        'let'       => 'S_Var',
         'function'  => 'S_Function',
         'F'         => 'S_Function',
         'template'  => 'S_Template',
         'T'         => 'S_Template',
         'new'       => 'S_New',
         'if'        => 'S_If',
-        'for'       => 'S_For',
+        'foreach'   => 'S_ForEach',
+        'loop'      => 'S_Loop',
         'try'       => 'S_TryCatch',
         'break'     => 'S_Command',
         'continue'  => 'S_Command',
         'return'    => 'S_Return',
-        'R'         => 'S_Return',
+        'match'     => 'S_Match',
+        'lambda'    => 'S_Lambda',
 
         'switch'    => 'S_Unsupported',
         'require'   => 'S_Unsupported',
         'include'   => 'S_Unsupported',
         'while'     => 'S_Unsupported',
+        'for'       => 'S_Unsupported',
 
         // oop
         'class'     => 'S_Class',
@@ -222,17 +228,14 @@ class CompilerConstants {
     ];
 
     static public $RESERVED_NAMES = [
-        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in'
+        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in', 'default'
     ];
 
-    // TODO: Refactor. This logic is scattered in a few different places.
-    static public $ALT_TOKENS = [
-
-        // glyphs
+    static public $SUGGEST_TOKEN = [
         '===' => '==',
         '!==' => '!=',
         '=<'  => '<=',
-        '=>'  => ">= (comparison) or colon ':' (map)",
+        '=>'  => ">= (comparison) or colon ':' (map key)",
         '<>'  => '!=',
         '>>'  => '+> (bit shift)',
         '<<'  => '+< (bit shift) or #=',
@@ -247,18 +250,9 @@ class CompilerConstants {
         '#'   => '// line comment',
         '?:'  => '||: (default or)',
         '??'  => '||: (default or)',
-
+        '??=' => '||= (or assign)',
         '"'   => 'single quote (\')',
         '`'   => 'multi-line quote fence (\'\'\')',
-
-        // unsupported
-        'switch'   => 'if/else, or a Map, or Meta.callFunction()',
-        'while'    => 'for { ... }',
-        'require'  => 'import',
-        'include'  => 'import',
-
-        // renamed
-        'foreach'  => 'for (list as foo) { ... }'
     ];
 
     static $ANON = '(ANON)';
@@ -286,7 +280,5 @@ class CompilerConstants {
     static $TYPE_DECLARATIONS = [
         's', 'b', 'i', 'f', 'l', 'm', 'fn', 'o', 'any'
     ];
-
-    static $ANON_FUNCTION_REGEX = '/^fn[A-Z]/';
 }
 

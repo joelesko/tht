@@ -3,15 +3,15 @@
 namespace o;
 
 // Functions without a module namespace
-class OBare {
+class u_Bare extends OStdModule {
 
     static $FUNCTIONS = [ 'import', 'print', 'range', 'die' ];
 
     static function isa ($word) {
-        return in_array($word, OBare::$FUNCTIONS);
+        return in_array($word, u_Bare::$FUNCTIONS);
     }
 
-    static function formatPrint($parts) {
+    function formatPrint($parts) {
 
         $outs = [];
         foreach ($parts as $a) {
@@ -36,9 +36,9 @@ class OBare {
         return implode("\n", $outs);
     }
 
-    static function u_print () {
+    function u_print () {
 
-        $out = OBare::formatPrint(func_get_args());
+        $out = $this->formatPrint(func_get_args());
 
         if (Tht::isMode('web')) {
             PrintBuffer::add($out);
@@ -50,13 +50,14 @@ class OBare {
         return new \o\ONothing('print');
     }
 
-    static function u_import ($relPath) {
+    function u_import ($relPath) {
+        $this->ARGS('s', func_get_args());
         ModuleManager::loadUserModule($relPath);
     }
 
-    static function u_range ($start, $end, $step=1) {
-        ARGS('nnn', func_get_args());
-        return range($start, $end, $step);
+    function u_range ($start, $end, $step=1) {
+        $this->ARGS('nnn', func_get_args());
+        return OList::create(range($start, $end, $step));
     }
 
     // TODO: Iterator Version
@@ -75,8 +76,9 @@ class OBare {
     //     }
     // }
 
-    static function u_die ($msg, $data=null) {
-        ARGS('s*', func_get_args());
+    function u_die ($msg, $data=null) {
+        $this->ARGS('s*', func_get_args());
+        ErrorHandler::addOrigin('die');
         Tht::error($msg, $data);
     }
 }

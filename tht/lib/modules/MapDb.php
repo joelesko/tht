@@ -28,7 +28,7 @@ namespace o;
     CREATE INDEX i_maps_create_date ON maps (createDate);
 */
 
-class u_MapDb extends StdModule {
+class u_MapDb extends OStdModule {
 
     private $dbh = null;
 

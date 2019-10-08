@@ -77,68 +77,82 @@ class Tht {
 
     static function start () {
         try {
-            return Tht::main();
+            return self::main();
         }
-        catch (StartupException $e) {
-            ErrorHandler::handleStartupException($e);
+        catch (StartupError $e) {
+            ErrorHandler::handleStartupError($e);
         }
         catch (\Exception $e) {
-            ErrorHandler::handlePhpLeakedException($e);
+            ErrorHandler::handleLeakedPhpRuntimeError($e);
         }
     }
 
     static private function main () {
 
-        Tht::includeLibs();
-        Tht::initMode();
+        self::checkRequirements();
 
-        if (Tht::isMode('cli')) {
-            Tht::loadLib('modes/CliMode.php');
-            Tht::initErrorHandler();
+        self::includeLibs();
+        self::initMode();
+
+        if (self::isMode('cli')) {
+            self::loadLib('modes/CliMode.php');
+            self::initErrorHandler();
 
             CliMode::main();
         }
         else {
 
-            if (Tht::serveStaticFile()) {
+            if (self::serveStaticFile()) {
                 return false;
             }
 
-            Tht::loadLib('modes/WebMode.php');
-            Tht::init();
+            self::loadLib('modes/WebMode.php');
+            self::init();
 
             WebMode::main();
         }
 
-        Tht::printPerf();
+        self::printPerf();
 
         return true;
+    }
+
+    static private function checkRequirements() {
+
+        if (PHP_VERSION_ID < 70100) {
+            print('THT Startup Error: PHP version 7.1+ is required.');
+            exit();
+        }
+        else if (!extension_loaded('mbstring')) {
+            print('THT Startup Error: PHP extension `mbstring` is required.');
+            exit();
+        }
     }
 
     // Includes take 0.25ms
     // TODO: can cut in half or more by consolidating all these to 1 file.
     static private function includeLibs() {
 
-        Tht::loadLib('utils/Utils.php');
-        Tht::loadLib('utils/StringReader.php');
-        Tht::loadLib('utils/Minifier.php');  // TODO: lazy load this
+        self::loadLib('utils/Utils.php');
+        self::loadLib('utils/StringReader.php');
+        self::loadLib('utils/Minifier.php');  // TODO: lazy load this
 
-        Tht::loadLib('runtime/HitCounter.php');  // TODO: lazy load this
-        Tht::loadLib('runtime/PrintBuffer.php');
-        Tht::loadLib('runtime/ErrorHandler.php');
-        Tht::loadLib('runtime/Compiler.php');
-        Tht::loadLib('runtime/Runtime.php');
-        Tht::loadLib('runtime/ModuleManager.php');
-        Tht::loadLib('runtime/Security.php');
+        self::loadLib('runtime/HitCounter.php');  // TODO: lazy load this
+        self::loadLib('runtime/PrintBuffer.php');
+        self::loadLib('runtime/ErrorHandler.php');
+        self::loadLib('runtime/Compiler.php');
+        self::loadLib('runtime/Runtime.php');
+        self::loadLib('runtime/ModuleManager.php');
+        self::loadLib('runtime/Security.php');
 
-        Tht::loadLib('../classes/_index.php');
-        Tht::loadLib('../modules/_index.php');
+        self::loadLib('../classes/_index.php');
+        self::loadLib('../modules/_index.php');
     }
 
     // Serve directly if requested a static file in testServer mode
     static private function serveStaticFile() {
 
-        if (Tht::isMode('testServer')) {
+        if (self::isMode('testServer')) {
 
             // Dotted filename
             if (preg_match('/\.[a-z0-9]{2,}$/', $_SERVER['SCRIPT_NAME'])) {
@@ -151,7 +165,7 @@ class Tht {
             if ($_SERVER['SCRIPT_NAME'] !== '/' && file_exists($path)) {
                 if (is_dir($path)) {
                     // just a warning
-                    throw new StartupException ("Path `$path` can not be a page and also a directory under Document Root.");
+                    self::startupError("Path `$path` can not be a page and also a directory under Document Root.");
                 }
                 // is a static file
                 if (!is_dir($path)) {
@@ -170,18 +184,18 @@ class Tht {
     }
 
     static public function handleShutdown() {
-        Tht::clearMemoryBuffer();
+        self::clearMemoryBuffer();
         ErrorHandler::handleShutdown();
-        Tht::module('Response')->endGzip();
+        self::module('Response')->endGzip();
     }
 
     static private function init () {
 
-        Tht::initMemoryBuffer();
-        Tht::initErrorHandler();
-        Tht::initRequestData();
-        Tht::initAppPaths();
-        Tht::initAppConfig();
+        self::initMemoryBuffer();
+        self::initErrorHandler();
+        self::initRequestData();
+        self::initAppPaths();
+        self::initAppConfig();
 
         Security::initPhpIni();
     }
@@ -189,8 +203,8 @@ class Tht {
     static function executePhp ($phpPath) {
         try {
             require_once($phpPath);
-        } catch (ThtException $e) {
-            ErrorHandler::handleThtException($e, $phpPath);
+        } catch (ThtError $e) {
+            ErrorHandler::handleThtRuntimeError($e, $phpPath);
         }
     }
 
@@ -199,15 +213,13 @@ class Tht {
     //---------------------------------------------
 
     static private function printPerf () {
-        if (Tht::isMode('web') && !Tht::module('Request')->u_is_ajax() && Tht::module('Response')->sentResponseType == 'html') {
-            Tht::module('Perf')->printResults();
+        if (self::isMode('web') && !self::module('Request')->u_is_ajax() && self::module('Response')->sentResponseType == 'html') {
+            self::module('Perf')->printResults();
         }
     }
 
-    static function devPrint ($msg) {
-        if (Tht::getConfig('_devPrint')) {
-            echo "### " . $msg . "\n";
-        }
+    static function debug () {
+        OBare::u_print(...func_get_args());
     }
 
     static function errorLog ($msg) {
@@ -215,25 +227,29 @@ class Tht {
         if (!$msg) { return; }
         $msg = preg_replace("/\n{3,}/", "\n\n", $msg);
         if (strpos($msg, "\n") !== false) {
-            $msg = ltrim(v($msg)->u_indent(4));
+            $msg = ltrim(v($msg)->u_indent(2));
         }
         $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $msg . "\n";
-        file_put_contents(Tht::path('logFile'), $line, FILE_APPEND);
+        file_put_contents(self::path('logFile'), $line, FILE_APPEND);
     }
 
     static function error ($msg, $vars=null) {
-        $msg = Tht::errorVars($msg, $vars);
-        throw new ThtException ($msg);
+        $msg = self::errorVars($msg, $vars);
+        throw new ThtError ($msg);
     }
 
     static function configError ($msg, $vars=null) {
-        $msg = Tht::errorVars($msg, $vars);
+        $msg = self::errorVars($msg, $vars);
         ErrorHandler::handleConfigError($msg);
+    }
+
+    static function startupError ($msg, $vars=null) {
+        throw new StartupError ($msg);
     }
 
     static private function errorVars($msg, $vars) {
         if (!is_null($vars)) {
-            $msg .= "\n\nGot: " . Tht::module('Json')->u_format(json_encode($vars));
+            $msg .= "\n\nGot: " . self::module('Json')->u_format(json_encode($vars));
         }
         return $msg;
     }
@@ -246,23 +262,23 @@ class Tht {
     //---------------------------------------------
 
     static private function initRequestData() {
-        Tht::$data['requestData'] = Security::initRequestData();
+        self::$data['requestData'] = Security::initRequestData();
     }
 
     static private function initMode() {
         $sapi = php_sapi_name();
-        Tht::$mode['testServer'] = $sapi === 'cli-server';
-        Tht::$mode['cli'] = $sapi === 'cli';
-        Tht::$mode['web'] = !Tht::$mode['cli'];
+        self::$mode['testServer'] = $sapi === 'cli-server';
+        self::$mode['cli'] = $sapi === 'cli';
+        self::$mode['web'] = !self::$mode['cli'];
     }
 
     static private function initMemoryBuffer() {
         // Reserve memory in case of out-of-memory error. Enough to call handleShutdown.
-        Tht::$data['memoryBuffer'] = str_repeat('*', Tht::$MEMORY_BUFFER_KB * 1024);
+        self::$data['memoryBuffer'] = str_repeat('*', self::$MEMORY_BUFFER_KB * 1024);
     }
 
     static private function clearMemoryBuffer() {
-        Tht::$data['memoryBuffer'] = '';
+        self::$data['memoryBuffer'] = '';
     }
 
     static private function initErrorHandler () {
@@ -274,19 +290,19 @@ class Tht {
     static public function initAppPaths($isSetup=false) {
 
         // Find the Document Root
-        if (Tht::isMode('cli')) {
+        if (self::isMode('cli')) {
             if ($isSetup) {
                 // TODO: take as argument
-                Tht::$paths['docRoot'] = getcwd();
+                self::$paths['docRoot'] = getcwd();
             } else {
                 // TODO: travel up parent
-                Tht::$paths['docRoot'] = getcwd();
+                self::$paths['docRoot'] = getcwd();
             }
         } else {
-            Tht::$paths['docRoot'] = Tht::getPhpGlobal('server', 'DOCUMENT_ROOT');
+            self::$paths['docRoot'] = self::getPhpGlobal('server', 'DOCUMENT_ROOT');
         }
 
-        $docRootParent = Tht::makePath(Tht::$paths['docRoot'], '..');
+        $docRootParent = self::makePath(self::$paths['docRoot'], '..');
 
         // TODO: clean this up at v1 when paths are set.
         // Top Level directories.  There is only one now: 'app'
@@ -299,20 +315,20 @@ class Tht {
                 $constantPath = constant($globalConstant);
                 if ($constantPath[0] === '/') {
                     // absolute path
-                    Tht::$paths[$topDir] = realpath($constantPath);
+                    self::$paths[$topDir] = realpath($constantPath);
                 }
                 else {
                     // relative to Document Root
-                    Tht::$paths[$topDir] = realpath(Tht::makePath(Tht::$paths['docRoot'], $constantPath));
+                    self::$paths[$topDir] = realpath(self::makePath(self::$paths['docRoot'], $constantPath));
                 }
             } else {
                 // Assume it is adjacent to Document Root
-                Tht::$paths[$topDir] = Tht::makePath(realpath($docRootParent), Tht::$APP_DIR[$topDir]);
+                self::$paths[$topDir] = self::makePath(realpath($docRootParent), self::$APP_DIR[$topDir]);
             }
 
-            if (!Tht::$paths[$topDir]) {
-                throw new StartupException ("Can't find app directory `$topDir`.\n\n"
-                    . "Run: 'tht " . Tht::$CLI_OPTIONS['new'] . "' in your Document Root directory\nto create a new app.\n\n");
+            if (!self::$paths[$topDir]) {
+                self::startupError("Can't find app directory `$topDir`.\n\n"
+                    . "Run: 'tht " . self::$CLI_OPTIONS['new'] . "' in your Document Root directory\nto create a new app.\n\n");
             }
         }
 
@@ -345,7 +361,7 @@ class Tht {
         foreach ($dirs as $d) {
             $parent = $d[0];
             $key = $d[1];
-            Tht::$paths[$key] = Tht::path($parent, Tht::$APP_DIR[$key]);
+            self::$paths[$key] = self::path($parent, self::$APP_DIR[$key]);
         }
 
         // Define file paths
@@ -358,43 +374,43 @@ class Tht {
         foreach ($files as $f) {
             $parent = $f[0];
             $key = $f[1];
-            Tht::$paths[$key] = Tht::path($parent, Tht::$APP_FILE[$key]);
+            self::$paths[$key] = self::path($parent, self::$APP_FILE[$key]);
         }
     }
 
     static private function initAppConfig () {
 
-        Tht::module('Perf')->start('tht.initAppConfig');
+        self::module('Perf')->start('tht.initAppConfig');
 
-        $defaultConfig = Tht::getDefaultConfig();
+        $defaultConfig = self::getDefaultConfig();
 
-        $iniPath = Tht::path('settingsFile');
+        $iniPath = self::path('settingsFile');
 
         // TODO: cache as JSON?
-        $appConfig = Tht::module('Jcon')->u_parse_file(Tht::$APP_FILE['settingsFile']);
+        $appConfig = self::module('Jcon')->u_parse_file(self::$APP_FILE['settingsFile']);
 
         // make sure the required top-level keys exist
         foreach (['tht', 'routes'] as $key) {
             if (!isset($appConfig[$key])) {
-                Tht::configError("Missing top-level key `$key` in `" . Tht::$paths['settingsFile'] . "`.", $appConfig);
+                self::configError("Missing top-level key `$key` in `" . self::$paths['settingsFile'] . "`.", $appConfig);
             }
         }
 
         // check for invalid keys in 'tht' section
         $mainKey = 'tht';
-        $def = Tht::getDefaultConfig();
+        $def = self::getDefaultConfig();
         foreach (uv($appConfig[$mainKey]) as $k => $v) {
             if (!isset($def[$mainKey][$k])) {
                 if ($mainKey == 'tht') {
                     ErrorHandler::setErrorDoc('/reference/app-settings', 'App Settings');
                 }
-                Tht::configError("Unknown config key `$mainKey.$k` in `" . Tht::$paths['settingsFile'] . "`.");
+                self::configError("Unknown settings key `$mainKey.$k` in `" . self::$paths['settingsFile'] . "`.");
             }
         }
 
-        Tht::$data['config'] = $appConfig;
+        self::$data['config'] = $appConfig;
 
-        Tht::module('Perf')->u_stop();
+        self::module('Perf')->u_stop();
     }
 
     static private function getDefaultConfig () {
@@ -436,6 +452,7 @@ class Tht {
 
             // misc
             "cacheGarbageCollectRate" => 100,
+            "logErrors"               => true,
 
             // resource limits
             "memoryLimitMb"        => 16,
@@ -459,7 +476,7 @@ class Tht {
 
     static function loadLib ($file) {
         $libDir = dirname(__FILE__);
-        require_once(Tht::makePath($libDir, $file));
+        require_once(self::makePath($libDir, $file));
     }
 
     static function parseTemplateString ($type, $lRawText) {
@@ -473,22 +490,22 @@ class Tht {
     //---------------------------------------------
 
     static function isMode($m) {
-        return Tht::$mode[$m];
+        return self::$mode[$m];
     }
 
     static function data($k, $subKey='') {
-        $d = Tht::$data[$k];
+        $d = self::$data[$k];
         if ($subKey && $subKey !== '*') {
             return isset($d[$subKey]) ? $d[$subKey] : '';
         }
         if (is_array($d) && $subKey !== '*') {
-            Tht::error("Need to specify a subKey for array data: `$k`");
+            self::error("Need to specify a subKey for array data: `$k`");
         }
         return $d;
     }
 
     static function getExt() {
-        return Tht::$SRC_EXT;
+        return self::$SRC_EXT;
     }
 
 
@@ -500,24 +517,24 @@ class Tht {
     static function path() {
         $parts = func_get_args();
         $base = $parts[0];
-        if (!isset(Tht::$paths[$base])) {
-            Tht::error("Unknown base path key: `$base`");
+        if (!isset(self::$paths[$base])) {
+            self::error("Unknown base path key: `$base`");
         }
-        $parts[0] = Tht::$paths[$base];
-        return Tht::makePath($parts);
+        $parts[0] = self::$paths[$base];
+        return self::makePath($parts);
     }
 
     static function getAppFileName($key) {
-        return Tht::$APP_FILE[$key];
+        return self::$APP_FILE[$key];
     }
 
     static function getAllPaths() {
-        return Tht::$paths;
+        return self::$paths;
     }
 
     static function validatePath($path) {
         if (strpos('..', $path) !== false) {
-            Tht::error("Parent shortcut `..` not allowed in path: `$path`");
+            self::error("Parent shortcut `..` not allowed in path: `$path`");
         }
         return true;
     }
@@ -530,27 +547,27 @@ class Tht {
         $path = str_replace($sep . $sep, $sep, $path); // prevent double slashes
         $path = rtrim($path, '/');
 
-        Tht::validatePath($path);
+        self::validatePath($path);
 
         return $path;
     }
 
     static function getRelativePath ($baseKey, $fullPath) {
-        $basePath = Tht::path($baseKey);
+        $basePath = self::path($baseKey);
         $rel = str_replace(realpath($basePath), '', $fullPath);
-        Tht::validatePath($fullPath);
+        self::validatePath($fullPath);
         return ltrim($rel, '/');
     }
 
     static function getFullPath ($file) {
         if (substr($file, 0, 1) === DIRECTORY_SEPARATOR) {  return $file;  }
-        return Tht::makePath(realpath(getcwd()), $file);
+        return self::makePath(realpath(getcwd()), $file);
     }
 
     static function getPhpPathForTht ($thtFile) {
-        $relPath = Tht::module('File')->u_relative_path($thtFile, Tht::$paths['app']);
+        $relPath = self::module('File')->u_relative_path($thtFile, self::$paths['app']);
         $cacheFile = preg_replace('/[\\/]/', '_', $relPath);
-        return Tht::path('phpCache', Tht::getThtPhpVersionToken() . '_' . $cacheFile . '.php');
+        return self::path('phpCache', self::getThtPhpVersionToken() . '_' . $cacheFile . '.php');
     }
 
     static function getThtPathForPhp ($phpPath) {
@@ -558,16 +575,16 @@ class Tht {
         $f = preg_replace('!\d+_!', '', $f);
         $f = preg_replace('/\.php/', '', $f);
         $f = str_replace('_', '/', $f);
-        return Tht::path('app', $f);
+        return self::path('app', $f);
     }
 
     static function getThtFileName ($fileBaseName) {
-        return $fileBaseName . '.' . Tht::$SRC_EXT;
+        return $fileBaseName . '.' . self::$SRC_EXT;
     }
 
     static function stripAppRoot($value) {
-        $value = str_replace(Tht::path('app'), '', $value);
-        $value = str_replace(Tht::path('docRoot'), '', $value);
+        $value = str_replace(self::path('app'), '', $value);
+        $value = str_replace(self::path('docRoot'), '', $value);
         if (preg_match('/\.php/', $value)) {
             $value = preg_replace('#.*tht/#', '', $value);
         }
@@ -581,17 +598,17 @@ class Tht {
     //---------------------------------------------
 
     static function getThtSiteUrl($relPath) {
-        return Tht::$THT_SITE . $relPath;
+        return self::$THT_SITE . $relPath;
     }
 
     static function getTopConfig() {
         $args = func_get_args();
         if (is_array($args[0])) { $args = $args[0]; }
-        $val = Tht::searchConfig(Tht::$data['config'], $args);
+        $val = self::searchConfig(self::$data['config'], $args);
         if ($val === null) {
-            $val = Tht::searchConfig(Tht::getDefaultConfig(), $args);
+            $val = self::searchConfig(self::getDefaultConfig(), $args);
             if ($val === null) {
-                throw new StartupException ('No config for key: `' . implode($args, '.') . '`');
+                self::startupError('No config for key: `' . implode($args, '.') . '`');
             }
         }
         return $val;
@@ -600,7 +617,7 @@ class Tht {
     static function getConfig () {
         $args = func_get_args();
         array_unshift($args, 'tht');
-        return Tht::getTopConfig($args);
+        return self::getTopConfig($args);
     }
 
     static function searchConfig($config, $keys) {
@@ -616,15 +633,15 @@ class Tht {
     }
 
     static function getAllConfig () {
-        return Tht::$data['config'];
+        return self::$data['config'];
     }
 
     static function getPhpGlobal ($g, $key) {
 
-        if (!isset(Tht::$data['requestData'][$g])) {
+        if (!isset(self::$data['requestData'][$g])) {
             return $def;
         }
-        $val = Tht::$data['requestData'][$g];
+        $val = self::$data['requestData'][$g];
 
         if ($key !== '*') {
             if (!isset($val[$key])) {
@@ -639,19 +656,19 @@ class Tht {
     }
 
     static function getWebRequestHeader ($key) {
-        return Tht::data('requestHeaders', $key);
+        return self::data('requestHeaders', $key);
     }
 
     static function getThtVersion($token=false) {
-        return $token ? Tht::$VERSION_TOKEN : Tht::$VERSION;
+        return $token ? self::$VERSION_TOKEN : self::$VERSION;
     }
 
     // Get a token that includes the version of THT and PHP
     static function getThtPhpVersionToken() {
-        if (!Tht::$VERSION_TOKEN_PHP) {
-            Tht::$VERSION_TOKEN_PHP = Tht::$VERSION_TOKEN . floor(PHP_VERSION_ID / 100);
+        if (!self::$VERSION_TOKEN_PHP) {
+            self::$VERSION_TOKEN_PHP = self::$VERSION_TOKEN . floor(PHP_VERSION_ID / 100);
         }
-        return Tht::$VERSION_TOKEN_PHP;
+        return self::$VERSION_TOKEN_PHP;
     }
 
     static function module ($name) {

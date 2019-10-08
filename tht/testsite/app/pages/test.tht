@@ -1,26 +1,33 @@
-F main() {
 
-   let data = Input.getAll({ 'names': 'email|list' });
-    print(data);
+Response.sendPage({
+    body: formHtml(),
+    css: Css.plugin('base')
+});
 
-    Response.sendHtml(formHtml());
-}
+T formHtml {
+
+    <html>
+      <head><title>Form Example</title></head>
+      <body>
+
+        <main>
+        <h1>My Example Form</>
+
+        <form action="" method="post">
+            Name: <input name="name"><br>
+            Age: <input name="age"><br>
+            <input type="submit">
+        </>
+
+        -- if Input.isPost() {
+            -- $name = Input.post('name');
+            -- $age = Input.post('age');
+            <p>Hi {{ $name }}, you are {{ $age }} years old.</>
+        -- }
 
 
-T formHtml() {
-    <form action="/test" method="post">
-      <p>> ID: <input type="text" name="id" />
-      <p>> Age: <input type="text" name="age" />
-      <str>> Str: <input type="text" name="str" />
+        </main>
 
-      <input type="submit" />
-
-      {{ Web.csrfToken() }}
-    </>
-}
-
-F post() {
-    let data = Input.get('names', 's');
-    print(data);
-
+      </body>
+    </html>
 }

@@ -31,7 +31,7 @@ class S_New extends Symbol {
             if (!$p->symbol->isValue(",")) { break; }
             $p->space('x, ')->next();
         }
-        $argSymbol = $p->makeSequence(SequenceType::FLAT, $args);
+        $argSymbol = $p->makeAstList(AstList::FLAT, $args);
         $this->addKid($argSymbol);
 
         $p->now(')')->space('x)*')->next();

@@ -22,10 +22,11 @@ class ORegex extends OVar {
 
     function getPattern () {
         $pat = str_replace('/', '\\/', $this->pattern);
-        return '/' . $pat . '/u' . $this->flags;
+        return '/' . $pat . '/' . $this->flags;
     }
 
     function u_flags ($f) {
+        $this->ARGS('s', func_get_args());
         $this->flags = $this->validateFlags($f);
         return $this;
     }
@@ -42,9 +43,14 @@ class ORegex extends OVar {
     }
 }
 
-class u_Regex {
-    function u_new ($pattern, $flags) {
-        return new ORegex ($pattern, $flags);
+class u_Regex extends OClass {
+
+    function newObject ($pattern, $args) {
+        if (!isset($args[1])) {
+            $args[1] = '';
+        }
+        $this->ARGS('ss', $args);
+        return new ORegex ($args[0], $args[1]);
     }
 }
 

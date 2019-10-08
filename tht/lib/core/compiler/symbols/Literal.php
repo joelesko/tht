@@ -6,6 +6,12 @@ class S_Literal extends Symbol {
     var $kids = 0;
     function asLeft($p) {
         $p->next();
+        if ($this->isValue('@') || $this->isValue('this')) {
+            if (!$p->inClass) {
+                $tok = $this->isValue('@') ? '@' : '\$this';
+                $p->error('`' . $tok . '` must be used inside of a class.', $this->token);
+            }
+        }
         return $this;
     }
 }

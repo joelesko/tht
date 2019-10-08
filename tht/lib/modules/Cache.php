@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Cache extends StdModule {
+class u_Cache extends OStdModule {
 
     private $driver;
     private $triedGarbageCollect = false;

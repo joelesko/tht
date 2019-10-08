@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Test extends StdModule {
+class u_Test extends OStdModule {
 
     private $lastParserError = '';
 
@@ -14,24 +14,24 @@ class u_Test extends StdModule {
     ];
 
     static function u_new () {
-        ARGS('', func_get_args());
+        //$this->ARGS('', func_get_args());
         return new u_Test ();
     }
 
     function u_section($s) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         $this->out []= [ 'section' => $s ];
     }
 
     function u_stats() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $s = OMap::create($this->stats);
         $s['total'] = $s['numPassed'] + $s['numFailed'];
         return $s;
     }
 
     function u_ok ($expression, $msg) {
-        ARGS('*s', func_get_args());
+        $this->ARGS('*s', func_get_args());
         $isOk = $expression ? true : false;
         $this->stats[$isOk ? 'numPassed' : 'numFailed'] += 1;
         $this->addLine($isOk, $msg);
@@ -43,21 +43,27 @@ class u_Test extends StdModule {
     }
 
     function u_dies ($callback, $msg) {
-        ARGS('cs', func_get_args());
-        $ex = false;
+
+        $this->ARGS('cs', func_get_args());
+
+        $hasError = false;
         ErrorHandler::startTrapErrors();
         try {
             $callback();
-        } catch (\Exception $e) {
-            $ex = true;
         }
-         catch (\TypeError $e) {
-            $ex = true;
+        catch (\Exception $e) {
+            $hasError = true;
+        }
+        catch (\TypeError $e) {
+            $hasError = true;
+        }
+        catch (\ArgumentCountError $e) {
+            $hasError = true;
         }
 
         $trapped = ErrorHandler::endTrapErrors();
 
-        return $this->u_ok($ex || $trapped, 'dies - ' . $msg);
+        return $this->u_ok($hasError || $trapped, 'dies - ' . $msg);
     }
 
     function parserDies ($code, $match, $isFuzzy = false) {
@@ -75,6 +81,8 @@ class u_Test extends StdModule {
                 return $this->parserDies($code, $match, true);
             }
         }
+        ErrorHandler::resetState();
+
         return $matchError;
     }
 
@@ -102,13 +110,13 @@ class u_Test extends StdModule {
     }
 
     function u_last_parser_error() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->lastParserError;
     }
 
     function u_results_html () {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         $this->u_section('Results');
 
         $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_font('monospace') . "}\n\n </style>\n\n";
@@ -148,13 +156,13 @@ class u_Test extends StdModule {
     function u_check_args() {
         $args = func_get_args();
         $mask = array_shift($args);
-        ARGS($mask, $args);
+        $this->ARGS($mask, $args);
         return true;
     }
 
     function u_shake($val) {
 
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         if (!is_string($val)) {
             $val = json_encode($val);
         }

@@ -1,0 +1,135 @@
+[2019-09-27 21:50:04]  Path `/testAuto` is not valid
+[2019-10-03 20:47:28]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:47:31]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:50:23]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:50:46]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:50:55]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:51:35]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:53:33]  sdfsdfsdf
+[2019-10-03 20:53:36]  sdfsdfsdf
+[2019-10-03 20:53:45]  sdfsdfsdf
+[2019-10-03 20:54:09]  URL: http://localhost:8900/errors
+
+    ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:55:20]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:55:41]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:56:36]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:56:43]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:57:29]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+
+[2019-10-03 20:57:40]  ######### THT Compiler Error #########
+
+    Please add a space before `=`.
+
+    24:  $a=1;
+          ^
+
+    File: pages/errors.tht  Line: 24  Pos: 2
+

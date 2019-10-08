@@ -12,7 +12,7 @@ class SymbolTable {
     function __construct ($size, $parser) {
         $this->parser = $parser;
 
-        // Extra padding for sequences. +10-15% is realistic
+        // Extra padding for astLists. +10-15% is realistic
         $paddedSize = floor($size * 1.5);
         $this->symbols = new \SplFixedArray ($paddedSize);
         $this->kids = new \SplFixedArray ($paddedSize);

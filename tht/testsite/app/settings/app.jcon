@@ -2,6 +2,7 @@
     // Dynamic URL routes
     routes: {
         /test/{action}: testAction.tht
+        /test-auto: userAccounts.tht@autoFunction
     }
 
     // Core settings
@@ -10,16 +11,17 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfPanel: false
+        showPerfPanel: true
         adminIp:
 
         memoryLimitMb: 32
 
-        _coreDevMode: true
+        _coreDevMode: false
 
         hitCounter: false
 
-        _sendErrorUrl: http://localhost:8900/remote/error
+        sendErrors: true
+        _sendErrorUrl: http://localhost:8999/remote/error
     }
 
     // Custom app settings.  Read via `Global.setting(key)`

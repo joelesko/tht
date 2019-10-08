@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Result extends StdModule {
+class u_Result extends OStdModule {
 
     static function u_ok ($v) {
         return new OResult ($v, true, 0);

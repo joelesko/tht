@@ -55,7 +55,8 @@ class Security {
     ];
 
     static function error($msg) {
-        Tht::error('(Security) ' . $msg);
+        ErrorHandler::addOrigin('security');
+        Tht::error($msg);
     }
 
     // TODO: allow multiple IPs (list in app.jcon)
@@ -135,7 +136,7 @@ class Security {
 
     static function checkPrevHash($raw) {
         if (!is_null(self::$prevHash) && $raw == self::$prevHash) {
-            Tht::error('(security) Hashing an already-hashed value results in a value that is easier to attack.');
+            self::error('Hashing an already-hashed value results in a value that is easier to attack.');
         }
     }
 
@@ -261,11 +262,12 @@ class Security {
 
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
-        // TODO: revisit ' '
-        if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
-            self::error("Illegal character in path: `$path`");
-        }
-        else if (!strlen($path)) {
+        // TODO: revisit this.  Technically, anything can be in quotes.
+        // Users might have a clunky root directory (e.g. Dropbox folder with parens)
+        // if (preg_match('/[^a-zA-Z0-9_\-\/\.: ]/', $path)) {
+        //     self::error("Illegal character in path: `$path`");
+        // }
+        if (!strlen($path)) {
             self::error("File path cannot be empty: `$path`");
         }
         else if (v($path)->u_is_url()) {
@@ -329,8 +331,7 @@ class Security {
         $pathSize = strlen($path);
         $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
         if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
-            Tht::errorLog("Path `$path` is not valid");
-            Tht::module('Response')->u_send_error(404);
+            Tht::module('Response')->u_send_error(404, 'Page address is not valid.');
         }
     }
 

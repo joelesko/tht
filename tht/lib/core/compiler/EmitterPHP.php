@@ -33,11 +33,11 @@ class EmitterPHP extends Emitter {
 
         'PAIR'            => 'pPair',
         'BARE_FUN'        => 'pBareFun',
+        'BARE_WORD'       => 'pBareWord',
         'TRY_CATCH'       => 'pTryCatch',
         'CALL'            => 'pCall',
         'INFIX'           => 'pInfix',
         'INFIX|<=>'       => 'pSpaceship',
-        'INFIX|>>>'       => 'pIfThen',
         'BITSHIFT'        => 'pBitwise',
         'BITWISE'         => 'pBitwise',
         'PREFIX'          => 'pPrefix',
@@ -59,9 +59,12 @@ class EmitterPHP extends Emitter {
         'NEW_OBJECT'      => 'pNew',
      //   'NEW_OBJECT_VAR'  => 'pNewObjectVar',
 
-        'OPERATOR|~'      => 'pConcat',
-        'OPERATOR|if'     => 'pIf',
-        'OPERATOR|for'    => 'pFor',
+        'OPERATOR|~'        => 'pConcat',
+        'OPERATOR|if'       => 'pIf',
+        'OPERATOR|foreach'  => 'pForEach',
+        'OPERATOR|loop'     => 'pLoop',
+        'OPERATOR|match'    => 'pMatch',
+        'OPERATOR|lambda'   => 'pLambda',
 
         'MEMBER|['        => 'pMemberBracket',
         'MEMBER|.'        => 'pMemberDot',
@@ -71,9 +74,10 @@ class EmitterPHP extends Emitter {
         'COMMAND|return'  => 'pReturn',
         'COMMAND|R'       => 'pReturn',
 
-        'SEQUENCE'        => 'pSequence',
-        'SEQUENCE|{'      => 'pMap',
-        'SEQUENCE|['      => 'pList',
+        'AST_LIST'        => 'pAstList',
+        'AST_LIST|{'      => 'pMap',
+        'AST_LIST|['      => 'pList',
+        'MATCH_PATTERN'   => 'pMatchPattern',
     ];
 
     private $bitwiseToPhp = [
@@ -85,14 +89,14 @@ class EmitterPHP extends Emitter {
     ];
 
     private $argTypeToPhp = [
-        'b'  => 'bool',
-        'l'  => '\o\OList',
-        'm'  => '\o\OMap',
-        'i'  => 'int',
-        'f'  => 'float',
-        's'  => 'string',
-        'fn' => 'callable',
-        'o'  => 'object',
+        'b'   => 'bool',
+        'l'   => '\o\OList',
+        'm'   => '\o\OMap',
+        'i'   => 'int',
+        'f'   => 'float',
+        's'   => 'string',
+        'fn'  => 'callable',
+        'o'   => 'object',
         'any' => '',
     ];
 
@@ -122,21 +126,27 @@ class EmitterPHP extends Emitter {
         return $finalCode;
     }
 
-    function toSequence ($value, $kids, $multiline=false) {
-        $isBlock = $value === SequenceType::BLOCK;
+    function toAstList ($value, $kids, $multiline=false) {
+        $isBlock = $value === AstList::BLOCK;
         $targetSrc = [];
         foreach ($kids as $k) {
             $dent = '';
             if ($isBlock) {
                 $dent = $this->indent();
             }
-            $targetSrc []= $dent . $this->out($k, $isBlock);
+            $out = $this->out($k, $isBlock);
+            // if ($isBlock && !preg_match('/;\s*$/', $out)) {
+            //     // need to force this to correctly report errors with malformed statements that don't get a semicolon
+            //     $out .= ";\n";
+            // }
+            $targetSrc []= $dent . $out;
         }
-        // adding newlines to preserve line number mapping
+
         $delim = $isBlock ? '' : ",";
         $pre = '';
         $post = '';
         if ($multiline) {
+            // adding newlines to preserve line number mapping
             $delim .= "\n";
             $pre = "\n";
             $post = "\n";
@@ -146,6 +156,10 @@ class EmitterPHP extends Emitter {
     }
 
     // Simple
+
+    function pBareWord ($value, $k) {
+        return $value;
+    }
 
     function pFlag ($value, $k) {
         return $value;
@@ -164,30 +178,31 @@ class EmitterPHP extends Emitter {
     }
 
     function pString ($value, $k) {
-        $value = str_replace('$', '\\$', $value);
-        $value = str_replace('"', '\\"', $value);
+        $value = $this->escapeString($value);
         return $this->format('"###"', $value);
     }
 
     function pLString ($value, $k) {
-        $value = str_replace('$', '\\$', $value);
-        $value = str_replace('"', '\\"', $value);
+        $value = $this->escapeString($value);
         list($type, $str) = explode('::', $value, 2);
-        //if ($type == 'text') { $type = 'O'; }
         return $this->format('\\o\\OTypeString::create("###", "###")', $type, $str);
     }
 
     function pRString ($value, $k) {
-        $value = str_replace('$', '\\$', $value);
-        $value = str_replace('"', '\\"', $value);
+        $value = $this->escapeString($value);
         return $this->format('new \o\ORegex("###")', $value);
     }
 
     function pTString ($value, $k) {
         $value = str_replace('\\', '\\\\', $value);
-        $value = str_replace('$', '\\$', $value);
-        $value = str_replace('"', '\\"', $value);
+        $value = $this->escapeString($value);
         return $this->format('$t->addStatic("###");', $value);
+    }
+
+    function escapeString($s) {
+        $s = str_replace('$', '\\$', $s);
+        $s = str_replace('"', '\\"', $s);
+        return $s;
     }
 
 
@@ -214,7 +229,7 @@ class EmitterPHP extends Emitter {
         else if ($this->isPhpLiteral) {
             $template = '[ ### ]';
         }
-        return $this->format($template, $this->toSequence($value, $k, true));
+        return $this->format($template, $this->toAstList($value, $k, true));
     }
 
     function pList ($value, $k) {
@@ -231,7 +246,7 @@ class EmitterPHP extends Emitter {
             $template = '[ ### ]';
         }
 
-       return $this->format($template, $this->toSequence($value, $k, true));
+       return $this->format($template, $this->toAstList($value, $k, true));
     }
 
 
@@ -293,7 +308,7 @@ class EmitterPHP extends Emitter {
     }
 
     function pBareFun ($value, $k) {
-        return $this->format('\o\OBare::###', u_($value));
+        return $this->format("\o\ModuleManager::getModule('*Bare')->###", u_($value));
     }
 
 
@@ -302,8 +317,8 @@ class EmitterPHP extends Emitter {
 
     // Clusters
 
-    function pSequence ($value, $k) {
-        return $this->toSequence($value, $k);
+    function pAstList ($value, $k) {
+        return $this->toAstList($value, $k);
     }
 
     function pPair ($value, $k) {
@@ -333,10 +348,6 @@ class EmitterPHP extends Emitter {
 
     function pSpaceship ($value, $k) {
         return $this->format('\o\Runtime::spaceship(###, ###)', $k[0], $k[1]);
-    }
-
-    function pIfThen ($value, $k) {
-        return $this->format('if (###) { ###; }', $k[0], $k[1]);
     }
 
     function pBitwise ($value, $k) {
@@ -378,6 +389,25 @@ class EmitterPHP extends Emitter {
 
     function pConcat ($value, $k) {
         return $this->format('\o\Runtime::concat(###, ###)', $k[0], $k[1]);
+    }
+
+    function pMatch ($value, $k) {
+        $subject = array_shift($k);
+        $out = $this->format('$_match = ###;', $subject);
+        $this->numMatchPatterns = 0;
+        foreach ($k as $kid) {
+            $this->numMatchPatterns += 1;
+            $out .= $this->format('###', $kid);
+        }
+        return $out;
+    }
+
+    function pMatchPattern ($value, $k) {
+        $else = $this->numMatchPatterns > 1 ? 'else ' : '';
+        if ($k[0]['value'] == 'true' || $k[0]['value'] == 'false') {
+            return $this->format($else . 'if (###) { ###; }', $k[0], $k[1]);
+        }
+        return $this->format($else . 'if (\o\Runtime::match($_match, ###)) { ###; }', $k[0], $k[1]);
     }
 
 
@@ -432,10 +462,7 @@ class EmitterPHP extends Emitter {
 
     function pCall ($value, $k) {
         if ($k[0]['value'] === 'import') {
-            return $this->format('\o\OBare::u_import(###)', $k[1]);
-        }
-        else if (preg_match(CompilerConstants::$ANON_FUNCTION_REGEX, $k[0]['value'])) {
-            return $this->format('$###(###)', $k[0], $k[1]);
+            $k[0] = $this->pBareFun('import', $k[1]);
         }
         return $this->format('###(###)', $k[0], $k[1]);
     }
@@ -464,7 +491,7 @@ class EmitterPHP extends Emitter {
             $this->inClosureVars = false;
         }
 
-        $out = $this->format('function ### (###) ### { %%% ### return \o\ONothing::create(__METHOD__); }',
+        $out = $this->format('function ### (###) ### { %!WRAP% %!IMPLICIT% ### return \o\ONothing::create(__METHOD__); }',
           $k[0], $k[1], $closure, $this->out($k[2], true) );
 
         // wrap any lists or maps that come in as an argument
@@ -479,7 +506,15 @@ class EmitterPHP extends Emitter {
             }
         }
         $this->constantValues = [];
-        $out = preg_replace('/%%%/', $objectWrappers, $out, 1);
+        $out = preg_replace('/%!WRAP%/', $objectWrappers, $out, 1);
+
+        // Create implicit $a, $b, $c for anon functions
+        $implicitArgs = '';
+        if ($k[0]['value'] == '(ANON)') {
+            $implicitArgs = '$_all = func_get_args(); if (isset($_all[0])) { $u_a = func_get_arg(0);  if (isset($_all[1])) { $u_b = func_get_arg(1); if (isset($_all[2])) { $u_c = func_get_arg(2); }}}';
+        }
+        $out = preg_replace('/%!IMPLICIT%/', $implicitArgs, $out, 1);
+
 
         return $out;
     }
@@ -506,15 +541,17 @@ class EmitterPHP extends Emitter {
 
     // Statements
 
-    function pFor ($value, $k) {
-        if (count($k) === 1) {
-            return $this->format('while (true) {###}', $this->out($k[0], true));
-        } else if (count($k) === 4) {
-            return $this->format('foreach (### as ### => ###) {###}', $k[2], $k[0], $k[1], $this->out($k[3], true));
+    function pForEach ($value, $k) {
+        if (count($k) === 4) {
+            return $this->format('foreach (### as ### => ###) {###}', $k[0], $k[1], $k[2], $this->out($k[3], true));
         }
         else {
-            return $this->format('foreach (### as ###) {###}', $k[1], $k[0], $this->out($k[2], true));
+            return $this->format('foreach (### as ###) {###}', $k[0], $k[1], $this->out($k[2], true));
         }
+    }
+
+    function pLoop ($value, $k) {
+        return $this->format('while (true) {###}', $this->out($k[0], true));
     }
 
     function pIf ($value, $k) {
@@ -551,7 +588,6 @@ class EmitterPHP extends Emitter {
         return $c;
     }
 
-
     // Commands
 
     function pCommand ($value, $k) {
@@ -563,6 +599,10 @@ class EmitterPHP extends Emitter {
             $k[0] = '\o\ONothing::create(__METHOD__)';
         }
         return $this->format('return ###;', $k[0]);
+    }
+
+    function pLambda ($value, $k) {
+        return $this->format("function (\$u_a='',\$u_b='',\$u_c='') { return ###; }", $k[0]);
     }
 }
 

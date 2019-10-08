@@ -9,57 +9,59 @@ F factory() {
 
 class TestClass {
 
-    F new(name, id) {
+    F new($name, $id) {
 
-        @.name = name;
+        @.name = $name;
         @.state = {
-            id: id
+            id: $id
         };
 
         @.publicField = 'abc';
 
         @.dep = new OtherClass({ foo: 1, bar: 2 });
+
+      //  @.CONSTANT_FIELD = 33;
     }
 
     F getModVar {
         @@.moduleVar += 1;
-        R @@.moduleVar;
+        return @@.moduleVar;
     }
 
     F dependency {
-        R @.dep.ok();
+        return @.dep.ok();
     }
 
     F getId {
-        R @.state.id;
+        return @.state.id;
     }
 
-    F setId(id) {
-        @.state.id = id;
+    F setId($id) {
+        @.state.id = $id;
     }
 
     F getFullName() {
-        R @.name ~ ':' ~ @.id;
+        return @.name ~ ':' ~ @.id;
     }
 
     F zToString {
-        R @.getFullName();
+        return @.getFullName();
     }
 
-    F zDynamicGet(field) {
-        if (field == 'okField') {
-            R Result.ok('dynamic:' ~ field);
+    F zDynamicGet($field) {
+        if ($field == 'okField') {
+            return Result.ok('dynamic:' ~ $field);
         }
         else {
-            R Result.fail();
+            return Result.fail();
         }
     }
 
-    F zDynamicCall(methodName, args) {
-        if (methodName == 'getSecretNumber') {
-            R Result.ok(42);
+    F zDynamicCall($methodName, $args) {
+        if $methodName == 'getSecretNumber' {
+            return Result.ok(42);
         }
-        R Result.fail();
+        return Result.fail();
     }
 
     T html {

@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Perf extends StdModule {
+class u_Perf extends OStdModule {
 
     private $results = [];
     private $groupResults = [];
@@ -23,13 +23,17 @@ class u_Perf extends StdModule {
         return false;
     }
 
+    function now() {
+        return microtime(true);
+    }
+
     function u_force_active($onOff) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         $this->forceActive = $onOff;
     }
 
     function u_start ($baseTaskId, $value='') {
-        ARGS('ss', func_get_args());
+        $this->ARGS('ss', func_get_args());
         if ($this->isActive()) {
             $this->start($baseTaskId, $value);
         }
@@ -44,7 +48,7 @@ class u_Perf extends StdModule {
         $this->tasks []= [
             'task' => $taskId,
             'value' => $value,
-            'startTime' => microtime(true),
+            'startTime' => $this->now(),
             'subTaskTime' => 0,
             'subTaskMem' => 0,
             'startMemoryMb' => memory_get_usage(false),
@@ -61,7 +65,7 @@ class u_Perf extends StdModule {
         }
         $task = array_pop($this->tasks);
 
-        $timeDelta = (microtime(true) - $task['startTime']);
+        $timeDelta = $this->now() - $task['startTime'];
         $thisTimeDelta = $timeDelta - $task['subTaskTime'];
 
         $memDelta = max(0, memory_get_usage(false) - $task['startMemoryMb']);
@@ -125,7 +129,7 @@ class u_Perf extends StdModule {
         $groupResults = array_slice($groupResults, 0, 10);
 
 
-        $scriptTime = ceil((microtime(true) - Tht::getPhpGlobal('server', "REQUEST_TIME_FLOAT")) * 1000);
+        $scriptTime = ceil(($this->now() - Tht::getPhpGlobal('server', "REQUEST_TIME_FLOAT")) * 1000);
         $peakMem = round(memory_get_peak_usage(false) / 1048576, 1);
 
         return OMap::create([
@@ -149,7 +153,7 @@ class u_Perf extends StdModule {
         $results = $this->results();
 
         // Have to do this outside of results() or the audit calls will show up in the perf tasks.
-        $results['imageAudit'] = Tht::module('Image')->auditImages(Tht::path('docRoot'));
+     //   $results['imageAudit'] = Tht::module('Image')->auditImages(Tht::path('docRoot'));
 
         $thtDocLink = Tht::getThtSiteUrl('/reference/perf-score');
         $compileMessage = Compiler::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
@@ -208,12 +212,16 @@ class u_Perf extends StdModule {
             <?= $compileMessage ?>
 
             <div class="perfSection">
-            <div id="perfTotals">
+            <div class="perfTotals">
                 <div>Server - Page Execution: <span id="perfScoreServer"><?= $results['scriptTime'] ?> ms</span></div>
                 <div>Network - Transfer: <span id='perfScoreNetwork'></span></div>
                 <div>Browser - window.onLoad: <span id='perfScoreClient'></span></div>
+            </div>
+            </div>
 
-                <div style="margin:32px 0 0;">Server - Peak Memory: <span><?= $results['peakMemory'] ?> mb</span></div>
+            <div class="perfSection">
+            <div class="perfTotals">
+                <div>Server - Peak Memory: <span><?= $results['peakMemory'] ?> mb</span></div>
             </div>
             </div>
 
@@ -230,21 +238,7 @@ class u_Perf extends StdModule {
                 </div>
             </div>
 
-            <div class="perfSection">
-            <div id="perfImages">
-                <div class="perfHeader">Image Checker</div>
-                <?php if ($results['imageAudit']['numImages']) { ?>
 
-                    <p style="color: #c33; font-weight: bold">Found <b>(<?= $results['imageAudit']['numImages'] ?>)</b> images that can be optimized.</p>
-                    <p>Estimated Savings: <b><?= $results['imageAudit']['savingsKb'] ?> kb -> <?= $results['imageAudit']['savingsPercent'] ?>%</b></p>
-
-                    <p style="margin-top: 48px">To optimize, run <code>tht images</code> in your document root.</p>
-
-                <?php } else { ?>
-                    <b style="color: #393">&#10004; Great!</b> &nbsp; No un-optimized images were found in your document root.
-                <?php } ?>
-            </div>
-            </div>
 
             <div class="perfSection">
                 <div class="perfHeader">PHP Info</div>
@@ -264,6 +258,24 @@ class u_Perf extends StdModule {
         <?php
 
     }
+
+    /*
+        <div class="perfSection">
+        <div id="perfImages">
+            <div class="perfHeader">Image Checker</div>
+            <?php if ($results['imageAudit']['numImages']) { ?>
+
+                <p style="color: #c33; font-weight: bold">Found <b>(<?= $results['imageAudit']['numImages'] ?>)</b> images that can be optimized.</p>
+                <p>Estimated Savings: <b><?= $results['imageAudit']['savingsKb'] ?> kb -> <?= $results['imageAudit']['savingsPercent'] ?>%</b></p>
+
+                <p style="margin-top: 48px">To optimize, run <code>tht images</code> in your document root.</p>
+
+            <?php } else { ?>
+                <b style="color: #393">&#10004; Great!</b> &nbsp; No un-optimized images were found in your document root.
+            <?php } ?>
+        </div>
+        </div>
+    */
 
     function perfPanelJs($scriptTime) {
 
@@ -319,16 +331,17 @@ class u_Perf extends StdModule {
 
             #perfScoreTotal { font-weight: bold; }
             #perfScoreTotalLabel { margin-right: 24px; font-size: 100%; font-weight: bold;  }
-            #perfTotals { width: 400px; margin: 0px auto; white-space: nowrap; border: }
-            .perfSection { border-bottom: solid 2px #ddd; padding: 32px 0 36px; }
-            #perfTotals div { margin-bottom: 12px; width: 100%; text-align: left; }
-            #perfTotals span { font-weight: bold; float: right; }
+            .perfTotals { width: 400px; margin: 0px auto; white-space: nowrap; border: }
+            .perfSection { border-bottom: solid 2px #ddd; padding: 32px 0 34px; }
+            .perfTotals div { line-height: 2; width: 100%; text-align: left; }
+            .perfTotals span { font-weight: bold; float: right; }
             .perfHeader { font-size: 30px; font-weight: bold; text-align: center; letter-spacing: -2px }
             .perfSubHeader { font-size: 22px; font-weight: bold; text-align: center; letter-spacing: -2px }
             .perfHelp { font-size: 20px; margin-top: 16px; text-align: center; letter-spacing: -1px; }
             .perfHelp a { color: #34c !important; font-size: 90%; text-decoration: none; }
             #perfImages .perfHeader { margin-bottom: 32px }
             #perf-score-container b { color: inherit; }
+            li { line-height: 1.5; }
             </style>
         <?php
     }

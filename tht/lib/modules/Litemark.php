@@ -15,7 +15,7 @@ TODO
 
 
 
-class u_Litemark extends StdModule {
+class u_Litemark extends OStdModule {
     private $html = [];
     private $blockMode = '';
     private $blockLines = [];

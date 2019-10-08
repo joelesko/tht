@@ -1,6 +1,6 @@
 
 
-F ok(check) {
-    return 'ok:' ~ check;
+F ok($check) {
+    return 'ok:' ~ $check;
 }
 

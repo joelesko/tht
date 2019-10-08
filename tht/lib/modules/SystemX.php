@@ -5,7 +5,7 @@ namespace o;
 // Note: there is a silent error when calling require() on any file called 'System.php'.
 // Hence, the extra 'X'.
 
-class u_System extends StdModule {
+class u_System extends OStdModule {
 
     function _call ($fn, $args=[], $checkReturn=true) {
 
@@ -21,6 +21,8 @@ class u_System extends StdModule {
 
     function u_command_args () {
 
+        $this->ARGS('', func_get_args());
+
         Tht::module('Meta')->u_no_web_mode();
         Tht::module('Meta')->u_no_template_mode();
 
@@ -29,6 +31,8 @@ class u_System extends StdModule {
     }
 
     function u_command ($typedCmd, $isPassThru=false) {
+
+        $this->ARGS('*f', func_get_args());
 
         Tht::module('Meta')->u_no_web_mode();
         Tht::module('Meta')->u_no_template_mode();
@@ -51,10 +55,12 @@ class u_System extends StdModule {
     }
 
     function u_exit ($ret=0) {
+        $this->ARGS('n', func_get_args());
         Tht::exitScript($ret);
     }
 
     function u_sleep ($ms=0) {
+        $this->ARGS('n', func_get_args());
         Tht::module('Perf')->u_start('System.sleep');
         $r = u_System::_call('usleep', [$ms * 1000]);
         Tht::module('Perf')->u_stop();
@@ -63,33 +69,40 @@ class u_System extends StdModule {
     }
 
     function u_cpu_load_average () {
+        $this->ARGS('', func_get_args());
         return u_System::_call('sys_getloadavg');
     }
 
     function u_memory_usage () {
+        $this->ARGS('', func_get_args());
         $mem = u_System::_call('memory_get_usage', [true]);
         return $mem / 1048576;
     }
 
     function u_peak_memory_usage () {
+        $this->ARGS('', func_get_args());
         $mem = u_System::_call('memory_get_peak_usage', [true]);
         return $mem / 1048576;
     }
 
     function u_app_compile_time () {
+        $this->ARGS('', func_get_args());
         return Compiler::getAppCompileTime();
     }
 
     function u_start_time () {
+        $this->ARGS('', func_get_args());
         return Tht::getPhpGlobal('server', 'REQUEST_TIME');
     }
 
     function u_log_globals () {
+        $this->ARGS('', func_get_args());
         $dump = v(Tht::$rawGlobals)->u_dump();
         Tht::module('OBare')->u_log($dump);
     }
 
     function u_input () {
+        $this->ARGS('', func_get_args());
         Tht::module('Meta')->u_no_web_mode();
         return trim(fgets(STDIN));
     }
@@ -104,6 +117,17 @@ class u_System extends StdModule {
         if ($ans === 'y') { return true; }
         if ($ans === 'n') { return false; }
         return $default;
+    }
+
+    function u_os() {
+        $this->ARGS('', func_get_args());
+        $os = strtolower(PHP_OS);
+        if (substr($os, 0, 3) == 'win') {
+            return 'windows';
+        } else if ($os == 'darwin') {
+            return 'mac';
+        }
+        return $os;
     }
 
 }

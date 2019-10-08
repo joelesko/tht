@@ -2,17 +2,17 @@
 
 namespace o;
 
-class u_Web extends StdModule {
+class u_Web extends OStdModule {
 
     private $icons = null;
 
     function u_nonce () {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return Security::getNonce();
     }
 
     function u_csrf_token($asTag=false) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         $t = Security::getCsrfToken();
         if (!$asTag) {
             return $t;
@@ -24,13 +24,13 @@ class u_Web extends StdModule {
     }
 
     function u_parse_html($raw) {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         return Tht::parseTemplateString('html', $raw);
     }
 
     function u_table ($rows, $keys, $headings=[], $params=[]) {
 
-        ARGS('lllm', func_get_args());
+        $this->ARGS('lllm', func_get_args());
 
         $str = $this->openTag('table', $params);
         $rows = uv($rows);
@@ -56,7 +56,7 @@ class u_Web extends StdModule {
 
     function u_link($lUrl, $label, $params=[]) {
 
-        ARGS('*sm', func_get_args());
+        $this->ARGS('*sm', func_get_args());
 
         $url = OTypeString::getUntyped($lUrl, 'url');
 
@@ -68,7 +68,7 @@ class u_Web extends StdModule {
 
     function u_form_link($label, $actionUrl, $data, $klass='') {
 
-        ARGS('**ms', func_get_args());
+        $this->ARGS('**ms', func_get_args());
 
         $data['csrfToken'] = $this->u_csrf_token();
         $fields = '';
@@ -113,7 +113,7 @@ $fields
     }
 
     function u_breadcrumbs($links, $joiner = ' > ', $params=[]) {
-        ARGS('l*m', func_get_args());
+        $this->ARGS('l*m', func_get_args());
 
         $aLinks = [];
         foreach ($links as $l) {
@@ -228,13 +228,13 @@ $fields
     }
 
     function u_get_icons() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return array_keys($this->icons());
     }
 
     function u_icon($id) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         $icons = $this->icons();
         if (!isset($icons[$id])) { Tht::error("Unknown icon: `$id`"); }
@@ -247,7 +247,7 @@ $fields
 
     function u_mask_email($email) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         // TODO: show placeholder if not logged in user
         // if (!Tht::module('User')->u_logged_in() && $placeholder) {
@@ -274,7 +274,7 @@ $fields
     }
 
     function u_skip_hit_counter($doSkip) {
-        ARGS('f', func_get_args());
+        $this->ARGS('f', func_get_args());
         HitCounter::$skipThisPage = $doSkip;
         return $doSkip;
     }

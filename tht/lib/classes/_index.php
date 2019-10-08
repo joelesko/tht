@@ -4,10 +4,10 @@ namespace o;
 
 class LibClasses {
     static public $files = [
+        'OStdModule',
         'OClass',
         'OVar',
         'OBag',
-        'OBare',
         'OList',
         'OMap',
         'ONumber',

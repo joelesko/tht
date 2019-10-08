@@ -1,8 +1,8 @@
 
 TestModule.moduleVar = 'mod';
 
-F bareFun(name) {
-    return 'bare:' ~ name;
+F bareFun($name) {
+    return 'bare:' ~ $name;
 }
 
 F testGlobal() {

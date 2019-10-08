@@ -17,7 +17,7 @@ class OPassword extends OClass {
     }
 
     function u_hash() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         if (!$this->hash) {
             $this->hash = Security::hashPassword($this->plainText);
         }
@@ -25,12 +25,12 @@ class OPassword extends OClass {
     }
 
     function u_match($correctHash) {
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
         return Security::verifyPassword($this->plainText, $correctHash);
     }
 
     function u_danger_danger_plain_text() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         return $this->plainText;
     }
 }

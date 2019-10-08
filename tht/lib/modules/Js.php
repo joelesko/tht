@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Js extends StdModule {
+class u_Js extends OStdModule {
 
     private $jsData = [];
     private $included = [];
@@ -36,7 +36,7 @@ class u_Js extends StdModule {
 
     function u_minify ($str) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         if (!trim($str)) { return ''; }
 
@@ -185,7 +185,7 @@ EOLAZY;
         $sel      = $this->getArg($args, 1, 'pre, .tht-color-code');
         $keyWords = $this->getArg($args, 2, null);
 
-        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner|outer|cross|insert|delete|update';
+        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|switch|match|T|F|keep|use';
 
 
         $css = <<<EOCSS
@@ -241,6 +241,11 @@ EOLAZY;
             .has-color-code.theme-dark .cc-tag,
             .has-color-code.theme-dark .cc-keyword {
                 color: #f3ac5b;
+                font-weight: normal;
+            }
+
+            .has-color-code.theme-dark .cc-template-code {
+                color: #cc9ee7;
             }
 
 
@@ -292,6 +297,7 @@ EOCSS;
                 c = c.replace(/\\b(true|false)\\b/gi, '<span class=(qq)cc-value(qq)>$1</span>');
 
                 // strings
+                c = c.replace(/('''([\\w\\W]*?)''')/gm, '<span class=(qq)cc-value(qq)>$1</span>');
                 c = c.replace(/("(.*?)")/g, '<span class=(qq)cc-value(qq)>$1</span>');
                 c = c.replace(/('(.*?)'(?![a-zA-Z0-9]))/g, '<span class=(qq)cc-value(qq)>$1</span>');
 
@@ -305,10 +311,10 @@ EOCSS;
                 c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)cc-comment(qq)>$2</span>');
 
                 // template: single-line code
-                c = c.replace(/(^|\\s)((--)\s+.*)/gm, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
+                c = c.replace(/(^|\\s)((--)\s+.*)/g, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
 
                 // template: expression
-                // c = c.replace(/(\{\{(.*?)\}\})/gm, '<span class=(qq)cc-template-expr(qq)>$1</span>');
+                // c = c.replace(/(\{\{(.*?)\}\})/g, '<span class=(qq)cc-template-expr(qq)>$1</span>');
 
                 // replace quotes
                 c = c.replace(/\(qq\)/g, '"');
@@ -321,7 +327,7 @@ EOCSS;
 
 EOSYNTAX;
 
-        $js = self::u_minify($js);
+   //     $js = self::u_minify($js);
         return new JsTypeString($js);
     }
 }

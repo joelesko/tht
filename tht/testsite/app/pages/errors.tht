@@ -1,0 +1,314 @@
+//
+//  Uncomment lines to trigger errors
+//
+//------------------------------------------
+
+
+// Route Errors
+//-------------------------------
+
+// 404
+// Response.redirect(url'/sdfsdf');
+
+
+// THT Compile Errors
+//-------------------------------
+
+// format checker
+//$a=1;
+
+// misspelled keyword
+//fun foo() {}
+
+// no closing brace (parser)
+//if true {
+
+// no closing brace
+//$a = { a: 1
+
+// template tokenizer
+// T html {
+//     -- $a = 1
+// }
+
+// validation
+//$aVAR = 1;
+
+
+// scope - main
+//$a = $b + 1;
+
+// scope - in conditional
+// $a = 3;
+// if (false) {
+//     print($b);
+// }
+
+// scope - unknown
+// $a = $a + 1;
+// $a = $b + 1;
+
+
+
+// scope - in function
+// TODO - catch at compile time, write test
+// foo(1);
+// function foo($z) {
+
+//     inner();
+//     function inner() {
+//         print('hi');
+//     }
+// }
+
+// function already defined
+// F foo() {
+// }
+// F foO() {
+// }
+
+// Duplicate argument
+//function foo($aa, $aa) { }
+
+// if false {
+//     print($a);
+// }
+
+// $a = 1;
+// foreach [1] as $a {
+// }
+
+// should not leak
+// foreach [1] as $a {
+// }
+// print($a);
+
+// missing semicolon after return
+// F foo() {
+//     return 3
+// }
+
+
+// continue outside of loop
+//continue;
+
+// wrong keyword - with suggestion
+//for ($a = 1; $a < 10; $a++) { }
+
+// need suffix
+// T foo {
+// }
+
+// htmltemplatetransformer error
+// T html {
+//     <h1
+// }
+
+
+// Std Modules - unknown method
+//Json.sdfsdf();
+//System.dfsdf();
+
+
+// With stack trace
+// TODO: fix formatting of function names
+
+// Standalone expression/literals
+//$a == 123;
+//$a;
+//true
+//{}
+
+
+// unknown function
+//myFun();
+
+// wrong function case
+// myFuN();
+// function myFun() { }
+
+// bar(1);
+// F foo() {
+//     F bar($a) {
+//         print('bar' ~ $a);
+//     }
+// }
+
+
+
+// doSomething();
+// F doSomething() {
+//     doAnotherThing();
+// }
+// F doAnotherThing() {
+//     $a = {};
+//     $b = $a.foo;
+// }
+
+
+// undefined function
+//nope();
+
+
+
+// PHP Runtime Errors
+//-------------------------------
+
+// divide by zero
+//if 2 / 0: print('x');
+
+
+
+// Memory
+// $s = '';
+// foreach range(1, 10000) as $x {
+//     foreach range(1, 10000) as $y {
+//         $s ~= 'xxxxxxxxxx';
+//     }
+// }
+
+
+
+
+// THT Runtime Errors
+//-------------------------------
+
+// standard arguments (too many)
+//Math.floor(1, 1);
+
+//print('foo'.length('x'));
+
+// non-number add
+//$a = 'cat' + 3;
+
+// argument type
+// TODO: show caller line instead
+// add('cat');
+// F add($n:i) { }
+
+// List
+// $l = [];
+// print($l.first(3));
+
+// require typestring
+//Response.redirect('/');
+
+// stdmodule error
+//Json.decode('sdfsdf');
+
+// user triggered
+//die('foo');
+
+// map via bag
+// $m = {};
+// $m.foo = 123;
+
+// security
+//Php.call('eval', '');
+
+
+
+
+// PHP Shutdown Errors
+//-------------------------------
+
+// too few arguments
+// TODO: message formatting
+// go();
+// function go($a) { }
+
+//Math.cos();
+
+
+
+// Resource Errors
+//-------------------------------
+
+// Exceeded memory
+// $a = [];
+// loop {
+//     $a.push('xxx');
+//     if false: break;
+// }
+
+
+
+// Templates (Compile Time)
+//-------------------------------
+
+
+// T fooHtml {
+//     <b>hi</i>
+// }
+
+
+// T fooHtml {
+//     <b>hi</></>
+// }
+
+// T fooHtml {
+//     <SPAN>hi</>
+// }
+
+// T fooHtml {
+//     <b>>hi
+// }
+
+// T fooHtml {
+//     <b style = "">hi
+// }
+
+// T fooHtml {
+//     </>
+// }
+
+// T fooHtml {
+//     <p style="color:red>
+// }
+
+// T fooHtml {
+//     <html>
+//         <div>
+//             <b>hi</>
+//             <b>sdsdf</>
+//         </>
+
+// }
+
+// if (9 > 2 && (3 * 5 == 1) {
+//     print('sfdsd');
+// }
+
+
+// H = (C == 0 ? null :
+//     V == r ? (g - b) / C :
+//     V == g ? (b - r) / C + 2 :
+//              (r - g) / C + 4
+//     );
+
+
+// match {
+//     C == 0:   H = null;
+//     V == r:   H = (g - b) / C;
+//     V == g:   H = (b - r) / C + 2;
+//     default:  H = (r - g) / C + 4;
+// }
+
+// match H {
+//     C == 0:   null;
+//     V == r:   (g - b) / C;
+//     V == g:   (b - r) / C + 2;
+//     default:  (r - g) / C + 4;
+// }
+
+
+// H = 0;
+// if C == 0:       H = null;
+// else if V == r:  H = (g - b) / C;
+// else if V == g:  H = (b - r) / C + 2;
+// else:            H = (r - g) / C + 4;
+
+
+
+
+

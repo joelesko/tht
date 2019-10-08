@@ -43,37 +43,41 @@ class Runtime {
     static $andStack = [];
 
     static function _initSingletons () {
-        foreach (Runtime::$PHP_TO_TYPE as $php => $tht) {
+        foreach (self::$PHP_TO_TYPE as $php => $tht) {
             $c = '\\o\\' . $tht;
-            Runtime::$SINGLE[$php] = new $c ();
+            self::$SINGLE[$php] = new $c ();
         }
     }
 
     static function openTemplate ($mode) {
-        Runtime::$templateLevel += 1;
+        self::$templateLevel += 1;
         $mode = strtolower($mode);
         if (!isset(Runtime::$MODE_TO_TEMPLATE[$mode])) {
             $mode = '_default';
         }
-        $class = 'o\\' . Runtime::$MODE_TO_TEMPLATE[$mode];
+        $class = 'o\\' . self::$MODE_TO_TEMPLATE[$mode];
         return new $class ();
     }
 
     static function closeTemplate () {
-        Runtime::$templateLevel -= 1;
+        self::$templateLevel -= 1;
     }
 
     static function inTemplate () {
-        return Runtime::$templateLevel > 0;
+        return self::$templateLevel > 0;
+    }
+
+    static function resetTemplateLevel() {
+        self::$templateLevel = 0;
     }
 
     static function andPush ($result) {
-        array_push(Runtime::$andStack, $result);
+        array_push(self::$andStack, $result);
         return $result;
     }
 
     static function andPop () {
-        return array_pop(Runtime::$andStack);
+        return array_pop(self::$andStack);
     }
 
     static function concat ($a, $b) {
@@ -85,7 +89,7 @@ class Runtime {
             }
             return OTypeString::concat($a, $b);
         } else {
-            return Runtime::concatVal($a) . Runtime::concatVal($b);
+            return self::concatVal($a) . self::concatVal($b);
         }
     }
 
@@ -107,6 +111,26 @@ class Runtime {
     static function spaceship($a, $b) {
         if ($a === $b) { return 0; }
         return $a > $b ? 1 : -1;
+    }
+
+    static function match($v, $pattern) {
+
+        if ($v === $pattern) {
+            return true;
+        }
+        else if (OList::isa($pattern)) {
+            return $pattern->u_contains($v);
+        }
+        else if (ORegex::isa($pattern)) {
+            return v($v)->u_match($pattern);
+        }
+        else if ($pattern === true || $pattern === false) {
+            // EmitterPHP already optimizes this
+            return $pattern;
+        }
+        else {
+            return false;
+        }
     }
 
 }

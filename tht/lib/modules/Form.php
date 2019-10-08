@@ -4,7 +4,7 @@ namespace o;
 
 require_once('helpers/FormCreator.php');
 
-class u_Form extends StdModule {
+class u_Form extends OStdModule {
 
     use FormCreator;
 
@@ -53,12 +53,12 @@ class u_Form extends StdModule {
     }
 
     function u_fill($data) {
-        ARGS('m', func_get_args());
+        $this->ARGS('m', func_get_args());
         $this->fillData = $data;
     }
 
     function u_strings($map) {
-        ARGS('m', func_get_args());
+        $this->ARGS('m', func_get_args());
         $map = uv($map);
         foreach ($map as $k => $v) {
             if (!isset($this->strings[$k])) {
@@ -91,7 +91,7 @@ class u_Form extends StdModule {
     // --------------------------------------------------
 
     function u_done() {
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
         if (Tht::module('Session')->u_get_flash('form.done:' . $this->formId)) {
             return true;
         }
@@ -100,7 +100,7 @@ class u_Form extends StdModule {
 
     function u_is_submitted() {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         $postData = Tht::getPhpGlobal('post', '*');
 
@@ -118,7 +118,7 @@ class u_Form extends StdModule {
 
     function u_check() {
 
-        ARGS('', func_get_args());
+        $this->ARGS('', func_get_args());
 
         if (!$this->u_is_submitted()) {
             return false;
@@ -139,7 +139,7 @@ class u_Form extends StdModule {
     }
 
     function u_send_fail($errors=[]) {
-        ARGS('l', func_get_args());
+        $this->ARGS('l', func_get_args());
         Tht::module('Response')->u_send_json(OMap::create([
             'status' => 'fail',
             'errors' => uv($errors),
@@ -148,7 +148,7 @@ class u_Form extends StdModule {
     }
 
     function u_send_ok($next = '') {
-        ARGS('*', func_get_args());
+        $this->ARGS('*', func_get_args());
         Tht::module('Session')->u_set_flash('form.done:' . $this->formId, true);
         Tht::module('Response')->u_send_json(OMap::create([
             'status' => 'ok',
@@ -172,7 +172,7 @@ class u_Form extends StdModule {
 
     function u_data($fieldName=null) {
 
-        ARGS('s', func_get_args());
+        $this->ARGS('s', func_get_args());
 
         // if (!$this->u_ok()) {
         //     return is_null($fieldName) ? OMap::create([]) : '';
