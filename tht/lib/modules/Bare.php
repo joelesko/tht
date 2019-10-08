@@ -52,7 +52,7 @@ class u_Bare extends OStdModule {
 
     function u_import ($relPath) {
         $this->ARGS('s', func_get_args());
-        ModuleManager::loadUserModule($relPath);
+        return ModuleManager::loadUserModule($relPath);
     }
 
     function u_range ($start, $end, $step=1) {
