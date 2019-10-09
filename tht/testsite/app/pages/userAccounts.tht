@@ -17,10 +17,10 @@ F main() {
 
 F getUsers($doFilter) {
     $allUsers = [
-        { id: 123, name: 'Rainbow123' },
-        { id: 455, name: 'hanS0L0' },
-        { id: 567, name: 'FOOTBALL6' },
-        { id: 789, name: 'DrDoodLol' },
+        { id: 1, name: 'Puppy123' },
+        { id: 2, name: 'hanS0L0' },
+        { id: 3, name: 'FOOTBALL6' },
+        { id: 4, name: 'DrDoodLol' },
     ];
 
     return filterUsers($allUsers, true);
@@ -59,7 +59,7 @@ F filterUsers($users, $sort) {
 
 
 F formatUserName($username) {
-    return $username.toLowerCase();
+    return $username.toLower();
 }
 
 
