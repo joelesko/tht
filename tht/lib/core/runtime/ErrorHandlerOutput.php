@@ -4,6 +4,8 @@ namespace o;
 
 class ErrorHandlerOutput {
 
+    private $MAX_ARG_LENGTH = 10;
+
     function doDisplayWebErrors () {
         if (Security::isAdmin()) {
             return true;
@@ -517,7 +519,7 @@ class ErrorHandlerOutput {
 
             $argsLabel = '';
             $sepArgs = false;
-            if ($numArgs == 1 && strlen($args[0]) <= 10) {
+            if ($numArgs == 1 && strlen($args[0]) <= $this->MAX_ARG_LENGTH) {
                 $argsLabel = $args[0];
             } else if ($numArgs > 0) {
                 $sepArgs = true;
