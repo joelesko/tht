@@ -465,7 +465,7 @@ class ErrorHandlerOutput {
             // Internal PHP frame
             if ($phpFrame['class'] === 'o\\OTemplate'
                 || $phpFrame['class'] === 'o\\Tht'
-                || strpos($phpFrame['file'], '.tht') === false
+                || strpos($phpFrame['file'], '.tht.php') === false
                 || substr($fun, 0, 2) === '__'
                 || $fun == 'handlePhpRuntimeError') {
 
