@@ -7,6 +7,12 @@ require_once('helpers/RequestData.php');
 class u_Input extends OStdModule {
 
     private $forms = [];
+    private $processedUpload = [];
+
+    public static $lastUploadError = '';
+
+    static private $IMAGE_MAX_DIMENSION = 2000;
+    static private $IMAGE_JPEG_COMPRESSION = 90;
 
     // Misc Getters
 
@@ -109,5 +115,145 @@ class u_Input extends OStdModule {
         $validated = $validator->validateField($fieldName, $val, $rules);
 
         return OMap::create($validated);
+    }
+
+    function u_uploaded_file($key, $uploadDir, $allowedExts) {
+
+        $this->ARGS('ssl', func_get_args());
+
+        Security::validatePostRequest();
+        self::$lastUploadError = '';
+
+        $files = OMap::create(Tht::getPhpGlobal('files', '*'));
+
+        if (isset($files[$key])) {
+            $file = $files[$key];
+            $fileExt = Security::validateUploadedFile($file, $allowedExts);
+            if ($fileExt) {
+                $newName = Tht::module('String')->u_random(20, true) . '.' . $fileExt;
+                $newDir = Tht::path('files', $uploadDir);
+                Tht::module('File')->u_make_dir($newDir);
+                $newPath = Tht::path('files', $uploadDir, $newName);
+                move_uploaded_file($file['tmp_name'], $newPath);
+
+                $relPath = Tht::getRelativePath('files', $newPath);
+
+                return $relPath;
+            }
+        }
+
+        return '';
+    }
+
+    function u_uploaded_image($key, $uploadDir, $maxX, $maxY) {
+
+        $this->ARGS('ssnn', func_get_args());
+
+        Security::validatePostRequest();
+        self::$lastUploadError = '';
+
+        if (isset($this->processedUpload[$key])) {
+            return $this->processedUpload[$key];
+        }
+
+        // Large files can take around 40 MB
+        ini_set('memory_limit', '100M');
+
+        $tempRelPath = $this->u_uploaded_file($key, $uploadDir, OList::create(['png', 'jpg', 'jpeg', 'gif']));
+        if (!$tempRelPath) {
+            $newRelPath = '';
+        }
+        else {
+            $newRelPath = preg_replace('/\\.\\w+$/', '.jpg', $tempRelPath);
+            $ok = $this->resizeImage($tempRelPath, $newRelPath, $maxX, $maxY);
+            $newRelPath = $ok ? $newRelPath : '';
+        }
+
+        $this->processedUpload[$key] = $newRelPath;
+
+        return $newRelPath;
+    }
+
+    function resizeImage($origRelPath, $newRelPath, $maxX, $maxY) {
+
+        $this->ARGS('ssnn', func_get_args());
+
+        $origPath = Tht::path('files', $origRelPath);
+        $newPath  = Tht::path('files', $newRelPath);
+
+        list($origX, $origY) = getimagesize($origPath);
+
+        if ($origX > self::$IMAGE_MAX_DIMENSION || $origY > self::$IMAGE_MAX_DIMENSION) {
+            unlink($origPath);
+            self::$lastUploadError = 'File dimensions too large.  Maximum is ' . self::$IMAGE_MAX_DIMENSION . ' x ' . self::$IMAGE_MAX_DIMENSION;
+            return false;
+        }
+
+        $ratioX = $origX / $maxX;
+        $ratioY = $origY / $maxY;
+
+        // expand the dimension that is furthest from the max,
+        // and allow other dimension to be cropped
+        if ($ratioX < $ratioY) {
+            $newX = $maxX;
+            $newY = $origY + floor((($newX - $origX) / $origX) * $origY);
+            $shiftY = floor(($maxY - $newY) / 2);
+            $shiftX = 0;
+        } else {
+            $newY = $maxY;
+            $newX = $origX + floor((($newY - $origY) / $origY) * $origX);
+            $shiftX = floor(($maxX - $newX) / 2);
+            $shiftY = 0;
+        }
+
+        // Scale only
+        // if ($origX > $origY) {
+        //     // horizontal
+        //     $ratio = $maxX / $origX;
+        //     $newX = $maxX;
+        //     $newY = $ratio * $origY;
+        // }
+        // else {
+        //     // vertical
+        //     $ratio = $maxY / $origY;
+        //     $newY = $maxY;
+        //     $newX = $ratio * $origX;
+        // }
+
+        $type = $this->getImageType($origPath);
+        if (!$type) {
+            self::$lastUploadError = 'Unsupported image type.  Only `.jpg`, `.png`, `.gif` are allowed.';
+            return '';
+        }
+
+        $fn = 'imagecreatefrom' . $type;
+        $src = $fn($origPath);
+        $dst = imagecreatetruecolor($maxX, $maxY);
+
+        imagecopyresampled($dst, $src, $shiftX, $shiftY, 0, 0, $newX, $newY, $origX, $origY);
+
+        $ok = imagejpeg($dst, $newPath, self::$IMAGE_JPEG_COMPRESSION);
+
+        unlink($origPath);
+
+        return $ok;
+    }
+
+    function u_last_upload_error() {
+        $this->ARGS('', func_get_args());
+        return self::$lastUploadError;
+    }
+
+    function getImageType($filePath) {
+        $mime = Tht::module('*File')->u_get_mime_type($filePath);
+        $types = [
+            'image/jpeg' => 'jpeg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+        ];
+        if (!isset($types[$mime])) {
+            return '';
+        }
+        return $types[$mime];
     }
 }

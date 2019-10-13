@@ -14,8 +14,14 @@ class u_String extends OStdModule {
         return str_repeat($str, $num);
     }
 
-    function u_random ($len) {
-        $this->ARGS('n', func_get_args());
-        return Security::randomString($len);
+    function u_random ($len, $requireSafeChars = false) {
+        $this->ARGS('nf', func_get_args());
+
+        $s = Security::randomString($len);
+        if ($requireSafeChars) {
+            $s = strtr($s, '+/', '~_');
+        }
+
+        return $s;
     }
 }

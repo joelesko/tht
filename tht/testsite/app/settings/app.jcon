@@ -11,7 +11,7 @@
         timezone: America/Los_Angeles
 
         // Print performance timing info
-        showPerfPanel: true
+        showPerfPanel: false
         adminIp:
 
         memoryLimitMb: 32

@@ -4,11 +4,20 @@
 //------------------------------------------
 
 
+Response.sendHtml(html'<h1>Hello</h1>');
+
+
+Math.cos();
+
+
+
+
+
 // Route Errors
 //-------------------------------
 
 // 404
-// Response.redirect(url'/sdfsdf');
+//Response.redirect(url'/sdfsdf');
 
 
 // THT Compile Errors

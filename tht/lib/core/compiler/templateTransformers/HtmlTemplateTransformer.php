@@ -254,9 +254,9 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
         }
         else {
-            if ($this->currentTag['name'] == 'form' && preg_match('/method\s*=.*get/i', $this->currentTag['html'])) {
-                $str .= Tht::module('Web')->u_csrf_token(true)->u_stringify();
-            }
+            // if ($this->currentTag['name'] == 'form' && !preg_match('/method\s*=.*get/i', $this->currentTag['html'])) {
+            //     $str .= Tht::module('Web')->u_csrf_token(true)->u_stringify();
+            // }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
         }
 

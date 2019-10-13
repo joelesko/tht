@@ -133,3 +133,43 @@
 
     File: pages/errors.tht  Line: 24  Pos: 2
 
+[2019-10-13 13:09:03]  URL: http://localhost:8900/errors
+
+  ######### THT Runtime Error #########
+
+  Not enough arguments passed to `Math.cos()`.
+
+  10:  Math.cos();
+
+  File: pages/errors.tht  Line: 10
+
+[2019-10-13 13:09:23]  URL: http://localhost:8900/errors
+
+  ######### THT Runtime Error #########
+
+  Not enough arguments passed to `Math.cos()`.
+
+  10:  Math.cos();
+
+  File: pages/errors.tht  Line: 10
+
+[2019-10-13 13:09:24]  URL: http://localhost:8900/errors
+
+  ######### THT Runtime Error #########
+
+  Not enough arguments passed to `Math.cos()`.
+
+  10:  Math.cos();
+
+  File: pages/errors.tht  Line: 10
+
+[2019-10-13 13:09:54]  URL: http://localhost:8900/errors
+
+  ######### THT Runtime Error #########
+
+  Not enough arguments passed to `Math.cos()`.
+
+  10:  Math.cos();
+
+  File: pages/errors.tht  Line: 10
+

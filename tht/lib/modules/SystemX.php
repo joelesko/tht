@@ -101,10 +101,17 @@ class u_System extends OStdModule {
         Tht::module('OBare')->u_log($dump);
     }
 
-    function u_input () {
-        $this->ARGS('', func_get_args());
+    function u_input ($msg='', $def = '') {
+        $this->ARGS('ss', func_get_args());
+        if ($msg) {
+            print trim($msg) . " ";
+        }
         Tht::module('Meta')->u_no_web_mode();
-        return trim(fgets(STDIN));
+        $in = trim(fgets(STDIN));
+        if ($in === '') {
+            $in = $def;
+        }
+        return $in;
     }
 
     function u_confirm ($msg, $default=false) {

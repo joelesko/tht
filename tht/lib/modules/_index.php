@@ -3,6 +3,8 @@
 namespace o;
 
 require_once('helpers/InputValidator.php');
+require_once('Form.php');
+
 
 class LibModules {
     static public $files = [
@@ -35,6 +37,7 @@ class LibModules {
         'Input',
         'Settings',
         'Bare',
+        'Form',
     ];
 
     public static function load () {

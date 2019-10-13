@@ -20,6 +20,8 @@ class HitCounter {
 
         Tht::module('Perf')->u_start('tht.hitCounter');
 
+        // IF we need to suppress errors here, use
+        //   ErrorHandler::startTrapErrors() and ErrorHandler::endTrapErrors();
         self::countDate();
         self::countPage();
         self::countReferrer();
@@ -77,7 +79,7 @@ class HitCounter {
         $page = trim($page, '_') ?: 'home';
 
         $pageLogPath = self::logPath('page', $page);
-        file_put_contents($pageLogPath, '+', FILE_APPEND|LOCK_EX);
+        @file_put_contents($pageLogPath, '+', FILE_APPEND|LOCK_EX);
     }
 
     // Referrer log - 1 line per external referrer
@@ -101,7 +103,7 @@ class HitCounter {
                 $logDate = strftime('%Y%m');
                 $lineDate = strftime('%Y-%m-%d');
                 $referrerLogPath = self::logPath('referrer', $logDate);
-                file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $url->u_path() . "\n", FILE_APPEND|LOCK_EX);
+                @file_put_contents($referrerLogPath, "[$lineDate] $ref -> " . $url->u_path() . "\n", FILE_APPEND|LOCK_EX);
             }
         }
     }

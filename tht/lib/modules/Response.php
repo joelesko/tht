@@ -101,6 +101,8 @@ class u_Response extends OStdModule {
 
         $this->sentResponseType = 'json';
 
+        Tht::module('Web')->u_skip_hit_counter(true);
+
         return new \o\ONothing('sendJson');
     }
 
@@ -128,6 +130,8 @@ class u_Response extends OStdModule {
 
         $this->sentResponseType = 'css';
 
+        Tht::module('Web')->u_skip_hit_counter(true);
+
         return new \o\ONothing('sendCss');
     }
 
@@ -145,6 +149,8 @@ class u_Response extends OStdModule {
         $this->output($out);
 
         $this->sentResponseType = 'js';
+
+        Tht::module('Web')->u_skip_hit_counter(true);
 
         return new \o\ONothing('sendJs');
     }

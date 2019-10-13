@@ -2009,6 +2009,16 @@ function libFile($t) {
     $t.ok(File.appRoot().right(4) == '/app', 'appRoot');
     $t.ok(File.documentRoot().right(7) == '/public', 'documentRoot');
 
+    $t.ok(File.getMimeType('testFile.txtx') == 'text/plain', 'mime: text/plain');
+    $t.ok(File.getMimeType('testFile.pdfx') == 'application/pdf', 'mime: application/pdf');
+
+    $t.ok(File.extensionToMimeType('png') == 'image/png', 'ext to mime');
+    $t.ok(File.extensionToMimeType('.pdf') == 'application/pdf', 'ext with dot to mime');
+    $t.ok(File.extensionToMimeType('foo') == 'application/octet-stream', 'ext to mime: default');
+
+    $t.ok(File.mimeTypeToExtension('image/png') == 'png', 'mime to ext');
+    $t.ok(File.mimeTypeToExtension('text/html') == 'html', 'mime to ext: dupe');
+    $t.ok(File.mimeTypeToExtension('asdasdsd') == '', 'mime to ext: none');
 }
 
 

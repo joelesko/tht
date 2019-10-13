@@ -4,8 +4,8 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.5.1 - Beta';
-    static private $VERSION_TOKEN = '00501';
+    static private $VERSION = '0.6.0 - Beta';
+    static private $VERSION_TOKEN = '00600';
     static private $VERSION_TOKEN_PHP = '';
 
     static private $SRC_EXT = 'tht';
@@ -54,7 +54,6 @@ class Tht {
         'cache'     =>   'cache',
         'phpCache'  =>     'php',
         'kvCache'   =>     'keyValue',
-        'fileCache' =>     'fileCache',
         'counter'   =>   'counter',
         'counterPage' =>   'page',
         'counterDate' =>   'date',
@@ -120,11 +119,11 @@ class Tht {
     static private function checkRequirements() {
 
         if (PHP_VERSION_ID < 70100) {
-            print('THT Startup Error: PHP version 7.1+ is required.');
+            print('THT Startup Error: PHP version 7.1+ is required.  Current: ' . phpversion());
             exit();
         }
         else if (!extension_loaded('mbstring')) {
-            print('THT Startup Error: PHP extension `mbstring` is required.');
+            print('THT Startup Error: PHP extension `mbstring` is required. (<a href="https://askubuntu.com/questions/491629/how-to-install-php-mbstring-extension-in-ubuntu">help</a>)');
             exit();
         }
     }
@@ -219,7 +218,7 @@ class Tht {
     }
 
     static function debug () {
-        OBare::u_print(...func_get_args());
+        Tht::module('*Bare')->u_print(...func_get_args());
     }
 
     static function errorLog ($msg) {
@@ -462,7 +461,9 @@ class Tht {
             // server
             "timezone" => 'UTC',
 
-            'downtime' => ''
+            'downtime' => '',
+
+            'turboMode' => false,
         ];
 
         return $default;

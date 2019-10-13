@@ -1,0 +1,38 @@
+function main {
+    Response.sendPage({
+        body: formHtml(),
+        css: Css.plugin('base')
+    });
+}
+
+// Will get called instead of 'main' when the form is submitted.
+function post {
+    //= e.g. 'data/files/configFiles/fjwgSj73Fjs4q434q.png'
+    $path = Input.uploadedImage('photo', 'photos', 300, 300);
+
+    if $path {
+        print($path);
+    }
+    else {
+        print(Input.lastUploadError());
+    }
+}
+
+template formHtml {
+
+    <main>
+
+    <h1>> Upload Photo
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+
+        {{ Web.csrfToken(true) }}
+
+        <input type="file" name="photo" id="fileSelect">
+        <small>> Supported files: .png, .gif, or .jpg
+        <input type="submit" name="submit" value="Upload">
+
+    </>
+
+    </>
+}

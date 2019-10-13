@@ -6,10 +6,19 @@ class ErrorHandlerOutput {
 
     private $MAX_ARG_LENGTH = 10;
 
-    function doDisplayWebErrors () {
-        if (Security::isAdmin()) {
+    function doDisplayWebErrors ($error) {
+
+        return false;
+
+        if ($error['origin'] == 'tht.settings' || $error['origin'] == 'php.runtime.filePermissions') {
+            // Some essential setup errors should always be shown
             return true;
         }
+        else if (Security::isAdmin()) {
+            return true;
+        }
+
+        // Recently compiled
         return Compiler::getAppCompileTime() > time() - Tht::getConfig('showErrorPageForMins') * 60;
     }
 
@@ -27,7 +36,7 @@ class ErrorHandlerOutput {
         if (Tht::isMode('cli')) {
             $eh->printToConsole($plainOut);
         } else {
-            if ($eh->doDisplayWebErrors() || $error['origin'] == 'tht.settings') {
+            if ($eh->doDisplayWebErrors($prepError)) {
                 $eh->printToWeb($prepError);
             } else {
                 if (Tht::getConfig('logErrors')) {
@@ -63,6 +72,27 @@ class ErrorHandlerOutput {
                 $error['phpFile'] = $m[1];
                 $error['phpLine'] = $m[2];
             }
+        }
+        else if (preg_match('/file.*permission denied/i', $error['message'])) {
+
+            // TODO: Better to just wrap actual calls to file_*_contents with explicit error checking.
+            $error['message'] = $this->cleanPath($error['message']);
+            $found = preg_match('/(file_.*?)\((.*?)\)/i', $error['message'], $m);
+            $func = $found ? $m[1] : '';
+            $file = $found ? $m[2] : '';
+
+            $verb = 'accessing';
+            if ($func == 'file_get_contents') {
+                $verb = 'reading';
+            }
+            if ($func == 'file_put_contents') {
+                $verb = 'writing';
+            }
+
+            $error['origin'] .= '.filePermissions';
+            $error['message'] = "Permission denied $verb file: `$file` Try: Run `tht fix` in your app directory to update permissions.";
+            $error['phpFile'] = '';
+            $error['phpLine'] = 0;
         }
 
         $error['message'] = $this->cleanMessage($error['message']);

@@ -201,7 +201,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_replace ($find, $replace, $limit=-1) {
-        $this->ARGS('*sn', func_get_args());
+        $this->ARGS('**n', func_get_args());
         if (ORegex::isa($find)) {
             $fn = is_callable($replace) ? 'preg_replace_callback' : 'preg_replace';
             return $fn($find->getPattern(), $replace, $this->val, $limit);

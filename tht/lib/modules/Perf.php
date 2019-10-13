@@ -248,11 +248,11 @@ class u_Perf extends OStdModule {
                 <li>Opcode Cache: <b><?= $opCache ?></b></li>
                 <li>App Cache: <b><?= $appCache ?></b></li>
                 </div>
-
-
-
             </div>
 
+            <div class="perfSection">
+                Perf Panel only visible to localhost or <code>adminIp</code> in <code>settings/app.jcon</code>
+            </div>
 
         </div>
         <?php

@@ -45,7 +45,7 @@ class ORegex extends OVar {
 
 class u_Regex extends OClass {
 
-    function newObject ($pattern, $args) {
+    function newObject ($className, $args) {
         if (!isset($args[1])) {
             $args[1] = '';
         }

@@ -195,6 +195,5 @@ class ModuleManager {
 
         });
     }
-
 }
 

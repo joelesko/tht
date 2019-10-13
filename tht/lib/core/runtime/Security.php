@@ -171,7 +171,7 @@ class Security {
     static function getCsrfToken() {
         $token = Tht::module('Session')->u_get('csrfToken', '');
         if (!$token) {
-            $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
+            $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH, true);
             Tht::module('Session')->u_set('csrfToken', $token);
         }
         return $token;
@@ -257,6 +257,10 @@ class Security {
 
     static function validateFilePath ($path, $checkSandbox=true) {
 
+        if (is_uploaded_file($path)) {
+            return $path;
+        }
+
         $path = str_replace('\\', '/', $path);
         $path = preg_replace('#/{2,}#', '/', $path);
 
@@ -285,6 +289,104 @@ class Security {
         }
 
         return $path;
+    }
+
+    // Reject any file name that has evasion patterns in it and
+    // make sure the extension is in a whitelist.
+    static function validateUploadedFile($file, $allowExtensions) {
+
+        // Don't allow multiple files via []
+        if (is_array($file['error'])) {
+            u_Input::$lastUploadError = 'Duplicate file keys not allowed';
+            return fales;
+        }
+
+        if ($file['error']) {
+            if ($file['error'] == 1) {
+                u_Input::$lastUploadError = 'Max upload size exceeded.';
+            }
+            u_Input::$lastUploadError = 'Upload error: ' . $file['error'];
+            return false;
+        }
+
+        $name = $file['name'];
+
+        if (strpos($name, '..') !== false) {
+            u_Input::$lastUploadError = 'Invalid filename';
+            return false;
+        }
+        if (strpos($name, '/') !== false) {
+            u_Input::$lastUploadError = 'Invalid filename';
+            return false;
+        }
+
+        // only one extension allowed
+        $parts = explode('.', $name);
+        if (count($parts) !== 2) {
+            u_Input::$lastUploadError = 'Invalid filename';
+            return false;
+        }
+
+        // Check against whitelist of extensions
+        $uploadedExt = strtolower($parts[1]);
+        $found = false;
+        foreach ($allowExtensions as $ext) {
+            if ($uploadedExt == $ext) {
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            u_Input::$lastUploadError = "Unsupported file extension: `$uploadedExt`";
+            return false;
+        }
+
+        // Validate MIME type
+        $actualMime = Tht::module('*File')->u_get_mime_type($file['tmp_name']);
+        if (!$actualMime) {
+            u_Input::$lastUploadError = 'Unknown file type';
+            return false;
+        }
+
+        // MIME inferred from file extension
+        $extMime = Tht::module('*File')->u_extension_to_mime_type($uploadedExt);
+
+        $ok = self::validateUploadedMimeType($actualMime, $extMime);
+        if (!$ok) {
+            u_Input::$lastUploadError = "File type `$actualMime` does not match file extension `$uploadedExt`.";
+            return false;
+        }
+        else {
+            return $uploadedExt;
+        }
+    }
+
+    static function validateUploadedMimeType($actualMime, $extMime) {
+
+        list($extMimeCat, $x) = explode('/', $extMime);
+        list($actualMimeCat, $x) = explode('/', $actualMime);
+
+        if ($extMime == $actualMime) {
+            // exact match
+            return true;
+        }
+        else if ($actualMimeCat == 'text') {
+            // text is safe
+            // allow 'text/plain' for json files, which should be 'application/json'
+            return true;
+        }
+        else if ($actualMimeCat != 'application') {
+            // application must be a strict match
+            return false;
+        }
+        else if ($actualMimeCat == $extMimeCat) {
+            // <atch top-level category (e.g. 'text/html' = 'text')
+            // e.g. if we expect an image, we should get an image.
+            // This accounts for vagaries in actual mime types.
+            return true;
+        }
+
+        return false;
     }
 
     // Make sure path is under data/files
@@ -435,6 +537,7 @@ class Security {
         ini_set('max_execution_time', Tht::isMode('cli') ? 0 : intval(Tht::getConfig('maxExecutionTimeSecs')));
         ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
         ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
+
     }
 
     // Register an un-sandboxed version of File, for internal use.
@@ -626,11 +729,6 @@ class Security {
         else {
             return '';
         }
-    }
-
-    static function getFileMimeType($file) {
-        $finfo = new \finfo();
-        return $finfo->file($file, FILEINFO_MIME_TYPE);
     }
 }
 

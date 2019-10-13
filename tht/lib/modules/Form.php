@@ -30,14 +30,24 @@ class u_Form extends OStdModule {
         'firstSelectOption' => 'Select...'
     ];
 
-    function __construct($formId, $formConfig) {
+    function newObject($className, $args) {
 
-        $this->initFormConfig($formConfig);
-        $this->formId = $formId;
+        $this->ARGS('sm', $args);
+
+        $formId = $args[0];
+        $formConfig = $args[1];
 
         if (preg_match('/[^a-zA-Z0-9\-]/', $formId)) {
             Tht::error("formId should contain only letters and numbers and dashes. Got: `$formId`");
         }
+
+        $this->formId = $formId;
+        $this->initFormConfig($formConfig);
+
+        return $this;
+    }
+
+    function __construct() {
     }
 
     private function initFormConfig($formConfig) {
