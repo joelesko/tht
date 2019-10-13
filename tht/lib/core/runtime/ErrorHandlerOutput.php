@@ -8,8 +8,6 @@ class ErrorHandlerOutput {
 
     function doDisplayWebErrors ($error) {
 
-        return false;
-
         if ($error['origin'] == 'tht.settings' || $error['origin'] == 'php.runtime.filePermissions') {
             // Some essential setup errors should always be shown
             return true;
