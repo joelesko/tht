@@ -38,3 +38,19 @@ class OModule implements \JsonSerializable {
         return $this->__toString();
     }
 }
+
+// Adapter for sideloaded module calls
+class OModulePhpAdapter extends OModule {
+
+    private $mod;
+
+    function __construct ($mod) {
+        $this->mod = $mod;
+    }
+
+    function __call ($f, $args) {
+        $uf = u_($f);
+        $ret = $this->mod->__call($uf, $args);
+        return uv($ret);
+    }
+}

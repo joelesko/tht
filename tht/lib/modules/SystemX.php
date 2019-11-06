@@ -95,12 +95,6 @@ class u_System extends OStdModule {
         return Tht::getPhpGlobal('server', 'REQUEST_TIME');
     }
 
-    function u_log_globals () {
-        $this->ARGS('', func_get_args());
-        $dump = v(Tht::$rawGlobals)->u_dump();
-        Tht::module('OBare')->u_log($dump);
-    }
-
     function u_input ($msg='', $def = '') {
         $this->ARGS('ss', func_get_args());
         if ($msg) {
@@ -112,6 +106,13 @@ class u_System extends OStdModule {
             $in = $def;
         }
         return $in;
+    }
+
+    function u_env_var ($key, $default = '') {
+        $this->ARGS('ss', func_get_args());
+        Tht::module('Meta')->u_no_template_mode();
+        $val = getenv($key);
+        return $val === false ? $default : $val;
     }
 
     function u_confirm ($msg, $default=false) {

@@ -13,4 +13,20 @@ F testModuleVar() {
     return 'moduleVar:' ~ TestModule.moduleVar;
 }
 
+F write($t) {
+    Response.sendHtml(goHtml($t));
+}
+
+F getMap() {
+    return {
+        list: [1, 2, 3],
+        str: 'Hello world!'
+    };
+}
+
+T goHtml($thing) {
+    <h1>> GO {{ $thing }}
+}
+
+
 

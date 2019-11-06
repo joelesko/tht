@@ -893,12 +893,56 @@ function testMaps($t) {
     $t.parserError('$a = {};\nprint($a.$a)', 'square brackets');
 
 
-    $t.section('Lists & Maps - Empty Values');
+    $t.section('Lists & Maps');
 
     $t.ok([].isEmpty(), 'empty list');
     $t.ok({}.isEmpty(), 'empty map');
     $t.ok(![1, 2, 3].isEmpty(), 'non-empty list');
     $t.ok(!{ foo: 0 }.isEmpty(), 'non-empty map');
+
+
+    // Deep copy List
+    $nested = [1, [2, 3], { a: 4 }, { l: [5, 6] }];
+    $dcopy = $nested.copy();
+
+    $dcopy[0] += 1;
+    $dcopy[1][0] += 1;
+    $dcopy[2].a += 1;
+    $dcopy[3].l[1] += 1;
+
+    $njson = Json.encode($nested);
+    $dcJson = Json.encode($dcopy);
+    $t.ok($njson == '[1,[2,3],{"a":4},{"l":[5,6]}]', 'deep copy - list - orig unchanged');
+    $t.ok($dcJson == '[2,[3,3],{"a":5},{"l":[5,7]}]', 'deep copy - list - modified copy');
+
+
+    // Deep copy Map
+    $nestMap = { a: 1, l: [2, 3], m: { a: [4, 5] } };
+    $mapCopy = $nestMap.copy();
+
+    $mapCopy.a += 1;
+    $mapCopy.l[1] += 1;
+    $mapCopy.m.a[1] += 1;
+    $mapCopy.m['b'] = 9;
+
+    $mapJson = Json.encode($nestMap);
+    $copyJson = Json.encode($mapCopy);
+
+    $t.ok($mapJson == '{"a":1,"l":[2,3],"m":{"a":[4,5]}}', 'deep copy - map - orig unchanged');
+    $okJson = '{"a":2,"l":[2,4],"m":{"a":[4,6],"b":9}}';
+    $t.ok($copyJson == $okJson, 'deep copy - map - modified copy');
+
+
+    // Deep copy by reference
+    $nestMap = { a: 1, l: [2, 3], m: { a: [4, 5] } };
+    $mapRefCopy = $nestMap.copy(true);
+    $mapRefCopy.m.a[1] = 99;
+    $t.ok($nestMap.m.a[1] == 99, 'copy by reference - map');
+
+    $nestList = [1, [2, 3], { a: 4 }, { l: [5, 6] }];
+    $listRefCopy = $nestList.copy(true);
+    $listRefCopy[3].l[1] = 999;
+    $t.ok($nestList[3].l[1] == 999, 'copy by reference - list');
 
 }
 
@@ -2508,7 +2552,16 @@ function libSystem($t) {
 
     $t.section('Module: System');
 
-    // $t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command');
+    $t.ok(System.envVar('USER') != false, 'envVar');
+    $t.ok(System.envVar('DFSDFHJSF') == '', 'envVar - missing');
+    $t.ok(System.envVar('DFSDFHJSF', 'def') == 'def', 'envVar - default');
+    $t.ok(System.startTime() > 10000000, 'startTime');
+    $t.ok(System.memoryUsage() > 0, 'memoryUsage');
+    $t.ok(System.peakMemoryUsage() > 0, 'peakMemoryUsage');
+    $t.ok(System.os().match(r'(mac|windows|linux)'), 'os');
+
+    // Can't be called in webMode
+    //$t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command');
 }
 
 // TODO: This is all hardcoded to my local setup
@@ -2537,7 +2590,7 @@ function libRequest($t) {
 
 //========
 
-template templateHtml($users) {
+T templateHtml($users) {
 
     <b>> Hello
     -- foreach $users as $u {
@@ -2546,62 +2599,62 @@ template templateHtml($users) {
 
 }
 
-template dataJs($d) {
+T dataJs($d) {
     $d =  {{ $d }};
 }
 
-template entHtml() {
+T entHtml() {
     <p>> 2 &gt; 1
 }
 
-template formatBlockHtml() {
+T formatBlockHtml() {
     <p>>>
         <foo>
     </>
 }
 
-template bsHtml() {
+T bsHtml() {
     a\nb\nc
 }
 
-template jsHtml() {
+T jsHtml() {
     <script nonce="{{ Web.nonce() }}">
     var a = '&lt;a\nb\nc';
     </>
 }
 
-template expHtml($inner, $outer) {
+T expHtml($inner, $outer) {
     <p "{{ $inner }}">> {{ $outer }}
 }
 
-template tagsHtml($exp) {
+T tagsHtml($exp) {
     {{ $exp }}
 }
 
-template inCss() {
+T inCss() {
     font-weight: bold;
 }
 
-template inJs() {
+T inJs() {
     var a = 1;
 }
 
-template tagHtml($val) {
+T tagHtml($val) {
     <p>> {{ $val }}
 }
 
-template expCss($inp) {
+T expCss($inp) {
     font-weight: {{ $inp }};
 }
 
 //======
 
 
-function dynamicFunction($a) {
+F dynamicFunction($a) {
     return $a ~ '!!!';
 }
 
-function noReturn() {
+F noReturn() {
 
 }
 

@@ -9,8 +9,15 @@ class WebMode {
 
     static private $requestHeaders = [];
     static private $routeParams = [];
+    static private $sideloadPage = '';
 
-    static public function main() {
+    static public function main($sideloadPage = false) {
+
+        self::$sideloadPage = $sideloadPage;
+
+        if (self::serveStaticFile()) {
+            return false;
+        }
 
         Security::initResponseHeaders();
 
@@ -25,6 +32,43 @@ class WebMode {
 
         PrintBuffer::flush();
         HitCounter::add();
+
+        self::printPerf();
+
+        return true;
+    }
+
+    // Serve directly if requested a static file in testServer mode
+    static private function serveStaticFile() {
+
+        if (Tht::isMode('testServer')) {
+
+            // Dotted filename
+            if (preg_match('/\.[a-z0-9]{2,}$/', $_SERVER['SCRIPT_NAME'])) {
+                return true;
+            }
+
+            // Need to construct path manually.
+            // See: https://github.com/joelesko/tht/issues/2
+            $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
+            if ($_SERVER['SCRIPT_NAME'] !== '/' && file_exists($path)) {
+                if (is_dir($path)) {
+                    // just a warning
+                    Tht::startupError("Path `$path` can not be a page and also a directory under Document Root.");
+                }
+                // is a static file
+                if (!is_dir($path)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    static private function printPerf () {
+        if (!Tht::module('Request')->u_is_ajax() && Tht::module('Response')->sentResponseType == 'html') {
+            Tht::module('Perf')->printResults();
+        }
     }
 
     static private function downtimePage($file) {
@@ -74,6 +118,9 @@ class WebMode {
     }
 
     static private function getScriptPath() {
+        if (self::$sideloadPage) {
+            return self::$sideloadPage;
+        }
         $path = Tht::module('Request')->u_url()->u_path();
         Security::validateRoutePath($path);
         return $path;
@@ -254,6 +301,7 @@ class WebMode {
                 ErrorHandler::setTopLevelFunction($controllerFile, $callFunction);
 
                 $ret = call_user_func($callFunction);
+
                 if (UrlTypeString::isa($ret)) {
                     Tht::module('Response')->u_redirect($ret);
                 }
@@ -273,7 +321,7 @@ class WebMode {
     static public function getWebRouteParam ($key) {
         if (!isset(self::$routeParams[$key])) {
             if (Security::isAdmin()) {
-                throw new ThtException ("Route param '$key' does not exist.");
+                Tht::error("Route param '$key' does not exist.");
             } else {
                 Tht::module('Response')->u_send_error(404);
             }

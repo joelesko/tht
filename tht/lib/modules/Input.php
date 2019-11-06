@@ -84,14 +84,11 @@ class u_Input extends OStdModule {
         return $getter->fields($rules);
     }
 
-    function u_print_all($method, $printToLog = false) {
-        $this->ARGS('sf', func_get_args());
-        $all = OMap::create(Tht::getPhpGlobal($method, '*'));
-        if ($printToLog) {
-            Tht::module('File')->u_log($all);
-        } else {
-            Tht::module('*Bare')->u_print($all);
-        }
+    function u_print_all($method) {
+        $this->ARGS('s', func_get_args());
+        $data = Tht::getPhpGlobal($method, '*', []);
+        $all = OMap::create($data);
+        Security::safePrint($all);
     }
 
 

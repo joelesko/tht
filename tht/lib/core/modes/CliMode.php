@@ -18,7 +18,7 @@ class CliMode {
 
     static private $FRONT_PATH_APP     = '../app';
     static private $FRONT_PATH_DATA    = '../app/data';
-    static private $FRONT_PATH_RUNTIME = '../app/.tht/bin/tht.php';
+    static private $FRONT_PATH_RUNTIME = '../app/.tht/main/tht.php';
 
 
     static private $options = [];
@@ -419,7 +419,9 @@ class CliMode {
                         //     server: localhost
                         //     database: example
                         //     username: dbuser
-                        //     password: 12345
+                        //
+                        //     Set password in Environment variable: 'THT_DB_PASSWORD_(KEY)'
+                        //     e.g. THT_DB_PASSWORD_EXAMPLEDB=\"myp@ssw0rd\"
                         // }
                     }
                 }

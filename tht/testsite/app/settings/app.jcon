@@ -19,9 +19,9 @@
         _coreDevMode: false
 
         hitCounter: false
+        compressOutput: true
 
-        sendErrors: true
-        _sendErrorUrl: http://localhost:8999/remote/error
+        sendErrors: false
     }
 
     // Custom app settings.  Read via `Global.setting(key)`

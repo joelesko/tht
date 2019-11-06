@@ -70,6 +70,17 @@ class Security {
         return false;
     }
 
+    // Print sensitive data.  Only print to log if not in Admin mode.
+    static function safePrint($data) {
+        if (Security::isAdmin()) {
+            Tht::module('Bare')->u_print($data);
+        }
+        else {
+            Tht::module('Bare')->u_print('Info written to `data/files/app.log`');
+            Tht::module('Bare')->u_log($data);
+        }
+    }
+
     // Filter super globals and move them to internal data
     static function initRequestData () {
 
@@ -79,13 +90,9 @@ class Security {
             'cookie'  => $_COOKIE,
             'files'   => $_FILES,
             'server'  => $_SERVER,
+            'env'     => $_ENV,
             'headers' => self::initHttpRequestHeaders($_SERVER),
         ];
-
-        // Only keep ENV for CLI mode.  In Web mode, config should happen in app.jcon.
-        if (Tht::isMode('cli')) {
-            $data['env'] = $_ENV;
-        }
 
         if (isset($data['headers']['content-type']) && $data['headers']['content-type'] == 'application/json') {
             $raw = file_get_contents("php://input");
@@ -97,17 +104,17 @@ class Security {
             unset($HTTP_RAW_POST_DATA);
         }
 
-
-        // remove all php globals
-        unset($_ENV);
-        unset($_REQUEST);
-        unset($_GET);
-        unset($_POST);
+        // Remove all php globals
+        // TODO: re-adding to enable PHP interop linbraries... revisit this.
+        // unset($_ENV);
+        // unset($_REQUEST);
+        // unset($_GET);
+        // unset($_POST);
         // unset($_COOKIE);  // keep this for Session
-        unset($_FILES);
-        unset($_SERVER);
+        // unset($_FILES);
+        // unset($_SERVER);
 
-        $GLOBALS = null;
+        //$GLOBALS = null;
 
         return $data;
     }
@@ -181,7 +188,6 @@ class Security {
         if (!self::$CSP_NONCE) {
             self::$CSP_NONCE = self::randomString(self::$NONCE_LENGTH);
         }
-
         return self::$CSP_NONCE;
     }
 
@@ -487,11 +493,16 @@ class Security {
 
     static function initResponseHeaders () {
 
+        if (headers_sent($atFile, $atLine)) {
+            Tht::startupError('Headers Already Sent');
+        }
+
         // Set response headers
         header_remove('Server');
         header_remove("X-Powered-By");
         header('X-Frame-Options: deny');
         header('X-Content-Type-Options: nosniff');
+        header("X-UA-Compatible: IE=Edge");
         header("X-UA-Compatible: IE=Edge");
 
         // HSTS - 1 year duration

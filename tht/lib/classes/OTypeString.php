@@ -61,7 +61,7 @@ abstract class OTypeString extends OVar {
     static function getUntyped ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            self::staticError("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
+            self::staticError("`$caller` must be passed a TypeString.  Try: `$type'...'`");
         }
         return self::_getUntyped($s, $type, false);
     }
@@ -69,7 +69,7 @@ abstract class OTypeString extends OVar {
     static function getUntypedRaw ($s, $type) {
         if (!OTypeString::isa($s)) {
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
-            self::staticError("`$caller` must be passed a TypeString.  Ex: `$type'...'`");
+            self::staticError("`$caller` must be passed a TypeString.  Try: `$type'...'`");
         }
         return self::_getUntyped($s, $type, true);
     }

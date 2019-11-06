@@ -11,6 +11,9 @@ At this early stage, I am mainly open to the following contributions:
 - Unit test coverage (see the `testsite` readme)
 - Security testing & feedback. Most sensitive operations are in `Security.php`.
 
+
+
+
 And support/compatibility for:
 - Windows
 - Nginx/PHP-FPM

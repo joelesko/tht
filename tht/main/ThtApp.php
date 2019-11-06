@@ -6,7 +6,7 @@ namespace o;
 require dirname(__FILE__) . '/../lib/core/Tht.php';
 
 // Run app
-$thtReturnStatus = Tht::start();
+$thtReturnStatus = Tht::main();
 
 return $thtReturnStatus;
 

@@ -13,6 +13,8 @@ class StartupError extends \Exception {}
 
 class ErrorHandler {
 
+    static private $MEMORY_BUFFER_KB = 1;
+
     static private $trapErrors = false;
     static private $trappedError = null;
     static private $errorDoc = null;
@@ -20,6 +22,40 @@ class ErrorHandler {
     static private $subOrigins = [];
     static private $topLevelFunction = [];
     static private $objectDetails = [];
+    static private $memoryBuffer = '';
+
+    static private function initErrorHandler () {
+
+        // Reserve memory in case of out-of-memory error. Enough to call handleShutdown.
+        self::$memoryBuffer = str_repeat('*', self::$MEMORY_BUFFER_KB * 1024);
+
+        set_error_handler('\o\ErrorHandler::handlePhpRuntimeError');
+        register_shutdown_function('\o\Tht::handleShutdown');
+    }
+
+    static function catchErrors($fnCallback) {
+
+        self::initErrorHandler();
+
+        try {
+            return $fnCallback();
+        }
+        catch (StartupError $e) {
+            self::handleStartupError($e);
+        }
+        catch (\ArgumentCountError $e) {
+            // Internal exceptions
+            self::handleThtRuntimeError($e);
+        }
+        catch (\Exception $e) {
+            // User exceptions
+            self::handleThtRuntimeError($e);
+        }
+        catch (\Error $e) {
+            // Internal exceptions
+            self::handleThtRuntimeError($e);
+        }
+    }
 
     static function addOrigin($c) {
         self::$origins []= $c;
@@ -72,6 +108,10 @@ class ErrorHandler {
         self::$errorDoc = ['link' => $link, 'name' => $name];
     }
 
+    static private function clearMemoryBuffer() {
+        self::$memoryBuffer = '';
+    }
+
     static function printError($e) {
 
         if (ErrorHandler::$trapErrors) {
@@ -96,6 +136,13 @@ class ErrorHandler {
         require_once(__DIR__ . '/../runtime/ErrorHandlerOutput.php');
 
         ErrorHandlerOutput::printError($e);
+    }
+
+    static function printInlineWarning($msg) {
+        $msg = htmlspecialchars($msg);
+        print '<div style="background-color: #a33; color: white; font-size: 20px; padding: 16px 16px; font-family: sans-serif;">';
+        print "THT Warning: " . $msg;
+        print '</div>';
     }
 
     static function initOrigin($e) {
@@ -201,7 +248,6 @@ class ErrorHandler {
         try {
             $tUrl = new UrlTypeString(Tht::getConfig('_sendErrorUrl'));
             $res = Tht::module('Net')->u_http_post($tUrl, OMap::create($error));
-            print_r($res);
         }
         catch (\Exception $e) {
             // Drop on floor
@@ -307,11 +353,13 @@ class ErrorHandler {
     }
 
     // Triggered by Tht::error
-    static function handleThtRuntimeError ($error, $sourceFile) {
+    static function handleThtRuntimeError ($error) {
 
         $trace = $error->getTrace();
         $frame = [];
 
+        // Find the first frame within THT space
+        // Otherwise line is always "throw new ThtError"
         foreach ($trace as $f) {
             if (!isset($f['file'])) {
                 $f['file'] = '(anon)';
@@ -321,12 +369,13 @@ class ErrorHandler {
                 break;
             }
         }
+
         self::printError([
             'category' => 'runtime',
             'origin'  => 'tht.runtime',
             'message' => $error->getMessage(),
-            'phpFile' => isset($f['file']) ? $f['file'] : '',
-            'phpLine' => isset($f['line']) ? $f['line'] : '',
+            'phpFile' => isset($frame['file']) ? $frame['file'] : '',
+            'phpLine' => isset($frame['line']) ? $frame['line'] : '',
             'trace'   => $trace
         ]);
     }

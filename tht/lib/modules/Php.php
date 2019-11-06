@@ -4,6 +4,11 @@ namespace o;
 
 class u_Php extends OStdModule {
 
+    protected $suggestMethod = [
+        'import'   => 'require()',
+        'include' => 'require()',
+    ];
+
     private $isRequired = [];
     private $phpFunctionOk = [];
 

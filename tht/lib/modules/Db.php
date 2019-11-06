@@ -29,10 +29,16 @@ class u_Db extends OStdModule {
             }
             $dbh = new \PDO('sqlite:' . $dbFilePath);
         } else {
+            $envKey = strtoupper('tht_db_password_' . $dbId);
+            $password = getenv($envKey);
+            if ($password !== false) {
+                ErrorHandler::setErrorDoc('https://tht-lang.org/manual/module/db#passwords', 'Database Passwords');
+                Tht::configError("Missing password in environment variable: `$envKey`.");
+            }
              $dbh = new \PDO(
                  $dbConfig['driver'] . ':host=' . $dbConfig['server'] . ';dbname=' . $dbConfig['database'],
                  $dbConfig['username'],
-                 $dbConfig['password'],
+                 $password,
                  array(\PDO::ATTR_PERSISTENT => false)
              );
         }

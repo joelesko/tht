@@ -28,10 +28,20 @@ class OList extends OBag {
         return $l;
     }
 
-    function u_copy() {
-        $this->ARGS('', func_get_args());
+    function u_copy($useReferences = false) {
+        $this->ARGS('f', func_get_args());
+
         // php apparently copies the array when assigned to a new var
         $a = $this->val;
+
+        if (!$useReferences) {
+            foreach ($a as $k => $el) {
+                if (OBag::isa($el)) {
+                    $a[$k] = $el->u_copy(false);
+                }
+            }
+        }
+
         return OList::create($a);
     }
 

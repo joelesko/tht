@@ -80,10 +80,11 @@ class ModuleManager {
         return self::getModule($name);
     }
 
-    static function getModule ($modName) {
+    static function getModule ($modName, $isSideload = false) {
 
-        if (isset(self::$moduleCache[$modName])) {
-            return self::$moduleCache[$modName];
+        $cacheKey = $modName . ($isSideload ? '_side' : '');
+        if (isset(self::$moduleCache[$cacheKey])) {
+            return self::$moduleCache[$cacheKey];
         }
 
         // Already loaded user module
@@ -101,7 +102,12 @@ class ModuleManager {
             $mod = self::loadUserModule($cleanModName);
         }
 
-        self::$moduleCache[$modName] = $mod;
+        if ($isSideload) {
+            // Wrap in adapter
+            $mod = new \o\OModulePhpAdapter($mod);
+        }
+
+        self::$moduleCache[$cacheKey] = $mod;
 
         return $mod;
     }

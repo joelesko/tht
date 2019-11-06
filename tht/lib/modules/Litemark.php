@@ -163,7 +163,10 @@ class u_Litemark extends OStdModule {
 
         // look up command by arity
         $key = $cmd . ($right ? count($args) : 0);
-        if (! isset($this->commands[$key])) {
+        if (!isset($this->commands[$key])) {
+            if (isset($this->commands[strtolower($key)])) {
+                $key .= " - tag name must be lower case";
+            }
             return "[? $key ?]";
         }
         $template = $this->commands[$key];

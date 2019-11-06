@@ -31,6 +31,10 @@ class u_Response extends OStdModule {
     function u_set_header ($name, $value, $multiple=false) {
         $this->ARGS('ssf', func_get_args());
 
+        if ($this->hasPreOutput()) {
+            $this->error("Can't set response header because output was already sent: `$name: $value`");
+        }
+
         $value = preg_replace('/\s+/', ' ', $value);
         $name = preg_replace('/[^a-z0-9\-]/', '', strtolower($name));
         header($name . ': ' . $value, !$multiple);
@@ -96,7 +100,7 @@ class u_Response extends OStdModule {
     function u_send_json ($map) {
         $this->ARGS('m', func_get_args());
 
-        $this->u_set_header('Content-Type', 'application/json');
+        $this->u_set_header('Content-Type', 'application/json; charset=utf-8');
         $this->output(json_encode(uv($map)));
 
         $this->sentResponseType = 'json';
@@ -109,7 +113,7 @@ class u_Response extends OStdModule {
     function u_send_text ($text) {
         $this->ARGS('s', func_get_args());
 
-        $this->u_set_header('Content-Type', 'text/plain');
+        $this->u_set_header('Content-Type', 'text/plain; charset=utf-8');
 
         $this->output($text);
 
@@ -122,7 +126,7 @@ class u_Response extends OStdModule {
 
         $this->ARGS('*', func_get_args());
 
-        $this->u_set_header('Content-Type', 'text/css');
+        $this->u_set_header('Content-Type', 'text/css; charset=utf-8');
         $this->u_set_cache_header();
 
         $out = $this->renderChunks($chunks);
@@ -139,7 +143,7 @@ class u_Response extends OStdModule {
 
         $this->ARGS('*', func_get_args());
 
-        $this->u_set_header('Content-Type', 'application/javascript');
+        $this->u_set_header('Content-Type', 'application/javascript; charset=utf-8');
         $this->u_set_cache_header();
 
         $out = "(function(){\n";
@@ -295,7 +299,7 @@ HTML;
     function headTag($val, $template) {
         if (!$val) { return ''; }
         $tHtml = OTypeString::create('html', $template);
-        return $tHtml->u_fill(OMap::create(['url' => $val]))->u_stringify();
+        return $tHtml->u_fill(OMap::create(['url' => $val]))->u_stringify() . "\n";
     }
 
     // print css & js tags
@@ -319,7 +323,7 @@ HTML;
         foreach ($paths as $path) {
 
             if (!OTypeString::isa($path)) {
-                Tht::error("Path must be a `url` or `$type` TypeString: `$path`");
+                $this->error("Path must be a `url` or `$type` TypeString: `$path`");
             }
 
             if (HtmlTypeString::isa($path)) {
@@ -373,10 +377,12 @@ HTML;
         return $sIncludes . "\n" . $sBlocks;
     }
 
-
     function startGzip ($forceGzip=false) {
         if ($this->gzipBufferOpen) { return; }
         if ($forceGzip || Tht::getConfig('compressOutput')) {
+            if ($this->hasPreOutput()) {
+                ErrorHandler::printInlineWarning('Can\'t enable GZIP compression (Response module) because output was already sent. Solution: Either delay this output or set `compressOutput` = `false` in `app.jcon` (not recommended).');
+            }
             ob_start("ob_gzhandler");
         }
         $this->gzipBufferOpen = true;
@@ -388,5 +394,9 @@ HTML;
         }
     }
 
-
+    function hasPreOutput() {
+        $ob = ob_get_length();
+        ob_flush();
+        return $ob || headers_sent($atFile, $atLine);
+    }
 }

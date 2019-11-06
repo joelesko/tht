@@ -3,11 +3,35 @@
 //
 //------------------------------------------
 
+// common stdlib errors
+// - mis-spelled function
+// - not enough args
+// - too many args
+// - lowercase module name
+// - args in wrong order
+// - wrong type as arg
+// - expected TypeString as arg
 
-Response.sendHtml(html'<h1>Hello</h1>');
+// common map errors
+// - wrong key case
+// - misspelled key
+
+// object details
+//  - map keys
+//  - object fields
+//  - object methods
+//  - module methods
 
 
-Math.cos();
+//------------------------------------------
+
+
+
+
+//Response.sendHtml(html'<h1>Hello</h1>');
+
+
+//Math.cos();
 
 
 
@@ -55,20 +79,7 @@ Math.cos();
 
 // scope - unknown
 // $a = $a + 1;
-// $a = $b + 1;
 
-
-
-// scope - in function
-// TODO - catch at compile time, write test
-// foo(1);
-// function foo($z) {
-
-//     inner();
-//     function inner() {
-//         print('hi');
-//     }
-// }
 
 // function already defined
 // F foo() {
@@ -191,7 +202,6 @@ Math.cos();
 //$a = 'cat' + 3;
 
 // argument type
-// TODO: show caller line instead
 // add('cat');
 // F add($n:i) { }
 
@@ -215,6 +225,16 @@ Math.cos();
 // security
 //Php.call('eval', '');
 
+// scope - in function
+// TODO - catch at compile time, write test
+// foo(1);
+// function foo($z) {
+
+//     inner();
+//     function inner() {
+//         print('hi');
+//     }
+// }
 
 
 

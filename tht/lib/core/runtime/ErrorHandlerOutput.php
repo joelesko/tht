@@ -71,11 +71,11 @@ class ErrorHandlerOutput {
                 $error['phpLine'] = $m[2];
             }
         }
-        else if (preg_match('/file.*permission denied/i', $error['message'])) {
+        else if (preg_match('/permission denied/i', $error['message'])) {
 
-            // TODO: Better to just wrap actual calls to file_*_contents with explicit error checking.
+            // TODO: Better to just wrap actual calls to file_*_contents|touch with explicit error checking.
             $error['message'] = $this->cleanPath($error['message']);
-            $found = preg_match('/(file_.*?)\((.*?)\)/i', $error['message'], $m);
+            $found = preg_match('/(file_.*?|touch)\((.*?)\)/i', $error['message'], $m);
             $func = $found ? $m[1] : '';
             $file = $found ? $m[2] : '';
 
@@ -83,7 +83,7 @@ class ErrorHandlerOutput {
             if ($func == 'file_get_contents') {
                 $verb = 'reading';
             }
-            if ($func == 'file_put_contents') {
+            if ($func == 'file_put_contents' || $func == 'touch') {
                 $verb = 'writing';
             }
 
@@ -119,7 +119,7 @@ class ErrorHandlerOutput {
 
         $error['title'] = 'THT ' . ucfirst($error['category']) . ' Error';
 
-        if ($error['subOrigin'] == 'formatChecker') {
+        if ($error['origin'] == 'tht.compiler.parser.formatChecker') {
             $error['errorDoc'] = [ 'link' => '/reference/format-checker', 'name' => 'Format Checker'];
         }
 
@@ -309,6 +309,7 @@ class ErrorHandlerOutput {
     /////////  UTILS
 
 
+    // Get the THT source position
     static function phpToSrc ($phpFile, $phpLine) {
 
         $phpCode = file_get_contents($phpFile);
@@ -322,7 +323,11 @@ class ErrorHandlerOutput {
                     $json = $match[1];
                     $map = json_decode($json, true);
                     if (isset($map[$phpLine])) {
-                        $src = [ 'file' => $map['file'], 'line' => $map[$phpLine], 'pos' => null ];
+                        $src = [
+                            'file' => $map['file'],
+                            'line' => $map[$phpLine],
+                            'pos' => null
+                        ];
                         return $src;
                     }
                     break;
@@ -461,14 +466,10 @@ class ErrorHandlerOutput {
         };
 
         $clean = $raw;
-        $clean = preg_replace('/o\\\\/', '', $clean);                       // o namespace
-        $clean = preg_replace('/tht.*?\\\\/', '', $clean);                  // tht namespage
-        $clean = preg_replace_callback('/u_([a-zA-Z_]+)/', $fnCamel, $clean);  // to camelCase
-        $clean = preg_replace('/(?<=\w)::/', '.', $clean);                  // :: to dot .
-        $clean = preg_replace('/->/', '.', $clean);                         // -> to dot .
-        $clean = preg_replace('/\bO(?=[A-Z][a-z])/', '', $clean);           // internal classes e.g. "OString"
-        $clean = preg_replace('/\bu_/', '', $clean);                        // u_ prefix
-        $clean = preg_replace('#[a-zA-Z0-9_\\\\]*\\\\#', '', $clean);       // namespace
+        $clean = preg_replace('#[a-zA-Z0-9_\\\\]*\\\\#', '', $clean);            // namespace
+        $clean = preg_replace_callback('/\bu_([a-zA-Z_]+)/', $fnCamel, $clean);  // to camelCase
+        $clean = preg_replace('/(?<=\w)(::|->)/', '.', $clean);                  // to dot .
+        $clean = preg_replace('/\bO(?=[A-Z][a-z])/', '', $clean);                // internal classes e.g. "OString"
 
         return $clean;
     }
@@ -478,34 +479,12 @@ class ErrorHandlerOutput {
         return $path;
     }
 
-    // TODO: refactor/cleanup
+    // TODO: unit tests
     function cleanTrace ($entryFun, $trace, $showPhp=false) {
 
         $out = '';
 
-        $filterTrace = [];
-        foreach ($trace as $phpFrame) {
-            if (! isset($phpFrame['file'])) { continue; }
-
-            $phpFrame['class'] = isset($phpFrame['class']) ? $phpFrame['class'] : '';
-            $phpFrame['function'] = $fun = $this->cleanVars($phpFrame['function']);
-
-            // Internal PHP frame
-            if ($phpFrame['class'] === 'o\\OTemplate'
-                || $phpFrame['class'] === 'o\\Tht'
-                || strpos($phpFrame['file'], '.tht.php') === false
-                || substr($fun, 0, 2) === '__'
-                || $fun == 'handlePhpRuntimeError') {
-
-                $phpFrame['args'] = [];
-                if (!Tht::getConfig('_coreDevMode') && !$showPhp) {
-                    continue;
-                }
-            }
-
-            $filterTrace []= $phpFrame;
-        }
-
+        $filterTrace = $this->filterTrace($trace, $showPhp);
         if (!count($filterTrace)) {
             return "";
         }
@@ -518,10 +497,10 @@ class ErrorHandlerOutput {
         $frameNum = 0;
         foreach (array_reverse($filterTrace) as $phpFrame) {
 
+            $frameNum += 1;
+
             $file = $this->cleanPath(Tht::getThtPathForPhp($phpFrame['file']));
             $file = preg_replace('/\.tht$/', '', $file);
-
-            $frameNum += 1;
 
             $cl = $phpFrame['class'];
             $fun = $phpFrame['function'];
@@ -529,14 +508,12 @@ class ErrorHandlerOutput {
             if (u_Bare::isa($fun)) {
                 $cl = '';
             }
-            else if ($phpFrame['class']) {
-                $fun = $this->cleanVars($phpFrame['class']) . '.' . $fun;
+            else if ($cl) {
+                $fun = $this->cleanVars($cl) . '.' . $fun;
             }
 
             $src = self::phpToSrc($phpFrame['file'], $phpFrame['line']);
-
             $lineMsg = $src['line'] ? $src['line'] : '--';
-
             $numArgs = count($phpFrame['args']);
 
             $args = [];
@@ -569,13 +546,54 @@ class ErrorHandlerOutput {
                 }
                 $out .= "|  )\n";
             }
-
-
         }
 
-        $out = "+  start\n" . $out . 'V  error';
+        $firstLine = "+  start\n";
+        $lastLine = "V  error";
+        $out =  $firstLine . $out . $lastLine;
 
         return trim("- TRACE -\n\n" . $out);
+    }
+
+    function filterTrace($trace, $showPhp) {
+
+        $filterTrace = [];
+        foreach ($trace as $phpFrame) {
+            if (! isset($phpFrame['file'])) { continue; }
+
+            $phpFrame['class'] = isset($phpFrame['class']) ? $phpFrame['class'] : '';
+            $phpFrame['function'] = $this->cleanVars($phpFrame['function']);
+            $fun = $phpFrame['function'];
+
+            $includeFrame = true;
+            if (Tht::getConfig('_coreDevMode') || $showPhp) {
+                // Show everything
+                $includeFrame = true;
+            }
+            else {
+                if (preg_match('#(/tht/main/|thtApp\.php)#', $phpFrame['file'])) {
+                    // Is internal entry point
+                    $includeFrame = false;
+                }
+                else if (preg_match('#/tht/(lib|main)/(core|classes|modules)#', $phpFrame['file'])) {
+                    // Is internal library
+                    $includeFrame = false;
+                }
+                else if (preg_match('#__#', $fun)) {
+                    // Internal function (e.g. Bag.__set)
+                    $includeFrame = false;
+                }
+                else if ($fun == 'handlePhpRuntimeError') {
+                    // Error call
+                    $includeFrame = false;
+                }
+            }
+
+            if ($includeFrame) {
+                $filterTrace []= $phpFrame;
+            }
+        }
+        return $filterTrace;
     }
 }
 

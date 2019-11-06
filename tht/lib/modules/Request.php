@@ -7,6 +7,14 @@ class u_Request extends OStdModule {
     private $userAgent = null;
     private $url = null;
 
+    function u_print_info () {
+        $this->ARGS('', func_get_args());
+
+        $dump = Tht::getInfoDump();
+
+        Security::safePrint($dump);
+    }
+
     function u_ip($allIps=false) {
         $this->ARGS('f', func_get_args());
 
@@ -74,7 +82,7 @@ class u_Request extends OStdModule {
 
     function u_is_ajax () {
         $this->ARGS('', func_get_args());
-        $requestedWith = Tht::getWebRequestHeader('x-requested-with');
+        $requestedWith = Tht::getPhpGlobal('headers', 'x-requested-with');
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 

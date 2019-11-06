@@ -185,6 +185,10 @@ EOLAZY;
         $sel      = $this->getArg($args, 1, 'pre, .tht-color-code');
         $keyWords = $this->getArg($args, 2, null);
 
+        if (preg_match('/[^a-zA-Z0-9_\-\|]/', $keyWords)) {
+            $this->error('Argument `keyWords` for `colorCode` plugin must be a pipe-separated list of alpha-numeric words. e.g. `if|while|break`');
+        }
+
         $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|switch|match|T|F|keep|use';
 
 
