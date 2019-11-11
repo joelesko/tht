@@ -437,10 +437,10 @@ function testMisc($t) {
 
     $t.section('Modules');
 
-    $t.ok(TestModule.bareFun('Joe') == 'bare:Joe', 'module call - autoloaded');
+    $t.ok(TestModule.bareFun('Joe') == 'bareFunction:Joe', 'module call - autoloaded');
 
     Global.foo = 'BAR';
-    $t.ok(TestModule.testGlobal() == 'global:BAR', 'module global');
+    $t.ok(TestModule.testGlobal() == 'globalVar:BAR', 'module global');
 
     $t.ok(TestModule.testModuleVar() == 'moduleVar:mod', 'module var - inside access');
     $t.ok(TestModule.moduleVar == 'mod', 'module var - outside access');

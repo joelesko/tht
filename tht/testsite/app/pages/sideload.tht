@@ -1,14 +1,4 @@
 F main() {
     Php.require('SideloadError.php');
-
-    //Php.call('topLevelFunction');
-
-    Response.setHeader('sdfsdfsdf sdfsdfsdf');
-    Response.sendHtml(html'sdf');
-
-    Response.sendJson({ foo: 123 });
-}
-
-T html() {
-    Sideload!
+    Php.call('call_me');
 }

@@ -28,14 +28,6 @@
 
 
 
-//Response.sendHtml(html'<h1>Hello</h1>');
-
-
-//Math.cos();
-
-
-
-
 
 // Route Errors
 //-------------------------------
@@ -243,8 +235,8 @@
 
 // too few arguments
 // TODO: message formatting
-// go();
-// function go($a) { }
+ go(123);
+ function go($foo:s) { }
 
 //Math.cos();
 

@@ -2,25 +2,19 @@
 
 require_once('../../main/Tht.php');
 
-//print "sdfsdfsdfsdf";
-//print($zzzz);
-
-
 $mod = Tht::module('TestModule');
 
-print $mod->bareFun('Joe');
+print $mod->bareFun('foobar');
 
-print $mod->write('Hey');
+print $mod->writeTemplate('Joe');
 
 print_r($mod->getMap());
 
-
-
+function topLevelFunction() {
+    print('Called top-level function!<br />');
+}
 
 
 //Tht::page('/sideload');
 
 
-function topLevelFunction() {
-    print('Called top-level function!<br />');
-}

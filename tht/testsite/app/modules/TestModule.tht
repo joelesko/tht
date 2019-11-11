@@ -2,19 +2,19 @@
 TestModule.moduleVar = 'mod';
 
 F bareFun($name) {
-    return 'bare:' ~ $name;
+    return 'bareFunction:' ~ $name;
 }
 
 F testGlobal() {
-    return 'global:' ~ Global.foo;
+    return 'globalVar:' ~ Global.foo;
 }
 
 F testModuleVar() {
     return 'moduleVar:' ~ TestModule.moduleVar;
 }
 
-F write($t) {
-    Response.sendHtml(goHtml($t));
+F writeTemplate($t) {
+    Response.sendHtml(helloHtml($t));
 }
 
 F getMap() {
@@ -24,8 +24,8 @@ F getMap() {
     };
 }
 
-T goHtml($thing) {
-    <h1>> GO {{ $thing }}
+T helloHtml($name) {
+    <h1>> Template: Hello {{ $name }}
 }
 
 
