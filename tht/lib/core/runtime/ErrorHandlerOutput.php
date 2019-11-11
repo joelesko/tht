@@ -54,17 +54,22 @@ class ErrorHandlerOutput {
     // TODO: refactor/cleanup
     function prepError($error) {
 
-        // Convert to called line/pos
-        if (preg_match('/too few arguments to function/i', $error['message'])) {
+        if (preg_match('/Too few arguments to function \\S+\\\\(.*?\\(\\))/i', $error['message'], $match)) {
             $error['origin'] .= '.arguments.less';
+            $error['message'] = "Not enough arguments passed to `" . $match[1] . "`";
+
             $hasCallerInfo = preg_match('/(\d+) passed in (.*?) on line (\d+)/', $error['message'], $m);
             if ($hasCallerInfo) {
                 $error['phpFile'] = $m[2];
                 $error['phpLine'] = $m[3];
             }
         }
-        else if (preg_match('/Uncaught TypeError:.*must be of the type/i', $error['message'])) {
+        else if (preg_match('/Argument (\d+) passed to (\S+) must be of the type (\S+), (\S+) given/i', $error['message'], $m)) {
+
+            // Type Error for function arguments
             $error['origin'] .= '.arguments.type';
+            $error['message'] = "Argument $m[1] passed to `$m[2]` must be of type `$m[3]`. Got `$m[4]` instead.";
+
             $hasCallerInfo = preg_match('/called in (.*?) on line (\d+)/i', $error['message'], $m);
             if ($hasCallerInfo) {
                 $error['phpFile'] = $m[1];
@@ -72,6 +77,8 @@ class ErrorHandlerOutput {
             }
         }
         else if (preg_match('/permission denied/i', $error['message'])) {
+
+            // Catch very common deploy issue when permissions aren't set
 
             // TODO: Better to just wrap actual calls to file_*_contents|touch with explicit error checking.
             $error['message'] = $this->cleanPath($error['message']);

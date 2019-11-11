@@ -43,16 +43,16 @@ class ErrorHandler {
         catch (StartupError $e) {
             self::handleStartupError($e);
         }
-        catch (\ArgumentCountError $e) {
+        catch (\TypeError $e) {
+            // Catch these separately because they have extra caller info
+            self::handleThtRuntimeError($e);
+        }
+        catch (\Error $e) {
             // Internal exceptions
             self::handleThtRuntimeError($e);
         }
         catch (\Exception $e) {
             // User exceptions
-            self::handleThtRuntimeError($e);
-        }
-        catch (\Error $e) {
-            // Internal exceptions
             self::handleThtRuntimeError($e);
         }
     }
@@ -291,27 +291,6 @@ class ErrorHandler {
         self::handleResourceErrors($error);
 
         $trace = self::parseInlineTrace($error['message']);
-
-        if (strpos($error['message'], 'ArgumentCountError') !== false) {
-
-            preg_match('/Too few arguments to function \\S+\\\\(.*?\\(\\))/i', $error['message'], $callee);
-            preg_match('/passed in (\S+?) on line (\d+)/i', $error['message'], $caller);
-
-            // TODO: file and line refer to signature line
-
-            if ($caller) {
-                $error['message'] = "Not enough arguments passed to `" . $callee[1] . "`";
-                $error['file'] = $caller[1];
-                $error['line'] = $caller[2];
-            }
-        }
-
-        if (strpos($error['message'], 'TypeError') !== false) {
-            if (count($trace)) {
-                $error['file'] = $trace[0]['file'];
-                $error['line'] = $trace[0]['line'];
-            }
-        }
 
         self::printError([
             'category' => 'runtime',

@@ -49,8 +49,11 @@ class OModulePhpAdapter extends OModule {
     }
 
     function __call ($f, $args) {
-        $uf = u_($f);
-        $ret = $this->mod->__call($uf, $args);
-        return uv($ret);
+        $fnCall = function() use ($f, $args) {
+            $uf = u_($f);
+            $ret = $this->mod->__call($uf, $args);
+            return uv($ret);
+        };
+        return ErrorHandler::catchErrors($fnCall);
     }
 }

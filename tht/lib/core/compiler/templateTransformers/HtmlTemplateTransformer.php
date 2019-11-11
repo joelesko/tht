@@ -140,10 +140,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 }
             }
 
-            if ($tagName == 'script') {
-                $nonce = Tht::module('Web')->u_nonce();
-                $str .= " nonce=\"$nonce\"";
-            }
+            // if ($tagName == 'script') {
+            //     $nonce = Tht::module('Web')->u_nonce();
+            //     $str .= " nonce=\"$nonce\"";
+            // }
         }
 
         return $str;

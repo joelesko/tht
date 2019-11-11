@@ -381,16 +381,16 @@ HTML;
         if ($this->gzipBufferOpen) { return; }
         if ($forceGzip || Tht::getConfig('compressOutput')) {
             if ($this->hasPreOutput()) {
-                ErrorHandler::printInlineWarning('Can\'t enable GZIP compression (Response module) because output was already sent. Solution: Either delay this output or set `compressOutput` = `false` in `app.jcon` (not recommended).');
+                ErrorHandler::printInlineWarning('(Response module) Can\'t enable GZIP compression because output was already sent. Solution: Either delay this output or set `compressOutput` = `false` in `app.jcon` (not recommended).');
             }
             ob_start("ob_gzhandler");
+            $this->gzipBufferOpen = true;
         }
-        $this->gzipBufferOpen = true;
     }
 
     function endGzip ($forceGzip=false) {
         if ($this->gzipBufferOpen) {
-            ob_end_flush();
+            ob_flush();
         }
     }
 

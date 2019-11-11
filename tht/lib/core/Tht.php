@@ -199,7 +199,10 @@ class Tht {
     static public function sideloadPage($pageUrl) {
         self::sideloadMain();
         self::catchPreThtError();
-        WebMode::runRoute($pageUrl);
+        $fnRun = function() use ($pageUrl) {
+            WebMode::runRoute($pageUrl);
+        };
+        ErrorHandler::catchErrors($fnRun);
         exit(0);
     }
 
