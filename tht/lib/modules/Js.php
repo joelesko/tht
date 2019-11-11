@@ -189,7 +189,7 @@ EOLAZY;
             $this->error('Argument `keyWords` for `colorCode` plugin must be a pipe-separated list of alpha-numeric words. e.g. `if|while|break`');
         }
 
-        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|switch|match|T|F|keep|use';
+        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|where|switch|match|T|F|keep|use';
 
 
         $css = <<<EOCSS
@@ -215,41 +215,39 @@ EOLAZY;
                 color: #000;
             }
             .has-color-code .cc-comment {
-                color: #36963f;
+                color: #575757;
             }
             .has-color-code .cc-value {
-                color: #c33524;
+                color: #ad1818;
             }
             .has-color-code .cc-tag,
             .has-color-code .cc-keyword {
-                color: #177bad;
-                font-weight: bold;
+                color: #005d8c;
             }
             .has-color-code .cc-template-code {
-                color: #831ec0;
+                color: #8331a0;
             }
 
             /* Dark Theme */
 
             .has-color-code.theme-dark {
                 background-color: #282828;
-                color: #ddd;
+                color: #eee;
                 border: 0;
             }
             .has-color-code.theme-dark .cc-comment {
-                color: #9a9a9a;
+                color: #b4b4b4;
             }
             .has-color-code.theme-dark .cc-value {
-                color: #a0e092;
+                color: #b4e7b2;
             }
             .has-color-code.theme-dark .cc-tag,
             .has-color-code.theme-dark .cc-keyword {
-                color: #f3ac5b;
-                font-weight: normal;
+                color: #A6CBED;
             }
 
             .has-color-code.theme-dark .cc-template-code {
-                color: #cc9ee7;
+                color: #b8efe0;
             }
 
 
