@@ -18,42 +18,42 @@ class CliMode {
 
     static private $FRONT_PATH_APP     = '../app';
     static private $FRONT_PATH_DATA    = '../app/data';
-    static private $FRONT_PATH_RUNTIME = '../app/.tht/main/tht.php';
+    static private $FRONT_PATH_RUNTIME = '../app/.tht/main/thtApp.php';
 
 
     static private $options = [];
 
     static function main() {
 
-        CliMode::initOptions();
+        self::initOptions();
 
-        $firstOption = CliMode::$options[0];
+        $firstOption = self::$options[0];
 
         Tht::initAppPaths(true);
 
-        if ($firstOption === CliMode::$CLI_OPTIONS['new']) {
-            CliMode::installApp();
+        if ($firstOption === self::$CLI_OPTIONS['new']) {
+            self::installApp();
         }
-        else if ($firstOption === CliMode::$CLI_OPTIONS['server']) {
-            $port = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
-            CliMode::startTestServer($port);
+        else if ($firstOption === self::$CLI_OPTIONS['server']) {
+            $port = isset(self::$options[1]) ? self::$options[1] : 0;
+            self::startTestServer($port);
         }
-        else if ($firstOption === CliMode::$CLI_OPTIONS['info']) {
+        else if ($firstOption === self::$CLI_OPTIONS['info']) {
             self::info();
         }
-        else if ($firstOption === CliMode::$CLI_OPTIONS['fix']) {
+        else if ($firstOption === self::$CLI_OPTIONS['fix']) {
             self::fix();
         }
-        // else if ($firstOption === CliMode::$CLI_OPTIONS['images']) {
-        //     $actionOrDir = isset(CliMode::$options[1]) ? CliMode::$options[1] : 0;
+        // else if ($firstOption === self::$CLI_OPTIONS['images']) {
+        //     $actionOrDir = isset(self::$options[1]) ? self::$options[1] : 0;
         //     Tht::module('Image')->optimizeImages($actionOrDir);
         // }
-        // else if ($firstOption === CliMode::$CLI_OPTIONS['run']) {
+        // else if ($firstOption === self::$CLI_OPTIONS['run']) {
         //     // Tht::init();
-        //     // Compiler::process(CliMode::$options[1]);
+        //     // Compiler::process(self::$options[1]);
         // }
         else {
-            CliMode::printUsage();
+            self::printUsage();
         }
     }
 
@@ -87,9 +87,9 @@ class CliMode {
     static private function initOptions () {
         global $argv;
         if (count($argv) === 1) {
-            CliMode::printUsage();
+            self::printUsage();
         }
-        CliMode::$options = array_slice($argv, 1);
+        self::$options = array_slice($argv, 1);
     }
 
     static function isAppInstalled () {
@@ -210,7 +210,7 @@ class CliMode {
 
     static private function installApp () {
 
-        CliMode::confirmInstall();
+        self::confirmInstall();
 
         try {
 
@@ -232,7 +232,7 @@ class CliMode {
             Tht::module('*File')->u_copy_dir($thtBinPath, Tht::path('localTht'));
 
             // Front controller
-            CliMode::writeSetupFile(Tht::getAppFileName('frontFile'), "
+            self::writeSetupFile(Tht::getAppFileName('frontFile'), "
 
             <?php
 
@@ -247,7 +247,7 @@ class CliMode {
 
             // .htaccess
             // TODO: don't overwrite previous
-            CliMode::writeSetupFile('.htaccess', "
+            self::writeSetupFile('.htaccess', "
 
                 ### THT APP
 
@@ -469,17 +469,17 @@ class CliMode {
 
     static function startTestServer ($port=0, $docRoot='.') {
 
-        $hostName = CliMode::$SERVER_HOSTNAME;
+        $hostName = self::$SERVER_HOSTNAME;
 
         if (!$port) {
-            $port = CliMode::$SERVER_PORT;
+            $port = self::$SERVER_PORT;
         }
         else if ($port < 8000 || $port >= 9000) {
             echo "\nServer port must be in the range of 8000-8999.\n\n";
             Tht::exitScript(1);
         }
 
-        if (!CliMode::isAppInstalled()) {
+        if (!self::isAppInstalled()) {
             echo "\nCan't find app directory.  Please `cd` to your your document root and try again.\n\n";
             Tht::exitScript(1);
         }
