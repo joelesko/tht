@@ -25,9 +25,11 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return $str;
     }
 
-    function error($msg, $pos=null) {
+    function error($msg, $pos=null, $skipDoc=false) {
         ErrorHandler::addSubOrigin('template');
-        ErrorHandler::setErrorDoc('/reference/templates#html-templates', 'HTML Templates');
+        if (!$skipDoc) {
+            ErrorHandler::setErrorDoc('/reference/templates#html-templates', 'HTML Templates');
+        }
         $this->reader->error($msg, $pos);
     }
 
@@ -139,11 +141,6 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                     continue;
                 }
             }
-
-            // if ($tagName == 'script') {
-            //     $nonce = Tht::module('Web')->u_nonce();
-            //     $str .= " nonce=\"$nonce\"";
-            // }
         }
 
         return $str;
@@ -178,6 +175,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             else if ($nc != '"' && $nc != "'") {
                 $this->error('Missing quote `"` after `=`.');
             }
+            $this->currentTag['html'] .= $c;
             $str .= $c;
             $t->next();
         }
@@ -242,6 +240,11 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
         }
 
+        if ($this->currentTag['name'] == 'script' && !preg_match('/nonce\s*=/i', $this->currentTag['html'])) {
+            ErrorHandler::setErrorDoc('/manual/module/web/nonce', 'Web.nonce');
+            $this->error('`script` tag needs a `nonce` parameter.', $this->currentTagPos, true);
+        }
+
         $str .= $c;
         $t->next();
 
@@ -254,9 +257,6 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
         }
         else {
-            // if ($this->currentTag['name'] == 'form' && !preg_match('/method\s*=.*get/i', $this->currentTag['html'])) {
-            //     $str .= Tht::module('Web')->u_csrf_token(true)->u_stringify();
-            // }
             HtmlTemplateTransformer::$openTags []= $this->currentTag;
         }
 
