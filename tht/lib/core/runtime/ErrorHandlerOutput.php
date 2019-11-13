@@ -521,12 +521,14 @@ class ErrorHandlerOutput {
 
             $src = self::phpToSrc($phpFrame['file'], $phpFrame['line']);
             $lineMsg = $src['line'] ? $src['line'] : '--';
-            $numArgs = count($phpFrame['args']);
+            $numArgs = isset($phpFrame['args']) ? count($phpFrame['args']) : 0;
 
             $args = [];
-            foreach ($phpFrame['args'] as $a) {
-                $argsJson = Tht::module('Json')->formatOneLineSummary(v($a), 60);
-                $args []= $argsJson;
+            if ($numArgs) {
+                foreach ($phpFrame['args'] as $a) {
+                    $argsJson = Tht::module('Json')->formatOneLineSummary(v($a), 60);
+                    $args []= $argsJson;
+                }
             }
 
             $argsLabel = '';
