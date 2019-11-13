@@ -18,7 +18,7 @@ class CliMode {
 
     static private $FRONT_PATH_APP     = '../app';
     static private $FRONT_PATH_DATA    = '../app/data';
-    static private $FRONT_PATH_RUNTIME = '../app/.tht/main/thtApp.php';
+    static private $FRONT_PATH_RUNTIME = '../app/.tht/main/Tht.php';
 
 
     static private $options = [];
