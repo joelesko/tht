@@ -235,8 +235,18 @@
 
 // too few arguments
 // TODO: message formatting
- go(123);
- function go($foo:s) { }
+ // go(123);
+ // function go($foo:s) { }
+
+Response.sendHtml(scriptHtml());
+
+
+T scriptHtml {
+    Hello
+    <script foo='bar'>
+       console.log('test');
+    </>
+}
 
 //Math.cos();
 

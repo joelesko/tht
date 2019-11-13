@@ -1,6 +1,6 @@
 <?php
 
-require_once('../../main/Tht.php');
+require_once('../../main/ThtSide.php');
 
 $mod = Tht::module('TestModule');
 
