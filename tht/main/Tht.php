@@ -1,14 +1,12 @@
 <?php
 
-require_once('../../lib/core/Tht.php');
+namespace o;
 
-class Tht {
+// Include THT lib
+require dirname(__FILE__) . '/../lib/core/Tht.php';
 
-    static function page($url) {
-        return \o\Tht::sideloadPage($url);
-    }
+// Run app
+$thtReturnStatus = Tht::main();
 
-    static function module($mod) {
-        return \o\Tht::sideloadModule($mod);
-    }
-}
+return $thtReturnStatus;
+
