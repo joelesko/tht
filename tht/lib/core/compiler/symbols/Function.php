@@ -10,14 +10,19 @@ class S_Function extends S_Statement {
     // e.g. $funFoo = function () { ... };
     function asLeft($p) {
         $this->isExpression = true;
-        return $this->asStatement($p);
+
+        $p->anonFunctionDepth += 1;
+        $s = $this->asStatement($p);
+        $p->anonFunctionDepth -= 1;
+
+        return $s;
     }
 
     // function foo() { ... }
     function asStatement ($p) {
 
         $p->next();
-        $this->space('*functionS', true);
+        $this->space('*fnS', true);
 
         $hasName = false;
 
@@ -35,10 +40,10 @@ class S_Function extends S_Statement {
             $p->space(' name*')->next();
         }
         else {
-            if ($p->expressionDepth == 0) {
-                $p->error("Function must have a name, or be part of an expression.", $p->prevToken);
+            if (!$this->isExpression) {
+                $p->error("Top-level function must have a name.", $p->prevToken);
             }
-            // anonymous function. e.g. function () { ... }
+            // anonymous function. e.g. fn () { ... }
             $anon = $p->makeSymbol(
                 TokenType::WORD,
                 CompilerConstants::$ANON,
@@ -58,6 +63,10 @@ class S_Function extends S_Statement {
         $p->functionDepth += 1;
         $this->addKid($p->parseBlock(true));
         $p->functionDepth -= 1;
+
+        if (!$this->isExpression) {
+            $p->space('*}B');
+        }
 
         // Make sure next symbol is out of this scope
         $p->validator->popScope();  // block
@@ -185,6 +194,8 @@ class S_Function extends S_Statement {
         $closureVars = [];
         if ($p->symbol->isValue('keep')) {
 
+            $p->space(' keepx');
+
             if (!$this->isExpression) {
                 ErrorHandler::setErrorDoc('/language-tour/intermediate-features#anonymous-functions', 'Anonymous Functions');
                 $p->error("Keyword `keep` can only be used with anonymous functions.");
@@ -194,7 +205,7 @@ class S_Function extends S_Statement {
             $p->now('(', 'keep')->next();
             while (true) {
                 if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
-                    $p->error("Expected an outer variable inside `keep`.  Ex: `F () keep (\$name) { ... }`");
+                    $p->error("Expected an outer variable inside `keep`.  Ex: `fn () keep (\$name) { ... }`");
                 }
 
                 $p->validator->defineVar($p->symbol, true);

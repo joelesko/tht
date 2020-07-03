@@ -305,7 +305,7 @@ trait FormCreator {
         $items = $tagConfig['options'];
 
         $ops = [];
-        if ($items->u_is_type('map')) {
+        if ($items->u_type() == 'map') {
             $ops = $this->options_from_map(uv($items));
         } else {
             $ops = $this->options_from_list(uv($items));

@@ -51,7 +51,7 @@ class u_Perf extends OStdModule {
             'startTime' => $this->now(),
             'subTaskTime' => 0,
             'subTaskMem' => 0,
-            'startMemoryMb' => memory_get_usage(false),
+            'startMemoryMb' => memory_get_peak_usage(false),
             'memoryMb' => 0,
         ];
     }
@@ -68,7 +68,7 @@ class u_Perf extends OStdModule {
         $timeDelta = $this->now() - $task['startTime'];
         $thisTimeDelta = $timeDelta - $task['subTaskTime'];
 
-        $memDelta = max(0, memory_get_usage(false) - $task['startMemoryMb']);
+        $memDelta = max(0, memory_get_peak_usage(false) - $task['startMemoryMb']);
         $thisMemDelta = max(0, $memDelta - $task['subTaskMem']);
 
         $result = [
@@ -76,8 +76,8 @@ class u_Perf extends OStdModule {
             'value' => $task['value']
         ];
 
-        $result['durationMs'] = round($thisTimeDelta * 1000, 2);
-        $result['memoryMb'] = round($thisMemDelta / 1048576, 2);
+        $result['durationMs'] = number_format($thisTimeDelta * 1000, 2);
+        $result['memoryMb'] = $thisMemDelta ? number_format($thisMemDelta / 1048576, 2) : 0;
 
         if ($result['durationMs'] >= self::$MIN_TASK_THRESHOLD_MS) {
             $this->results []= $result;
@@ -115,8 +115,8 @@ class u_Perf extends OStdModule {
         $groupResults = [];
         foreach ($this->groupResults as $taskName => $task) {
             $task['task'] = $taskName;
-            $task['durationMs'] = round($task['durationMs'] * 1000, 2);
-            $task['memoryMb'] = round($task['memoryMb'] / 1048576, 2);
+            $task['durationMs'] = number_format($task['durationMs'] * 1000, 2);
+            $task['memoryMb'] = $task['memoryMb'] ? number_format($task['memoryMb'] / 1048576, 2) : 0;
 
             if ($task['durationMs'] >= 0.1) {
                 $groupResults []= $task;
@@ -155,13 +155,13 @@ class u_Perf extends OStdModule {
         // Have to do this outside of results() or the audit calls will show up in the perf tasks.
      //   $results['imageAudit'] = Tht::module('Image')->auditImages(Tht::path('docRoot'));
 
-        $thtDocLink = Tht::getThtSiteUrl('/reference/perf-score');
+        $thtDocLink = Tht::getThtSiteUrl('/reference/perf-panel');
         $compileMessage = Compiler::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
 
         $table = OTypeString::getUntyped(
             Tht::module('Web')->u_table(OList::create($results['single']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
-                OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Detail' ]),
+                OList::create([ 'Task', 'Duration (ms)', 'Peak Memory (mb)', 'Detail' ]),
                 OMap::create(['class' => 'bench-result'])
         ), 'html');
 

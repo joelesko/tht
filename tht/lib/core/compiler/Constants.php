@@ -20,18 +20,19 @@ abstract class TokenType {
     const WORD     = 'W';    // myVar
     const END      = 'END';  // (end of stream)
     const VAR      = 'V';    // $fooBar
+    const NEWLINE  = 'NL';   // \n
 }
 
 abstract class Glyph {
-    const MULTI_GLYPH_PREFIX = '=<>&|+-*:@^~!/%#.?';
-    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:@^~.?';
+    const MULTI_GLYPH_PREFIX = '=<>&|+-*:^~!/%#.?$';
+    const MULTI_GLYPH_SUFFIX = '=<>&|+-*:^~.?';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
     const BLOCK_COMMENT_START = '/*';
     const BLOCK_COMMENT_END = '*/';
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
-    const TEMPLATE_CODE_LINE = '--';
+    const TEMPLATE_CODE_LINE = '===';
     const STRING_PREFIXES = 'r';
     const QUOTED_LIST_PREFIX = 'q';
     const REGEX_PREFIX = 'r';
@@ -69,6 +70,8 @@ abstract class SymbolType {
     const CALL          =  'CALL';           // foo()
     const TRY_CATCH     =  'TRY_CATCH';      // try {} catch {}
 //    const NEW_VAR       =  'NEW_VAR';        // let foo = 1
+    const CLASS_PLUGIN  =  'CLASS_PLUGIN';   // plugin SomeClass, OtherClass
+    const CLASS_FIELDS  =  'CLASS_FIELDS';   // fields { foo: 1 }
     const NEW_FUN       =  'NEW_FUN';        // function foo () {}
     const NEW_CLASS     =  'NEW_CLASS';      // class Foo {}
     const NEW_OBJECT    =  'NEW_OBJECT';     // new Foo ()
@@ -80,6 +83,7 @@ abstract class SymbolType {
     const USER_FUN      =  'USER_FUN';       // myFunction
     const USER_VAR      =  'USER_VAR';       // $myVar
     const BARE_WORD     =  'BARE_WORD';      // myVar (illegal)
+    const PRE_KEYWORD   =  'PRE_KEYWORD';    // private $myVar = 123;
 
     const MATCH          =  'MATCH';          // match $foo { ... }
     const MATCH_PATTERN  =  'MATCH_PATTERN';  // range(0, 10) { ... }
@@ -89,9 +93,10 @@ abstract class SymbolType {
     const MAP_KEY       =  'MAP_KEY';    // _foo_: bar
     const PAIR          =  'PAIR';       // foo: 'bar'
 
-    const PACKAGE           = 'PACKAGE';           // MyClass
-    const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
-    const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private $myVar = 123;
+    const PACKAGE       = 'PACKAGE';           // MyClass
+    const FULL_PACKAGE  = 'FULL_PACKAGE';           // namespace\MyClass
+  //  const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
+  //  const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private $myVar = 123;
 }
 
 abstract class AstList {
@@ -117,13 +122,17 @@ class CompilerConstants {
         TokenType::LSTRING => SymbolType::LSTRING,
     ];
 
+    static public $TEMPLATE_TOKEN = 'tm';
+
     static public $SYMBOL_CLASS = [
 
         // meta
         '(end)' => 'S_End',
 
         // separators / terminators
-        ';'  => 'S_Separator',
+
+        '(nl)' => 'S_Separator',
+   //     ';'  => 'S_Separator',
         ','  => 'S_Separator',
         ':'  => 'S_Separator',
         ')'  => 'S_Separator',
@@ -135,9 +144,7 @@ class CompilerConstants {
         // constants
         'true'  => 'S_Flag',
         'false' => 'S_Flag',
-        'super' => 'S_Constant',
-        'self'  => 'S_Constant',
-        'this'  => 'S_Constant',
+
         '@'     => 'S_Constant',
         '@@'    => 'S_Constant',
 
@@ -194,11 +201,9 @@ class CompilerConstants {
         '{{'  => 'S_TemplateExpr',
 
         // keywords
-        'function'  => 'S_Function',
-        'F'         => 'S_Function',
-        'template'  => 'S_Template',
-        'T'         => 'S_Template',
-        'new'       => 'S_New',
+        'fn'        => 'S_Function',
+        'tm'        => 'S_Template',
+     //   'new'       => 'S_New',
         'if'        => 'S_If',
         'foreach'   => 'S_ForEach',
         'loop'      => 'S_Loop',
@@ -214,21 +219,36 @@ class CompilerConstants {
         'include'   => 'S_Unsupported',
         'while'     => 'S_Unsupported',
         'for'       => 'S_Unsupported',
+        'new'       => 'S_Unsupported',
 
         // oop
         'class'     => 'S_Class',
         'interface' => 'S_Class',
         'trait'     => 'S_Class',
-        'abstract'  => 'S_Class',
-        'final'     => 'S_Class',
-        'public'    => 'S_Class',
-        'private'   => 'S_Class',
-        'protected' => 'S_Class',
-        'static'    => 'S_Class',
+
+        'outer'     => 'S_ClassPlugin',
+        'inner'     => 'S_ClassPlugin',
+        'fields'    => 'S_ClassFields',
+
+        'public'    => 'S_PreKeyword',
+
+        'abstract'  => 'S_Unsupported',
+        'final'     => 'S_Unsupported',
+        'private'   => 'S_Unsupported',
+        'protected' => 'S_Unsupported',
+        'static'    => 'S_Unsupported',
     ];
 
-    static public $RESERVED_NAMES = [
-        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in', 'default'
+    static public $KEYWORDS = [
+        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in',
+        'default', 'fn', 'tm', 'return', 'match', 'foreach', 'public', 'plugin', 'outerplugin'
+    ];
+
+    static public $SKIP_NEWLINE_BEFORE = [
+        'else', 'catch', 'finally',
+        '+', '-', '/', '*', '~', '%', '**', '||', '&&',
+        '.', '{',
+        '+|', '+&', '+^', '+<', '+>'
     ];
 
     static public $SUGGEST_TOKEN = [
@@ -265,20 +285,51 @@ class CompilerConstants {
         '(' => ')'
     ];
 
-    static $QUALIFIER_KEYWORDS = [
+    static $TYPE_DECLARATIONS = [
+        's', 'b', 'i', 'f', 'l', 'm', 'fn', 'o', 'any'
+    ];
+
+
+    static $OK_NEXT_ADJ_TOKENS = [
+        'in',
+        'as',
+        'if',
         'abstract',
+        'class',
+        'trait',
+        'interface',
         'final',
         'public',
         'private',
         'protected',
         'static',
+        'extends',
+    ];
+
+    static $OK_PREV_ADJ_TOKENS = [
+        'match',
+        'catch',
+        'fn',
+        'tm',
+        'in',
+        'as',
+        'return' ,
+     //   'new',
+        'foreach',
+        'if',
         'class',
         'trait',
         'interface',
+        'final',
+        'public',
+        'private',
+        'protected',
+        'static',
+        'extends',
+        'abstract',
+        'outer',
+        'inner',
     ];
 
-    static $TYPE_DECLARATIONS = [
-        's', 'b', 'i', 'f', 'l', 'm', 'fn', 'o', 'any'
-    ];
 }
 

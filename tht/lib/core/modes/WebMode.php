@@ -30,12 +30,15 @@ class WebMode {
             self::executeController($controllerFile);
         }
 
-        PrintBuffer::flush();
-        HitCounter::add();
-
-        self::printPerf();
+        self::onEnd();
 
         return true;
+    }
+
+    static public function onEnd() {
+        PrintBuffer::flush();
+        HitCounter::add();
+        self::printPerf();
     }
 
     // Serve directly if requested a static file in testServer mode
@@ -52,10 +55,10 @@ class WebMode {
             // See: https://github.com/joelesko/tht/issues/2
             $path = $_SERVER["DOCUMENT_ROOT"] . $_SERVER['SCRIPT_NAME'];
             if ($_SERVER['SCRIPT_NAME'] !== '/' && file_exists($path)) {
-                if (is_dir($path)) {
-                    // just a warning
-                    Tht::startupError("Path `$path` can not be a page and also a directory under Document Root.");
-                }
+                // if (is_dir($path)) {
+                //     // just a warning
+                //     Tht::startupError("Path `$path` can not be a page and also a directory under Document Root.");
+                // }
                 // is a static file
                 if (!is_dir($path)) {
                     return true;
@@ -66,7 +69,7 @@ class WebMode {
     }
 
     static private function printPerf () {
-        if (!Tht::module('Request')->u_is_ajax() && Tht::module('Response')->sentResponseType == 'html') {
+        if (!Tht::module('Request')->u_is_ajax() && Tht::module('Output')->sentResponseType == 'html') {
             Tht::module('Perf')->printResults();
         }
     }
@@ -220,7 +223,7 @@ class WebMode {
         if (!file_exists($thtPath)) {
             $thtPath = Tht::path('pages', Tht::getThtFileName('default'));
             if (!file_exists($thtPath)) {
-                Tht::module('Response')->u_send_error(404);
+                Tht::module('Output')->u_send_error(404);
             }
         }
 
@@ -247,6 +250,8 @@ class WebMode {
 
         $nameSpace = ModuleManager::getNamespace(Tht::getFullPath($controllerFile));
 
+        Tht::module('Perf')->u_start('tht.php.callAutoFunction', Tht::stripAppRoot($controllerFile));
+
         $req = Tht::module('Request');
 
         $callFunction = '';
@@ -266,7 +271,7 @@ class WebMode {
             $modeName = v($modeName)->u_to_token_case('_');
             $fullAutoFunction = $nameSpace . '\\u_mode_' . $modeName;
             if (!function_exists($fullAutoFunction)) {
-                Tht::module('Response')->u_send_error(404);
+                Tht::module('Output')->u_send_error(404);
             }
             $callFunction = $fullAutoFunction;
         }
@@ -279,7 +284,7 @@ class WebMode {
                 $modeName = v($modeParam)->u_to_token_case('_');
                 $fullAutoFunction = $nameSpace . '\\u_mode_' . $modeName;
                 if (!function_exists($fullAutoFunction)) {
-                    Tht::module('Response')->u_send_error(404);
+                    Tht::module('Output')->u_send_error(404);
                 }
                 $callFunction = $fullAutoFunction;
             }
@@ -303,19 +308,21 @@ class WebMode {
                 $ret = call_user_func($callFunction);
 
                 if (UrlTypeString::isa($ret)) {
-                    Tht::module('Response')->u_redirect($ret);
+                    Tht::module('Output')->u_redirect($ret);
                 }
                 else if (OTypeString::isa($ret)) {
-                    Tht::module('Response')->sendByType($ret);
+                    Tht::module('Output')->sendByType($ret);
                 }
                 else if (OMap::isa($ret)) {
-                    Tht::module('Response')->u_send_json($ret);
+                    Tht::module('Output')->u_send_json($ret);
                 }
 
             } catch (ThtError $e) {
                 ErrorHandler::handleThtRuntimeError($e, Tht::getPhpPathForTht($controllerFile));
             }
         }
+
+        Tht::module('Perf')->u_stop();
     }
 
     static public function getWebRouteParam ($key) {
@@ -323,7 +330,7 @@ class WebMode {
             if (Security::isAdmin()) {
                 Tht::error("Route param '$key' does not exist.");
             } else {
-                Tht::module('Response')->u_send_error(404);
+                Tht::module('Output')->u_send_error(404);
             }
         }
         return self::$routeParams[$key];

@@ -4,8 +4,8 @@ namespace o;
 
 class LibClasses {
     static public $files = [
-        'OStdModule',
         'OClass',
+        'OStdModule',
         'OVar',
         'OBag',
         'OList',

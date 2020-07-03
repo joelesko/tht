@@ -179,7 +179,7 @@ abstract class OTypeString extends OVar {
     }
 
     // Allow user to provide pre-escaped params
-    function u_danger_danger_override_params($overrideParams=[]) {
+    function u_x_danger_override_params($overrideParams=[]) {
         $this->overrideParams = $overrideParams;
     }
 }

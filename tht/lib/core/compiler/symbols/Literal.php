@@ -6,17 +6,22 @@ class S_Literal extends Symbol {
     var $kids = 0;
     function asLeft($p) {
         $p->next();
-        if ($this->isValue('@') || $this->isValue('this')) {
-            if (!$p->inClass) {
-                $tok = $this->isValue('@') ? '@' : '\$this';
-                $p->error('`' . $tok . '` must be used inside of a class.', $this->token);
+
+        if ($this->isValue('@')) {
+            // allow use inside anon functions
+            if (!$p->inClass && !$p->anonFunctionDepth && !$p->lambdaDepth) {
+                $p->error("Can't use `@` outside of an object.", $this->token);
             }
         }
+
         return $this;
     }
 }
 
 class S_Name extends S_Literal {
+}
+
+class S_Var extends S_Literal {
 }
 
 class S_Constant extends S_Name {

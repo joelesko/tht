@@ -127,6 +127,20 @@ class OString extends OVar implements \ArrayAccess {
         return $this->_strpos($s, $ignoreCase) !== false;
     }
 
+    function u_count($s, $ignoreCase=false) {
+        $this->ARGS('*f', func_get_args());
+
+        if (ORegex::isa($s)) {
+            if ($ignoreCase) { $s->addFlag('i'); }
+            $numMatches = preg_match_all($s->getPattern(), $this->val);
+            return $numMatches;
+        } else {
+            $haystack = $ignoreCase ? strtolower($this->val) : $this->val;
+            $needle = $ignoreCase ? strtolower($s) : $s;
+            return substr_count($haystack, $needle);
+        }
+    }
+
     function u_starts_with($s, $ignoreCase=false) {
         $this->ARGS('sf', func_get_args());
         return $this->_strpos($s, $ignoreCase) === 0;
@@ -135,7 +149,7 @@ class OString extends OVar implements \ArrayAccess {
     function u_ends_with($s, $ignoreCase=false) {
         $this->ARGS('sf', func_get_args());
         $x = $this->val;
-        $suffLen = v($s)->u_length();
+        $suffLen = v($s . '')->u_length();
         $this->val = $x;
         return $this->_strpos($s, $ignoreCase) == ($this->u_length() - $suffLen);
     }
@@ -153,7 +167,7 @@ class OString extends OVar implements \ArrayAccess {
         return $this->val;
     }
 
-    function u_danger_danger_set_type ($type) {
+    function u_x_danger_set_type ($type) {
         $this->ARGS('s', func_get_args());
         return OTypeString::create($type, $this->val);
     }
@@ -163,7 +177,15 @@ class OString extends OVar implements \ArrayAccess {
     // Find / Replace
 
     function pregErrorMessage () {
-        return array_flip(get_defined_constants(true)['pcre'])[preg_last_error()];
+        // Look up error type for the given error code
+        $num = preg_last_error();
+        $pcre = get_defined_constants(true)['pcre'];
+        foreach ($pcre as $k => $v) {
+            if ($v == $num && strpos($k, 'ERROR') > -1) {
+                return $k;
+            }
+        }
+        return '(UNKNOWN)';
     }
 
     function u_match ($match, $offset = 0) {
@@ -173,7 +195,7 @@ class OString extends OVar implements \ArrayAccess {
             if ($found === false) {
                 $this->error('Error in match: ' . $this->pregErrorMessage(), [
                     'var' => $this->val,
-                    'pattern' => $match,
+                    'pattern' => $match->getPattern(),
                 ]);
             }
             return $found === 1 ? OList::create($matches) : false;

@@ -35,10 +35,24 @@ class u_Cache extends OStdModule {
         return $v;
     }
 
-    function u_get($k, $default='') {
-        Tht::module('Perf')->start('Cache.get', $k);
-        $k = $this->cleanKey($k);
-        $v = $this->driver->get($k, -1, $default);
+    function u_get($origKey, $default='', $ttlSecs=3600) {
+        Tht::module('Perf')->start('Cache.get', $origKey);
+        $k = $this->cleanKey($origKey);
+        $v = $this->driver->get($k, -1, '');
+
+        if ($v === '') {
+            if (is_callable($default)) {
+                $v = $default();
+                if ($v instanceof ONothing) {
+                    $this->error('Default function must return a value.');
+                }
+                $this->u_set($origKey, $v, $ttlSecs);
+            }
+            else {
+                $v = $default;
+            }
+        }
+
         Tht::module('Perf')->u_stop();
         return $v;
     }
@@ -59,53 +73,24 @@ class u_Cache extends OStdModule {
 
     function u_delete($k) {
         $k = $this->cleanKey($k);
-        $this->driver->clearPrev($k);
         return $this->driver->delete($k);
     }
 
     function u_counter($k, $delta=1) {
         $k = $this->cleanKey($k);
         $num = $this->driver->counter($k, $delta);
-        $this->driver->setPrev($k, $num);
         return $num;
     }
 }
 
 class CacheDriver {
 
-    // Most recent key/value.
-    // Perf improvement for calling has(), followed by get()
-    private $prevKey = '';
-    private $prevValue = '';
-
-    function setPrev($k, $v) {
-        $this->prevKey = $k;
-        $this->prevValue = $v;
-    }
-
-    function clearPrev($k) {
-        if ($k === $this->prevKey) {
-            $this->prevKey = '';
-            $this->prevValue = '';
-        }
-    }
-
-    function getPrev($k) {
-        if ($this->prevKey === $k) {
-            return $this->prevValue;
-        } else {
-            return null;
-        }
-    }
-
     function has($k) {
+        // TODO: optimize away redundant get()
         return !is_null($this->get($k, -1, null));
     }
 
     function get($k, $syncFileTime, $default) {
-
-        $prevValue = $this->getPrev($k);
-        if (!is_null($prevValue)) { return $prevValue; }
 
         $json = $this->fetch($k);
 
@@ -133,10 +118,6 @@ class CacheDriver {
                     $v = $default;
                 }
             }
-        }
-
-        if (!is_null($v)) {
-            $this->setPrev($k, $v);
         }
 
         return $v;

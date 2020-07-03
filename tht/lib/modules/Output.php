@@ -2,7 +2,7 @@
 
 namespace o;
 
-class u_Response extends OStdModule {
+class u_Output extends OStdModule {
 
     private $gzipBufferOpen = false;
     public $sentResponseType = '';
@@ -79,14 +79,14 @@ class u_Response extends OStdModule {
             return $this->u_send_js($lout);
         }
         else if ($type == 'url') {
-            Tht::module('Response')->u_redirect($lout);
+            Tht::module('Output')->u_redirect($lout);
         }
     }
 
     function renderChunks($chunks) {
 
         // Normalize. Could be a single TypeString, OList, or a PHP array
-        if (! (is_object($chunks) && v($chunks)->u_is_type('list'))) {
+        if (! (is_object($chunks) && v($chunks)->u_type() == 'list')) {
             $chunks = OList::create([ $chunks ]);
         }
 
@@ -168,11 +168,11 @@ class u_Response extends OStdModule {
         return new \o\ONothing('sendHtml');
     }
 
-    function u_danger_danger_send ($s) {
+    function u_x_danger_send ($s) {
         $this->ARGS('s', func_get_args());
         print $s;
         $this->sentResponseType = 'raw';
-        return new \o\ONothing('dangerDangerSend');
+        return new \o\ONothing('xDangerSend');
     }
 
     // Print a well-formed HTML document with sensible defaults
@@ -323,7 +323,7 @@ HTML;
         foreach ($paths as $path) {
 
             if (!OTypeString::isa($path)) {
-                $this->error("Path must be a `url` or `$type` TypeString: `$path`");
+                $this->error("Path must be a `url` TypeString or `$type` TypeString: `$path`");
             }
 
             if (HtmlTypeString::isa($path)) {
@@ -396,7 +396,9 @@ HTML;
 
     function hasPreOutput() {
         $ob = ob_get_length();
-        ob_flush();
+        if ($ob) {
+            ob_flush();
+        }
         return $ob || headers_sent($atFile, $atLine);
     }
 }

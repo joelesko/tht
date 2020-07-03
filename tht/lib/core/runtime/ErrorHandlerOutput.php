@@ -42,7 +42,7 @@ class ErrorHandlerOutput {
                     $eh->printToLog($logOut);
                 }
                 // file_put_contents('php://stderr', $plainOut . "\n\n");
-                Tht::module('Response')->u_send_error(500);
+                Tht::module('Output')->u_send_error(500);
             }
         }
 
@@ -63,6 +63,15 @@ class ErrorHandlerOutput {
                 $error['phpFile'] = $m[2];
                 $error['phpLine'] = $m[3];
             }
+        }
+        else if (preg_match('/Using \$this when not in object context/i', $error['message'])) {
+            $error['message'] = "Can't use `@` outside of an object.";
+        }
+        else if (preg_match('/Errors parsing (.*)/i', $error['message'], $m)) {
+
+            // Error during PHP parse phase
+            $file = Tht::getThtPathForPhp($m[1]);
+            $error['message'] = "Unknown PHP parser error in: `$file`\n\nSorry there isn't more information.\n\nTry double-checking the last change you made.";
         }
         else if (preg_match('/Argument (\d+) passed to (\S+) must be of the type (\S+), (\S+) given/i', $error['message'], $m)) {
 
@@ -129,6 +138,11 @@ class ErrorHandlerOutput {
         if ($error['origin'] == 'tht.compiler.parser.formatChecker') {
             $error['errorDoc'] = [ 'link' => '/reference/format-checker', 'name' => 'Format Checker'];
         }
+
+        // if (preg_match('/const/i', $error['message'])) {
+        //     $error['message'] = 'Invalid statement inside class definition.';
+        //     $error['errorDoc'] = [ 'link' => '/language-tour/classes-and-objects', 'name' => 'Classes & Objects'];
+        // }
 
         // Solution Tips
 
@@ -437,6 +451,7 @@ class ErrorHandlerOutput {
         $clean = preg_replace('/, called.*/', '', $clean);
         $clean = preg_replace('/preg_\w+\(\)/', 'Regex Pattern', $clean);
         $clean = preg_replace('/\(T_.*?\)/', '', $clean);
+        $clean = preg_replace('/\barray\b/', 'List', $clean);
 
         // Convert internal name conventions
         $clean = preg_replace('/<<<.*?\/(.*?)>>>/', '$1', $clean);
@@ -521,12 +536,14 @@ class ErrorHandlerOutput {
 
             $src = self::phpToSrc($phpFrame['file'], $phpFrame['line']);
             $lineMsg = $src['line'] ? $src['line'] : '--';
+
             $numArgs = isset($phpFrame['args']) ? count($phpFrame['args']) : 0;
 
             $args = [];
             if ($numArgs) {
                 foreach ($phpFrame['args'] as $a) {
-                    $argsJson = Tht::module('Json')->formatOneLineSummary(v($a), 60);
+                    $aLabel = is_null($a) ? 'null' : v($a);
+                    $argsJson = Tht::module('Json')->formatOneLineSummary($aLabel, 60);
                     $args []= $argsJson;
                 }
             }
@@ -538,6 +555,7 @@ class ErrorHandlerOutput {
             } else if ($numArgs > 0) {
                 $sepArgs = true;
             }
+            if (!isset($phpFrame['args'])) { $phpFrame['args'] = []; }
             $argsLink = count($phpFrame['args']) ? "<span class='tht-error-args'>" . v($argsLabel)->u_encode_html() . "</span>" : '';
 
             $fun = !$fun ? '' : "· $fun($argsLink";

@@ -182,10 +182,10 @@ $fields
 
         $this->icons = [
 
-            'arrowLeft'  => '<path d="M30,50H90z"/><polyline points="60,10 20,50 60,90"/>',
-            'arrowRight' => '<path d="M10,50H70z"/><polyline points="40,10 80,50 40,90"/>',
-            'arrowUp'    => '<path d="M50,30V90z"/><polyline points="10,60 50,20 90,60"/>',
-            'arrowDown'  => '<path d="M50,10V70z"/><polyline points="10,40 50,80 90,40"/>',
+            'arrowLeft'  => '<path d="M30,50H90z"/><polyline points="50,15 20,50 50,85"/>',
+            'arrowRight' => '<path d="M10,50H70z"/><polyline points="50,15 80,50 50,85"/>',
+            'arrowUp'    => '<path d="M50,30V90z"/><polyline points="15,50 50,20 85,50"/>',
+            'arrowDown'  => '<path d="M50,10V70z"/><polyline points="15,50 50,80 85,50"/>',
 
             'chevronLeft'  => '<polyline points="70,10 30,50 70,90"/>',
             'chevronRight' => '<polyline points="30,10 70,50 30,90"/>',
@@ -237,11 +237,14 @@ $fields
         $this->ARGS('s', func_get_args());
 
         $icons = $this->icons();
-        if (!isset($icons[$id])) { Tht::error("Unknown icon: `$id`"); }
+        if (!isset($icons[$id])) {
+            ErrorHandler::setErrorDoc('/reference/icons', 'Icons');
+            Tht::error("Unknown icon: `$id`");
+        }
         if (substr($icons[$id], 0, 4) == '<svg') {
             return new \o\HtmlTypeString($icons[$id]);
         }
-        $rawTag = '<svg class="ticon" viewBox="0 0 100 100">' . $icons[$id] . '</svg>';
+        $rawTag = '<svg class="ticon ticon-' . $id . '" viewBox="0 0 100 100">' . $icons[$id] . '</svg>';
         return new \o\HtmlTypeString($rawTag);
     }
 

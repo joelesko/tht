@@ -16,12 +16,11 @@ class S_If extends S_Statement {
 
         // conditional. if (...)
        // $p->now('(', 'if')->space('S(x', true)->next();
-        $this->addKid($p->parseExpression(0));
+        $sCondition = $p->noOuterParens()->parseExpression(0);
+
+        $this->addKid($sCondition);
        // $p->now(')', 'if')->space('x) ', true)->next();
 
-        if ($p->symbol->isValue('=>')) {
-            $p->error('Invalid operator: `=>` Try: `>=` (greater or equal)');
-        }
 
         // block. { ... }
         $this->addKid($p->parseBlock());

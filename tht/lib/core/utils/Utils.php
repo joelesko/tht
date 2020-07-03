@@ -71,6 +71,12 @@ function unu_ ($s) {
     return $s;
 }
 
+// unu_ and strip namespace
+function unu_ns_ ($s) {
+    $s = preg_replace('#.*\\\\#', '', $s);
+    return unu_($s);
+}
+
 // var has a u_ prefix
 function hasu_ ($v) {
     return substr($v, 0, 2) === 'u_';
@@ -89,15 +95,22 @@ function hasu_ ($v) {
 //   c = callable
 //   * = any
 
-// NOTE: Fewer args are caught by PHP at runtime.
+
 function ARGS($sig, $arguments) {
 
     $err = '';
 
+    // NOTE: Fewer args are caught by PHP at runtime.
+    // Default values are not passed in func_get_args()
+    // if (count($arguments) < strlen($sig)) {
+    //     $num = strlen($sig);
+    //     $argumentLabel = v('argument')->u_to_plural($num);
+    //     $err = ' expects ' . strlen($sig) . " $argumentLabel.";
+    // }
     if (count($arguments) > strlen($sig)) {
         $num = strlen($sig);
-        $arguments = v('argument')->u_to_plural($num);
-        $err = ' expects ' . strlen($sig) . " $arguments.";
+        $argumentLabel = v('argument')->u_to_plural($num);
+        $err = ' expects ' . strlen($sig) . " $argumentLabel.";
     }
     else {
         $i = 0;
@@ -133,7 +146,7 @@ function ARGS($sig, $arguments) {
             // Type mismatch
             if ($t !== Runtime::$SIG_TYPE_KEY_TO_LABEL[$s]) {
                 $name = $t;
-                $argName = ['1st', '2nd', '3rd', '4th', '5th'][$i];
+                $argName = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'][$i];
                 $err = "expects $argName argument to be a `" . Runtime::$SIG_TYPE_KEY_TO_LABEL[$s] . "`.  Got: `" . $name . "`";
                 break;
             }
@@ -145,7 +158,7 @@ function ARGS($sig, $arguments) {
         // getting function name 2 levels deep
         $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)[2]['function'];
         ErrorHandler::addSubOrigin('arguments');
-        return "Function `$caller()`" . $err;
+        return [ 'msg' => "Function `$caller()` " . $err, 'function' => $caller ];
     }
     else {
         return false;

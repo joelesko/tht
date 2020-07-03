@@ -50,6 +50,15 @@ class OList extends OBag {
         return count($this->val) === 0;
     }
 
+    function u_equals($otherList) {
+        $this->ARGS('*', func_get_args());
+        if (!OList::isa($otherList)) { return false; }
+
+        $otherList = uv($otherList);
+
+        return uv($this) === $otherList;
+    }
+
 
     //// GETTERS
 
@@ -57,6 +66,19 @@ class OList extends OBag {
     function u_contains ($v) {
         $this->ARGS('*', func_get_args());
         return in_array($v, $this->val, true);
+    }
+
+    function u_contains_all ($otherList) {
+        $this->ARGS('l', func_get_args());
+        $otherList = array_unique(uv($otherList));
+
+        // Not possible to have all the values
+        if (count($otherList) > count($this->val)) { return false; }
+
+        $commonList = array_intersect($this->val, $otherList);
+        $commonList = array_unique($commonList);
+
+        return (count($commonList) == count($otherList));
     }
 
     function u_first ($n=1) {
@@ -309,7 +331,7 @@ class OList extends OBag {
 
     function u_join ($delim='') {
         $this->ARGS('s', func_get_args());
-        return implode($this->val, $delim);
+        return implode($delim, $this->val);
     }
 
     function u_to_map() {

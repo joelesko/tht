@@ -7,20 +7,27 @@ class u_Test extends OStdModule {
     private $lastParserError = '';
 
     private $out = [];
+    private $currentSection;
 
     var $stats = [
         'numPassed' => 0,
         'numFailed' => 0,
     ];
 
-    static function u_new () {
-        //$this->ARGS('', func_get_args());
+    function newObject () {
         return new u_Test ();
     }
 
     function u_section($s) {
+        if ($this->currentSection) {
+            Tht::module('Perf')->u_stop();
+        }
+        $this->currentSection = $s;
+        Tht::module('Perf')->u_start('test.section[' . $s . ']');
+
         $this->ARGS('s', func_get_args());
         $this->out []= [ 'section' => $s ];
+        return $this;
     }
 
     function u_stats() {
@@ -35,16 +42,25 @@ class u_Test extends OStdModule {
         $isOk = $expression ? true : false;
         $this->stats[$isOk ? 'numPassed' : 'numFailed'] += 1;
         $this->addLine($isOk, $msg);
-        return $isOk;
+        return $this;
     }
 
     function addLine($result, $msg) {
-        $this->out []= [ 'msg' => $msg, 'result' => $result ];
+        $this->out []= [ 'result' => $result, 'msg' => $msg ];
+    }
+
+    function skip($msg) {
+        $this->addLine(true, 'SKIP - ' . $msg);
+        return $this;
     }
 
     function u_dies ($callback, $msg) {
 
         $this->ARGS('cs', func_get_args());
+
+        if (Tht::module('Perf')->isActive()) {
+            return $this->skip('Perf Panel on');
+        }
 
         $hasError = false;
         ErrorHandler::startTrapErrors();
@@ -87,12 +103,25 @@ class u_Test extends OStdModule {
     }
 
     function u_parser_error ($code, $match, $msg=null) {
+
+        if (Tht::module('Perf')->isActive()) {
+            return $this->skip('Perf Panel on');
+        }
+
         $dies = $this->parserDies($code, $match);
         $msg = str_replace("\n", "\\n", $code) . ' | error: ' . $match;
+        if (!$dies) {
+            $msg .= ' | got: ' . $this->u_last_parser_error();
+        }
         return $this->u_ok($dies, $msg);
     }
 
     function u_parser_ok ($code, $msg) {
+
+        if (Tht::module('Perf')->isActive()) {
+            return $this->skip('Perf Panel on');
+        }
+
         $dies = false;
         $err = '';
         try {
@@ -115,6 +144,10 @@ class u_Test extends OStdModule {
     }
 
     function u_results_html () {
+
+        if ($this->currentSection) {
+            Tht::module('Perf')->u_stop();
+        }
 
         $this->ARGS('', func_get_args());
         $this->u_section('Results');
@@ -156,7 +189,10 @@ class u_Test extends OStdModule {
     function u_check_args() {
         $args = func_get_args();
         $mask = array_shift($args);
-        $this->ARGS($mask, $args);
+        $error = ARGS($mask, $args);
+        if ($error) {
+            Tht::error($error['msg']);
+        }
         return true;
     }
 

@@ -15,15 +15,13 @@ class S_ForEach extends S_Statement {
         $sFor = $p->symbol;
         $p->next();
 
-        // optional parens
-        $hasParen = false;
-        if ($p->symbol->isValue('(')) {
-            $hasParen = true;
-            $p->next();
-        }
+        // catch outer parens
+        $sOuterParen = $p->symbol->isValue('(') ? $p->symbol : null;
+        if ($sOuterParen) { $p->next(); }
 
         // iterator
-        $this->addKid($p->parseExpression(0));
+        $sIter = $p->parseExpression(0);
+        $this->addKid($sIter);
 
         $p->now('as', 'foreach.as');
         $p->validator->newScope();
@@ -49,12 +47,8 @@ class S_ForEach extends S_Statement {
             $p->next();
         }
 
-        // Closing paren
-        if ($hasParen) {
-            if (!$p->symbol->isValue(')')) {
-                $p->error('Expected closing paren `)`');
-            }
-            $p->next();
+        if ($p->symbol->isValue(')') && $sOuterParen) {
+            $p->outerParenError($sOuterParen);
         }
 
         $p->breakableDepth += 1;

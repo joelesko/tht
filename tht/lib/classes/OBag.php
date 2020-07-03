@@ -6,7 +6,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
 
     public $val = [];
     protected $default = null;
-    protected $hasLockedKeys = false;
+    protected $isReadOnly = false;
     protected $hasNumericKeys = false;
 
     function __get ($field) {
@@ -35,17 +35,38 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         $plainField = unu_($field);
         $meth = 'u_set' . ucfirst($plainField);
 
-        if (method_exists($this, $meth)) {
+        if ($this->isReadOnly) {
+            $this->error("Can't modify read-only " . get_class($this) . '.');
+        }
+        else if (method_exists($this, $meth)) {
             return $this->$meth($val);
-        } else if (isset($this->val[$plainField]) ) {
-            return $this->val[$plainField] = $val;
-        } else {
+        }
+        else if (isset($this->val[$plainField]) ) {
+            $this->val[$plainField] = $val;
+            return $this;
+        }
+        else {
             $this->error("Unknown field `$plainField`. Try: Check spelling, or add field with e.g. `\$map['fieldName']`");
+        }
+    }
+
+    function __call($fn, $args) {
+
+        $plainFn = unu_($fn);
+        if (isset($this->val[$plainFn]) && $this->val[$plainFn] instanceof \Closure) {
+            return $this->val[$plainFn]->call($this, ...$args);
+        }
+        else {
+            $this->error("Unknown function `$fn`");
         }
     }
 
     function setVal ($v) {
         $this->val = $v;
+    }
+
+    function setReadOnly($isReadOnly) {
+        $this->isReadOnly = $isReadOnly;
     }
 
 
@@ -92,7 +113,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
                 $this->val []= $v;
             }
             else {
-                $this->error("Can't append item to Map.");
+                $this->error("Can't push item onto Map.");
             }
         } else {
             $this->val[$k] = $v;
@@ -140,11 +161,11 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         return count($this->val) > 0;
     }
 
-    function u_lock_keys ($isLocked) {
-        $this->ARGS('f', func_get_args());
-        $this->hasLockedKeys = $isLocked;
-        return $this;
-    }
+    // function u_lock_keys ($isLocked) {
+    //     $this->ARGS('f', func_get_args());
+    //     $this->hasLockedKeys = $isLocked;
+    //     return $this;
+    // }
 
     function u_default ($d) {
         $this->default = $d;

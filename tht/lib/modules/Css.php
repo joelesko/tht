@@ -257,7 +257,7 @@ EOCSS;
         blockquote, q {
             quotes: none;
             padding: 0rem 3rem;
-            margin: 0 0 1.5rem;
+            margin: 3rem 0 3rem 0;
             font-size: 110%;
             line-height: 3rem;
             color: #777;

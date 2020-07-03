@@ -150,7 +150,7 @@ class u_Form extends OStdModule {
 
     function u_send_fail($errors=[]) {
         $this->ARGS('l', func_get_args());
-        Tht::module('Response')->u_send_json(OMap::create([
+        Tht::module('Output')->u_send_json(OMap::create([
             'status' => 'fail',
             'errors' => uv($errors),
         ]));
@@ -160,7 +160,7 @@ class u_Form extends OStdModule {
     function u_send_ok($next = '') {
         $this->ARGS('*', func_get_args());
         Tht::module('Session')->u_set_flash('form.done:' . $this->formId, true);
-        Tht::module('Response')->u_send_json(OMap::create([
+        Tht::module('Output')->u_send_json(OMap::create([
             'status' => 'ok',
             'next' => OTypeString::getUntyped($next, 'url'),
         ]));

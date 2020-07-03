@@ -149,7 +149,8 @@ class u_Image {
 
     function getImageType($filePath) {
         // Detect MIME type
-        $oldMime = Security::getFileMimeType($filePath);
+        $oldMime = Tht::module('*File')->u_get_mime_type($filePath);
+
         $types = [
             'image/jpeg'      => 'jpeg',
             'image/png'       => 'png',
@@ -358,12 +359,13 @@ class u_Image {
         return $audit;
     }
 
+    // Entry point from CliMode
     function optimizeImages($dir=null, $maxSize=1024) {
 
         CliMode::printHeaderBox('Optimize Images');
 
         if (!$dir) {
-            $dir = Tht::path('docRoot');
+            Tht::error("Need a directory.");
         }
 
         $dir = realpath($dir);

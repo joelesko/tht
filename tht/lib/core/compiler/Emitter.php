@@ -72,7 +72,7 @@ class Emitter {
 
     function out ($node, $inBlock=false) {
 
-        $key = implode([ $node['type'], $node['value'] ], '|');
+        $key = implode('|', [ $node['type'], $node['value'] ]);
 
         $func = isset($this->astToTarget[$key]) ? $this->astToTarget[$key] : null;
         if (!$func) {
@@ -83,7 +83,7 @@ class Emitter {
         }
 
         $out = $this->lineMarker($node['pos'][0]);
-        $out .= $this->$func($node['value'], $this->symbolTable->getKids($node['id']));
+        $out .= $this->$func($node['value'], $this->getKidsForNode($node));
 
         // Call can be either expression or statement.
         if ($inBlock && $node['type'] === SymbolType::CALL) {
@@ -91,5 +91,9 @@ class Emitter {
         }
 
         return $out;
+    }
+
+    function getKidsForNode($node) {
+        return $this->symbolTable->getKids($node['id']);
     }
 }

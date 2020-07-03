@@ -3,21 +3,22 @@
 namespace o;
 
 abstract class TemplateMode {
-    const NONE        = 0;
-    const PRE         = 1;
-    const BODY        = 2;
-    const EXPR        = 3;
-    const CODE_LINE   = 4;
+    const NONE      = 0;
+    const PRE       = 1;
+    const BODY      = 2;
+    const EXPR      = 3;
+    const CODE_LINE = 4;
 }
 
 class TokenStream {
+
     var $tokens = [];
 
-    function add ($t) {
+    function add($t) {
         $this->tokens []= implode(TOKEN_SEP, $t);
     }
 
-    function done () {
+    function done() {
         if (count($this->tokens) <= 1) {
             // add a noop token to prevent error if there are no tokens (e.g. all comments)
             $this->add([TokenType::WORD, '1,1', 0, 'false']);
@@ -28,12 +29,17 @@ class TokenStream {
         return $this;
     }
 
-    function count () {
+    function count() {
         return count($this->tokens);
     }
 
-    function next () {
+    function next() {
         $t = array_pop($this->tokens);
+        return explode(TOKEN_SEP, $t, 4);
+    }
+
+    function lookahead() {
+        $t = $this->tokens[count($this->tokens) - 1];
         return explode(TOKEN_SEP, $t, 4);
     }
 }
@@ -42,47 +48,6 @@ class TokenStream {
 class Tokenizer extends StringReader {
 
     private $ADJ_TOKEN_TYPES = ['V', 'N', 'S', 'LS', 'RS', 'W'];
-
-    private $OK_NEXT_ADJ_TOKENS = [
-        'in',
-        'as',
-        'if',
-        'abstract',
-        'class',
-        'trait',
-        'interface',
-        'final',
-        'public',
-        'private',
-        'protected',
-        'static',
-        'extends',
-    ];
-
-    private $OK_PREV_ADJ_TOKENS = [
-        'match',
-        'catch',
-        'function',
-        'template',
-        'in',
-        'as',
-        'return' ,
-        'new',
-        'foreach',
-        'if',
-        'F',
-        'T',
-        'class',
-        'trait',
-        'interface',
-        'final',
-        'public',
-        'private',
-        'protected',
-        'static',
-        'extends',
-    ];
-
 
     private $prevToken = [];
     private $tokens = [];
@@ -122,7 +87,11 @@ class Tokenizer extends StringReader {
     }
 
     function templateError($msg, $token=null) {
-        $this->error($msg, $token[TOKEN_POS], true);
+        if (!$token) {
+            $token = $this->prevToken;
+        }
+        $pos = !is_null($token) ? $token[TOKEN_POS] : '1,0';
+        $this->error($msg, $pos, true);
     }
 
     function templateEndError () {
@@ -140,11 +109,32 @@ class Tokenizer extends StringReader {
         return $this->tokenStream->done();
     }
 
+    function nextSpacesEndInNewline() {
+        while (true) {
+            $nc = $this->nextChar(1);
+            if ($nc == ' ') {
+                // trim
+                $this->next();
+            }
+            else {
+                // non-space
+                return $nc === "\n";
+            }
+        }
+    }
+
     function makeToken ($type, $value, $forceSpaceAfter = false) {
 
         $spaceMask = 0;
 
         $nextChar = $this->char();
+
+        // Handle trailing spaces before a newline, as a newline
+        if ($nextChar == ' ') {
+            if ($this->nextSpacesEndInNewline()) {
+                $nextChar = "\n";
+            }
+        }
 
         if ($forceSpaceAfter) {
             $nextChar = ' ';
@@ -158,12 +148,16 @@ class Tokenizer extends StringReader {
 
         $pos = $this->tokenPos[0] . ',' . $this->tokenPos[1];
         $token = [$type, $pos, $spaceMask, $value];
-        $this->prevToken = $token;
 
-        $this->tokenStream->add($token);
+        $this->prevToken = $token;
+        if ($nextChar === "\n") {
+            $this->prevToken = null;
+        }
 
         $this->prevSpace = false;
         $this->prevNewline = false;
+
+        $this->tokenStream->add($token);
 
         return $token;
     }
@@ -243,12 +237,24 @@ class Tokenizer extends StringReader {
             $this->next();
 
             // preserve backslash for special characters
-            if (strpos("nt\\", $next) !== false || $stringType === TokenType::RSTRING) {
+            if ($stringType == TokenType::TSTRING) {
+                // only escape special template chars
+                if (strpos("={", $next) !== false) {
+                    return $next;
+                }
+                else {
+                    return "\\" . $next;
+                }
+            }
+            else if ($stringType === TokenType::RSTRING) {
+                return "\\" . $next;
+            }
+            else if (strpos("nt\\", $next) !== false) {
                 return "\\" . $next;
             }
             return $next;
 
-        } else if ($c === "`" && $stringType !== TokenType::TSTRING) {
+        } else if ($c === "`" && $stringType != TokenType::TSTRING) {
             // convert backticks ` to single quotes
             return "'";
         }
@@ -263,18 +269,22 @@ class Tokenizer extends StringReader {
         $prev = $this->prevToken[TOKEN_VALUE];
 
         if (in_array($this->prevToken[TOKEN_TYPE], $this->ADJ_TOKEN_TYPES)) {
-            if (!in_array($prev, $this->OK_PREV_ADJ_TOKENS) &&
-                !in_array($current, $this->OK_NEXT_ADJ_TOKENS)) {
+            if (!in_array(strtolower($prev), CompilerConstants::$OK_PREV_ADJ_TOKENS) &&
+                !in_array(strtolower($current), CompilerConstants::$OK_NEXT_ADJ_TOKENS)) {
 
                 $prevPos = $this->prevToken[TOKEN_POS];
-                if (in_array($prev, ['let', 'var', 'const', 'constant', 'local'])) {
+                // if (in_array($prev, CompilerConstants::$UNSUPPORTED_PREV_TOKENS)) {
+                //     $this->error("Unknown keyword `$prev`.", $prevPos);
+                // }
+                if ($this->prevToken[TOKEN_TYPE] == 'W') {
                     $this->error("Unknown keyword `$prev`.", $prevPos);
                 }
-                if ($prev === 'global') {
-                    $this->error("Unknown keyword `$prev`. Try: `Globals.myVar = 123;`", $prevPos);
+                else if ($type == 'W') {
+                    $this->error("Unexpected $type.", false);
                 }
-
-                $this->error("Unexpected $type. Try: Look for missing separator. e.g. `,`", false);
+                else {
+                    $this->error("Unexpected $type. Try: Look for missing separator. e.g. `,`", false);
+                }
             }
         }
     }
@@ -284,9 +294,9 @@ class Tokenizer extends StringReader {
         // Template. End of single-line code block '--'
         if ($this->templateMode === TemplateMode::CODE_LINE && $c === "\n") {
             $prev = $this->prevChar();
-            if ($prev !== '{' && $prev !== ';' && $prev !== '}') {
-                $this->templateError("Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end with a semicolon `;` or brace `{ }`");
-            }
+            // if ($prev !== '{' && $prev !== ';' && $prev !== '}') {
+            //     $this->templateError("Inline code `" . Glyph::TEMPLATE_CODE_LINE ."` must end with a semicolon `;` or brace `{ }`");
+            // }
             $this->templateMode = TemplateMode::BODY;
         }
         else if ($this->templateMode === TemplateMode::EXPR && $c === "\n") {
@@ -295,6 +305,9 @@ class Tokenizer extends StringReader {
         }
 
         if ($c === "\n") {
+            if (!$this->prevNewline) {
+                $this->makeToken(TokenType::NEWLINE, "(nl)");
+            }
             $this->prevNewline = true;
         }
         else if ($c === ' ') {
@@ -371,7 +384,7 @@ class Tokenizer extends StringReader {
                 $this->templateName = $str;
                 $this->templateNameToken = $token;
             }
-            else if ($str === 'template' || $str === 'T') {
+            else if ($str === CompilerConstants::$TEMPLATE_TOKEN) {
                 $this->templateMode = TemplateMode::PRE;
                 $this->templateName = '(pending)';
                 $this->templateIndent = $this->indent;
@@ -522,11 +535,11 @@ class Tokenizer extends StringReader {
         $this->updateTokenPos();
 
         // catch mistake of using 'function' in place of 'template'
-        if ($this->prevToken && $this->prevToken[TOKEN_VALUE] === '{') {
-            if (strpos('<#.', $c) !== false) {
+        if (($this->prevToken && $this->prevToken[TOKEN_VALUE] === '{') || $this->prevToken === null) {
+            if (strpos('<#', $c) !== false) {
                 $this->error("Unexpected `$c`.  Did you mean to use a `template` instead?");
             }
-            if ($this->isGlyph('{{') || $this->isGlyph('::')) {
+            if ($this->isGlyph('{{') || $this->isGlyph('===')) {
                 $this->error("Unexpected `$c`.  Did you mean to use a `template` instead?");
             }
         }
@@ -561,7 +574,18 @@ class Tokenizer extends StringReader {
 
         // collect final characters
         $str = '';
-        if (strpos(Glyph::MULTI_GLYPH_PREFIX, $c) !== false) {
+
+        if ($c == '@') {
+            while (true) {
+                $str .= $c;
+                $this->next();
+                $c = $this->char();
+                if ($c != '@') {
+                    break;
+                }
+            }
+        }
+        else if (strpos(Glyph::MULTI_GLYPH_PREFIX, $c) !== false) {
 
             // multi-glyph (e.g. >=)
             while (true) {
@@ -571,16 +595,12 @@ class Tokenizer extends StringReader {
                 if ($this->atEndOfFile()) {
                     $this->error('Unexpected end of file.');
                 }
-                // for e.g. @.method(), don't treat '@.' as one token
-                if (($str == '@' || $str == '@@') && $c == '.') {
-                    break;
-                }
                 if (strpos(Glyph::MULTI_GLYPH_SUFFIX, $c) === false) {
                     break;
                 }
             }
-
-        } else {
+        }
+        else {
 
             // single glyph
             $str = $c;
@@ -631,7 +651,7 @@ class Tokenizer extends StringReader {
                 $this->nextFor('}');
 
                 // satisfy "semicolon at end of function" rule
-                $this->makeToken(TokenType::GLYPH, ';');
+//                $this->makeToken(TokenType::GLYPH, ';');
 
                 $this->prevSpace = true;  // satisfy format checker (space before '}')
                 $this->insertToken(TokenType::GLYPH, '}');
@@ -646,7 +666,7 @@ class Tokenizer extends StringReader {
 
             } else if ($this->atStartOfLine() && $this->isGlyph(Glyph::TEMPLATE_CODE_LINE)) {
 
-                // One line of THT code e.g. '-- $a = 1;'
+                // One line of THT code e.g. '=== $a = 1;'
                 $this->addTemplateString($str);
                 $this->nextFor(Glyph::TEMPLATE_CODE_LINE);
                 if ($this->char() !== " ") {

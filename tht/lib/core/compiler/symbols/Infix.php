@@ -6,10 +6,26 @@ class S_Infix extends Symbol {
     var $bindingPower = 80;
     var $type = SymbolType::INFIX;
     function asInner ($p, $left) {
+
+        $infixValue = $p->symbol->getValue();
+
+        if ($infixValue == '=>') {
+            $p->error('Invalid operator: `=>` Try: `>=` (greater or equal)');
+        }
+
         $this->space(' + ');
         $p->next();
 
+        if ($p->symbol->isValue('(nl)')) {
+            $v = $p->symbol->getValue();
+            $p->error("Unexpected newline.  Try: Put `$infixValue` on next line to continue statement.");
+        }
+
         $right = $p->parseExpression($this->bindingPower);
+        if (!$right) {
+            $p->error('Missing right operand.');
+        }
+
         $this->setKids([$left, $right]);
 
         return $this;
@@ -22,7 +38,7 @@ class S_Concat extends S_Infix {
     var $type = SymbolType::OPERATOR;
 }
 
-// e.g. +, -
+// +, -, etc.
 class S_Add extends S_Infix {
     var $bindingPower = 51;
 
@@ -36,12 +52,12 @@ class S_Add extends S_Infix {
     }
 }
 
-// e.g. *, /
+// *, /, etc.
 class S_Multiply extends S_Infix {
     var $bindingPower = 52;
 }
 
-// e.g. **
+// **, etc.
 class S_Power extends S_Infix {
     var $bindingPower = 53;
 }

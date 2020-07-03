@@ -8,18 +8,24 @@ class S_OpenParen extends Symbol {
 
     // Grouping (...)
     function asLeft($p) {
-        $this->space('*(x');
+        $this->space('*(N');
+
+        $p->ignoreNewlines = true;
+
         $p->next();
         $this->updateType(SymbolType::OPERATOR);
         $e = $p->parseExpression(0);
-        $p->now(')', 'group.close')->space('x)*')->next();
+
+        $p->ignoreNewlines = false;
+
+        $p->now(')', 'group.close')->space('N)*')->next();
         return $e;
     }
 
     // Function call. foo()
     function asInner ($p, $left) {
 
-        $this->space('x(x', true);
+        $this->space('x(N', true);
 
         $p->next();
         $this->updateType(SymbolType::CALL);
@@ -41,11 +47,16 @@ class S_OpenParen extends Symbol {
             $args[]= $p->parseExpression(0);
             if (!$p->symbol->isValue(",")) { break; }
             $p->space('x, ')->next();
+            $p->skipNewline();
         }
-        $argSymbol = $p->makeAstList(AstList::FLAT, $args);
-        $this->addKid($argSymbol);
 
-        $p->now(')', 'function.call.close')->space('x)*')->next();
+        if (!$p->symbol->isValue(')')) {
+            $p->error('Missing closing paren `)` after token.');
+        }
+        $p->space('x)*')->next();
+
+        $sArgs = $p->makeAstList(AstList::FLAT, $args);
+        $this->addKid($sArgs);
 
         return $this;
     }

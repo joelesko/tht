@@ -52,9 +52,9 @@ class UrlQuery extends OClass {
 
         $qClass = get_class($q);
         if ($qClass == 'o\UrlTypeString') {
-            $q = $q->u_query()->u_danger_danger_get_raw();
+            $q = $q->u_query()->u_x_danger_get_raw();
         } else if ($qClass == 'o\UrlQuery') {
-            $q = $q->u_danger_danger_get_raw();
+            $q = $q->u_x_danger_get_raw();
         }
 
         foreach ($q as $k => $v) {
@@ -95,7 +95,7 @@ class UrlQuery extends OClass {
         return isset($this->query[$key]);
     }
 
-    function u_danger_danger_get_raw() {
+    function u_x_danger_get_raw() {
         $this->ARGS('', func_get_args());
         return OMap::create($this->query);
     }

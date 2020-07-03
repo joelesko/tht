@@ -31,6 +31,12 @@ class ORegex extends OVar {
         return $this;
     }
 
+    function addFlag($flag) {
+        if (strpos($this->flags, $flag) === false) {
+            $this->flags .= $flag;
+        }
+    }
+
     function validateFlags($flags) {
         $flags = trim($flags);
         if (!$flags) { return ''; }

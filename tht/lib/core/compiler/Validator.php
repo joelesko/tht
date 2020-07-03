@@ -84,10 +84,10 @@ class Validator {
         $this->seenVars[$name] = true;
 
         // implicit vars
-        if ($name == '$this') {
-            return;
-        }
-        else if ($this->parser->lambdaDepth > 0) {
+        // if ($name == '$this' || $name == '$' || $name == '$$') {
+        //     return;
+        // }
+        if ($this->parser->lambdaDepth > 0) {
             if ($name == '$a' || $name == '$b' || $name == '$c') {
                 return;
             }
@@ -95,7 +95,7 @@ class Validator {
 
         $this->validateVarFormat($name, $symbol->token);
 
-        //Tht::debug('register', $symbol->token);
+        // Tht::debug('register', $symbol->token);
 
         $exactName = $this->isDefined($name, 'fuzzy');
         if ($exactName) {
@@ -158,7 +158,10 @@ class Validator {
                 }
             }
             else {
-                $this->error("Unknown function: `$calledName`", $calledToken);
+                $l = $calledName[0];
+                if (!preg_match('/^[A-Z]/', $l)) {
+                    $this->error("Unknown function: `$calledName`", $calledToken);
+                }
             }
         }
     }
@@ -183,7 +186,7 @@ class Validator {
             if (u_Bare::isa($lowerName)) {
                 $this->error("Name `" . $lowerName . "` is the name of a core function.", $token);
             }
-            else if (in_array($lowerName, CompilerConstants::$RESERVED_NAMES)) {
+            else if (in_array($lowerName, CompilerConstants::$KEYWORDS)) {
                 $this->error("Name `" . $lowerName . "` is a reserved word.", $token);
             }
 

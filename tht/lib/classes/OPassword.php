@@ -29,7 +29,7 @@ class OPassword extends OClass {
         return Security::verifyPassword($this->plainText, $correctHash);
     }
 
-    function u_danger_danger_plain_text() {
+    function u_x_danger_plain_text() {
         $this->ARGS('', func_get_args());
         return $this->plainText;
     }

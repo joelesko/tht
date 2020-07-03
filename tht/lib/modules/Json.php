@@ -133,6 +133,10 @@ class u_Json extends OStdModule {
             }
             else if ($c === '}' || $c === ']') {
                 $indentLevel -= 1;
+                // TODO: ugly workaround. Not sure why these can be mis-matched
+                if ($indentLevel < 0) {
+                    $indentLevel = 0;
+                }
                 $out .= "\n" . str_repeat($tab, $indentLevel) . $c;
             }
             else if ($c === ',') {

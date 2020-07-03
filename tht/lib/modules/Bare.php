@@ -5,7 +5,7 @@ namespace o;
 // Functions without a module namespace
 class u_Bare extends OStdModule {
 
-    static $FUNCTIONS = [ 'import', 'print', 'range', 'die' ];
+    static $FUNCTIONS = [ 'load', 'print', 'range', 'die' ];
 
     static function isa ($word) {
         return in_array($word, u_Bare::$FUNCTIONS);
@@ -50,31 +50,29 @@ class u_Bare extends OStdModule {
         return new \o\ONothing('print');
     }
 
-    function u_import ($relPath) {
+    function u_load($relPath) {
         $this->ARGS('s', func_get_args());
         return ModuleManager::loadUserModule($relPath);
     }
 
     function u_range ($start, $end, $step=1) {
-        $this->ARGS('nnn', func_get_args());
-        return OList::create(range($start, $end, $step));
-    }
 
-    // TODO: Iterator Version
-    // static function u_range ($start, $end, $step=1) {
-    //         if ($step <= 0) {
-    //             Tht::error('Step argument ' . $step . ' must be positive');
-    //         }
-    //     if ($start < $end) {
-    //         for ($i = $start; $i <= $end; $i += $step) {
-    //             yield $i;
-    //         }
-    //     } else {
-    //         for ($i = $start; $i >= $end; $i -= $step) {
-    //             yield $i;
-    //         }
-    //     }
-    // }
+        $this->ARGS('nnn', func_get_args());
+
+        if ($step <= 0) {
+            $this->error('Step argument ' . $step . ' must be positive');
+        }
+
+        if ($start < $end) {
+            for ($i = $start; $i <= $end; $i += $step) {
+                yield $i;
+            }
+        } else {
+            for ($i = $start; $i >= $end; $i -= $step) {
+                yield $i;
+            }
+        }
+    }
 
     function u_die ($msg, $data=null) {
         $this->ARGS('s*', func_get_args());

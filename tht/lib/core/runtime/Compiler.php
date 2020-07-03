@@ -19,8 +19,6 @@ class Compiler {
             return;
         }
 
-        Tht::module('Perf')->u_start('tht.execute', Tht::stripAppRoot($relSourceFile));
-
         if (!file_exists($sourceFile)) {
             Tht::error("Source file not found: `$sourceFile`");
         }
@@ -51,8 +49,6 @@ class Compiler {
         Tht::executePhp($phpSourceFile);
 
         array_shift(self::$filesToProcess);
-
-        Tht::module('Perf')->u_stop();
     }
 
     static function validateSourceFileName($filePath, $isEntry) {
@@ -80,7 +76,7 @@ class Compiler {
                 Tht::error("File name `$baseBad` must be $case.");
             } else {
                 Tht::errorLog("Url `$base` is missing hyphens. Ex: file-name = fileName.tht");
-                Tht::module('Response')->u_send_error(404);
+                Tht::module('Output')->u_send_error(404);
             }
         }
     }

@@ -23,10 +23,19 @@ class OMap extends OBag {
     static function create ($ary) {
         $m = new OMap ();
         $m->setVal($ary);
-        if (count($ary)) {
-            $m->u_lock_keys(true);
-        }
+        // if (count($ary)) {
+        //     $m->u_lock_keys(true);
+        // }
         return $m;
+    }
+
+    function u_equals($otherMap) {
+        $this->ARGS('*', func_get_args());
+        if (!OMap::isa($otherMap)) { return false; }
+
+        $otherMap = uv($otherMap);
+
+        return uv($this) === $otherMap;
     }
 
     function u_clear() {

@@ -71,16 +71,30 @@ class ModuleManager {
         self::$moduleRegistry[$path] = new OModule ($nameSpace, $path);
     }
 
-    static function getModuleFromNamespace($ns) {
-        $parts = explode('\\', $ns);
-        $name = array_pop($parts);
-        if ($parts[1] == 'pages') {
+    // static function getFromNamespace($ns) {
+    //     $parts = explode('\\', $ns);
+    //     $name = array_pop($parts);
+    //     if ($parts[1] == 'pages') {
+    //         return self::loadPageModule();
+    //     }
+    //     return self::get($name);
+    // }
+
+    static function getFromLocalPath($fullPhpPath) {
+
+        $thtPath = Tht::getThtPathForPhp($fullPhpPath);
+        $relPath = Tht::getRelativePath('app', $thtPath);
+
+        if (substr($relPath, 0, 6) == 'pages/') {
             return self::loadPageModule();
         }
-        return self::getModule($name);
+
+        // This is coming from `@@` (local module), so consider it already loaded.
+        return self::$moduleRegistry[$relPath];
     }
 
-    static function getModule ($modName, $isSideload = false) {
+
+    static function get($modName, $isSideload = false) {
 
         $cacheKey = $modName . ($isSideload ? '_side' : '');
         if (isset(self::$moduleCache[$cacheKey])) {
@@ -168,7 +182,7 @@ class ModuleManager {
 
     // Entry point for `new Object ()`
     static function newObject($className, $args) {
-        $mod = self::getModule($className);
+        $mod = self::get($className);
         return $mod->newObject($className, $args);
     }
 
@@ -179,16 +193,13 @@ class ModuleManager {
 
             $class = str_replace('o\\u_', '', $aclass);
 
+            if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
+
             if (LibModules::isa($class)) {
-
-                if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
-
                 if ($class == 'System') {
                     $class = 'SystemX';
                 }
                 Tht::loadLib('../modules/' . $class . '.php');
-
-                if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
 
             } else if (strpos($aclass, 'tht\\') === 0) {
 
@@ -198,6 +209,8 @@ class ModuleManager {
                 // Tht::error("Can not autoload PHP class: `$aclass`");
                 // UPDATE: Allow pass through for PHP intrerop
             }
+
+            if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
 
         });
     }

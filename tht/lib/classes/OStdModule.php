@@ -2,15 +2,34 @@
 
 namespace o;
 
-class OStdModule implements \JsonSerializable {
+// TODO: factor out commonalities with OModule & OClass
+
+class OStdModule extends OClass implements \JsonSerializable {
+
+    function u_type() {
+        return 'module';
+    }
+
+    function bareClassName() {
+        return $this->getClass();
+    }
 
     function getClass() {
         $c = preg_replace('/o\\\\u_/', '', get_called_class());
         return $c == 'SystemX' ? 'System' : $c;
     }
 
-    function error($msg) {
+    function error($msg, $args=null, $contextMethod='') {
         ErrorHandler::setErrorDoc('/manual/module/' . strtolower($this->getClass()), $this->getClass());
+        ErrorHandler::addOrigin('stdModule.' . strtolower($this->getClass()));
+        Tht::error($msg);
+    }
+
+    function argumentError($msg, $method) {
+        $methodToken = v($method)->u_to_token_case('-');
+        $methodLabel = v($method)->u_to_camel_case();
+        $label = $this->getClass() . '.' . $methodLabel;
+        ErrorHandler::setErrorDoc('/manual/module/' . strtolower($this->getClass()) . '/' . $methodToken, $label);
         ErrorHandler::addOrigin('stdModule.' . strtolower($this->getClass()));
         Tht::error($msg);
     }
@@ -18,8 +37,7 @@ class OStdModule implements \JsonSerializable {
     function ARGS($sig, $args) {
         $err = ARGS($sig, $args);
         if ($err) {
-            ErrorHandler::setErrorDoc('/manual/module/' . strtolower($this->getClass()), $this->getClass());
-            $this->error($err);
+            $this->argumentError($err['msg'], unu_($err['function']));
         }
     }
 

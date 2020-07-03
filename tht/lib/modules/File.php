@@ -49,7 +49,7 @@ class u_File extends OStdModule {
         return $returnVal;
     }
 
-    function dangerDangerDisableSandbox() {
+    function xDangerDisableSandbox() {
         $this->isSandboxDisabled = true;
     }
 
@@ -103,10 +103,10 @@ class u_File extends OStdModule {
 
     // META
 
-    function u_danger_danger_no_sandbox() {
+    function u_x_danger_no_sandbox() {
         $this->ARGS('', func_get_args());
         $f = new u_File();
-        $f->dangerDangerDisableSandbox();
+        $f->xDangerDisableSandbox();
         return $f;
     }
 

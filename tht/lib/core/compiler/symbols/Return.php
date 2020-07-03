@@ -12,19 +12,13 @@ class S_Return extends S_Command {
         }
 
         $p->next();
-        if (!$p->symbol->isValue(';')) {
-            $this->space('*returnS', true);
+        if (!$p->symbol->isValue('(nl)')) {
+            $this->space('*return ', true);
             $p->expressionDepth += 1; // prevent assignment
-            $this->addKid($p->parseExpression(0));
-            if (!$p->symbol->isValue(';')) {
-                $p->error('Missing semicolon `;` after `return`.', $this->token);
-            }
-          //  $p->next();
+            $this->addKid($p->noOuterParens()->parseExpression(0));
         }
 
         $p->loopBreaks[count($p->loopBreaks) - 1] = true;
-
-
 
         // Don't check for orphan, to support a common debugging pattern of returning early
 

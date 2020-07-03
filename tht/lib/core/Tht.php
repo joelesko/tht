@@ -4,8 +4,8 @@ namespace o;
 
 class Tht {
 
-    static private $VERSION = '0.6.1 - Beta';
-    static private $VERSION_TOKEN = '00601';
+    static private $VERSION = '0.7.0 - Beta';
+    static private $VERSION_TOKEN = '00700';
     static private $VERSION_TOKEN_PHP = '';
 
     static private $SRC_EXT = 'tht';
@@ -13,7 +13,6 @@ class Tht {
     static private $THT_SITE = 'https://tht-lang.org';
     static private $ERROR_API_URL = 'https://tht-lang.org/remote/error';
 
-    static private $startTime = 0;
     static private $didSideloadInit = false;
 
     static private $data = [
@@ -83,6 +82,8 @@ class Tht {
 
     static public function main() {
 
+        self::catchPhpCompileErrors();
+
         self::checkRequirements();
         self::initLibs();
         self::initMode();
@@ -135,9 +136,17 @@ class Tht {
         }
     }
 
-    // Includes take 0.25ms
-    // TODO: can cut in half or more by consolidating all these to 1 file.
+    static private function catchPhpCompileErrors() {
+        // These will be overridden later
+        error_reporting(E_ALL);
+        ini_set('display_errors', '1');
+        ini_set('display_startup_errors', '1');
+    }
+
+    // Includes take 10ms
     static private function initLibs() {
+
+      //  $start = microtime(true);
 
         self::loadLib('utils/Utils.php');
         self::loadLib('utils/StringReader.php');
@@ -153,26 +162,33 @@ class Tht {
 
         self::loadLib('../classes/_index.php');
         self::loadLib('../modules/_index.php');
+
+       // $durationMs = round((microtime(true) - $start) * 1000, 2);
+       // print($durationMs . ' ms');
+
+      //  exit();
     }
 
     static public function exitScript($code) {
         if (self::isMode('web') && !$code) {
-            WebMode::printPerf();
+            WebMode::onEnd();
         }
         exit($code);
     }
 
     static public function handleShutdown() {
         ErrorHandler::handleShutdown();
-        self::module('Response')->endGzip();
+        self::module('Output')->endGzip();
     }
 
     static public function executePhp ($phpPath) {
+        Tht::module('Perf')->u_start('tht.php.requireFile', basename($phpPath));
         try {
             require_once($phpPath);
         } catch (ThtError $e) {
             ErrorHandler::handleThtRuntimeError($e, $phpPath);
         }
+        Tht::module('Perf')->u_stop();
     }
 
 
@@ -208,7 +224,7 @@ class Tht {
 
     static public function sideloadModule($mod) {
         self::sideloadMain();
-        return \o\ModuleManager::getModule($mod, true);
+        return \o\ModuleManager::get($mod, true);
     }
 
 
@@ -240,7 +256,7 @@ class Tht {
         ErrorHandler::handleConfigError($msg);
     }
 
-    static public function startupError ($msg, $vars=null) {
+    static public function startupError ($msg) {
         throw new StartupError ($msg);
     }
 
@@ -406,7 +422,6 @@ class Tht {
         $default['tht'] = [
 
             // internal
-            "_devPrint"     => false,
             "_coreDevMode"  => false,
             "_sendErrorUrl" => THT::$ERROR_API_URL,
 
@@ -416,6 +431,7 @@ class Tht {
             // features
             "adminIp"                => '',
             "showPerfPanel"          => false,
+            "showPrintPanel"         => true,
             "disableFormatChecker"   => false,
             "minifyCssTemplates"     => true,
             "minifyJsTemplates"      => true,
@@ -430,7 +446,7 @@ class Tht {
             // security
             "contentSecurityPolicy"   => '',
             "showErrorPageForMins"    => 10,
-            "dangerDangerAllowJsEval" => false,
+            "xDangerAllowJsEval" => false,
 
             // misc
             "cacheGarbageCollectRate" => 100,
@@ -664,7 +680,7 @@ class Tht {
     }
 
     static public function module ($name) {
-        return ModuleManager::getModule($name);
+        return ModuleManager::get($name);
     }
 
     // TODO: This is a bit messy, and user module names have duplication.

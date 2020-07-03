@@ -38,6 +38,10 @@ class u_Js extends OStdModule {
 
         $this->ARGS('s', func_get_args());
 
+        if (!Tht::getConfig('minifyJsTemplates')) {
+            return $str;
+        }
+
         if (!trim($str)) { return ''; }
 
         $cacheKey = 'js_minified_' . md5($str);
@@ -189,7 +193,7 @@ EOLAZY;
             $this->error('Argument `keyWords` for `colorCode` plugin must be a pipe-separated list of alpha-numeric words. e.g. `if|while|break`');
         }
 
-        $keyWords = $keyWords ?: 'let|var|const|constant|template|function|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|where|switch|match|T|F|keep|use';
+        $keyWords = $keyWords ?: 'let|var|const|constant|function|tm|fn|def|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|load|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|where|switch|match|keep|use|fields|inner|outer';
 
 
         $css = <<<EOCSS
@@ -313,7 +317,7 @@ EOCSS;
                 c = c.replace(/(^|\\s)(\\/\\/[^\\/].*)/gm, '$1<span class=(qq)cc-comment(qq)>$2</span>');
 
                 // template: single-line code
-                c = c.replace(/(^|\\s)((--)\s+.*)/g, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
+                c = c.replace(/(^|\\s)((===)\s+.*)/g, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
 
                 // template: expression
                 // c = c.replace(/(\{\{(.*?)\}\})/g, '<span class=(qq)cc-template-expr(qq)>$1</span>');

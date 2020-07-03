@@ -2,20 +2,22 @@
 
 namespace o;
 
-
 class EmitterPHP extends Emitter {
 
     private $constantContext = '';
     private $constantValues = [];
-    private $isPhpLiteral = false;
+   // private $isPhpLiteral = false;
     private $inClosureVars = false;
+    private $preKeywordDepth = 0;
+    private $functionDepth = 0;
+    private $classDepth = 0;
+    private $importedModules = [];
+    private $collectKeys = false;
+    private $collectedKeys = [];
 
     var $astToTarget = [
 
         'FLAG'            => 'pFlag',
-        'CONSTANT|this'   => 'pThis',
-        'CONSTANT|@'      => 'pThis',
-        'CONSTANT|@@'     => 'pThisModule',
         'NUMBER'          => 'pNumber',
         'STRING'          => 'pString',
         'LSTRING'         => 'pLString',
@@ -30,6 +32,8 @@ class EmitterPHP extends Emitter {
         'FUN_ARG_SPLAT'   => 'pFunArgSplat',
         'FUN_ARG_TYPE'    => 'pFunArgType',
         'PACKAGE'         => 'pPackage',
+        'FULL_PACKAGE'    => 'pFullPackage',
+        'PRE_KEYWORD'     => 'pPreKeyword',
 
         'PAIR'            => 'pPair',
         'BARE_FUN'        => 'pBareFun',
@@ -56,8 +60,10 @@ class EmitterPHP extends Emitter {
         'NEW_FUN'         => 'pFunction',
         'NEW_TEMPLATE'    => 'pTemplate',
         'NEW_CLASS'       => 'pClass',
-        'NEW_OBJECT'      => 'pNew',
+     //   'NEW_OBJECT'      => 'pNew',
      //   'NEW_OBJECT_VAR'  => 'pNewObjectVar',
+        'CLASS_PLUGIN'     => 'pClassPlugin',
+        'CLASS_FIELDS'     => 'pClassFields',
 
         'OPERATOR|~'        => 'pConcat',
         'OPERATOR|if'       => 'pIf',
@@ -66,13 +72,17 @@ class EmitterPHP extends Emitter {
         'OPERATOR|match'    => 'pMatch',
         'OPERATOR|lambda'   => 'pLambda',
 
+      //  'CONSTANT|this'   => 'pThis',
+        'CONSTANT|@'      => 'pThis',
+        'CONSTANT|@@'     => 'pThisModule',
+
         'MEMBER|['        => 'pMemberBracket',
         'MEMBER|.'        => 'pMemberDot',
         'MEMBER_VAR'      => 'pMemberVar',
 
         'COMMAND'         => 'pCommand',
         'COMMAND|return'  => 'pReturn',
-        'COMMAND|R'       => 'pReturn',
+     //   'COMMAND|R'       => 'pReturn',
 
         'AST_LIST'        => 'pAstList',
         'AST_LIST|{'      => 'pMap',
@@ -152,7 +162,7 @@ class EmitterPHP extends Emitter {
             $post = "\n";
         }
 
-        return $pre . implode($targetSrc, $delim) . $post;
+        return $pre . implode($delim, $targetSrc) . $post;
     }
 
     // Simple
@@ -163,14 +173,6 @@ class EmitterPHP extends Emitter {
 
     function pFlag ($value, $k) {
         return $value;
-    }
-
-    function pThis ($value, $k) {
-        return '$this';
-    }
-
-    function pThisModule ($value, $k) {
-        return '\o\ModuleManager::getModuleFromNamespace(__NAMESPACE__)';
     }
 
     function pNumber ($value, $k) {
@@ -222,13 +224,13 @@ class EmitterPHP extends Emitter {
         if ($this->constantContext) {
             $template = '[ ### ]';
             $this->constantValues []= [
-                'type' => 'map',
+                '___type' => 'map',
                 'name' => $this->constantContext
             ];
         }
-        else if ($this->isPhpLiteral) {
-            $template = '[ ### ]';
-        }
+        // else if ($this->isPhpLiteral) {
+        //     $template = '[ ### ]';
+        // }
         return $this->format($template, $this->toAstList($value, $k, true));
     }
 
@@ -238,13 +240,13 @@ class EmitterPHP extends Emitter {
         if ($this->constantContext) {
             $template = '[ ### ]';
             $this->constantValues []= [
-                'type' => 'list',
+                '___type' => 'list',
                 'name' => $this->constantContext
             ];
         }
-        else if ($this->isPhpLiteral) {
-            $template = '[ ### ]';
-        }
+        // else if ($this->isPhpLiteral) {
+        //     $template = '[ ### ]';
+        // }
 
        return $this->format($template, $this->toAstList($value, $k, true));
     }
@@ -253,7 +255,23 @@ class EmitterPHP extends Emitter {
 
     // Words
 
+    function pThis ($value, $k) {
+        return '$this';
+    }
+
+    function pThisModule ($value, $k) {
+       return '\o\ModuleManager::getFromLocalPath(__FILE__)';
+    }
+
     function pUserVar ($value, $k) {
+
+        // if ($value == '') {
+        //     return '$this';
+        // }
+        // if ($value == '$') {
+        //     return '\o\ModuleManager::getFromNamespace(__NAMESPACE__)';
+        // }
+
         $t = '$###';
         if ($this->inClosureVars) {
             // closure vars need to be a reference
@@ -308,10 +326,27 @@ class EmitterPHP extends Emitter {
     }
 
     function pBareFun ($value, $k) {
-        return $this->format("\o\ModuleManager::getModule('*Bare')->###", u_($value));
+        return $this->format("\o\ModuleManager::get('*Bare')->###", u_($value));
     }
 
-
+    function pPreKeyword ($value, $k) {
+        $this->preKeywordDepth += 1;
+        if ($k[0]['type'] == SymbolType::CLASS_FIELDS) {
+            $out = $this->format('###', $k[0]);
+        }
+        else {
+            if ($value == 'private') {
+                $value = 'protected';
+            }
+            if (!$this->classDepth) {
+                // module level: don't output anything
+                $value = '';
+            }
+            $out = $this->format('### ###', $value, $k[0]);
+        }
+        $this->preKeywordDepth -= 1;
+        return $out;
+    }
 
 
 
@@ -322,6 +357,9 @@ class EmitterPHP extends Emitter {
     }
 
     function pPair ($value, $k) {
+        if ($this->collectKeys) {
+            $this->collectedKeys []= $value;
+        }
         return $this->format("'###' => ###", $value, $k[0]);
     }
 
@@ -419,13 +457,6 @@ class EmitterPHP extends Emitter {
         return $this->format('### = ###;', $k[0], $k[1]);
     }
 
-    // function pNewObjectVar ($value, $k) {
-    //     $this->isPhpLiteral = true;
-    //     $out = $this->format('private ### = ###;', $k[0], $k[1]);
-    //     $this->isPhpLiteral = false;
-    //     return $out;
-    // }
-
     function pAssign ($value, $k) {
         if ($value === '~=') {
             $value = '.=';
@@ -433,8 +464,13 @@ class EmitterPHP extends Emitter {
         $t = '### ### ###;';
         if (in_array($value, ['+=', '-=', '/=', '*=', '%=', '**='])) {
             // TODO: check left-side operand for numeric value
-            $isAdd = $value === '+=' ? '1' : '0';
+            $isAdd = $value === '+=' ? 'true' : 'false';
             $t = "### ### \\o\\vn(###, $isAdd);";
+        }
+
+        // fields default to private
+        if ($this->classDepth == 1 && $this->functionDepth == 0 && $this->preKeywordDepth == 0) {
+            $t = 'protected ' . $t;
         }
 
         return $this->format($t, $k[0], $value, $k[1]);
@@ -461,8 +497,14 @@ class EmitterPHP extends Emitter {
     }
 
     function pCall ($value, $k) {
+
+        if (preg_match('/^[A-Z]/', $k[0]['value'])) {
+            return $this->pNew($value, $k);
+        }
+
         if ($k[0]['value'] === 'import') {
             $k[0] = $this->pBareFun('import', $k[1]);
+            $path = $this->format('###(###)', $k[0], $k[1]);
         }
         return $this->format('###(###)', $k[0], $k[1]);
     }
@@ -476,7 +518,11 @@ class EmitterPHP extends Emitter {
     }
 
     function pPackage($value, $k) {
-        return $this->format('\o\ModuleManager::getModule(\'###\')', $value);
+        return $this->format('\o\ModuleManager::get(\'###\')', $value);
+    }
+
+    function pFullPackage($value, $k) {
+        return $this->format('###', $value);
     }
 
 
@@ -484,6 +530,7 @@ class EmitterPHP extends Emitter {
 
 
     function pFunction ($value, $k) {
+
         $closure = '';
         if (isset($k[3])) {
             $this->inClosureVars = true;
@@ -491,14 +538,27 @@ class EmitterPHP extends Emitter {
             $this->inClosureVars = false;
         }
 
-        $out = $this->format('function ### (###) ### { %!WRAP% %!IMPLICIT% ### return \o\ONothing::create(__METHOD__); }',
-          $k[0], $k[1], $closure, $this->out($k[2], true) );
+       // $this->isPhpLiteral = false;
+        $this->functionDepth += 1;
+
+        $t = 'function ### (###) ### { %!WRAP% %!IMPLICIT% ### return \o\ONothing::create(__METHOD__); }';
+
+        // If class method, default to 'private'
+        if ($this->classDepth == 1 && $this->functionDepth == 1 && $this->preKeywordDepth == 0 && $k[0]['value'] !== 'new') {
+            $t = 'private ' . $t;
+        }
+
+        $out = $this->format($t, $k[0], $k[1], $closure, $this->out($k[2], true));
+
+        $out .= $this->exportFunction($k[0]);
+
+        $this->functionDepth -= 1;
 
         // wrap any lists or maps that come in as an argument
         $objectWrappers = '';
         foreach ($this->constantValues as $cv) {
             $varName = '$' . u_($cv['name']);
-            if ($cv['type'] == 'map') {
+            if ($cv['___type'] == 'map') {
                 $objectWrappers .= "$varName = is_object($varName) ? $varName : \o\OMap::create($varName);\n";
             }
             else {
@@ -514,7 +574,6 @@ class EmitterPHP extends Emitter {
             $implicitArgs = '$_all = func_get_args(); if (isset($_all[0])) { $u_a = func_get_arg(0);  if (isset($_all[1])) { $u_b = func_get_arg(1); if (isset($_all[2])) { $u_c = func_get_arg(2); }}}';
         }
         $out = preg_replace('/%!IMPLICIT%/', $implicitArgs, $out, 1);
-
 
         return $out;
     }
@@ -534,7 +593,19 @@ class EmitterPHP extends Emitter {
                     '$t = \o\Runtime::openTemplate("###");###' .
                     '\o\Runtime::closeTemplate();return $t->getString();}';
 
-        return $this->format($template, $k[0], $k[1], $closure, $templateType, $this->out($k[2], true));
+        $out = $this->format($template, $k[0], $k[1], $closure, $templateType, $this->out($k[2], true));
+
+        $out .= $this->exportFunction($k[0]);
+
+        return $out;
+    }
+
+    function exportFunction($fnName) {
+        if ($this->preKeywordDepth && !$this->classDepth) {
+            $export = $this->format("->exportFunction('###')", $fnName);
+            return $this->pThisModule('', '') . $export . ";";
+        }
+        return '';
     }
 
 
@@ -543,9 +614,29 @@ class EmitterPHP extends Emitter {
 
     function pForEach ($value, $k) {
         if (count($k) === 4) {
+            // key/value iterator
             return $this->format('foreach (### as ### => ###) {###}', $k[0], $k[1], $k[2], $this->out($k[3], true));
         }
         else {
+            // Perf: covert range() loop into C-style 'for' loop
+            // (4x faster than generator, 25x faster than array)
+            // Only willing to do this because loops are a common bottleneck
+            if ($k[0]['value'] == '(') {
+                $iterKids = $this->getKidsForNode($k[0]);
+                if ($iterKids[0]['value'] == 'range') {
+
+                    $argList = $this->getKidsForNode($iterKids[1]);
+                    $alias = $k[1];
+                    $initial = $this->out($argList[0]);
+                    $max = $this->out($argList[1]);
+                    $step = isset($argList[2]) ? $this->out($argList[2]) : 1;
+                    $block = $this->out($k[2], true);
+
+                    return $this->format('for (### = ###; ### <= ###; ### += ###) {###}',
+                         $alias, $initial, $alias, $max, $alias, $step, $block);
+                }
+            }
+
             return $this->format('foreach (### as ###) {###}', $k[0], $k[1], $this->out($k[2], true));
         }
     }
@@ -569,9 +660,50 @@ class EmitterPHP extends Emitter {
 
     function pClass ($value, $k) {
         $className = $k[0]['value'];
-        $block = $k[1];
-        $c = $this->format('class ### extends \o\OClass {###}', u_($className), $this->out($block, true));
+        $extends = $k[1]['value'];
+        $implements = $k[2]['value'];
+        $block = $k[3];
+
+        if (!$extends) {
+            $extends = '\o\OClass';
+        }
+        else {
+            $extends = '\tht\modules\ParentClass_x\\' . u_($extends);
+        }
+
+       // $this->isPhpLiteral = true;
+        $this->classDepth += 1;
+        $c = $this->format("### ### extends ### {###}", $value, u_($className), $extends, $this->out($block, true));
+        $this->classDepth -= 1;
+
         return $c;
+    }
+
+    function pClassPlugin ($value, $k) {
+        $method = $value == 'outer' ? '___init_outer_objects' : '___init_inner_objects';
+        $innerMethod = $value == 'outer' ? '$this->addOuterObjects' : '$this->addInnerObjects';
+        $s = $this->format('protected function ' . $method . '() { ' . $innerMethod . '(###); }', $k[0]);
+        return $s;
+    }
+
+    function pClassFields ($value, $k) {
+        $fnName = '';
+        if ($this->preKeywordDepth > 0) {
+            $fnName = "___init_public_fields";
+        }
+        else {
+            $fnName = "___init_fields";
+        }
+        $this->collectKeys = true;
+        $this->collectedKeys = [];
+        $s = $this->format("protected function $fnName() { return ###; }", $k[0]);
+
+      //  $visibility = $this->preKeywordDepth > 0 ? 'public' : 'protected';
+        foreach ($this->collectedKeys as $k) {
+            $s .= "protected $" . u_($k) . " = 0;\n";
+        }
+
+        return $s;
     }
 
     function pTryCatch ($value, $k) {

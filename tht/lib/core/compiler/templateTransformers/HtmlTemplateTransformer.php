@@ -5,8 +5,10 @@ namespace o;
 class HtmlTemplateTransformer extends TemplateTransformer {
 
     private $currentTag = null;
-    static private $openTags = [];
-    private $numLineTags = 0;
+    private $openTags = [];
+    private $seenOpenTags = false;
+    private $numTagsInLine = 0;
+    private $lineHasContent = false;
     private $currentTagPos = 0;
     private $inQuote = '';
 
@@ -14,16 +16,6 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
         'keygen', 'link', 'meta', 'param', 'source', 'track', 'wbr'
     ];
-
-    static function cleanHtmlSpaces($str) {
-        $str = preg_replace('#>\s+$#',      '>', $str);
-        $str = preg_replace('#^\s+<#',      '<', $str);
-        $str = preg_replace('#>\s*\n+\s*#', '>', $str);
-        $str = preg_replace('#\s*\n+\s*<#', '<', $str);
-        $str = preg_replace('#\s+</#',      '</', $str);
-
-        return $str;
-    }
 
     function error($msg, $pos=null, $skipDoc=false) {
         ErrorHandler::addSubOrigin('template');
@@ -35,25 +27,35 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
     function transformNext () {
 
-        $t = $this->reader;
+        $r = $this->reader;
 
-        $c = $t->char();
+        $c = $r->char();
 
-        if ($c === "\n" && $this->numLineTags) {
-            $this->indent = 0;
-            return $this->closeLineEndTags();
-        }
-        else if ($c === '<') {
-            return $this->readTagStart($t);
+        if ($c === '<') {
+            // Start of tag
+            return $this->readTagStart($r);
         }
         else if ($this->currentTag !== null) {
-            return $this->readTagMiddle($t);
+            // Inside of tag
+            return $this->readTagMiddle($r);
         }
         else {
+
+            // Content outside of tag
             if ($c === "\n") {
+
+                $strCloseTags = $this->closeTagsInLine();
+
                 $this->indent = 0;
-            } else if ($c === " ") {
-                $this->indent += 1;
+
+                if ($strCloseTags) {
+                    return $strCloseTags;
+                }
+            }
+            else {
+                if ($c === " ") {
+                    $this->indent += 1;
+                }
             }
 
             // plaintext
@@ -61,86 +63,40 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
     }
 
-    function closeLineEndTags() {
-        $str = '';
-        while (true) {
-            $str .= $this->getClosingTag();
-            $this->numLineTags -= 1;
-            if (!$this->numLineTags) {
-                break;
-            }
-        }
-        return $str;
-    }
-
-    // eg '<blah'
+    // eg '<div'
     function readTagStart () {
 
         $this->currentContext = 'tag';
 
-        $t = $this->reader;
+        $r = $this->reader;
 
-        $t->updateTokenPos();
-        $this->currentTagPos = $t->getTokenPos();
+        $r->updateTokenPos();
+        $this->currentTagPos = $r->getTokenPos();
 
-        $c = $t->char();
+        $c = $r->char();
         $str = '';
 
-        if ($t->nextChar() === '!') {
+        if ($r->nextChar() === '!') {
             // HTML comment <!-- -->
-            while (true) {
-                $str .= $c;
-                $t->next();
-                if ($c === '>') {
-                    break;
-                }
-                $c = $t->char();
-            }
+            $r->slurpUntil('>');
         }
-        else if ($t->nextChar() === '/') {
+        else if ($r->nextChar() === '/') {
 
             // HTML closing tag. </...>
             // auto-fill tag name
-            $t->next();
-            $tagName = '';
-            while (true) {
-                $t->next();
-                $c = $t->char();
-                if ($c === "\n") {
-                    $t->updateTokenPos();
-                    $this->error('Unexpected newline.');
-                }
-                if ($c === '>') {
-                    $t->next();
-                    break;
-                } else {
-                    $tagName .= $c;
-                }
-            }
-
+            $r->next();
+            $tagName = $this->readCloseTagName($r);
             $str .= $this->getClosingTag($tagName);
 
         } else {
 
             // HTML Open Tag
             $str .= $c;
-            $t->updateTokenPos();
+            $r->updateTokenPos();
 
-            // read tag name
-            $tagName = '';
-            while (true) {
-                $t->next();
-                $c = $t->char();
-                if ($c === "\n" || $c === ' ' || $c === '>') {
-                    $this->currentTag = $this->newTag($tagName, $t->getTokenPos());
-                    $str .= $this->currentTag['html'];
-                    break;
-                }
-                else {
-                    $tagName .= $c;
-                    continue;
-                }
-            }
+            $tagName = $this->readOpenTagName($r);
+            $this->currentTag = $this->newTag($tagName, $r->getTokenPos());
+            $str .= $this->currentTag['html'];
         }
 
         return $str;
@@ -149,27 +105,28 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     // read inner part of tag
     function readTagMiddle() {
 
-        $t = $this->reader;
+        $r = $this->reader;
 
-        $c = $t->char();
+        $c = $r->char();
         $str = '';
 
         $isSelfClosing = false;
-        if ($c === '/' && $t->nextChar() === '>') {
+        if ($c === '/' && $r->nextChar() === '>') {
             $isSelfClosing = true;
             $str .= '/';
-            $t->next();
-            $c = $t->char();
+            $r->next();
+            $c = $r->char();
         }
 
         if ($c === '>') {
             $str .= $this->readTagEnd($isSelfClosing);
         }
         else if ($c === '=' && !$this->inQuote) {
-            $nc = $t->nextChar();
+            $nc = $r->nextChar();
             if ($nc == ' ') {
                 $this->error('Please remove the space after `=`.');
-            } else if ($t->prevChar() == ' ') {
+            }
+            else if ($r->prevChar() == ' ') {
                 $this->error('Please remove the space before `=`.');
             }
             else if ($nc != '"' && $nc != "'") {
@@ -177,21 +134,21 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
             $this->currentTag['html'] .= $c;
             $str .= $c;
-            $t->next();
+            $r->next();
         }
         else {
             if ($c === "\n" && $this->inQuote) {
-                $t->updateTokenPos();
+                $r->updateTokenPos();
                 $this->error('Unexpected newline inside parameter.');
             }
             else if ($c == '"' || $c == "'") {
                 $this->inQuote = $this->inQuote ? '' : $c;
             }
-            $c = $t->escape($c, false, true);
+            $c = $r->escape($c, false, true);
             $this->currentTag['html'] .= $c;
 
             $str .= $c;
-            $t->next();
+            $r->next();
         }
 
         return $str;
@@ -199,69 +156,62 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
     function readTagEnd($isSelfClosing) {
 
-        $t = $this->reader;
-        $c = $t->char();
-        $str = '';
+        $r = $this->reader;
+        $str = '>';
 
-        $inFormatBlock = false;
-        $formatBlockIndent = 0;
-        $nc = $t->nextChar();
+       $inFormatBlock = false;
+       $formatBlockIndent = 0;
 
-        // End in '>>'
-        if ($nc === '>') {
-            $t->next();
-            if ($t->nextChar() === '>') {
-                // Formatted block '>>>'
-                $inFormatBlock = true;
-                $formatBlockIndent = $t->indent();
-                $t->next();
-                if ($t->nextChar() !== "\n") {
-                    $this->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.', $this->currentTagPos);
-                }
-                $t->next();
+        // End in '>>>'
+        if ($r->char(3, 0) === '>>>') {
+            // Formatted block '>>>'
+            $inFormatBlock = true;
+            $formatBlockIndent = $r->indent();
+            $r->next(3);
+            if ($r->char() !== "\n") {
+                $this->error('`<' . $this->currentTag['name'] . '>>>` should be followed by a newline.', $this->currentTagPos);
             }
-            else {
-                // One-liner '>>'
-                $this->numLineTags += 1;
+        }
+        else {
+            $r->next(); // '>'
+        }
 
-                if ($t->nextChar() !== ' ') {
-                    $this->error('`<' . $this->currentTag['name'] . '>>` should be followed by a space.  (It will be trimmed.)', $this->currentTagPos);
-                }
-                else {
-                    // slurp whitespace
-                    while (true) {
-                        if ($t->nextChar() === ' ') {
-                            $t->next();
-                        } else {
-                            break;
-                        }
-                    }
-                }
+        // remove spaces after
+        $r->slurpChar(' ');
+
+        // Look ahead to see if there is any other content on this line
+        if ($this->numTagsInLine == 0) {
+            $c = $r->char();
+            if ($c == "\n") {
+                $this->lineHasContent = false;
+            } else {
+                $this->lineHasContent = true;
             }
         }
 
+        // Validate script tag
         if ($this->currentTag['name'] == 'script' && !preg_match('/nonce\s*=/i', $this->currentTag['html'])) {
             ErrorHandler::setErrorDoc('/manual/module/web/nonce', 'Web.nonce');
             $this->error('`script` tag needs a `nonce` parameter.', $this->currentTagPos, true);
         }
 
-        $str .= $c;
-        $t->next();
-
         $this->currentContext = 'none';
         $this->validateTag($this->currentTag);
 
+        // Close self-closing tags
         if ($isSelfClosing || in_array($this->currentTag['name'], self::$VOID_TAGS)) {
             if (!in_array($this->currentTag['name'], self::$VOID_TAGS)) {
                 $str .= '</' . $this->currentTag['name'] . '>';
             }
         }
         else {
-            HtmlTemplateTransformer::$openTags []= $this->currentTag;
+            $this->numTagsInLine += 1;
+            $this->openTags []= $this->currentTag;
+            $this->seenOpenTags = true;
         }
 
         if ($inFormatBlock) {
-            $str .= $this->readIndentedBlock($t, $formatBlockIndent);
+            $str .= $this->readIndentedBlock($r, $formatBlockIndent);
         }
 
         $this->currentTag = null;
@@ -269,24 +219,79 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return $str;
     }
 
+    function closeTagsInLine() {
+
+        if (!$this->lineHasContent) {
+            $this->numTagsInLine = 0;
+            return '';
+        }
+
+        $str = '';
+        while (true) {
+            if (!$this->numTagsInLine) {
+                break;
+            }
+            $str .= $this->getClosingTag() . "\n";
+        }
+
+        $this->lineHasContent = false;
+
+        return $str;
+    }
+
+    function readCloseTagName($r) {
+        $tagName = '';
+        while (true) {
+            $r->next();
+            $c = $r->char();
+            if ($c === "\n") {
+                $r->updateTokenPos();
+                $this->error('Unexpected newline.');
+            }
+            if ($c === '>') {
+                $r->next();
+                break;
+            } else {
+                $tagName .= $c;
+            }
+        }
+        return trim($tagName);
+    }
+
+    function readOpenTagName($r) {
+        $tagName = '';
+        while (true) {
+            $r->next();
+            $c = $r->char();
+            if ($c === "\n" || $c === ' ' || $c === '>') {
+                break;
+            }
+            else {
+                $tagName .= $c;
+                continue;
+            }
+        }
+        return $tagName;
+    }
+
     // slurp in format block contents.  normalize indent & escape
-    function readIndentedBlock($t, $formatBlockIndent) {
+    function readIndentedBlock($r, $formatBlockIndent) {
 
         $b = '';
         $hasContent = false;
         while (true) {
 
             // get indent
-            $indent = $t->slurpChar(' ');
+            $indent = $r->slurpChar(' ');
             $b .= str_repeat(' ', $indent);
-            $t->updateTokenPos();
+            $r->updateTokenPos();
 
             if ($indent <= $formatBlockIndent) {
                 // outdented
-                if ($t->char() === "\n") {
+                if ($r->char() === "\n") {
                     // blank line
                     $b .= "\n";
-                    $t->next();
+                    $r->next();
                     continue;
                 }
                 else {
@@ -296,14 +301,14 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             }
             // get line content
             $hasContent = true;
-            $line = $t->slurpUntil("\n");
+            $line = $r->slurpUntil("\n");
             $b .= $line . "\n";
         }
 
         if (!$hasContent) {
             $this->error("Content inside of `" . $this->currentTag['name'] . "` must be indented." );
         }
-        else if ($t->char() !== '<') {
+        else if ($r->char() !== '<') {
             $this->error("Expected end tag for `" . $this->currentTag['name'] . "` block." );
         }
 
@@ -313,34 +318,43 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
     function getClosingTag ($seeTagName='') {
 
-        $t = $this->reader;
+        $r = $this->reader;
 
-        if (!count(HtmlTemplateTransformer::$openTags)) {
-            if (!$seeTagName) {
-                $this->error('Extra closing tag. Try: Add a tag name if this is intentional.', $this->currentTagPos);
-            }
+        if ($seeTagName == '...') {
+            $this->openTags = [];
             return;
         }
 
-        $t->updateTokenPos();
-
-        $seeTagNameBase = preg_replace('/\.\.\.$/', '', $seeTagName);
-        $tag = array_pop(HtmlTemplateTransformer::$openTags);
-        if ($seeTagName && $seeTagNameBase !== $tag['name']) {
-            $this->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagNameBase>` instead.", $this->currentTagPos);
+        // Allow mismatch if at the top of the template and user is closing
+        // tags opened in another template
+        if (!count($this->openTags)) {
+            if ($this->seenOpenTags) {
+                $this->error('Extra closing tag.', $this->currentTagPos);
+            }
+            return "</$seeTagName>";
         }
 
-        if (preg_match('/\.\.\.$/', $seeTagName)) {
-            // ghost tag
-            return '';
-        } else {
-            return "</" . $tag['name'] . ">";
+        $r->updateTokenPos();
+
+       // $seeTagNameBase = preg_replace('/\.\.\.$/', '', $seeTagName);
+
+        $tag = array_pop($this->openTags);
+
+        if ($seeTagName && $seeTagName !== $tag['name']) {
+            $this->error("Expected `</" . $tag['name'] . ">` but saw `</$seeTagName>` instead.", $this->currentTagPos);
         }
+
+        if ($this->numTagsInLine) {
+            $this->numTagsInLine -= 1;
+        }
+
+        return "</" . $tag['name'] . ">";
+
     }
 
     function validateTag ($tag) {
 
-        $t = $this->reader;
+        $r = $this->reader;
         $name = $tag['name'];
 
         if (!strlen($name)) {
@@ -398,11 +412,29 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return self::cleanHtmlSpaces($str);
     }
 
+    static function cleanHtmlSpaces($str) {
+
+        // leading/trailing spaces on line
+        $str = preg_replace('#>\s+\n#',      ">\n", $str);
+        $str = preg_replace('#\n\s+<#',      "\n<", $str);
+
+        // leading/trailing spaces across newlines
+        $str = preg_replace('#>\s*\n+\s*#', '>', $str);
+        $str = preg_replace('#\s*\n+\s*<#', '<', $str);
+
+        // spaces before closing tag
+        $str = preg_replace('#\s+</#', '</', $str);
+
+        // spaces after opening tag
+
+        return $str;
+    }
+
     function onEndTemplateBody() {
-        $t = $this->reader;
-        if (count(HtmlTemplateTransformer::$openTags)) {
-            $tag = array_pop(HtmlTemplateTransformer::$openTags);
-            $this->error('Missing closing tag `</>` within block: `' . $tag['name'] . '` Try: If this is intentional, add a ghost tag. e.g. `</' . $tag['name'] . '...>`', $tag['pos']);
+        $r = $this->reader;
+        if (count($this->openTags)) {
+            $tag = array_pop($this->openTags);
+            $this->error('Missing closing tag `</>` within block: `<' . $tag['name'] . '>` Try: If this is intentional, add a continue tag `</...>`', $tag['pos']);
         }
     }
 

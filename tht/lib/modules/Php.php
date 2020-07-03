@@ -20,11 +20,16 @@ class u_Php extends OStdModule {
 
         Security::validatePhpFunction($func);
 
-        if (strpos($func, '--') !== false) {
-            // TODO: validate method_exists
+        $isStatic = preg_match('/^(\S+?)::(.*)/', $func, $m);
+        if ($isStatic) {
+            $ns = $m[1];
+            $fun = $m[2];
+            if (!method_exists($ns, $fun)) {
+                Tht::error("Static method does not exist for PHP class `$ns`: `$func`");
+            }
         }
-        else if (!function_exists($this->name($func))) {
-            Tht::error("PHP function does not exist: `" . $this->name($func) . "`");
+        else if (!function_exists($func)) {
+            Tht::error("PHP function does not exist: `" . $func . "`");
         }
 
         $this->phpFunctionOk[$func] = true;
@@ -48,9 +53,10 @@ class u_Php extends OStdModule {
 
         $args = uv($args);
 
-        $this->checkPhpFunction($func);
+        $cleanName = $this->name($func);
+        $this->checkPhpFunction($cleanName);
 
-        $ret = call_user_func_array($this->name($func), $args);
+        $ret = call_user_func_array($cleanName, $args);
 
         if (is_object($ret)) {
             return new PhpObject ($ret);

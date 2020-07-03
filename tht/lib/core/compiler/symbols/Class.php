@@ -5,79 +5,67 @@ namespace o;
 class S_Class extends S_Statement {
     var $type = SymbolType::NEW_CLASS;
 
-    // TODO: figure out how to allow 'class' as an accepted user variable name
-    // function asLeft($p) {
-    //     $this->updateType(SymbolType::USER_VAR);
-    //     $p->next();
-    //     return $this;
-    // }
-
     // e.g. class Foo { ... }
     function asStatement ($p) {
 
-        // qualifiers and class keyword
-        // $quals = [];
-        // while (true) {
-        //     $this->space('*keywordS', true);
-        //     $s = $p->symbol;
-        //     $keyword = $s->token[TOKEN_VALUE];
-        //     if (in_array($keyword, CompilerConstants::$QUALIFIER_KEYWORDS)) {
-        //         $quals []= $keyword;
-        //         $p->next();
-        //     }
-        //     else {
-        //         break;
-        //     }
-        // }
-        // $sQuals = $p->makeSymbol(
-        //     TokenType::WORD,
-        //     implode(' ', $quals),
-        //     SymbolType::PACKAGE_QUALIFIER
-        // );
-        // $this->addKid($sQuals);
+        if ($p->numClasses) {
+            $p->error('Only one class allowed per file.');
+        }
+        $p->numClasses += 1;
 
         $p->next();
 
         // Class name
         $sName = $p->symbol;
-        if ($sName->token[TOKEN_TYPE] == TokenType::WORD) {
-            $this->space('*classS', true);
-            $sName->updateType(SymbolType::PACKAGE);
-            $this->addKid($sName);
+        $this->space('*classS', true);
+        if ($sName->token[TOKEN_TYPE] != TokenType::WORD) {
+            $p->error("Expected a class name.  Ex: `class User { ... }`");
         }
         else {
-            $p->error("Expected a class name.  Ex: `class User { ... }`");
+            $sName->updateType(SymbolType::PACKAGE);
+            $this->addKid($sName);
         }
 
         $p->next();
 
+        // X these out, but need to keep for now because Emitter expects these symbols downstream
+        $this->readParentPackage($p, 'XextendsX');
+        $this->readParentPackage($p, 'XimplementsX');
 
-        // if ($p->symbol->isValue('extends')) {
-
-        //     $p->next();
-        //     $sParentClassName = $p->symbol;
-        //     if ($sParentClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
-        //         $p->error("Expected a parent class name.  Ex: `class MyClass extends MyParentClass { ... }`");
-        //     }
-        //     $sParentClassName->updateType(SymbolType::PACKAGE);
-        //     $this->addKid($sParentClassName);
-
-        //     $p->next();
-        // }
-        // else {
-        //     $sNull = $p->makeSymbol(
-        //         TokenType::WORD,
-        //         '',
-        //         SymbolType::PACKAGE
-        //     );
-        //     $this->addKid($sNull);
-        // }
-
+        // class block
         $p->inClass = true;
         $this->addKid($p->parseBlock());
         $p->inClass = false;
 
-
         return $this;
+    }
+
+    function readParentPackage($p, $relation) {
+
+        if ($p->symbol->isValue($relation)) {
+
+            // TODO allow comma
+            $p->next();
+            $sRelationClassName = $p->symbol;
+            if ($sRelationClassName->token[TOKEN_TYPE] !== TokenType::WORD) {
+                $p->error("Expected a class name.  Ex: `class MyClass $relation OtherClass { ... }`");
+            }
+            $sRelationClassName->updateType(SymbolType::FULL_PACKAGE);
+            $this->addKid($sRelationClassName);
+
+            $p->next();
+        }
+        else {
+            $this->addEmptyKid($p);
+        }
+    }
+
+    function addEmptyKid($p) {
+        $sNull = $p->makeSymbol(
+            TokenType::WORD,
+            '',
+            SymbolType::FULL_PACKAGE
+        );
+        $this->addKid($sNull);
     }
 }

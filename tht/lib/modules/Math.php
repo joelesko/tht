@@ -30,6 +30,17 @@ class u_Math extends OStdModule {
         }
     }
 
+    function u_range ($start, $end, $step=1) {
+        $this->ARGS('nnn', func_get_args());
+        if ($step > abs($start - $end)) {
+            $this->argumentError('Argument `$step` can not be greater than the total range.', 'range');
+        } else if ($step <= 0) {
+            $this->argumentError('Argument `$step` must be positive (greater than 0).', 'range');
+        }
+
+        return OList::create(range($start, $end, $step));
+    }
+
     function u_clamp ($n, $min, $max) {
         $this->ARGS('nnn', func_get_args());
         return min(max($min, $n), $max);

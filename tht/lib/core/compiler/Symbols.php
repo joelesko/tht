@@ -38,10 +38,13 @@ class Symbol {
             'OpenBrace',
             'OpenBracket',
             'Dot',
-            'New',
+       //     'New',
+            'ClassPlugin',
+            'ClassFields',
             'Class',
             'Ternary',
        //     'Var',
+            'PreKeyword',
             'TryCatch',
             'TemplateExpr',
             'TemplateString',
@@ -84,6 +87,10 @@ class Symbol {
         return $this->token[TOKEN_VALUE] === $val;
     }
 
+    function isSeparator ($val) {
+        return $this->token[TOKEN_VALUE] === $val && $this instanceof S_Separator;
+    }
+
     function getValue () {
         return $this->token[TOKEN_VALUE];
     }
@@ -106,6 +113,11 @@ class Symbol {
     function updateType ($type) {
         $this->type = $type;
         $this->parser->symbolTable->update($this);
+    }
+
+    function hasNewlineAfter() {
+        $newlineAfterBit = 8;
+        return $this->token[TOKEN_SPACE] & $newlineAfterBit;
     }
 
     // Whitespace rule for this token (before and after).

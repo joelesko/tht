@@ -13,8 +13,20 @@ class S_InfixWeak extends Symbol {
             $tip = $this->token[TOKEN_VALUE] == '=' ? "Did you mean `==`?" : '';
             $p->error("Assignment can not be used as an expression.  $tip", $this->token);
         }
+
+        $infixValue = $this->getValue();
         $this->space(' = ');
-        $this->setKids([$left, $p->parseExpression($this->bindingPower - 1)]);
+
+        if ($p->symbol->isValue('(nl)')) {
+            $p->error("Unexpected newline.  Try: Put `$infixValue` on next line to continue statement.");
+        }
+
+        $right = $p->parseExpression($this->bindingPower - 1);
+        if (!$right) {
+            $p->error('Missing right operand.');
+        }
+
+        $this->setKids([$left, $right]);
 
         if ($this->token[TOKEN_VALUE] == '=') {
             $p->validator->defineVar($left);
@@ -31,29 +43,29 @@ class S_Assign extends S_InfixWeak {
     var $isAssignment = true;
 }
 
-// e.g. ||, &&
+// ||, &&
 class S_Logic extends S_InfixWeak {
     var $bindingPower = 20;
 }
 
-// e.g. +&, +|
+// +&, +|, etc.
 class S_Bitwise extends S_InfixWeak {
     var $type = SymbolType::BITWISE;
     var $bindingPower = 30;
 }
 
-// e.g. !=, ==
+// !=, ==, etc.
 class S_Compare extends S_InfixWeak {
     var $bindingPower = 40;
 }
 
-// e.g. &&:, ||:
+// &&:, ||:, etc.
 class S_ValGate extends S_InfixWeak {
     var $type = SymbolType::VALGATE;
     var $bindingPower = 41;
 }
 
-// e.g. +>, +<
+// +>, +<, etc.
 class S_BitShift extends S_InfixWeak {
     var $type = SymbolType::BITSHIFT;
     var $bindingPower = 45;

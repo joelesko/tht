@@ -417,7 +417,7 @@ class Security {
         }
         self::$isPostRequestValidated = true;
 
-        $res = Tht::module('Response');
+        $res = Tht::module('Output');
         $req = Tht::module('Request');
 
         if ($req->u_method() === 'get') {
@@ -439,7 +439,7 @@ class Security {
         $pathSize = strlen($path);
         $isTrailingSlash = $pathSize > 1 && $path[$pathSize-1] === '/';
         if (preg_match('/[^a-z0-9\-\/\.]/', $path) || $isTrailingSlash)  {
-            Tht::module('Response')->u_send_error(404, 'Page address is not valid.');
+            Tht::module('Output')->u_send_error(404, 'Page address is not valid.');
         }
     }
 
@@ -503,7 +503,6 @@ class Security {
         header('X-Frame-Options: deny');
         header('X-Content-Type-Options: nosniff');
         header("X-UA-Compatible: IE=Edge");
-        header("X-UA-Compatible: IE=Edge");
 
         // HSTS - 1 year duration
         $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
@@ -515,11 +514,11 @@ class Security {
         $csp = Tht::getConfig('contentSecurityPolicy');
         if (!$csp) {
             $nonce = "'nonce-" . Tht::module('Web')->u_nonce() . "'";
-            $eval = Tht::getConfig('dangerDangerAllowJsEval') ? '\'unsafe-eval\'' : '';
+            $eval = Tht::getConfig('xDangerAllowJsEval') ? '\'unsafe-eval\'' : '';
             $scriptSrc = "script-src $eval 'report-sample' $nonce";
             $csp = "default-src 'self' $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src data: *; font-src *; " . $scriptSrc;
         }
-        if ($csp != 'dangerDangerNone') {
+        if ($csp != 'xDangerNone') {
             header("Content-Security-Policy: $csp");
         }
 
@@ -554,7 +553,7 @@ class Security {
     // Register an un-sandboxed version of File, for internal use.
     static function registerInternalFileModule() {
         $f = new u_File ();
-        $f->dangerDangerDisableSandbox();
+        $f->xDangerDisableSandbox();
         ModuleManager::registerStdModule('*File', $f);
     }
 

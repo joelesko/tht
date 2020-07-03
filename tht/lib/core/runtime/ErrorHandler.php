@@ -13,7 +13,7 @@ class StartupError extends \Exception {}
 
 class ErrorHandler {
 
-    static private $MEMORY_BUFFER_KB = 1;
+    static private $MEMORY_BUFFER_BYTES = 1024;
 
     static private $trapErrors = false;
     static private $trappedError = null;
@@ -27,7 +27,7 @@ class ErrorHandler {
     static private function initErrorHandler () {
 
         // Reserve memory in case of out-of-memory error. Enough to call handleShutdown.
-        self::$memoryBuffer = str_repeat('*', self::$MEMORY_BUFFER_KB * 1024);
+        self::$memoryBuffer = str_repeat('*', self::$MEMORY_BUFFER_BYTES);
 
         set_error_handler('\o\ErrorHandler::handlePhpRuntimeError');
         register_shutdown_function('\o\Tht::handleShutdown');
@@ -42,6 +42,10 @@ class ErrorHandler {
         }
         catch (StartupError $e) {
             self::handleStartupError($e);
+        }
+        catch (\ThtError $e) {
+            // User exceptions
+            self::handleThtRuntimeError($e);
         }
         catch (\TypeError $e) {
             // Catch these separately because they have extra caller info
@@ -106,6 +110,10 @@ class ErrorHandler {
         $link = str_replace('o\\u_', '', $link);
         $name = str_replace('o\\u_', '', $name);
         self::$errorDoc = ['link' => $link, 'name' => $name];
+    }
+
+    static function setOopErrorDoc() {
+        self::setErrorDoc('/language-tour/classes-and-objects', 'Classes & Objects');
     }
 
     static private function clearMemoryBuffer() {
@@ -337,6 +345,16 @@ class ErrorHandler {
         $trace = $error->getTrace();
         $frame = [];
 
+        $eFile = $error->getFile();
+        $eLine = $error->getLine();
+
+        $hasTempFrame = false;
+        if ($eFile && $eLine) {
+            $frame0 = ['file' => $eFile, 'line' => $eLine];
+            array_unshift($trace, $frame0);
+            $hasTempFrame = true;
+        }
+
         // Find the first frame within THT space
         // Otherwise line is always "throw new ThtError"
         foreach ($trace as $f) {
@@ -349,12 +367,19 @@ class ErrorHandler {
             }
         }
 
+        $file = isset($frame['file']) ? $frame['file'] : '';
+        $line = isset($frame['line']) ? $frame['line'] : '';
+
+        if ($hasTempFrame) {
+            array_shift($trace);
+        }
+
         self::printError([
             'category' => 'runtime',
             'origin'  => 'tht.runtime',
             'message' => $error->getMessage(),
-            'phpFile' => isset($frame['file']) ? $frame['file'] : '',
-            'phpLine' => isset($frame['line']) ? $frame['line'] : '',
+            'phpFile' => $file,
+            'phpLine' => $line,
             'trace'   => $trace
         ]);
     }
@@ -384,12 +409,12 @@ class ErrorHandler {
         $msg = (isset($match[1]) ? $match[1] : $message);
 
         self::printError([
-            'category' => 'runtime',
-            'origin'  => 'php.runtime.leaked',
-            'message' => $message,
-            'phpFile' => $phpFile,
-            'phpLine' => $phpLine,
-            'trace'   => $error->getTrace(),
+            'category'  => 'runtime',
+            'origin'    => 'php.runtime.leaked',
+            'message'   => $message,
+            'phpFile'   => $phpFile,
+            'phpLine'   => $phpLine,
+            'trace'     => $error->getTrace(),
             '_rawTrace' => true
         ]);
     }
@@ -399,22 +424,25 @@ class ErrorHandler {
         $matches = [];
         $found = preg_match('/in (.*?) on line (\d+)/', $msg, $matches);
 
-        if (!$found) {
-            Tht::error($msg);
+        if ($found) {
+            $phpFile = $matches[1];
+            $phpLine = $matches[2];
+            $found2 = preg_match('/:(.*) in/', $msg, $matches);
+            $phpMsg = $found2 ? trim($matches[1]) : '';
         }
-        $phpFile = $matches[1];
-        $phpLine = $matches[2];
-
-        $found = preg_match('/:(.*) in/', $msg, $matches);
-        $phpMsg = $found ? trim($matches[1]) : '';
+        else {
+            $phpFile = '';
+            $phpLine = '';
+            $phpMsg = $msg;
+        }
 
         self::printError([
             'category' => 'compiler',
-            'origin'  => 'php.parser',
-            'message' => $phpMsg,
-            'phpFile' => $phpFile,
-            'phpLine' => $phpLine,
-            'trace'   => null
+            'origin'   => 'php.parser',
+            'message'  => $phpMsg,
+            'phpFile'  => $phpFile,
+            'phpLine'  => $phpLine,
+            'trace'    => null
         ]);
     }
 
@@ -429,32 +457,32 @@ class ErrorHandler {
 
         self::printError([
             'category' => 'compiler',
-            'origin'  => 'tht.compiler',
-            'message' => $msg,
-            'phpFile' => '',
-            'phpLine' => '',
-            'trace'   => null,
-            'src'    => $src
+            'origin'   => 'tht.compiler',
+            'message'  => $msg,
+            'phpFile'  => '',
+            'phpLine'  => '',
+            'trace'    => Tht::getConfig('_coreDevMode') ? debug_backtrace() : null,
+            'src'      => $src
         ]);
     }
 
     static function handleJconError ($msg, $srcFile, $lineNum, $line) {
 
         $src = [
-            'file' => $srcFile,
-            'line' => $lineNum,
-            'pos'  => null,
-            'srcLine' => trim($line),
+            'file'    => $srcFile,
+            'line'    => $lineNum,
+            'pos'     => null,
+            'srcLine' => $lineNum . ':  ' . trim($line),
         ];
 
         self::printError([
             'category' => 'runtime',
-            'origin'  => 'jcon.parser',
-            'message' => $msg,
-            'phpFile' => '',
-            'phpLine' => '',
-            'trace'   => null,
-            'src'     => $src,
+            'origin'   => 'jcon.parser',
+            'message'  => $msg,
+            'phpFile'  => '',
+            'phpLine'  => '',
+            'trace'    => null,
+            'src'      => $src,
         ]);
     }
 

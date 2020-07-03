@@ -117,7 +117,7 @@ class u_InputValidator {
             'removeHtml'        => false,
         ],
 
-        'dangerDangerRaw' => [
+        'xDangerRaw' => [
             'min' => 1,
             'max' => 'none',
             'removeQuotes'      => false,

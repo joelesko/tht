@@ -29,6 +29,11 @@ class S_Match extends S_Statement {
         // Collect patterns.  "pattern { ... }"
         while (true) {
 
+            // newline separator
+            if ($p->symbol->isValue('(nl)')) {
+                $p->next();
+            }
+
             if ($p->symbol->isValue("}")) { break; }
 
             if ($p->symbol->isValue('default')) {
