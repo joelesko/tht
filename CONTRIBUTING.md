@@ -15,7 +15,6 @@ At this early stage, I am mainly open to the following contributions:
 
 
 And support/compatibility for:
-- Windows
 - Nginx/PHP-FPM
 - Cache module: memcached, APC, Redis
 - Db module: PostgreSQL
@@ -46,7 +45,7 @@ However, I'm open to design-related suggestions.
 
 In rough order of priority:
 
-- **Secure Defaults**. Security best practices should be built-in wherever possible.  Provide warning signs ('dangerDanger-' prefix) and guard rails (minor inconveniences) when the user intentionally goes down a less secure path.
+- **Secure Defaults**. Security best practices should be built-in wherever possible.  Provide warning signs ('xDanger-' prefix) and guard rails (minor inconveniences) when the user intentionally goes down a less secure path.
 - **Batteries Included**. Common patterns should be included in the standard library.  As a rule of thumb, most answers on Stackoverflow.com will result in a clean, obvious solution provided by the language, not copy-and-pasted functions.
 - **Usability & Ergonomics**.  Use short, but complete words for function and module names. No abbreviations, where possible.  Most syntactic sugar provides shortcuts, not invisible behavior (magic).
 - **Clear Errors**.  More than half of our programming time is spent in an error state, trying to fix something we just added. Error messages should be written in clear, understandable language and suggest solutions. (Elm can provide some inspiration here.)
