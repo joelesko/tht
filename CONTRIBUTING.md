@@ -59,15 +59,15 @@ In rough order of priority:
 
 The main files are (in rough order of execution):
 
-- thtApp.php - The entry point in Document Root
-- Tht.php - Overall logic & setup
-- WebMode.php - Determine which page to execute based on the URL route
-- Source.php - Compile the page if it isn't cached.  Execute the transpiled PHP.
-- Tokenizer.php - Break THT source into tokens, apply template function transforms (e.g. HTML)
-- Parser.php - Convert the tokens into an AST
-- Symbols.php - The parser logic for each symbol
-- EmitterPhp.php - Convert the AST to a PHP file
-- ErrorHandler.php - All errors (php & tht) are routed here
+- app/public/front.php - The entry point / front controller
+- lib/core/Tht.php - Overall logic & setup
+- lib/core/modes/WebMode.php - Determine which page to execute based on the URL route
+- lib/core/compiler/Compiler.php - Compile the page if it isn't cached.  Execute the transpiled PHP.
+- lib/core/compiler/Tokenizer.php - Break THT source into tokens, apply template function transforms (e.g. HTML)
+- lib/core/compiler/Parser.php - Convert the tokens into an AST
+- lib/core/compiler/symbols/* - The parser logic for each symbol
+- lib/core/compiler/EmitterPhp.php - Convert the AST to a PHP file
+- lib/core/runtime/ErrorHandler.php - All errors (php & tht) are routed here
 
 
 ## Parser
