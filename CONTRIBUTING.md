@@ -15,7 +15,6 @@ At this early stage, I am mainly open to the following contributions:
 
 
 And support/compatibility for:
-- Windows
 - Nginx/PHP-FPM
 - Cache module: memcached, APC, Redis
 - Db module: PostgreSQL
@@ -46,12 +45,12 @@ However, I'm open to design-related suggestions.
 
 In rough order of priority:
 
-- **Secure Defaults**. Security best practices should be built-in wherever possible.  Provide warning signs ('dangerDanger-' prefix) and guard rails (minor inconveniences) when the user intentionally goes down a less secure path.
+- **Secure Defaults**. Security best practices should be built-in wherever possible.  Provide warning signs ('xDanger-' prefix) and guard rails (minor inconveniences) when the user intentionally goes down a less secure path.
 - **Batteries Included**. Common patterns should be included in the standard library.  As a rule of thumb, most answers on Stackoverflow.com will result in a clean, obvious solution provided by the language, not copy-and-pasted functions.
 - **Usability & Ergonomics**.  Use short, but complete words for function and module names. No abbreviations, where possible.  Most syntactic sugar provides shortcuts, not invisible behavior (magic).
 - **Clear Errors**.  More than half of our programming time is spent in an error state, trying to fix something we just added. Error messages should be written in clear, understandable language and suggest solutions. (Elm can provide some inspiration here.)
 - **Clean, Not Pedantic**.  THT takes an opinionated stance on (hopefully) non-controversial, well-established approaches to writing code.  It provides helpful structure, while trying to avoid being unreasonably strict.  They are like guard rails: they are intended to keep you moving forward, not to cage you in.
-- **Familiarity**.  Favor design decisions that are already familiar to PHP & JavaScript developers, or web developers in general.  Unless those designs are widely considered to be flawed or conflict with THT's higher priorities (e.g. security).
+- **Familiarity**.  We should favor design decisions that are already familiar to PHP & JavaScript developers, or web developers in general.  Unless those designs are widely considered to be flawed or conflict with THT's higher priorities (e.g. security).
 - **Borrow Good Ideas**.  We are all part of a greater open source community.  Let's freely take the best ideas from other projects (giving credit where we can), and be happy to share our own solutions with other projects.
 - **Can't Please Everyone**.  Programmers are an opinionated lot, and there are an infinite number of things to criticize in any programming language.  We can make good decisions and move things forward without getting bogged down in analysis paralysis or heated arguments.
 
@@ -60,15 +59,15 @@ In rough order of priority:
 
 The main files are (in rough order of execution):
 
-- thtApp.php - The entry point in Document Root
-- Tht - Overall logic & setup
-- WebMode - Determine which page to execute based on the URL route
-- Source - Compile the page if it isn't cached.  Execute the transpiled PHP.
-- Tokenizer - Break THT source into tokens, apply template function transforms (e.g. HTML)
-- Parser - Convert the tokens into an AST
-- Symbols - The parser logic for each symbol
-- EmitterPhp - Convert the AST to a PHP file
-- ErrorHandler - All errors (php & tht) are routed here
+- app/public/front.php - The entry point / front controller
+- lib/core/Tht.php - Overall logic & setup
+- lib/core/modes/WebMode.php - Determine which page to execute based on the URL route
+- lib/core/compiler/Compiler.php - Compile the page if it isn't cached.  Execute the transpiled PHP.
+- lib/core/compiler/Tokenizer.php - Break THT source into tokens, apply template function transforms (e.g. HTML)
+- lib/core/compiler/Parser.php - Convert the tokens into an AST
+- lib/core/compiler/symbols/* - The parser logic for each symbol
+- lib/core/compiler/EmitterPhp.php - Convert the AST to a PHP file
+- lib/core/runtime/ErrorHandler.php - All errors (php & tht) are routed here
 
 
 ## Parser
