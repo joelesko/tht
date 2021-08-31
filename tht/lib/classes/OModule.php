@@ -17,13 +17,15 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function error($msg, $args=null, $contextMethod='') {
-        ErrorHandler::setErrorDoc('/language-tour/modules', 'Modules');
+
+        ErrorHandler::setHelpLink('/language-tour/modules', 'Modules');
         Tht::error($msg);
     }
 
     function __construct ($namespace, $path) {
+
         $this->namespace = $namespace;
-        $base = basename($path, '.' . Tht::getExt());
+        $base = basename($path, '.' . Tht::getThtExt());
         $this->baseName = $base;
         $this->fullName = $namespace . "\\" . u_($base);
     }
@@ -33,6 +35,7 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function __call ($uf, $args) {
+
         $qf = $this->namespace . "\\" . $uf;
         $m = $this->baseName;
         $f = unu_($uf);
@@ -42,7 +45,7 @@ class OModule extends OClass implements \JsonSerializable {
                 $this->error("Unknown function `$f` for module `$m`.");
             }
             else if (!$this->isLocalReference()) {
-                $this->error("Can't call non-public function `$f` in module `$m`.");
+                $this->error("Can not call non-public function `$f` in module `$m`.");
             }
         }
 
@@ -50,16 +53,17 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function __set($uk, $v) {
+
         $k = unu_($uk);
 
         if (!$this->isLocalReference()) {
             $n = $this->baseName;
-            $this->error("Can't set field `$k` from outside of module `$n`.");
+            $this->error("Can not set field `$k` from outside of module `$n`.");
         }
 
         if ($this->isConstant($k)) {
             if (isset($this->fields[$uk])) {
-                $this->error("Can't re-assign to constant field `$k`.");
+                $this->error("Can not re-assign to constant field `$k`.");
             }
             else {
                 if (OBag::isa($v)) {
@@ -72,11 +76,13 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function __get($uk) {
+
         $k = unu_($uk);
         if (!isset($this->fields[$uk])) {
             $this->error("Unknown module variable: `$k`");
-        } else if (!$this->isConstant($k) && !$this->isLocalReference()) {
-            $this->error("Can't read private module variable: `$k`");
+        }
+        else if (!$this->isConstant($k) && !$this->isLocalReference()) {
+            $this->error("Can not read private module variable: `$k`");
         }
 
         return $this->fields[$uk];
@@ -105,15 +111,16 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function newObject($className, $args) {
+
         $qc = $this->namespace . "\\" . u_($className);
 
         // Call user-defined factory method instead
-        $qfactory = $this->namespace . "\\u_z_New_Object";
+        $qfactory = $this->namespace . "\\u_on_Create_Object";
         if (function_exists($qfactory) && !$this->inUserFactoryMethod) {
             $this->inUserFactoryMethod = true;
             $obj = call_user_func_array($qfactory, $args);
             $this->inUserFactoryMethod = false;
-            if (!$obj || get_class($obj) == 'o\\ONothing') {
+            if (!$obj) {
                 Tht::error('Function `zNewObject()` must return an object.');
             }
             return $obj;
@@ -125,6 +132,7 @@ class OModule extends OClass implements \JsonSerializable {
     }
 
     function newAutoObject($args=[]) {
+
         $o = new $this->fullName ();
         $o->initObject($args);
         return $o;
@@ -134,12 +142,10 @@ class OModule extends OClass implements \JsonSerializable {
         return $this->baseName;
     }
 
-    function __toString() {
-        return '<<<' . Tht::cleanPackageName($this->baseName) . '>>>';
-    }
-
-    function jsonSerialize() {
-        return $this->__toString();
+    function toStringToken() {
+        return OClass::getStringToken(
+            $this->cleanPackageName($this->baseName) . ' Module'
+        );
     }
 
     function bareClassName() {
@@ -168,7 +174,7 @@ class OModulePhpAdapter extends OModule {
         $fnCall = function() use ($f, $args) {
             $uf = u_($f);
             $ret = $this->mod->__call($uf, $args);
-            return uv($ret);
+            return unv($ret);
         };
         return ErrorHandler::catchErrors($fnCall);
     }

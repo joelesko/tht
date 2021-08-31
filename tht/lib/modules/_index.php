@@ -3,10 +3,11 @@
 namespace o;
 
 require_once('helpers/InputValidator.php');
-require_once('Form.php');
+//require_once('Forms.php');
 
 
 class LibModules {
+
     static public $files = [
         'File',
         'Test',
@@ -21,28 +22,31 @@ class LibModules {
         'Result',
         'Perf',
         'Db',
-        'Css',
-        'Js',
         'Web',
         'Request',
         'Output',
         'Litemark',
         'Jcon',
         'Session',
+        'Cookie',
         'Cache',
         'Net',
         'MapDb',
-        'Image',
+//        'Image',
         'Input',
-        'Settings',
+        'Config',
         'Bare',
         'Form',
+        'Email',
+        'Page',
     ];
 
     public static function load () {
+
         foreach (LibModules::$files as $lib) {
             ModuleManager::registerStdModule($lib);
         }
+
         ModuleManager::registerStdModule('Perf', new u_Perf ());
         ModuleManager::registerStdModule('Regex', new u_Regex ());
         ModuleManager::registerStdModule('Result', new u_Result ());

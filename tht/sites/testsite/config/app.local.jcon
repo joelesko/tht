@@ -1,0 +1,47 @@
+{
+    // Database settings
+    // See: https://tht.help/manual/module/db
+    databases: {
+
+        // Default sqlite file in 'data/db'
+        default: {
+            driver: sqlite
+            file: app.db
+        }
+
+        errors: {
+            driver: sqlite
+            file: errors.db
+        }
+
+        mapDb: {
+            driver: sqlite
+            file: mapDb.db
+        }
+
+        badDb: {
+            driver: badDriver
+        }
+
+        mysqlDb: {
+            driver: mysql
+            server: localhost
+            database: test
+            username: script
+            password: script
+        }
+    }
+
+    email: {
+        host: smtp.sendgrid.net
+        port: 587
+        username: apikey
+        password: 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
+    }
+
+    app: {
+        local: {
+            localVar: 789
+        }
+    }
+}

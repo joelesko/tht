@@ -19,6 +19,7 @@ class S_OpenParen extends Symbol {
         $p->ignoreNewlines = false;
 
         $p->now(')', 'group.close')->space('N)*')->next();
+
         return $e;
     }
 
@@ -43,17 +44,23 @@ class S_OpenParen extends Symbol {
         // Argument list
         $args = [];
         while (true) {
+            $p->skipNewline();
             if ($p->symbol->isValue(')')) { break; }
-            $args[]= $p->parseExpression(0);
+            $arg = $p->parseExpression(0);
+            if ($arg->type == SymbolType::BOOLEAN) {
+                ErrorHandler::setHelpLink('/language-tour/flags', 'Flags');
+                $p->error('Can not use a Boolean as a function argument.  Try: Use a -flag instead.', $arg->token);
+            }
+            $args[]= $arg;
             if (!$p->symbol->isValue(",")) { break; }
             $p->space('x, ')->next();
-            $p->skipNewline();
         }
+        $p->skipNewline();
 
         if (!$p->symbol->isValue(')')) {
-            $p->error('Missing closing paren `)` after token.');
+            $p->error('Expected closing paren `)`');
         }
-        $p->space('x)*')->next();
+        $p->space('N)*')->next();
 
         $sArgs = $p->makeAstList(AstList::FLAT, $args);
         $this->addKid($sArgs);

@@ -16,8 +16,9 @@ class u_Perf extends OStdModule {
     static private $MIN_TASK_THRESHOLD_MS = 0.1;
 
     function isActive () {
+
         $show = Tht::getConfig('showPerfPanel') || $this->forceActive;
-        if ($show && Security::isAdmin()) {
+        if ($show && Security::isDev()) {
             return true;
         }
         return false;
@@ -27,16 +28,33 @@ class u_Perf extends OStdModule {
         return microtime(true);
     }
 
+    function u_now() {
+
+        $this->ARGS('', func_get_args());
+
+        $elapsedMicroSec = microtime(true) - $_SERVER["REQUEST_TIME_FLOAT"];
+
+        return ceil($elapsedMicroSec * 1000);
+    }
+
     function u_force_active($onOff) {
-        $this->ARGS('f', func_get_args());
+
+        $this->ARGS('b', func_get_args());
+
         $this->forceActive = $onOff;
+
+        return EMPTY_RETURN;
     }
 
     function u_start ($baseTaskId, $value='') {
+
         $this->ARGS('ss', func_get_args());
+
         if ($this->isActive()) {
             $this->start($baseTaskId, $value);
         }
+
+        return EMPTY_RETURN;
     }
 
     function start ($taskId, $value='') {
@@ -58,7 +76,9 @@ class u_Perf extends OStdModule {
 
     function u_stop () {
 
-        if (!$this->isActive()) { return; }
+        if (!$this->isActive()) { return 0; }
+
+        $this->ARGS('', func_get_args());
 
         if (!count($this->tasks)) {
             Tht::error('There are no benchmark tasks left to stop.');
@@ -76,7 +96,7 @@ class u_Perf extends OStdModule {
             'value' => $task['value']
         ];
 
-        $result['durationMs'] = number_format($thisTimeDelta * 1000, 2);
+        $result['durationMs'] = number_format($thisTimeDelta * 1000, 1);
         $result['memoryMb'] = $thisMemDelta ? number_format($thisMemDelta / 1048576, 2) : 0;
 
         if ($result['durationMs'] >= self::$MIN_TASK_THRESHOLD_MS) {
@@ -91,6 +111,7 @@ class u_Perf extends OStdModule {
                 'numCalls' => 0,
             ];
         }
+
         $group = $this->groupResults[$task['task']];
         $group['durationMs'] += $thisTimeDelta;
         $group['memoryMb'] += $thisMemDelta;
@@ -102,6 +123,8 @@ class u_Perf extends OStdModule {
             $parentTask['subTaskTime'] += $thisTimeDelta;
             $parentTask['subTaskMem'] += $thisMemDelta;
         }
+
+        return number_format($timeDelta * 1000, 1);
     }
 
     function results () {
@@ -115,7 +138,7 @@ class u_Perf extends OStdModule {
         $groupResults = [];
         foreach ($this->groupResults as $taskName => $task) {
             $task['task'] = $taskName;
-            $task['durationMs'] = number_format($task['durationMs'] * 1000, 2);
+            $task['durationMs'] = number_format($task['durationMs'] * 1000, 1);
             $task['memoryMb'] = $task['memoryMb'] ? number_format($task['memoryMb'] / 1048576, 2) : 0;
 
             if ($task['durationMs'] >= 0.1) {
@@ -127,7 +150,6 @@ class u_Perf extends OStdModule {
             return $d > 0 ? 1 : ($d < 0 ? -1 : 0);
         });
         $groupResults = array_slice($groupResults, 0, 10);
-
 
         $scriptTime = ceil(($this->now() - Tht::getPhpGlobal('server', "REQUEST_TIME_FLOAT")) * 1000);
         $peakMem = round(memory_get_peak_usage(false) / 1048576, 1);
@@ -141,6 +163,7 @@ class u_Perf extends OStdModule {
     }
 
     // TODO: no CLI mode
+    // TODO: this is all pretty ugly - refactor
     function printResults () {
 
         if (! $this->isActive()) { return; }
@@ -153,7 +176,7 @@ class u_Perf extends OStdModule {
         $results = $this->results();
 
         // Have to do this outside of results() or the audit calls will show up in the perf tasks.
-     //   $results['imageAudit'] = Tht::module('Image')->auditImages(Tht::path('docRoot'));
+        //   $results['imageAudit'] = Tht::module('Image')->auditImages(Tht::path('public'));
 
         $thtDocLink = Tht::getThtSiteUrl('/reference/perf-panel');
         $compileMessage = Compiler::getDidCompile() ? '<div class="bench-compiled">Files were updated.  Refresh to see compiled results.</div>' : '';
@@ -161,37 +184,28 @@ class u_Perf extends OStdModule {
         $table = OTypeString::getUntyped(
             Tht::module('Web')->u_table(OList::create($results['single']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'value' ]),
-                OList::create([ 'Task', 'Duration (ms)', 'Peak Memory (mb)', 'Detail' ]),
+                OList::create([ 'Task', 'Duration (ms)', 'Peak Memory (MB)', 'Detail' ]),
                 OMap::create(['class' => 'bench-result'])
         ), 'html');
 
         $tableGroup = OTypeString::getUntyped(
             Tht::module('Web')->u_table(OList::create($results['group']),
                 OList::create([ 'task', 'durationMs', 'memoryMb', 'numCalls' ]),
-                OList::create([ 'Task', 'Duration (ms)', 'Memory (mb)', 'Calls' ]),
+                OList::create([ 'Task', 'Duration (ms)', 'Memory (MB)', 'Calls' ]),
                 OMap::create(['class' => 'bench-result'])
         ), 'html');
 
-        // TODO: this is all pretty ugly
-
 
         $opCache = '';
-        if (function_exists('opcache_get_status')) {
-            if (opcache_get_status()['opcache_enabled']) {
-                $opCache = '<span style="color: #393">OPCache</span>';
-            }
+        if (Tht::isOpcodeCacheEnabled()) {
+            $opCache = '<span style="color: #393">OPCache</span>';
         }
-        if (!$opCache) {
-            if (extension_loaded('apc')) {
-                $opCache = '<span style="color: #393">APC</span>';
-            }
-            else {
-                $opCache = '<span style="color: #c33">None</span>';
-            }
+        else {
+            $opCache = '<span style="color: #c33">None</span>';
         }
 
+        $appCache = Tht::module('Cache')->u_get_driver();
 
-        $appCache = 'File';
 
         $phpColor = PHP_MAJOR_VERSION >= 7 ? '#393' : '#c33';
         $phpVersion = "<span style=\"color: $phpColor\">" . phpVersion() . '</span>';
@@ -215,19 +229,19 @@ class u_Perf extends OStdModule {
             <div class="perfTotals">
                 <div>Server - Page Execution: <span id="perfScoreServer"><?= $results['scriptTime'] ?> ms</span></div>
                 <div>Network - Transfer: <span id='perfScoreNetwork'></span></div>
-                <div>Browser - window.onLoad: <span id='perfScoreClient'></span></div>
+                <div>Browser - window.onload: <span id='perfScoreClient'></span></div>
             </div>
             </div>
 
             <div class="perfSection">
             <div class="perfTotals">
-                <div>Server - Peak Memory: <span><?= $results['peakMemory'] ?> mb</span></div>
+                <div>Server - Peak Memory: <span><?= $results['peakMemory'] ?> MB</span></div>
             </div>
             </div>
 
             <div class="perfSection tasksGrouped">
                 <div class="perfSubHeader">Top Tasks (Grouped)</div>
-                <?= $tableGroup?>
+                <?= $tableGroup ?>
             </div>
 
             <div class="perfSection">
@@ -246,12 +260,12 @@ class u_Perf extends OStdModule {
                 <div style="text-align: left; width: 300px; display: inline-block; margin-top: 32px">
                 <li>PHP Version: <b><?= $phpVersion ?></b></li>
                 <li>Opcode Cache: <b><?= $opCache ?></b></li>
-                <li>App Cache: <b><?= $appCache ?></b></li>
+                <li>App Cache Driver: <b><?= $appCache ?></b></li>
                 </div>
             </div>
 
             <div class="perfSection">
-                Perf Panel only visible to localhost or <code>adminIp</code> in <code>settings/app.jcon</code>
+                Perf Panel only visible to localhost or <code>devIp</code> in <code>config/app.jcon</code>
             </div>
 
         </div>
@@ -268,7 +282,7 @@ class u_Perf extends OStdModule {
                 <p style="color: #c33; font-weight: bold">Found <b>(<?= $results['imageAudit']['numImages'] ?>)</b> images that can be optimized.</p>
                 <p>Estimated Savings: <b><?= $results['imageAudit']['savingsKb'] ?> kb -> <?= $results['imageAudit']['savingsPercent'] ?>%</b></p>
 
-                <p style="margin-top: 48px">To optimize, run <code>tht images</code> in your document root.</p>
+                <p style="margin-top: 48px">To optimize, run <code>tht images</code>.</p>
 
             <?php } else { ?>
                 <b style="color: #393">&#10004; Great!</b> &nbsp; No un-optimized images were found in your document root.
@@ -286,7 +300,8 @@ class u_Perf extends OStdModule {
             window.onload = function () {
                 requestAnimationFrame(function(){
 
-                    var perf = window.performance.timing;
+                    // See:  https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming
+                    var perf = window.performance.getEntries()[0];
                     var stats = {
                         network: perf.responseEnd - perf.responseStart,
                         server: perf.requestEnd - perf.requestStart,
@@ -297,7 +312,7 @@ class u_Perf extends OStdModule {
 
                     var grade = { label: 'VERY SLOW', color: '#d80000' };
                     if (totalTime <= 500) { grade = { label: 'FAST', color: '#3a3' }; }
-                    else if (totalTime <= 1000) { grade = { label: 'OK', color: '#e26c00' }; }
+                    else if (totalTime <= 1000) { grade = { label: 'OK', color: '#528ad2' }; }
                     else if (totalTime <= 2000) { grade = { label: 'SLOW', color: '#e6544a' }; }
 
                     var getId = document.getElementById.bind(document);
@@ -322,7 +337,7 @@ class u_Perf extends OStdModule {
 
         ?>
         <style scoped>
-            #perf-score-container { background-color: #f6f6f6; border-top: solid 16px #ddd; color: #111; font: 18px <?= Tht::module('Css')->u_font('monospace') ?>; padding-bottom: 32px; margin-top: 64px; text-align: center; }
+            #perf-score-container { background-color: #f6f6f6; border-top: solid 16px #ddd; color: #111; font: 18px <?= Tht::module('Output')->font('monospace') ?>; padding-bottom: 32px; margin-top: 64px; text-align: center; }
             .bench-result { font-size: 14px; border-collapse: collapse; margin: 32px auto; }
             .bench-result td,
             .bench-result th { text-align: left; padding: 8px 12px; border-bottom: solid 1px #ccc; }
@@ -335,9 +350,9 @@ class u_Perf extends OStdModule {
             .perfSection { border-bottom: solid 2px #ddd; padding: 32px 0 34px; }
             .perfTotals div { line-height: 2; width: 100%; text-align: left; }
             .perfTotals span { font-weight: bold; float: right; }
-            .perfHeader { font-size: 30px; font-weight: bold; text-align: center; letter-spacing: -2px }
-            .perfSubHeader { font-size: 22px; font-weight: bold; text-align: center; letter-spacing: -2px }
-            .perfHelp { font-size: 20px; margin-top: 16px; text-align: center; letter-spacing: -1px; }
+            .perfHeader { font-size: 30px; font-weight: bold; text-align: center; }
+            .perfSubHeader { font-size: 22px; font-weight: bold; text-align: center;  }
+            .perfHelp { font-size: 20px; margin-top: 16px; text-align: center;  }
             .perfHelp a { color: #34c !important; font-size: 90%; text-decoration: none; }
             #perfImages .perfHeader { margin-bottom: 32px }
             #perf-score-container b { color: inherit; }

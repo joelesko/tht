@@ -20,7 +20,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     function error($msg, $pos=null, $skipDoc=false) {
         ErrorHandler::addSubOrigin('template');
         if (!$skipDoc) {
-            ErrorHandler::setErrorDoc('/reference/templates#html-templates', 'HTML Templates');
+            ErrorHandler::setHelpLink('/reference/templates#html-templates', 'HTML Templates');
         }
         $this->reader->error($msg, $pos);
     }
@@ -43,18 +43,17 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
             // Content outside of tag
             if ($c === "\n") {
-
-                $strCloseTags = $this->closeTagsInLine();
-
                 $this->indent = 0;
-
+                $strCloseTags = $this->closeTagsInLine();
                 if ($strCloseTags) {
                     return $strCloseTags;
                 }
             }
             else {
-                if ($c === " ") {
-                    $this->indent += 1;
+                if ($c === " " && $r->atStartOfLine()) {
+                    // Absorb indent
+                    $this->indent = $r->slurpChar(' ');
+                    return '';
                 }
             }
 
@@ -139,12 +138,19 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         else {
             if ($c === "\n" && $this->inQuote) {
                 $r->updateTokenPos();
-                $this->error('Unexpected newline inside parameter.');
+                $this->error('Unexpected newline inside HTML tag parameter.');
             }
             else if ($c == '"' || $c == "'") {
-                $this->inQuote = $this->inQuote ? '' : $c;
+                if ($this->inQuote) {
+                    if ($c == $this->inQuote) {
+                         $this->inQuote = '';
+                    }
+                }
+                else {
+                    $this->inQuote = $c;
+                }
             }
-            $c = $r->escape($c, false, true);
+
             $this->currentTag['html'] .= $c;
 
             $str .= $c;
@@ -191,8 +197,11 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         // Validate script tag
         if ($this->currentTag['name'] == 'script' && !preg_match('/nonce\s*=/i', $this->currentTag['html'])) {
-            ErrorHandler::setErrorDoc('/manual/module/web/nonce', 'Web.nonce');
-            $this->error('`script` tag needs a `nonce` parameter.', $this->currentTagPos, true);
+            ErrorHandler::setHelpLink('/manual/module/web/nonce', 'Web.nonce');
+            $this->error(
+                'Tag needs a `nonce` parameter to safely allow it to execute. Try: `nonce="{{ Web.nonce() }}"`',
+                $this->currentTagPos, true
+            );
         }
 
         $this->currentContext = 'none';
@@ -240,14 +249,18 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     }
 
     function readCloseTagName($r) {
+
         $tagName = '';
         while (true) {
+
             $r->next();
             $c = $r->char();
+
             if ($c === "\n") {
                 $r->updateTokenPos();
                 $this->error('Unexpected newline.');
             }
+
             if ($c === '>') {
                 $r->next();
                 break;
@@ -255,14 +268,17 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 $tagName .= $c;
             }
         }
+
         return trim($tagName);
     }
 
     function readOpenTagName($r) {
         $tagName = '';
         while (true) {
+
             $r->next();
             $c = $r->char();
+
             if ($c === "\n" || $c === ' ' || $c === '>') {
                 break;
             }
@@ -271,6 +287,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
                 continue;
             }
         }
+
         return $tagName;
     }
 
@@ -313,7 +330,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
 
         $b = Security::escapeHtml($b);
-        return v($b)->u_trim_indent();
+
+        return v($b)->u_trim_indent(OMap::create(['keepRelative' => true]));
     }
 
     function getClosingTag ($seeTagName='') {
@@ -361,7 +379,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             $this->error("Missing tag name", $tag['pos']);
         }
         else if (preg_match('/class\s*=.*class\s*=/i', $tag['html'])) {
-            $this->error("Can't have both class name and class attribute for tag.", $tag['pos']);
+            $this->error("Can not have both class name and class attribute for tag.", $tag['pos']);
         }
         else if (preg_match('/#/', $name)) {
             $this->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
@@ -384,21 +402,21 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     function newTag ($tagName, $pos) {
 
         $tagHtml = $tagName;
+
+        // .class shortcut
         if (strpos($tagName, '.') !== false) {
             $classes = explode('.', $tagName);
             $aTag = 'div';
-            $id = '';
             if ($tagName[0] !== '.') {
-                $aTag1 = array_shift($classes);
-                if ($aTag1[0] === '#') {
-                    $id = ' id="' . substr($aTag1, 1) . '"';
-                } else {
-                    $aTag = $aTag1;
-                }
+                $aTag = array_shift($classes);
             }
 
-            $tagHtml = $aTag . $id . " class='" . trim(implode(' ', $classes)) . "'";
+            $tagHtml = $aTag . ' class="' . trim(implode(' ', $classes)) . '"';
             $tagName = $aTag;
+        }
+
+        if ($tagName == 'img' || $tagName == 'iframe') {
+            $tagHtml .= ' loading="lazy"';
         }
 
         return [
@@ -408,30 +426,24 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         ];
     }
 
-    function onEndString($str) {
+    function onEndChunk($str) {
         return self::cleanHtmlSpaces($str);
     }
 
+    // Mostly for readability in dynmically generated source
     static function cleanHtmlSpaces($str) {
-
-        // leading/trailing spaces on line
-        $str = preg_replace('#>\s+\n#',      ">\n", $str);
-        $str = preg_replace('#\n\s+<#',      "\n<", $str);
-
-        // leading/trailing spaces across newlines
-        $str = preg_replace('#>\s*\n+\s*#', '>', $str);
-        $str = preg_replace('#\s*\n+\s*<#', '<', $str);
 
         // spaces before closing tag
         $str = preg_replace('#\s+</#', '</', $str);
 
-        // spaces after opening tag
+        // newlines between tags
+        $str = preg_replace('#>\n\s*<#', "><", $str);
 
         return $str;
     }
 
-    function onEndTemplateBody() {
-        $r = $this->reader;
+    function onEndBody() {
+
         if (count($this->openTags)) {
             $tag = array_pop($this->openTags);
             $this->error('Missing closing tag `</>` within block: `<' . $tag['name'] . '>` Try: If this is intentional, add a continue tag `</...>`', $tag['pos']);

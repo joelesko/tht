@@ -5,45 +5,99 @@ namespace o;
 class u_Web extends OStdModule {
 
     private $icons = null;
+    private $assetUrlCache = [];
 
     function u_nonce () {
+
         $this->ARGS('', func_get_args());
+
         return Security::getNonce();
     }
 
-    function u_csrf_token($asTag=false) {
-        $this->ARGS('f', func_get_args());
-        $t = Security::getCsrfToken();
-        if (!$asTag) {
-            return $t;
+    function u_csrf_token() {
+
+        $this->ARGS('', func_get_args());
+
+        return Security::getCsrfToken();
+    }
+
+    function assetTag($type, $url) {
+
+        if ($type == 'css') {
+            return $this->u_css_tag($url);
         }
-        else {
-            $h = '<input type="hidden" name="csrfToken" value="' . $t . '" />';
-            return new HtmlTypeString($h);
+        else if ($type == 'js') {
+            return $this->u_js_tag($url);
         }
     }
 
-    function u_parse_html($raw) {
+    function u_js_tag($url) {
+
         $this->ARGS('*', func_get_args());
-        return Tht::parseTemplateString('html', $raw);
+
+        OTypeString::getUntyped($url, 'url');
+
+        $tag = OTypeString::create(
+            'html', '<script src="{}" nonce="{}"></script>'
+        );
+
+        $tag->u_fill(OList::create([
+            $url,
+            $this->u_nonce(),
+        ]));
+
+        return $tag;
     }
 
+    function u_css_tag($url) {
+
+        $this->ARGS('*', func_get_args());
+
+        OTypeString::getUntyped($url, 'url');
+
+        $tag = OTypeString::create(
+            'html', '<link rel="stylesheet" href="{}" />'
+        );
+
+        $tag->u_fill(OList::create([
+            $url
+        ]));
+
+        return $tag;
+    }
+
+    // TODO: document, xDangerParseHtml?
+    // function u_parse_html($raw) {
+    //     $this->ARGS('*', func_get_args());
+    //     return Tht::parseTemplateString('html', $raw);
+    // }
+
+    // function parseTemplateString ($type, $lRawText) {
+
+    //     $rawText = OTypeString::getUntyped($lRawText, $type);
+    //     $tsr = new TemplateStringReader ($type, $rawText);
+    //     return $tsr->parse();
+    // }
+
+    // TODO: document
     function u_table ($rows, $keys, $headings=[], $params=[]) {
 
         $this->ARGS('lllm', func_get_args());
 
         $str = $this->openTag('table', $params);
-        $rows = uv($rows);
-        $keys = uv($keys);
-        $headings = uv($headings);
+        $rows = unv($rows);
+        $keys = unv($keys);
+        $headings = unv($headings);
         $str .= '<tr>';
+
         foreach ($headings as $h) {
             $str .= '<th>' . Security::escapeHtml($h) . '</th>';
         }
         $str .= '</tr>';
+
         foreach ($rows as $row) {
             $str .= '<tr>';
-            $row = uv($row);
+            $row = unv($row);
             foreach ($keys as $k) {
                 $str .= '<td>' . (isset($row[$k]) ? Security::escapeHtml($row[$k]) : '') . '</td>';
             }
@@ -54,9 +108,12 @@ class u_Web extends OStdModule {
         return new \o\HtmlTypeString ($str);
     }
 
-    function u_link($lUrl, $label, $params=[]) {
+    // TODO: document?  or move to Url.link
+    function u_link($lUrl, $label, $params=null) {
 
-        $this->ARGS('*sm', func_get_args());
+        if (is_null($params)) { $params = OMap::create([]); }
+
+        $this->ARGS('*sm', [$lUrl, $label, $params]);
 
         $url = OTypeString::getUntyped($lUrl, 'url');
 
@@ -66,7 +123,17 @@ class u_Web extends OStdModule {
         return OTypeString::create('html', $rawLink);
     }
 
-    function u_form_link($label, $actionUrl, $data, $klass='') {
+    function u_anchor_link($label) {
+
+        $this->ARGS('s', func_get_args());
+
+        $slug = v($label)->u_slug();
+        $html = "<a href=\"#$slug\" class=\"anchor-link\">#</a><a name=\"$slug\"></a>";
+
+        return OTypeString::create('html', $html);
+    }
+
+    function u_post_link($label, $actionUrl, $data, $klass='') {
 
         $this->ARGS('**ms', func_get_args());
 
@@ -81,17 +148,20 @@ class u_Web extends OStdModule {
         }
 
         $klass = Security::escapeHtml($klass);
-        $action = $url = OTypeString::getUntyped($actionUrl, 'url');
+
+        $action = $actionUrl ? OTypeString::getUntyped($actionUrl, 'url') : '';
         $html = trim("
 <form method=\"post\" action=\"$action\" style=\"display: inline-block;\">
 $fields
 <button type=\"submit\" class=\"$klass\">{}</button>
 </form>
         ");
+
         return OTypeString::create('html', $html)->u_fill($label);
     }
 
     function openTag($name, $params, $selfClose=false) {
+
         $out = '<' . $name . ' ';
         $lParams = [];
 
@@ -106,25 +176,30 @@ $fields
                 $lParams []= $k . '="' . Security::escapeHtml($v) . '"';
             }
         }
+
         $out .= implode(' ', $lParams);
         if ($selfClose) { $out .= '/'; }
         $out .= '>';
+
         return $out;
     }
 
+    // TODO: document
     function u_breadcrumbs($links, $joiner = ' > ', $params=[]) {
+
         $this->ARGS('l*m', func_get_args());
 
         $aLinks = [];
         foreach ($links as $l) {
-            $aLinks []= Tht::module('Web')->u_link($l['url'], $l['label'])->u_stringify();
+            $aLinks []= Tht::module('Web')->u_link($l['url'], $l['label'])->u_render_string();
         }
 
         if (is_string($joiner)) {
             $joiner = Security::escapeHtml($joiner);
         } else {
-            $joiner = v($joiner)->u_stringify();
+            $joiner = v($joiner)->u_render_string();
         }
+
         $joiner = '<span class="breadcrumbs-joiner">' . $joiner . '</span>';
         $h = implode($joiner, $aLinks);
 
@@ -135,6 +210,7 @@ $fields
     }
 
     function getClassProp($raw) {
+
         if (is_string($raw)) {
             return $this->untaintClassProp($raw);
         }
@@ -151,6 +227,7 @@ $fields
             }
             return $this->untaintClassProp(rtrim($c));
         }
+
         return '';
     }
 
@@ -160,6 +237,7 @@ $fields
 
     // DO NOT REMOVE
     // function makeStarIcon($centerX, $centerY, $outerRadius, $innerRadius) {
+    //
     //     $arms = 5;
     //     $angle = pi() / $arms;
     //     $offset = -0.31;
@@ -170,10 +248,12 @@ $fields
     //         $currY = $centerY + sin(($i * $angle) + $offset) * $r;
     //         $points []= number_format($currX,2) . "," . number_format($currY, 2);
     //     }
+    //
     //     return implode(' ', $points);
     // }
 
     // TODO: mail, cart
+    // TODO: Make paths an order of magnitude smaller so they aren't so big when they are unstyled?
     function icons() {
 
         if ($this->icons) {
@@ -203,16 +283,16 @@ $fields
             'caretDown'   => '<path class="svgfill" d="M20,40 50,70 80,40z"/>',
 
             'menu'         => '<path d="M0,20H100zM0,50H100zM0,80H100z"/>',
-            'plus'         => '<path d="M15,50H85zM50,15V85z"/>',
-            'minus'        => '<path d="M15,50H85z"/>',
+            'plus'         => '<path d="M12,50H88zM50,12V88z"/>',
+            'minus'        => '<path d="M12,50H88z"/>',
             'cancel'       => '<path d="M20,20 80,80z M80,20 20,80z"/>',
             'check'        => '<polyline points="15,45 40,70 85,15"/>',
 
-            'home'   => '<path class="svgfill" d="M0,50 50,15 100,50z"/><rect class="svgfill" x="15" y="50" height="40" width="25" /><rect class="svgfill" x="60" y="50" height="40" width="25" /><rect class="svgfill" x="40" y="50" height="15" width="40" />',
-            'download' => '<path class="svgfill" d="M10,40 50,75 90,40z"/><rect class="svgfill" x="35" y="0" height="42" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
-            'upload'   => '<path class="svgfill" d="M10,35 50,0 90,35z"/><rect class="svgfill" x="35" y="33" height="40" width="30" /><rect class="svgfill" x="0" y="88" height="12" width="100" />',
-            'search'    => '<circle cx="45" cy="45" r="30"/><path d="M95,95 65,65z"/>',
-            'lock'      => '<rect class="svgfill" x="15" y="35" height="50" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="7" height="50" width="38" rx="15" rx="15" />',
+            'home'   => '<path class="svgfill" d="M0,45 50,05 100,45z"/><rect class="svgfill" x="15" y="40" height="50" width="25" /><rect class="svgfill" x="60" y="40" height="50" width="25" /><rect class="svgfill" x="40" y="40" height="20" width="20" />',
+            'download' => '<path class="svgfill" d="M12,38 50,75 88,38z"/><rect class="svgfill" x="35" y="2" height="40" width="30" /><rect class="svgfill" x="5" y="88" height="10" width="90" />',
+            'upload'   => '<path class="svgfill" d="M12,38 50,0 88,38z"/><rect class="svgfill" x="35" y="33" height="40" width="30" /><rect class="svgfill" x="5" y="88" height="10" width="90" />',
+            'search'    => '<circle cx="45" cy="40" r="30"/><path d="M95,95 65,60z"/>',
+            'lock'      => '<rect class="svgfill" x="15" y="37" height="48" width="70" rx="5" rx="5" /><rect style="stroke-width:12" x="31" y="10" height="50" width="38" rx="15" rx="15" />',
             'heart'     => '<path class="svgfill" d="M90,45 50,85 10,45z"/><rect class="svgfill" x="48" y="43" height="4" width="4"/><circle class="svgfill" cx="29" cy="31" r="23"/><circle class="svgfill" cx="71" cy="31" r="23"/>',
 
             // generated from $this->starIcon(50,50,55,22)
@@ -227,8 +307,11 @@ $fields
         return $this->icons;
     }
 
-    function u_get_icons() {
+    // TODO: document
+    function u_all_icons() {
+
         $this->ARGS('', func_get_args());
+
         return array_keys($this->icons());
     }
 
@@ -238,48 +321,74 @@ $fields
 
         $icons = $this->icons();
         if (!isset($icons[$id])) {
-            ErrorHandler::setErrorDoc('/reference/icons', 'Icons');
+            ErrorHandler::setHelpLink('/reference/icons', 'Icons');
             Tht::error("Unknown icon: `$id`");
         }
         if (substr($icons[$id], 0, 4) == '<svg') {
             return new \o\HtmlTypeString($icons[$id]);
         }
         $rawTag = '<svg class="ticon ticon-' . $id . '" viewBox="0 0 100 100">' . $icons[$id] . '</svg>';
+
         return new \o\HtmlTypeString($rawTag);
     }
 
+    // TODO: UNDOCUMENTED - should be made more accessibility friendly.  maybe via JavaScript.
     function u_mask_email($email) {
 
         $this->ARGS('s', func_get_args());
 
-        // TODO: show placeholder if not logged in user
-        // if (!Tht::module('User')->u_logged_in() && $placeholder) {
-        //     return $placeholder;
-        // }
+        // TODO: show placeholder if user is not logged in
 
-        $spanPos = rand(1, strlen($email) - 5);
-        $begin = substr($email, 0, $spanPos);
-        $end = substr($email, $spanPos);
+        $atPos = strpos($email, '@');
+        if ($atPos === false) {
+            $this->error("Invalid email address: `$email`");
+        }
 
-        $r = strtolower(Tht::module('String')->u_random(rand(6,12)));
-        $r = preg_replace('/[^a-z]/', '', $r);
+        $spanPos = rand(1, $atPos - 1);
+        $emailLeft = substr($email, 0, $spanPos);
+        $emailRight = $this->encodeAllChars(substr($email, $spanPos));
 
-        $r2 = strtolower(Tht::module('String')->u_random(rand(6,12)));
-        $r2 = preg_replace('/[^a-z]/', '', $r2);
+        $randClass1 = strtolower(Tht::module('String')->u_random(rand(6,12)));
+        $randClass1 = preg_replace('/[^a-z]/', '', $randClass1);
 
-        $e = Tht::module('String')->u_random(rand(5,80));
-        $e = preg_replace('/[0-9xz\/\+]+/', ' ', $e);
+        // random "content" that will be hidden
+        $randContent = Tht::module('String')->u_random(rand(10,30));
 
-        $xe = $begin . "<span class=\"$r\">$e</span><span class=\"$r2\">" . $end . "</span>";
-        $xe .= "<style> .$r { display: none; } </style>";
+        $xe = $emailLeft . "<div class=\"$randClass1\">$randContent</div>" . $emailRight;
+        $xe .= "<style>.$randClass1{display:none;}</style>";
 
         return new HtmlTypeString ($xe);
     }
 
-    function u_skip_hit_counter($doSkip) {
-        $this->ARGS('f', func_get_args());
+    // TODO: make this a string method?
+    function encodeAllChars($str) {
+
+        $str = mb_convert_encoding($str , 'UTF-32', 'UTF-8');
+        $t = unpack("N*", $str);
+        $t = array_map(function($n) { return "&#$n;"; }, $t);
+
+        return implode("", $t);
+    }
+
+    // TODO: Undocumented
+    function u_skip_hit_counter($doSkip = true) {
+
+        $this->ARGS('b', func_get_args());
+
         HitCounter::$skipThisPage = $doSkip;
+
         return $doSkip;
     }
-}
 
+    function u_htmx($mode, $data) {
+
+        $this->ARGS('sm', func_get_args());
+
+        $data['csrfToken'] = Security::getCsrfToken();
+        $data['mode'] = $mode;
+
+        $vals = Tht::module('Json')->u_encode($data);
+
+        return new HtmlTypeString("hx-post=\"\" hx-vals='$vals'");
+    }
+}

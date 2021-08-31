@@ -1,0 +1,13 @@
+
+load('./AdjacentModule')
+
+@@.OtherModuleConstant = 'constant'
+
+public fn ok($check) {
+    return 'ok:' ~ $check
+}
+
+public fn useAdjacent {
+    return AdjacentModule.callMe()
+}
+

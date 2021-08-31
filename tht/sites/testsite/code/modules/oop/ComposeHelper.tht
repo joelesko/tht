@@ -1,0 +1,15 @@
+
+
+class ComposeHelper {
+
+    public fields {
+        num: 111
+    }
+
+    public fn getNum {
+        return @.num
+    }
+
+}
+
+

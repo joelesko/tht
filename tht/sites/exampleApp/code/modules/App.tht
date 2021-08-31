@@ -1,0 +1,27 @@
+@@.AppName = 'MyApp'
+
+public fn newPage() {
+
+    $page = Page.create({
+
+        appName: @@.AppName,
+
+        header: headerHtml(),
+        footer: footerHtml(),
+
+        css: [
+            url'/vendor/basic.css',
+            url'/css/app.css',
+        ],
+    })
+
+    return $page
+}
+
+tm headerHtml {
+    <.logo> {{ @@.AppName }}
+}
+
+tm footerHtml {
+    &copy; {{ Date.now().format('Y') }}
+}

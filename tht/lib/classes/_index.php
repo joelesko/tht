@@ -3,6 +3,7 @@
 namespace o;
 
 class LibClasses {
+
     static public $files = [
         'OClass',
         'OStdModule',
@@ -14,10 +15,10 @@ class LibClasses {
         'ORegex',
         'OString',
         'OBoolean',
+        'OFlag',
         'OFunction',
         'OTypeString',
         'OTypeStrings',
-        'ONothing',
         'OModule',
         'OTemplate',
         'OUrl',
@@ -30,8 +31,10 @@ class LibClasses {
         foreach (LibClasses::$files as $lib) {
             require_once($lib . '.php');
         }
+    }
 
-        Runtime::_initSingletons();
+    public static function isa ($cls) {
+        return in_array($cls, LibClasses::$files);
     }
 }
 

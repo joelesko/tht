@@ -2,35 +2,46 @@
 
 namespace o;
 
-// isrelative, isabsolute, torelative, to absolute?,
 // origin = base? (non-path part)
 
+// Other APIs:
 // https://nodejs.org/api/url.html#url_url_strings_and_url_objects
 // https://docs.oracle.com/javase/7/docs/api/java/net/URI.html
 
 class UrlTypeString extends OTypeString {
 
     protected $stringType = 'url';
+    protected $errorClass = 'Url';
+
     private $query = null;
     private $parts = null;
     private $host = '';
     private $origin = '';
 
     protected function u_z_escape_param($v) {
+
         return urlencode($v);
     }
 
     function __construct($sUrl) {
+
         $sUrl = $this->parse($sUrl);
         parent::__construct($sUrl);
     }
 
-    function u_stringify() {
+    function u_render_string() {
+
         $this->updateString();
-        return parent::u_stringify();
+
+        return parent::u_render_string();
     }
 
     function parse($sUrl) {
+
+        // Shortcut:  url'this' --> Current URL
+        if ($sUrl == 'this') {
+            $sUrl = Tht::module('Request')->u_get_url()->u_to_relative()->str;
+        }
 
         if (preg_match('!\?.*\{.*\}!', $sUrl)) {
             $this->error("UrlTypeString should use `query()` for dynamic queries.  Try: `url'/my-page'.query({ foo: 123 }))`");
@@ -56,7 +67,9 @@ class UrlTypeString extends OTypeString {
     }
 
     function updateOrigin() {
+
         $origin = '';
+
         if (isset($this->parts['host'])) {
             $origin = $this->parts['host'];
 
@@ -67,7 +80,9 @@ class UrlTypeString extends OTypeString {
                 $origin .= ':' . $this->parts['port'];
             }
         }
+
         $this->origin = $origin;
+
         return $origin;
     }
 
@@ -76,12 +91,15 @@ class UrlTypeString extends OTypeString {
         $this->str = $this->updateOrigin();
 
         $this->str .= '/';
+
         if (isset($this->parts['path'])) {
             $this->str .= ltrim($this->parts['path'], '/');
         }
+
         if ($this->query) {
-            $this->str .= $this->query->u_stringify();
+            $this->str .= $this->query->u_render_string();
         }
+
         if (isset($this->parts['hash']) && $this->parts['hash']) {
             $this->str .= '#' . $this->parts['hash'];
         }
@@ -91,27 +109,36 @@ class UrlTypeString extends OTypeString {
     // Protected parts
     //---------------------------------
 
-    function u_query($q=null) {
-        $this->ARGS('*', func_get_args());
+    function u_get_query() {
 
-        // lazy init
+        $this->ARGS('', func_get_args());
+
         if (!$this->query) {
             $this->query = new UrlQuery ([]);
         }
 
-        if ($q === null) {
-            return $this->query;
+        return $this->query;
+    }
+
+    function u_set_query($q) {
+
+        $this->ARGS('*', func_get_args());
+
+        if (!$this->query) {
+            $this->query = new UrlQuery ([]);
         }
-        else {
-            $this->query->u_set($q);
-            $this->updateString();
-            return $this;
-        }
+
+        $this->query->u_set($q);
+        $this->updateString();
+
+        return $this;
     }
 
     function u_clear_query() {
+
         $this->query = new UrlQuery ([]);
         $this->updateString();
+
         return $this;
     }
 
@@ -122,65 +149,135 @@ class UrlTypeString extends OTypeString {
     //----------------------------------
 
     function updatePart($p, $v) {
-        if (is_null($v)) {
-            return $this->parts[$p];
-        } else {
-            $this->parts[$p] = $v;
-            $this->updateString();
-            return $this;
-        }
+
+        $this->parts[$p] = $v;
+        $this->updateString();
+
+        return $this;
     }
 
-    function u_hash($v = null) {
+    function u_set_hash($v) {
+
         $this->ARGS('s', func_get_args());
-        if (!is_null($v)) {
-            $v = Security::sanitizeUrlHash($v);
-        }
-        return $this->updatePart('hash', $v);
+
+        $v = Security::sanitizeUrlHash($v);
+
+        $this->updatePart('hash', $v);
+
+        return $this;
     }
 
-    function u_host($v = null) {
-        $this->ARGS('s', func_get_args());
-        if (!is_null($v)) {
-            $v = strtolower($v);
-            $v = preg_replace('/[^a-z0-9\.\-_]/', '', $v);
-        }
-        return $this->updatePart('host', $v);
-    }
+    function u_get_hash() {
 
-    function u_port($v = null) {
-        $this->ARGS('n', func_get_args());
-        return $this->updatePart('port', $v);
-    }
-
-    function u_scheme($v = null) {
-        $this->ARGS('s', func_get_args());
-        if (!is_null($v)) {
-            $v = strtolower($v);
-            $v = preg_replace('/[^a-z]/', '', $v);
-        }
-        return $this->updatePart('scheme', $v);
-    }
-
-    function u_path($v = null) {
-        $this->ARGS('s', func_get_args());
-        if (!is_null($v)) {
-            $v = preg_replace('#[^a-zA-Z0-9\-\.~/]#', '', $v);
-        }
-        return $this->updatePart('path', $v);
-    }
-
-    function u_path_parts($v = null) {
-        $this->ARGS('s', func_get_args());
-        if (!is_null($v)) {
-            $v = preg_replace('#[^a-zA-Z0-9\-\.~/]#', '', $v);
-        }
-        return $this->updatePart('pathParts', $v);
-    }
-
-    function u_origin() {
         $this->ARGS('', func_get_args());
+
+        return $this->parts['hash'];
+    }
+
+    function u_set_host($v) {
+
+        $this->ARGS('s', func_get_args());
+
+        $v = strtolower($v);
+        $v = preg_replace('/[^a-z0-9\.\-_]/', '', $v); // untaint
+
+        $this->updatePart('host', $v);
+
+        return $this;
+    }
+
+    function u_get_host() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->parts['host'];
+    }
+
+    function u_set_port($v) {
+
+        $this->ARGS('i', func_get_args());
+
+        $this->updatePart('port', $v);
+
+        return $this;
+    }
+
+    function u_get_port() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->parts['port'];
+    }
+
+    function u_set_scheme($v) {
+
+        $this->ARGS('s', func_get_args());
+
+        $v = strtolower($v);
+        $v = preg_replace('/[^a-z]/', '', $v); // untaint
+
+        $this->updatePart('scheme', $v);
+
+        return $this;
+    }
+
+    function u_get_scheme() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->parts['scheme'];
+    }
+
+    function u_set_path($v) {
+
+        $this->ARGS('s', func_get_args());
+
+        $v = preg_replace('#[^a-zA-Z0-9\-\.~/]#', '', $v); // SEC: untaint
+
+        $this->updatePart('path', $v);
+
+        return $this;
+    }
+
+    function u_get_path() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->parts['path'];
+    }
+
+    function u_get_path_parts() {
+
+        $this->ARGS('', func_get_args());
+
+        $path = $this->u_get_path();
+
+        return v(v($path)->u_trim_left('/'))->u_split('/');
+    }
+
+    function u_get_origin() {
+
+        $this->ARGS('', func_get_args());
+
         return $this->origin;
+    }
+
+    function u_get_file_parts() {
+
+        $this->ARGS('', func_get_args());
+
+        $path = $this->u_get_path();
+
+        return Tht::module('File')->u_get_parts($path);
+    }
+
+    function u_get_file_path() {
+
+        $this->ARGS('', func_get_args());
+
+        $relPath = $this->u_get_path();
+
+        return Tht::path('public', $relPath);
     }
 
 
@@ -188,34 +285,61 @@ class UrlTypeString extends OTypeString {
     //----------------------------------
 
     function u_is_absolute() {
+
         $this->ARGS('', func_get_args());
+
         return !!$this->parts['host'];
     }
 
     function u_is_relative() {
+
         $this->ARGS('', func_get_args());
+
         return !$this->parts['host'];
     }
 
-    function u_to_absolute($baseUrl=null) {
+    function u_to_absolute($baseOrigin='') {
 
+        $this->ARGS('*', func_get_args());
+
+        if (!$baseOrigin) {
+            $currentUrl = Tht::module('Request')->u_get_url();
+            $baseOrigin = $currentUrl->u_origin();
+        }
+
+        $baseOrigin = rtrim($baseOrigin, '/');
+
+        // remove any existing base
+        $s = preg_replace('#.*//[^/]*#', '', $this->str);
+        $s = ltrim($s, '/');
+
+        $s = $baseOrigin . '/' . $s;
+
+        $ns = new UrlTypeString ($s);
+        $ns->u_set_query($this->u_get_query());
+
+        return $ns;
     }
 
     function u_to_relative() {
-        $this->ARGS('', func_get_args());
 
-        $parts = $this->parts;
+        $this->ARGS('', func_get_args());
 
         if (strpos($this->str, '//') !== false) {
             $s = preg_replace('#.*//[^/]*#', '', $this->str);
-            return new UrlTypeString ($s);
+            $ns = new UrlTypeString ($s);
+            $ns->u_set_query($this->u_get_query());
+
+            return $ns;
         }
 
         return $this;
     }
 
-    function u_link($label, $params=[]) {
+    function u_link($label, $params=null) {
+
         $this->ARGS('sm', func_get_args());
-        return Tht::module('Web')->u_link($this, $label, $params);
+
+        return Tht::module('Web')->u_link($this, $label);
     }
 }

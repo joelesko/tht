@@ -1,0 +1,51 @@
+// Test Site
+
+{
+    routes: {
+        /home: allTests.tht
+        /test/{action}: testAction.tht
+        /test-auto: userAccounts.tht @ autoFunction
+    }
+
+    tht: {
+
+        // used by test
+        timezone: America/Los_Angeles
+
+        showPerfPanel: false
+        _coreDevMode: true
+
+        memoryLimitMb: 32
+
+        hitCounter: false
+
+        _sendErrorsUrl: local
+
+        litemarkCustomTags: {
+            tag1: <b>CUSTOM: {1}</b>
+            othertag1: <b>OTHER: {1}</b>
+        }
+    }
+
+    // Custom app settings.  Read via `Global.setting(key)`
+    app: {
+        num: -123.45
+        booleanFalse: false
+        booleanTrue: true
+        string: value with spaces, etc.
+        map: {
+            key: value
+        }
+        list: [
+            value 1
+            value 2
+        ]
+
+        mlString: '''
+            line 1
+            line 2
+        '''
+
+        aUrl: https://asite.com
+    }
+}

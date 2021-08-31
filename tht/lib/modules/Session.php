@@ -7,9 +7,10 @@ class u_Session extends OStdModule {
     private $sessionStarted = false;
     private $flashKey = '**flash';
     private $flashData = [];
-    private $sessionIdName = 'sid';
+    public $sessionIdName = 'sid';
 
     public function startSession() {
+
         if ($this->sessionStarted) {
             return;
         }
@@ -54,10 +55,12 @@ class u_Session extends OStdModule {
     }
 
     function wrapVal($val) {
+
         return Tht::module('Json')->u_encode(OMap::create(['v' => $val]));
     }
 
     function unwrapVal($val) {
+
         return Tht::module('Json')->u_decode($val)['v'];
     }
 
@@ -78,36 +81,51 @@ class u_Session extends OStdModule {
     }
 
     function u_get_all() {
+
+        $this->ARGS('', func_get_args());
+
         $this->startSession();
         $all = $_SESSION;
         unset($all[$this->flashKey]);
+
         return OMap::create($all);
     }
 
     function u_delete($key) {
+
         $this->ARGS('s', func_get_args());
+
         $this->startSession();
         if (isset($_SESSION[$key])) {
             $val = $this->unwrapVal($_SESSION[$key]);
             unset($_SESSION[$key]);
             return $val;
         }
+
         return '';
     }
 
     function u_delete_all() {
+
+        $this->ARGS('', func_get_args());
+
         $this->startSession();
         $_SESSION = [];
     }
 
     function u_has_key($key) {
+
         $this->ARGS('s', func_get_args());
+
         $this->startSession();
+
         return isset($_SESSION[$key]);
     }
 
     function u_add_counter($key) {
+
         $this->ARGS('s', func_get_args());
+
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = 0;
@@ -118,7 +136,9 @@ class u_Session extends OStdModule {
     }
 
     function u_add_to_list($key, $value) {
+
         $this->ARGS('s*', func_get_args());
+
         $this->startSession();
         if (!isset($_SESSION[$key])) {
             $list = OList::create([]);
@@ -129,35 +149,54 @@ class u_Session extends OStdModule {
 
         $list []= $value;
         $_SESSION[$key] = $this->wrapVal($list);
+
+        return OList::create($list);
     }
 
     function u_get_flash($key, $default='') {
+
         $this->ARGS('s*', func_get_args());
+
         $this->startSession();
         if (isset($this->flashData[$key])) {
             return $this->flashData[$key];
         }
+
         return $default;
     }
 
     function u_set_flash($key, $value) {
+
         $this->ARGS('s*', func_get_args());
+
         $this->startSession();
         if (!isset($_SESSION[$this->flashKey])) {
             $_SESSION[$this->flashKey] = [];
         }
+
         $_SESSION[$this->flashKey][$key] = $value;
+
+        return EMPTY_RETURN;
     }
 
     function u_has_flash($key) {
+
         $this->ARGS('s', func_get_args());
+
         $this->startSession();
-        return isset($_SESSION[$this->flashKey]);
+
+        return isset($this->flashData[$key]);
     }
 
     function u_repeat_flash() {
+
+        $this->ARGS('', func_get_args());
+
         $this->startSession();
+
         $_SESSION[$this->flashKey] = $this->flashData;
+
+        return EMPTY_RETURN;
     }
 }
 

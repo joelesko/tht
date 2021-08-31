@@ -2,47 +2,58 @@
 
 namespace o;
 
-require_once('helpers/vendor/Jcon.php');
-
+require_once(Tht::getCoreVendorPath('php/Jcon.php'));
 
 class u_Jcon extends OStdModule {
 
-    private $context = [ 'type' => '' ];
-    private $contexts = [];
-    private $leafs = [];
-    private $leaf = [];
-    private $mlString = null;
-    private $mlStringKey = '';
+    private $jconObject = null;
 
-    private $file = '';
-    private $line = '';
-    private $lineNum = 0;
-    private $pos = 0;
-    private $len = 0;
-    private $text = '';
+    public function getFilePath($file) {
+
+        return Tht::path('config', $file);
+    }
+
+    function u_file_exists($file) {
+
+        $this->ARGS('s', func_get_args());
+
+        return file_exists($this->getFilePath($file));
+    }
 
     function u_parse_file($file) {
 
         $this->ARGS('s', func_get_args());
 
-        $path = Tht::path('settings', $file);
+        $path = $this->getFilePath($file);
+
         if (!file_exists($path)) {
-            Tht::error("JCON file not found: '$path'");
+            $this->error("JCON file not found: `$path`");
         }
 
         $cacheKey = 'jcon:' . $file;
         $cached = Tht::module('Cache')->u_get_sync($cacheKey, filemtime($path));
+
         if ($cached) {
-          //  return $cached;
+            return $cached;
         }
 
-        $text = Tht::module('*File')->u_read($path, true);
-
+        $text = Tht::module('*File')->u_read($path, OMap::create(['join' => true]));
         $data = $this->u_parse($text);
 
         Tht::module('Cache')->u_set($cacheKey, $data, 0);
 
         return $data;
+    }
+
+    function u_get_state() {
+
+        $this->ARGS('', func_get_args());
+
+        if (!$this->jconObject) {
+            return OMap::create([]);
+        }
+
+        return OMap::create($this->jconObject->getState());
     }
 
     function u_parse($text) {
@@ -53,28 +64,35 @@ class u_Jcon extends OStdModule {
 
         Tht::module('Perf')->u_start('jcon.parse', $text);
 
-        $jcon = new \Jcon\JconParser([
+        $this->jconObject = new \Jcon\JconParser([
+
             'mapHandler' => function () {
                 return OMap::create([]);
             },
+
+            'listHandler' => function () {
+                return OList::create([]);
+            },
+
             'valueHandler' => function ($key, $value) {
-                $isLitemark = substr($key, -4, 4) === 'Lite';
-                if ($isLitemark) {
+
+                if (substr($key, -2, 2) === 'Lm') {
                     return Tht::module('Litemark')->parseWithFullPerms($value);
-                } else {
+                }
+                else if (substr($key, -3, 3) === 'Url') {
+                    return OTypeString::create('url', $value);
+                }
+                else {
                     return $value;
                 }
             },
         ]);
-        $data = $jcon->parse($text);
+
+        $data = $this->jconObject->parse($text);
 
         Tht::module('Perf')->u_stop();
 
         return $data;
     }
-
 }
-
-
-
 

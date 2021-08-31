@@ -9,35 +9,56 @@ class u_Json extends OStdModule {
         'parse'     => 'decode()',
     ];
 
-    function u_encode ($v) {
+    function u_encode ($v, $flags=null) {
+
+        $this->ARGS('*m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'format' => false,
+        ]);
+
         $json = json_encode($v, JSON_UNESCAPED_UNICODE);
 
+        if ($flags['format']) {
+            $json = $this->u_format($json);
+        }
+
         // TODO: this is duplicated in u_format()
-        $json = str_replace("'{EMPTY_MAP}'", '{}', $json);
+      //  $json = str_replace("'{EMPTY_MAP}'", '{}', $json);
+
         return $json;
     }
 
     function u_decode ($v) {
+
+        $this->ARGS('s', func_get_args());
+
         $dec = json_decode($v, false);
         if (is_null($dec)) {
             $this->error("Unable to decode JSON string: `" . v($v)->u_limit(20) . "`");
         }
+
         return $this->convertToBags($dec);
     }
 
     // Recursively convert to THT Lists and Maps
     function convertToBags ($obj) {
+
         if (is_object($obj)) {
+
             $map = [];
             foreach (get_object_vars($obj) as $key => $val) {
                 $map[$key] = $this->convertToBags($val);
             }
+
             return OMap::create($map);
         }
         else if (is_array($obj)){
+
             foreach ($obj as $i => $val) {
                 $obj[$i] = $this->convertToBags($obj[$i]);
             }
+
             return OList::create($obj);
         }
         else {
@@ -46,22 +67,24 @@ class u_Json extends OStdModule {
     }
 
     function deepSortKeys ($obj) {
+
         ksort($obj);
+
         foreach ($obj as $key => $value) {
-            $uvObj = uv($obj[$key]);
+            $uvObj = unv($obj[$key]);
             if (is_array($uvObj)) {
                 $obj[$key] = $this->deepSortKeys($uvObj);
             }
         }
+
         return $obj;
     }
 
     function formatOneLineSummary($obj, $maxLen) {
-        $json = $this->u_format($obj);
 
-        // make object bare
-        $json = preg_replace('/\'<<</', "<", $json);
-        $json = preg_replace('/>>>\'/', ">", $json);
+        $json = $this->u_encode($obj);
+
+        $json = OClass::tokensToBareStrings($json);
 
         $json = preg_replace('/,\n/', ', ', $json);
         $json = preg_replace('/{\s+/', '{ ', $json);
@@ -69,9 +92,17 @@ class u_Json extends OStdModule {
         $json = preg_replace('/\s*\n+\s*/', '', $json);
         $json = preg_replace('/\s+/', ' ', $json);
 
+        // TODO: would prefer not to need this, but windows paths are still escaped?
+        $json = preg_replace('!\\\/!', '/', $json);
+        $json = preg_replace('!\\\\\\\\!', '\\', $json);
+
+        $json = str_replace('"⟪', '⟪', $json);
+        $json = str_replace('⟫"', '⟫', $json);
+
+
         // truncate
         if (strlen($json) > $maxLen) {
-            $json = substr($json, 0, $maxLen - 1) . ' ...';
+            $json = substr($json, 0, $maxLen - 1) . '…';
             if ($json[0] == '[') {
                 $json .= ' ]';
             }
@@ -83,32 +114,30 @@ class u_Json extends OStdModule {
             }
         }
 
+
+
         return $json;
     }
 
     // Make JSON output human-readable
-    function u_format($obj, $isStrict=false) {
+    function u_format($rawJson, $flags=null) {
+
+        $this->ARGS('*m', func_get_args());
+
+        if (!is_string($rawJson)) {
+            $rawJson = $this->u_encode($rawJson);
+        }
+
+        $flags = $this->flags($flags, [
+            'strict' => false,
+        ]);
+        $isStrict = $flags['strict'];
+
 
         $tab = str_repeat(' ', 4);
         $out = '';
         $indentLevel = 0;
         $inString = false;
-
-        if ($obj === false) {
-            return 'false';
-        }
-        else if (is_null($obj)) {
-            return '(nothing)';
-        }
-
-        if (is_string($obj)) {
-            $obj = json_decode($obj);
-        }
-        else if (is_array(uv($obj))) {
-            $obj = $this->deepSortKeys(uv($obj));
-        }
-
-        $rawJson = self::u_encode($obj);
 
         $len = strlen($rawJson);
         for ($i = 0; $i < $len; $i++) {
@@ -157,6 +186,7 @@ class u_Json extends OStdModule {
 
         $out = preg_replace('!\\\\/!', '/', $out);
         $out = str_replace("'{EMPTY_MAP}'", '{}', $out);
+        $out = str_replace("'[EMPTY_LIST]'", '[]', $out);
 
         return $out;
     }

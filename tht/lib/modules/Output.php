@@ -8,46 +8,58 @@ class u_Output extends OStdModule {
     public $sentResponseType = '';
 
     function u_run_route($path) {
+
         $this->ARGS('s', func_get_args());
         WebMode::runRoute($path);
-        return new \o\ONothing('runRoute');
+
+        return EMPTY_RETURN;
     }
 
     function u_redirect ($lUrl, $code=303) {
-        $this->ARGS('*n', func_get_args());
+
+        $this->ARGS('*I', func_get_args());
 
         $url = OTypeString::getUntyped($lUrl, 'url');
+
         header('Location: ' . $url, true, $code);
+
+        $this->sentResponseType = 'redirect';
+
         Tht::exitScript(0);
     }
 
     function u_set_response_code ($code) {
-        $this->ARGS('n', func_get_args());
+
+        $this->ARGS('I', func_get_args());
         http_response_code($code);
 
-        return new \o\ONothing('setResponseCode');
+        return EMPTY_RETURN;
     }
 
-    function u_set_header ($name, $value, $multiple=false) {
-        $this->ARGS('ssf', func_get_args());
+    function u_set_header ($name, $value, $flags=null) {
 
-        if ($this->hasPreOutput()) {
-            $this->error("Can't set response header because output was already sent: `$name: $value`");
+        $this->ARGS('ssm', func_get_args());
+
+        if ($this->sentResponseType) {
+            $this->error("Can not set response header `$name` because output was already sent.");
         }
 
         $value = preg_replace('/\s+/', ' ', $value);
         $name = preg_replace('/[^a-z0-9\-]/', '', strtolower($name));
-        header($name . ': ' . $value, !$multiple);
+        header($name . ': ' . $value, ($flags && $flags['append']) ? false : true);
 
-        return new \o\ONothing('setHeader');
+        return EMPTY_RETURN;
     }
 
-    function u_set_cache_header ($expiry='+1 year') {
+    function u_set_cache_header ($expiryDelta='365 days') {
+
         $this->ARGS('s', func_get_args());
 
-        $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', strtotime($expiry)));
+        $expiry = Tht::module('Date')->u_now()->u_add($expiryDelta);
 
-        return new \o\ONothing('setCacheHeader');
+        $this->u_set_header('Expires', gmdate('D, d M Y H:i:s \G\M\T', $expiry->u_unix_time()));
+
+        return EMPTY_RETURN;
     }
 
 
@@ -55,6 +67,7 @@ class u_Output extends OStdModule {
     // SEND DOCUMENTS
     // --------------------------------------------
 
+    // For HTMX partials
     // function u_print_block($h, $title='') {
     //     $html = OTypeString::getUntyped($h);
     //     $this->u_send_json([
@@ -64,22 +77,38 @@ class u_Output extends OStdModule {
     //     ]);
     // }
 
-    function output($out) {
+    function output($out, $type) {
+
+        $sentType = $this->sentResponseType;
+        if ($sentType && $sentType !== $type) {
+            $this->error("Output was already sent with type `$sentType`");
+        }
+        $this->sentResponseType = $type;
+
         $this->startGzip();
+
         print $out;
     }
 
-    function sendByType($lout) {
-        $type = $lout->u_string_type();
+    function sendByType($out) {
 
-        if ($type == 'css') {
-            return $this->u_send_css($lout);
+        if ($out === true) {
+            // Refresh
+            Tht::module('Output')->u_redirect(
+                Tht::module('Request')->u_get_url()->u_clear_query()
+            );
         }
-        else if ($type == 'js') {
-            return $this->u_send_js($lout);
+        else if (HTMLTypeString::isa($out)) {
+            $this->u_send_html($out);
         }
-        else if ($type == 'url') {
-            Tht::module('Output')->u_redirect($lout);
+        else if (URLTypeString::isa($out)) {
+            $this->u_redirect($out);
+        }
+        else if (OMap::isa($out)) {
+            $this->u_send_json($out);
+        }
+        else if (u_Page_Object::isa($out)) {
+            $out->u_send();
         }
     }
 
@@ -97,185 +126,96 @@ class u_Output extends OStdModule {
         return $out;
     }
 
-    function u_send_json ($map) {
-        $this->ARGS('m', func_get_args());
+    function u_send_json ($map, $expiryDelta=0) {
+        $this->ARGS('mi', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/json; charset=utf-8');
-        $this->output(json_encode(uv($map)));
+        $this->u_set_cache_header($expiryDelta);
 
-        $this->sentResponseType = 'json';
+        $this->output(json_encode(unv($map)), 'json');
 
         Tht::module('Web')->u_skip_hit_counter(true);
 
-        return new \o\ONothing('sendJson');
+        return EMPTY_RETURN;
     }
 
-    function u_send_text ($text) {
-        $this->ARGS('s', func_get_args());
+    function u_send_text ($text, $expiryDelta=0) {
+        $this->ARGS('si', func_get_args());
 
         $this->u_set_header('Content-Type', 'text/plain; charset=utf-8');
+        $this->u_set_cache_header($expiryDelta);
 
-        $this->output($text);
+        $this->output($text, 'text');
 
-        $this->sentResponseType = 'text';
-
-        return new \o\ONothing('sendText');
+        return EMPTY_RETURN;
     }
 
-    function u_send_css ($chunks) {
+    function u_send_css ($chunks, $expiryDelta=0) {
 
-        $this->ARGS('*', func_get_args());
+        $this->ARGS('*i', func_get_args());
 
         $this->u_set_header('Content-Type', 'text/css; charset=utf-8');
-        $this->u_set_cache_header();
+        $this->u_set_cache_header($expiryDelta);
 
         $out = $this->renderChunks($chunks);
-        $this->output($out);
 
-        $this->sentResponseType = 'css';
+        $out = $this->scanAssetUrls($out);
+
+        $this->output($out, 'css');
 
         Tht::module('Web')->u_skip_hit_counter(true);
 
-        return new \o\ONothing('sendCss');
+        return EMPTY_RETURN;
     }
 
-    function u_send_js ($chunks) {
+    function u_send_js ($chunks, $expiryDelta=0) {
 
-        $this->ARGS('*', func_get_args());
+        $this->ARGS('*i', func_get_args());
 
         $this->u_set_header('Content-Type', 'application/javascript; charset=utf-8');
-        $this->u_set_cache_header();
+        $this->u_set_cache_header($expiryDelta);
 
         $out = "(function(){\n";
         $out .= $this->renderChunks($chunks);
         $out .= "\n})();";
 
-        $this->output($out);
-
-        $this->sentResponseType = 'js';
+        $this->output($out, 'js');
 
         Tht::module('Web')->u_skip_hit_counter(true);
 
-        return new \o\ONothing('sendJs');
+        return EMPTY_RETURN;
     }
 
     function u_send_html ($html) {
+
         $html = OTypeString::getUntyped($html, 'html');
-        $this->output($html);
 
-        $this->sentResponseType = 'html';
+        $html = $this->scanAssetUrls($html);
 
-        return new \o\ONothing('sendHtml');
+        $this->output($html, 'html');
+
+        return EMPTY_RETURN;
     }
 
     function u_x_danger_send ($s) {
+
         $this->ARGS('s', func_get_args());
+
         print $s;
-        $this->sentResponseType = 'raw';
-        return new \o\ONothing('xDangerSend');
+
+        return EMPTY_RETURN;
     }
 
-    // Print a well-formed HTML document with sensible defaults
-    function u_send_page ($doc) {
+    function u_send_error ($code, $title='', $descHtml='') {
 
-        $this->ARGS('m', func_get_args());
+        $this->ARGS('Is*', func_get_args());
 
-        $val = [];
-
-        $val['body'] = '';
-
-        if ($doc['body']) {
-            $chunks = [];
-            if (OList::isa($doc['body'])) {
-                $chunks = $doc['body'];
-            } else {
-                $chunks = [$doc['body']];
-            }
-
-            foreach ($chunks as $c) {
-                $val['body'] .= OTypeString::getUntyped($c, 'html');
-            }
-        }
-
-        // if (u_Web::u_is_ajax()) {
-        //     u_Web::u_send_block($body, $header['title']);
-        //     return;
-        // }
-
-        $val['css'] = $this->assetTags(
-            'css',
-            $doc['css'],
-            OTypeString::create('html', '<link rel="stylesheet" href="{url}" />'),
-            OTypeString::create('html', '<style>{body}</style>')
-        );
-
-        $val['js'] = $this->assetTags(
-            'js',
-            $doc['js'],
-            OTypeString::create('html', '<script src="{url}" nonce="{nonce}"></script>'),
-            OTypeString::create('html', '<script nonce="{nonce}">{body}</script>')
-        );
-
-        $val['title'] = $doc['title'];
-        $val['description'] = isset($doc['description']) ? $doc['description'] : '';
-
-        // TODO: get updateTime of the files, allow base64 urls
-        $val['image'] = $this->headTag($doc['image'], '<meta property="og:image" content="{url}">');
-        $val['icon'] = $this->headTag($doc['icon'], '<link rel="icon" href="{url}">');
-
-        $val['bodyClass'] = Tht::module('Web')->getClassProp($doc['bodyClass']);
-
-        $val['comment'] = '';
-        if (isset($doc['comment'])) {
-            $val['comment'] = "\n<!--\n\n" . v(v(v($doc['comment'])->u_stringify())->u_indent(4))->u_trim_right() . "\n\n-->";
-        }
-
-        $out = $this->pageTemplate($val);
-
-        $this->output($out);
-
-        $this->sentResponseType = 'html';
-
-        return new \o\ONothing('sendPage');
-    }
-
-    function pageTemplate($val) {
-        return <<<HTML
-<!doctype html>$val[comment]
-<html>
-<head>
-<title>$val[title]</title>
-<meta name="description" content="$val[description]"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<meta property="og:title" content="$val[title]"/>
-<meta property="og:description" content="$val[description]"/>
-$val[image] $val[icon] $val[css]
-</head>
-<body class="$val[bodyClass]">
-$val[body]
-$val[js]
-</body>
-</html>
-HTML;
-    }
-
-    function u_send_error ($code, $title='', $desc='') {
-
-        $this->ARGS('nss', func_get_args());
+        $desc = $descHtml ? OTypeString::getUntyped($descHtml, 'html') : '';
 
         http_response_code($code);
 
-        if ($code !== 500) {
-            // User custom error page
-            WebMode::runStaticRoute($code);
-        }
-
         // User custom error page
-        // $errorPage = Tht::module('File')->u_document_path($code . '.html');
-        // if (file_exists($errorPage)) {
-        //     print(file_get_contents($errorPage));
-        //     exit(1);
-        // }
+        WebMode::runStaticRoute($code);
 
         if (!Tht::module('Request')->u_is_ajax()) {
 
@@ -283,122 +223,452 @@ HTML;
                 $title = $code === 404 ? 'Page Not Found' : 'Website Error';
             }
 
-            ?><html><head><title><?= $title ?></title></head><body>
-            <div style="text-align: center; color:#333; font-family: <?= Tht::module('Css')->u_font('sansSerif') ?>;">
-            <h1 style="margin-top: 40px;"><?= $title ?></h1>
+            ?><html><head><title><?= $title ?></title></head><body style="margin: 0; padding: 0">
+            <div style="border-top: solid 1em #ccc; text-align: center; color:#333; font-family: <?= Tht::module('Output')->font('sansSerif') ?>;">
+            <h1 style="margin-top: 1em;"><?= $title ?></h1>
             <?php if ($desc) { ?>
-            <div style="margin-top: 40px;"><?= $desc ?></div>
+            <div style="margin-top: 1em;"><?= $desc ?></div>
             <?php } ?>
-            <div style="margin-top: 40px"><a style="text-decoration: none; font-size: 20px;" href="/">Home Page</a></div></div>
+            <div style="margin-top: 3em"><a style="text-decoration: none; font-size: 20px;" href="/">Home Page</a></div></div>
             </body></html><?php
         }
 
         Tht::exitScript(1);
     }
 
-    function headTag($val, $template) {
-        if (!$val) { return ''; }
-        $tHtml = OTypeString::create('html', $template);
-        return $tHtml->u_fill(OMap::create(['url' => $val]))->u_stringify() . "\n";
-    }
-
-    // print css & js tags
-    function assetTags ($type, $paths, $incTag, $blockTag) {
-
-        $paths = uv($paths);
-        if (!is_array($paths)) {
-            $paths = !$paths ? [] : [$paths];
-        }
-        // if ($type == 'js') {
-        //     $jsData = Tht::module('Js')->u_plugin('jsData');
-        //     if ($jsData) { array_unshift($paths, $jsData); }
-        // }
-
-        if (!count($paths)) { return ''; }
-
-        $nonce = Tht::module('Web')->u_nonce();
-
-        $includes = [];
-        $blocks = [];
-        foreach ($paths as $path) {
-
-            if (!OTypeString::isa($path)) {
-                $this->error("Path must be a `url` TypeString or `$type` TypeString: `$path`");
-            }
-
-            if (HtmlTypeString::isa($path)) {
-                $tag = $path->u_stringify();
-                $blocks []= $tag;
-            }
-            else if (!UrlTypeString::isa($path)){
-
-                // Inline it in the HTML document
-                $str = $path->u_stringify();
-                if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
-                    $str = "(function(){" . $str . "})();";
-                }
-
-                $vals = [
-                    'body' => OTypeString::create('html', $str),
-                ];
-                if ($type == 'js') {
-                    $vals['nonce'] = $nonce;
-                }
-                $blockTag->u_fill(OMap::create($vals));
-                $blocks []= $blockTag->u_stringify();
-            }
-            else {
-                if ($path->u_is_relative()) {
-                    // TODO: Link to asset, with cache time set to file modtime
-
-                    // $basePath = ;
-                    // if (defined('BASE_URL')) {
-                    //     $basePath = preg_replace('#' . BASE_URL . '#', '', $basePath);
-                    // }
-
-                    // $filePath = Tht::getThtFileName(Tht::path('pages', $basePath));
-                    // $path->u_query([ 'cache' => filemtime($filePath));
-                }
-
-                $vals = [
-                    'url' => $path
-                ];
-                if ($type == 'js') {
-                    $vals['nonce'] = $nonce;
-                }
-                $incTag->u_fill(OMap::create($vals));
-                $includes []= $incTag->u_stringify();
-            }
-        }
-
-        $sIncludes = implode("\n", $includes);
-        $sBlocks = implode("\n\n", $blocks);
-
-        return $sIncludes . "\n" . $sBlocks;
-    }
-
     function startGzip ($forceGzip=false) {
+
         if ($this->gzipBufferOpen) { return; }
+
         if ($forceGzip || Tht::getConfig('compressOutput')) {
-            if ($this->hasPreOutput()) {
-                ErrorHandler::printInlineWarning('(Response module) Can\'t enable GZIP compression because output was already sent. Solution: Either delay this output or set `compressOutput` = `false` in `app.jcon` (not recommended).');
-            }
+
+            $this->checkOutputAlreadySent();
+
             ob_start("ob_gzhandler");
             $this->gzipBufferOpen = true;
         }
     }
 
-    function endGzip ($forceGzip=false) {
+    function endGzip () {
         if ($this->gzipBufferOpen) {
-            ob_flush();
+            Tht::debug('flush');
+            ob_end_flush();
         }
     }
 
-    function hasPreOutput() {
-        $ob = ob_get_length();
-        if ($ob) {
+    function checkOutputAlreadySent() {
+
+        if (ob_get_length() || headers_sent()) {
+
             ob_flush();
+
+            ErrorHandler::printInlineWarning('(Output module) Can\'t enable GZIP compression because output was already sent. Solution: Either delay this output or set `compressOutput` = `false` in `app.jcon` (not recommended).');
         }
-        return $ob || headers_sent($atFile, $atLine);
+    }
+
+    function scanAssetUrls($out) {
+
+        $optimizer = new AssetOptimizer ();
+
+        return $optimizer->scan($out);
+    }
+
+    function minifyJs($str) {
+
+        if (!trim($str)) { return ''; }
+
+        $cacheKey = 'js_minified_' . md5($str);
+        $cache = Tht::module('Cache');
+        if ($cache->u_has($cacheKey)) {
+            return $cache->u_get($cacheKey);
+        }
+
+        Tht::loadLib('utils/Minifier.php');
+
+        $min = new Minifier($str);
+        $minStr = $min->minify('js', '/ *([\(\)\[\]\{\}<>=!\?:\.;\+\-\*\/,\|\&]+) */', true);
+
+        $cache->u_set($cacheKey, $minStr, '30 days');
+
+        return $minStr;
+    }
+
+    function minifyCss($str) {
+
+        if (!trim($str)) { return ''; }
+
+        $cacheKey = 'css_minified_' . md5($str);
+        $cache = Tht::module('Cache');
+        if ($cache->u_has($cacheKey)) {
+            return $cache->u_get($cacheKey);
+        }
+
+        $str = $this->parseIndentCss($str);
+
+        $str = $this->scanAssetUrls($str);
+
+        Tht::loadLib('utils/Minifier.php');
+        $minifier = new Minifier($str);
+
+        // Don't crunch (...) because it messes with media queries
+        $minStr = $minifier->minify('css', "/\s*([:\{\},;\+\>]+)\s*/");
+        $minStr = preg_replace('/;}/', '}', $minStr);
+
+        $cache->u_set($cacheKey, $minStr, '30 days');
+
+        return $minStr;
+    }
+
+    // Undocumented for now.
+    // Indent-style CSS
+    function parseIndentCss($str) {
+
+        if (!preg_match('/^@outline/', ltrim($str))) {
+            return $str;
+        }
+
+        $lines = explode("\n", $str);
+
+        array_shift($lines); // remove @outline heading
+
+        $out = '';
+        $inBlock = false;
+        foreach ($lines as $line) {
+
+            if (trim($line) == '') { continue; }
+            if (preg_match('#^\s*(//|/\*)#', $line)) { continue; }
+
+            if ($inBlock && preg_match('#^\S#', $line)) {
+                $out .= "}\n\n";  // close prev
+                $inBlock = false;
+            }
+
+            if (preg_match('#^\S#', $line) && preg_match('#[^}{;,/]$#', $line)) {
+                // selector
+                $inBlock = true;
+                $out .= $line . " {\n";
+            }
+            else if (preg_match('/^\s/', $line) && preg_match('#[^}{;,/]$#', $line)) {
+                // rule
+                $out .= $line . ";\n";
+            }
+            else {
+                $out .= $line . "\n";
+            }
+        }
+
+        if ($inBlock) {
+            $out .= "}\n";
+        }
+
+        return $out;
+    }
+
+    function font($fontId) {
+
+        $fonts = [
+            'serif'     => 'Georgia, Times New Roman, serif',
+            'sansSerif' => '-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+            'monospace' => 'Menlo, Consolas, "Ubuntu Mono", Courier, monospace',
+        ];
+
+        if (!isset($fonts[$fontId])) {
+            $this->error("Unknown fontId `$fontId`.  Try: `serif`, `sansSerif`, `monospace`");
+        }
+
+        return $fonts[$fontId];
+    }
+
+    function wrapJs($str, $skipFunctionWrap = false) {
+
+        $nonce = Tht::module('Web')->u_nonce();
+        $min = $this->minifyJs($str);
+
+        if (!$skipFunctionWrap) {
+            $min = "(function(){" . $min . "})()";
+        }
+
+        return "<script nonce=\"$nonce\">$min</script>";
+    }
+
+    function escapeJs($v) {
+
+        if (is_bool($v)) {
+            return $v ? 'true' : 'false';
+        }
+        else if (is_object($v)) {
+            return json_encode($v->val);
+        }
+        else if (is_array($v)) {
+            return json_encode($v);
+        }
+        else if (vIsNumber($v)) {
+            return $v;
+        }
+        else {
+            $v = '' . $v;
+            $v = str_replace('"', '\\"', $v);
+            $v = str_replace("\n", '\\n', $v);
+            return "\"$v\"";
+        }
+    }
+
+    function wrapCss($str) {
+
+        $min = $this->minifyCss($str);
+
+        return "<style>$min</style>";
+    }
+
+    function escapeCss($v) {
+        return preg_replace('/[:;\{\}]/', '', $v);
     }
 }
+
+
+
+class AssetOptimizer {
+
+    // Scan output HTML or CSS to optimize images and assets, and update URLs with cache 'v' param.
+    // PERF: This is ~1ms on the THT home page.
+    // Would rather not do this as a regex on the entire output, but it covers
+    // URLs from every source (Litemark, templates, etc.), and it needs to be dynamic.
+    function scan($plainText) {
+
+        $config = Tht::getConfig('optimizeAssets');
+        $configFlags = explode('|', $config);
+        // images|minify|gzip|timestamps
+
+        if (!$config || $config == 'none') {
+            return $plainText;
+        }
+
+        if (in_array('images', $configFlags)) {
+            if (!extension_loaded('gd')) {
+                $msg = Tht::getLibIniError('gd');
+                $msg .= "\n\nOr: Remove `images` from `optimizeAssets` in `config/app.jcon`. (e.g. optimizeAssets: minify|gzip)";
+                Tht::startupError($msg);
+            }
+        }
+
+        $fnUpdateUrl = function($m) use ($configFlags) {
+
+            $url = OTypeString::create('url', $m[2]);
+            $ext = $m[3];
+
+            if ($url->u_is_absolute()) {
+                return $m[0];
+            }
+
+            if (!preg_match('/(js|css|png|jpg|jpeg)/i', $ext)) {
+                return $m[0];
+            }
+
+            $fullPath = $url->u_get_file_path();
+            if (!preg_match('/(_thumb\d+|_asis)\./', $m[2]) && !file_exists($fullPath)) {
+                return $m[0];
+            }
+
+            $newPath = $fullPath;
+
+            if ($ext == 'js' || $ext == 'css') {
+                if (in_array('minify', $configFlags) || in_array('gzip', $configFlags)) {
+                    Tht::module('Perf')->u_start('Output.optimizeAsset', $fullPath);
+                    $newPath = $this->minifyAsset($ext, $fullPath);
+                    Tht::module('Perf')->u_stop();
+                }
+            }
+            else if ($ext == 'png' || $ext == 'jpg' || $ext == 'jpeg') {
+                if (in_array('images', $configFlags)) {
+                    Tht::module('Perf')->u_start('Output.optimizeImage', $fullPath);
+                    $newPath = $this->optimizeImage($fullPath);
+                    Tht::module('Perf')->u_stop();
+                }
+            }
+
+            $newUrl = Tht::module('File')->u_public_url($newPath);
+
+            if (in_array('timestamps', $configFlags)) {
+                // Add 'v' param
+                $modTime = filemtime($newPath);
+                $newUrl->u_get_query()->u_set(
+                    OMap::create([ 'v' => $modTime ])
+                );
+            }
+
+            $newUrlOut = $newUrl->u_render_string();
+            if (preg_match('/url/', $m[1])) {
+                return "url('$newUrlOut')";
+            }
+            else {
+                return '"' . $newUrlOut . '"';
+            }
+        };
+
+        Tht::module('Perf')->u_start('Output.optimizeAssets');
+
+        // Match "some/path/image.png" or "url(some/path/image.png)"
+        $out = preg_replace_callback(
+            '#([\'"]|url\([\'"]?)(\S+?\.(\w{2,4}))[\'"]?\)?#',
+            $fnUpdateUrl, $plainText
+        );
+
+        Tht::module('Perf')->u_stop();
+
+        return $out;
+    }
+
+    function optimizeImage($fullPath) {
+
+        require_once('helpers/Image.php');
+
+        $im = new u_Image();
+
+        $newImage = $im->optimize($fullPath, 1200, 'optimized');
+
+        return isset($newImage['newFile']) ? $newImage['newFile'] : $fullPath;
+    }
+
+    function minifyAsset($type, $origFullPath) {
+
+        $config = Tht::getConfig('optimizeAssets');
+
+        $origModTime = filemtime($origFullPath);
+
+        $doMinify = false;
+        $doGzip = false;
+        $ext = '';
+
+        if (strpos($config, 'minify') !== false) {
+            $ext .= '.min';
+            $doMinify = true;
+        }
+
+        // TODO: Apache on Dreamhost double-gzips .gz files.  Figure out how to either
+        // turn it off and rely on THT, or detect it.  For now, this means we have to
+        // default to 'minify' only in 'compressAssets' app config.
+        if (strpos($config, 'gzip') !== false) {
+            $ext .= '.gz';
+            $doGzip = true;
+        }
+
+        $minFullPath = $origFullPath . $ext;
+
+        if (file_exists($minFullPath)) {
+
+            $minModTime = filemtime($minFullPath);
+
+            // If file hasn't changed, just return
+            if ($origModTime < $minModTime) {
+                return $minFullPath;
+            }
+
+            // Prevent cache stampede
+            // TODO: An issue with updating file time when file is deployed to a different server.
+            //   May need to reset file perms/ownership.
+            //touch($minFullPath, time());
+        }
+
+        $minContent = Tht::module('*File')->u_read($origFullPath, OMap::create(['join' => true]));
+
+        // Minify
+        if ($doMinify) {
+            if ($type == 'js') {
+                $minContent = Tht::module('Output')->minifyJs($minContent);
+            }
+            else {
+                $minContent = Tht::module('Output')->minifyCss($minContent);
+            }
+        }
+
+        // GZip
+        if ($doGzip) {
+            $maxLevel = 9; // This actual takes gzip less time to decompress than lower levels.
+            $minContent = gzencode($minContent, $maxLevel);
+        }
+
+        file_put_contents($minFullPath, $minContent, LOCK_EX);
+        chmod($minFullPath, 0775);
+
+        return $minFullPath;
+    }
+}
+
+
+
+
+
+    // // Minify and gzip a js or css file in the public folder.
+    // // Return the new URL with a cache time in the query string.
+    // // e.g. /css/app.css  -->  /css/app.css.min.gz?v=23525352
+    // function assetUrl($assetType, $origUrl) {
+
+    //     if ($origUrl->u_is_absolute()) {
+    //         return $origUrl->u_render_string();
+    //     }
+
+
+
+    //     // Check current request cache
+    //     $rawOrigUrl = OTypeString::getUntyped($origUrl, 'url');
+    //     if (isset($this->assetUrlCache[$rawOrigUrl])) {
+    //         return $this->assetUrlCache[$rawOrigUrl];
+    //     }
+
+    //     $origRelPath = $origUrl->u_get_path();
+    //     $asset = $this->minifyAsset($assetType, $origRelPath);
+
+    //     $newRawUrl = $asset['relPath'] . '?v=' . $asset['time'];
+
+    //     $newUrl = new UrlTypeString($newRawUrl);
+
+    //     $this->assetUrlCache[$rawOrigUrl] = $newUrl;
+
+    //     return $newUrl;
+    // }
+
+
+    // function u_asset_url($url) {
+
+    //     $this->ARGS('*', func_get_args());
+
+    //     // Validate
+    //     $plainUrl = OTypeString::getUntyped($url, 'url');
+
+    //     if (isset($this->assetUrlCache[$plainUrl])) {
+    //         return $this->assetUrlCache[$plainUrl];
+    //     }
+
+    //     Tht::module('Perf')->u_start('Web.assetUrl', $url->u_render_string());
+
+    //     if (!$url->u_is_relative()) {
+    //         $this->error("`Web.assetUrl` only takes paths relative to the `public` folder. Got: `$fullPath`");
+    //     }
+
+    //     $fullPublicPath = $this->getPublicPath($url);
+
+    //     if (!file_exists($fullPath) && !preg_match('/_thumb/', $fullPath)) {
+    //         $this->error("Asset file does not exist: `$fullPath`");
+    //     }
+
+    //     // If this is a route, don't do anything with it
+    //     $fileExt = $url->u_get_file_parts()['fileExt'];
+    //     if (!$fileExt) {
+    //         Tht::module('Perf')->u_stop();
+    //         return $url;
+    //     }
+
+
+    //     // Add 'v' param
+    //     $modTime = filemtime($fullPath);
+    //     $url->u_get_query()->u_set(
+    //         OMap::create([ 'v' => $modTime ])
+    //     );
+
+    //     $this->assetUrlCache[$plainUrl] = $url;
+
+    //     Tht::module('Perf')->u_stop();
+
+    //     return $url;
+
+    // }

@@ -1,0 +1,146 @@
+
+// Load the form
+fn main() {
+
+    $tasks = getTasks()
+
+    $page = Page.create({
+        title: 'To Do List',
+        main: bodyHtml($tasks),
+        css: [
+            url'/vendor/basic.css',
+            pageCss(),
+        ],
+    })
+
+    return $page
+}
+
+// If POST mode='delete'
+fn deleteMode() {
+
+    // 'taskNum' is an (i)nteger
+    $taskNum = Input.post('taskNum', 'i')
+
+    if $taskNum {
+        deleteTask($taskNum)
+    }
+
+    return true
+}
+
+// If POST mode='add'
+fn addMode() {
+
+    // 'task' is a (s)tring
+    $task = Input.post('task', 's')
+    if $task {
+        addTask($task)
+    }
+
+    return true
+}
+
+
+
+// Data Functions
+//--------------------------------------------------
+
+fn getTasks() {
+
+    // Default to an empty list if there are no tasks
+    return Session.get('tasks', [])
+}
+
+fn setTasks($tasks) {
+
+    Session.set('tasks', $tasks)
+}
+
+fn addTask($task) {
+
+    $tasks = getTasks()
+    $tasks #= $task
+
+    setTasks($tasks)
+}
+
+fn deleteTask($taskNum) {
+
+    $tasks = getTasks()
+    $tasks.remove($taskNum)
+
+    setTasks($tasks)
+}
+
+
+// Templates
+//--------------------------------------------------
+
+tm bodyHtml($tasks) {
+
+    <h1> To Do List
+    {{ taskFormHtml() }}
+    <hr />
+    {{ taskListHtml($tasks) }}
+}
+
+tm taskFormHtml() {
+
+    <h2> New Task
+
+    <form method="post">
+        {{ Form.csrfTag() }}
+        <input type="hidden" name="mode" value="add" />
+        <input type="text" name="task" />
+        <button type="submit"> {{ Web.icon('plus') }} Add Task
+    </>
+}
+
+tm taskListHtml($tasks) {
+
+    <h2> Tasks
+
+    --- if !$tasks.length() {
+        <i> No tasks.
+    --- } else {
+        --- foreach $tasks as $num, $task {
+            <div class="task">
+                {{ $task }}
+                {{ deleteButton($num) }}
+            </>
+        --- }
+    --- }
+}
+
+// This creates a button that submits
+// data (via a form with hidden fields),
+// wthout the need for AJAX.
+fn deleteButton($num) {
+
+    $data = {
+        mode: 'delete',
+        taskNum: $num,
+    }
+
+    return Web.formLink('X', Request.getUrl(), $data, 'button-small')
+}
+
+tm pageCss() {
+
+    .task {
+        border-bottom: solid 1px #eee;
+        padding: 1.2rem 1rem;
+        position: relative;
+    }
+
+    .task form {
+        position: absolute;
+        right: 0;
+        top: 0.8rem;
+    }
+
+    button {
+        margin-top: 1rem;
+    }
+}

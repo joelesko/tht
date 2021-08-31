@@ -1,0 +1,125 @@
+
+fn main {
+
+    Output.sendPage({
+        main: mainHtml(),
+        css: url'css/base.css',
+        js: js(),
+    })
+}
+
+tm mainHtml {
+
+    <div ajax-load="/examples/ajax?main=getForecast&time=today">
+        <span> Get Weather
+        <span.ajax-loader>Loading...
+    </>
+
+    <div id="container"></>
+
+    <style>
+        .output {
+            background-color: #eee;
+            border-radius: 3px;
+            padding: 2rem;
+        }
+
+        .ajax-loader {
+            visibility: hidden;
+        }
+    </>
+}
+
+fn mainGetForecast() {
+
+    $time = Input.getQueryField('time', 'id')
+
+    System.sleep(1000)
+
+    return weatherHtml($time)
+}
+
+tm weatherHtml($time) {
+
+    <.output> The weather for <b>{{ $time }}</> is <b>{{ Math.random(50, 70) }} degrees</>
+
+}
+
+tm js() {
+
+    let r1 = fetch('/examples/colors/purple', {
+            method: 'DELETE',
+            body: new FormData(),
+    });
+
+
+    let el = document.querySelector('[ajax-click]');
+    if (el) {
+        el.addEventListener('click', ()=>{
+            let url = el.getAttribute('ajax-click');
+            let target = el.getAttribute('ajax-target');
+            send(el, url);
+        });
+    }
+
+    let elLoads = document.querySelectorAll('[ajax-load]');
+    if (elLoads) {
+        elLoads.forEach((elLoad)=>{
+            console.log('load', elLoad);
+            let url = elLoad.getAttribute('ajax-load');
+            let target = elLoad.getAttribute('ajax-target');
+            send(elLoad, url);
+        });
+    }
+
+
+    async function send(el, url) {
+
+        let target = el.getAttribute('ajax-target');
+
+        let qs = url.split('?', 2)[1];
+        let query = new URLSearchParams(qs || '?');
+        query.set('csrfToken', {{ Web.csrfToken() }});
+
+        let formData = new FormData();
+        for (let key of query.keys()) {
+            formData.append(key, query.get(key));
+        }
+
+        console.log('send', formData);
+
+        toggleLoader(el, 1);
+
+        let response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+        });
+
+        response.text().then(responseData => {
+            console.log('RESPONSE', responseData);
+            swap(el, target, responseData);
+            toggleLoader(el, 0);
+        }).catch((error)=>{
+            console.log('ERROR', error);
+            toggleLoader(el, 0);
+        });
+    }
+
+    function swap(el, target, newContent) {
+        if (!target) {
+            el.innerHTML = newContent;
+        }
+        else if (target == 'outer') {
+            el.outerHTML = newContent;
+        }
+        else {
+            document.querySelector(target).innerHTML = newContent;
+        }
+    }
+
+    function toggleLoader(el, isVisible) {
+        let loader = el.querySelector('.ajax-loader');
+        if (loader) { loader.style.visibility = isVisible ? 'visible' : 'hidden'; }
+    }
+}
+

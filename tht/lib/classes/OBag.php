@@ -9,6 +9,18 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     protected $isReadOnly = false;
     protected $hasNumericKeys = false;
 
+    function jsonSerialize() {
+        Tht::debug('bag.serialize');
+    }
+
+    function __toString() {
+        return json_encode($this->val);
+    }
+
+    function u_z_sql_string() {
+        $this->error('Can not convert a Map or List to a SQL insert value.');
+    }
+
     function __get ($field) {
 
         $plainField = unu_($field);
@@ -16,9 +28,11 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
 
         if (method_exists($this, $meth)) {
             return $this->$meth();
-        } else if (isset($this->val[$plainField]) ) {
+        }
+        else if (isset($this->val[$plainField]) ) {
             return $this->val[$plainField];
-        } else {
+        }
+        else {
             $tip = $plainField == 'length' ? "  Try: `length()`" : '';
             foreach (array_keys($this->val) as $key) {
                 if (strtolower($key) == strtolower($plainField)) {
@@ -36,7 +50,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         $meth = 'u_set' . ucfirst($plainField);
 
         if ($this->isReadOnly) {
-            $this->error("Can't modify read-only " . get_class($this) . '.');
+            $this->error("Can not modify read-only " . get_class($this) . '.');
         }
         else if (method_exists($this, $meth)) {
             return $this->$meth($val);
@@ -53,19 +67,23 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     function __call($fn, $args) {
 
         $plainFn = unu_($fn);
+
         if (isset($this->val[$plainFn]) && $this->val[$plainFn] instanceof \Closure) {
+            // Treat closure as method
             return $this->val[$plainFn]->call($this, ...$args);
         }
         else {
-            $this->error("Unknown function `$fn`");
+            return parent::__call($fn, $args);
         }
     }
 
     function setVal ($v) {
+
         $this->val = $v;
     }
 
     function setReadOnly($isReadOnly) {
+
         $this->isReadOnly = $isReadOnly;
     }
 
@@ -73,106 +91,172 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     // Countable
 
     function count() {
+
         return count($this->val);
     }
 
-    // ArrayAccess iterface
+    // ArrayAccess iterface (e.g. $var[1])
 
-    function checkKey ($k) {
+    function checkNumericKey ($k) {
+
         if ($this->hasNumericKeys) {
-            if ($k == '') {
-                return;
+
+            if ($k === null) {
+                return $k; // 'push' shortcut  `#=`
             }
-            if (!is_int($k)) {
-                $this->error("List keys must be numeric.  Saw `$k` instead.");
+            else if (!is_int($k)) {
+                $this->error("List index must be numeric.  Saw `$k` instead.");
+            }
+            else if ($k < 0) {
+                // Count negative indexes from the end.
+                return count($this->val) + $k;
+            }
+            else if ($k == 0) {
+                $this->error('Index `0` is not valid.  The first item has an index of `1`.');
+            }
+            else {
+                return $k - ONE_INDEX;
             }
         }
+
+        return $k;
     }
 
     function offsetGet ($k) {
-        $this->checkKey($k);
-        if ($k < 0) { $k = count($this->val) + $k; }
+
+        $k = $this->checkNumericKey($k);
+
+        if (is_object($k)) { $k = $k->u_to_string(); }
+
         if (!isset($this->val[$k])) {
             // soft get
-            return is_null($this->default) ? '' : $this->default;
-        } else {
+            return $this->getDefault();
+        }
+        else {
             return $this->val[$k];
         }
     }
 
-    function offsetSet ($k, $v) {
-        $this->checkKey($k);
+    function offsetSet ($ak, $v) {
 
-        // negative index counts from the end
-        if ($k < 0 && $this->hasNumericKeys) {
-            $k = count($this->val) + $k;
-        }
+        $k = $this->checkNumericKey($ak);
+
+        if (is_object($k)) { $k = $k->u_to_string(); }
 
         if (is_null($k)) {
             if ($this->hasNumericKeys) {
                 $this->val []= $v;
             }
             else {
-                $this->error("Can't push item onto Map.");
+                $this->error("Left side of `#=` must be a list. Got: map");
             }
-        } else {
+        }
+        else {
+            if ($this->hasNumericKeys) {
+                $lastIndex = count($this->val) - ONE_INDEX;
+                if ($k > $lastIndex) {
+                    $this->error("Index `$ak` is greater than the last index `$lastIndex` in List.");
+                }
+            }
             $this->val[$k] = $v;
         }
     }
 
     function offsetExists ($k) {
+
+        $k = $this->checkNumericKey($k);
+
         return isset($this->val[$k]);
     }
 
     function offsetUnset ($k) {
+
+        $k = $this->checkNumericKey($k);
+
         unset($this->val[$k]);
     }
 
     //// Iterator
 
     function rewind () {
+
         return reset($this->val);
     }
 
     function current () {
+
         return current($this->val);
     }
 
-    function key () {
-        return key($this->val);
-    }
-
     function next () {
+
         return next($this->val);
     }
 
-    function valid () {
-        return isset($this->val[key($this->val)]);
+    function key () {
+
+        // Used for `foreach $list as $i, $v {...}`
+        if ($this->hasNumericKeys && ONE_INDEX) {
+            return key($this->val) + 1;
+        }
+
+        return key($this->val);
     }
+
+    function valid () {
+
+        // if ($this->hasNumericKeys && ONE_INDEX) {
+        //     $key -= 1;
+        // }
+
+        $key = key($this->val);
+
+        return isset($this->val[$key]);
+    }
+
 
 
     //// Object
 
+    public function u_is_truthy() {
+        return count($this->val) > 0;
+    }
+
     function u_length() {
+
         return count(array_values($this->val));
     }
 
     function u_is_empty () {
-        return count($this->val) > 0;
+
+        $this->ARGS('', func_get_args());
+
+        return count($this->val) === 0;
     }
 
-    // function u_lock_keys ($isLocked) {
-    //     $this->ARGS('f', func_get_args());
-    //     $this->hasLockedKeys = $isLocked;
-    //     return $this;
-    // }
-
     function u_default ($d) {
+
+        $this->ARGS('*', func_get_args());
+
         $this->default = $d;
+
         return $this;
     }
 
+    function getDefault () {
+
+        return is_null($this->default) ? '' : $this->default;
+    }
+
+    function u_has($args) {
+
+        return !is_null($this->u_get($args));
+    }
+
     function u_get ($args, $default=null) {
+
+        $this->ARGS('**', func_get_args());
+
         if (v($args)->u_type() != 'list') {
             $args = [$args];
         }
@@ -182,7 +266,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         if ($obj === null) {
             if ($default === null) {
                 // built-in default
-                return is_null($this->default) ? '' : $this->default;
+                return $this->getDefault();
             } else {
                 // passed-in default
                 return $default;
@@ -192,14 +276,66 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     }
 
     function getDeep ($keys) {
+
         $obj = $this;
         foreach ($keys as $key) {
-            if (! isset($obj->val[$key])) {
+            if (! isset($obj[$key])) {
                 return null;
             }
-            $obj = $obj->val[$key];
+            $obj = $obj[$key];
         }
         return $obj;
     }
+
+
+    // UNIONS
+    //-----------------------------------------
+
+    // TODO: test/document for Maps
+
+    function u_intersection() {
+
+        $args = func_get_args();
+        $args = $this->checkListArgs('intersection', $args);
+
+        return OList::create(
+            array_intersect($this->val, ...$args)
+        );
+    }
+
+    function u_difference() {
+
+        $args = func_get_args();
+        $args = $this->checkListArgs('difference', $args);
+
+        return OList::create(
+            array_diff($this->val, ...$args)
+        );
+    }
+
+    function u_union() {
+
+        $args = func_get_args();
+        $args = $this->checkListArgs('union', $args);
+
+        $combined = array_merge($this->val, ...$args);
+
+        return OList::create(
+            array_unique($combined)
+        );
+    }
+
+    function checkListArgs($fnName, $args) {
+        $unwrapped = [];
+        $thisClass = $this->bareClassName();
+        foreach ($args as $i => $arg) {
+            if ($arg->bareClassName() != $thisClass) {
+                $this->error("Argument to function `$fnName` must be a $thisClass.");
+            }
+            $unwrapped []= unv($arg);
+        }
+        return $unwrapped;
+    }
+
 }
 

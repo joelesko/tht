@@ -26,36 +26,42 @@ class Validator {
     }
 
     function error($msg, $token) {
+
         ErrorHandler::addSubOrigin('validator');
         $this->parser->error($msg, $token);
     }
 
     function postParseValidation() {
+
         $this->validateFunctionCalls();
     }
 
     function newFunctionScope() {
+
         $this->functionScopes []= $this->scopes;
         $this->scopes = [];
         $this->scopeDepth = -1;
     }
 
     function popFunctionScope() {
+
         $this->scopes = array_pop($this->functionScopes);
         $this->scopeDepth = count($this->scopes) - 1;
     }
 
     function newScope () {
+
         $this->scopeDepth += 1;
+
         $this->scopes []= [
-            'exact' => [],
-            'fuzzy' => [],
+            'exact'   => [],
+            'fuzzy'   => [],
             'pending' => [],
         ];
-     //   Tht::debug('    --> ' . $this->scopeDepth);
     }
 
     function popScope () {
+
         $pending = $this->scopes[$this->scopeDepth]['pending'];
         if (count($pending)) {
 
@@ -63,8 +69,10 @@ class Validator {
             $undefVarName = array_keys($pending)[0];
             $undefVar = $pending[$undefVarName];
 
+            if ($this->skipLambdaVar($undefVarName)) { return; }
+
             if ($this->seenVars[$undefVarName]) {
-                ErrorHandler::setErrorDoc('/language-tour/functions#scope', 'Variable Scope');
+                ErrorHandler::setHelpLink('/language-tour/functions#scope', 'Variable Scope');
             }
 
             $this->error("Unknown variable: `". $undefVarName . "`", $undefVar->token);
@@ -72,7 +80,6 @@ class Validator {
 
         $this->scopeDepth -= 1;
         array_pop($this->scopes);
-        //Tht::debug('<-- ' . $this->scopeDepth);
     }
 
     // Check if already defined.  Otherwise wait to see if it is defined.
@@ -87,34 +94,41 @@ class Validator {
         // if ($name == '$this' || $name == '$' || $name == '$$') {
         //     return;
         // }
-        if ($this->parser->lambdaDepth > 0) {
-            if ($name == '$a' || $name == '$b' || $name == '$c') {
-                return;
-            }
-        }
+        if ($this->skipLambdaVar($name)) { return; }
 
         $this->validateVarFormat($name, $symbol->token);
-
-        // Tht::debug('register', $symbol->token);
 
         $exactName = $this->isDefined($name, 'fuzzy');
         if ($exactName) {
             if ($exactName !== $name) {
-                $this->error("Variable name mismatch. It was defined as: `" . $exactName . "`", $token);
+                $this->error("Typo in variable name: `$name` Try: `" . $exactName . "` (exact case)", $token);
             }
         }
         else if (isset($this->scopes[$this->scopeDepth]['pending'][$name])) {
             // e.g. $a = $a + 1
             $this->error("Unknown variable: `$name`", $token);
         } else {
-            //Tht::debug('...PENDING');
             $this->scopes[$this->scopeDepth]['pending'][$name] = $symbol;
         }
     }
 
+    function skipLambdaVar($name) {
+        if ($this->parser->lambdaDepth > 0) {
+            if ($name == '$a' || $name == '$b' || $name == '$c') {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function defineVar($symbol, $isStrict = false) {
+
         $name = '$' . $symbol->getValue();
         $lowerName = strtolower($name);
+
+        // TODO: fix this workaround -- should not be getting registered
+        if ($name == '$[' || $name == '$.') { return; }
+
 
         if ($isStrict && $this->isDefined($name, 'fuzzy')) {
             $this->error("Variable already defined in this scope: `$name`", $symbol->token);
@@ -123,13 +137,12 @@ class Validator {
         $this->scopes[$this->scopeDepth]['fuzzy'][$lowerName] = $name;
         $this->scopes[$this->scopeDepth]['exact'][$name] = $name;
 
-        //Tht::debug('define', $symbol->token);
-
         unset($this->scopes[$this->scopeDepth]['pending'][$name]);
     }
 
     // is defined in scope
     function isDefined ($name, $match) {
+
         if ($name == CompilerConstants::$ANON) {  return false;  }
 
         if ($match == 'fuzzy') {
@@ -141,7 +154,21 @@ class Validator {
                 return $s[$match][$name];
             }
         }
+
         return false;
+    }
+
+    function getAllInScope() {
+
+        $vars = [];
+
+        foreach ($this->scopes as $s) {
+            foreach ($s['exact'] as $var) {
+                $vars []= $var;
+            }
+        }
+
+        return $vars;
     }
 
     function validateFunctionCalls() {
@@ -154,7 +181,7 @@ class Validator {
             if (isset($defined[$calledNameFuzzy])) {
                 $exactName = $defined[$calledNameFuzzy];
                 if ($calledName !== $exactName) {
-                    $this->error("Function name case mismatch.  Use `$exactName` instead.", $calledToken);
+                    $this->error("Typo in function name: `$calledName` Try: `$exactName` (exact case)", $calledToken);
                 }
             }
             else {
@@ -168,6 +195,11 @@ class Validator {
 
     // mark a function as 'defined' or 'called'
     function registerUserFunction($context, $token) {
+
+        if ($token[TOKEN_VALUE] == CompilerConstants::$ANON) {
+            return;
+        }
+
         if ($context === 'defined') {
             $exact = $token[TOKEN_VALUE];
             $lowerName = strtolower($exact);
@@ -184,10 +216,13 @@ class Validator {
             $this->userFunctions['defined'][$lowerName] = $exact;
 
             if (u_Bare::isa($lowerName)) {
-                $this->error("Name `" . $lowerName . "` is the name of a core function.", $token);
+                $this->error("Name `" . $lowerName . "` is already the name of a core function.", $token);
             }
             else if (in_array($lowerName, CompilerConstants::$KEYWORDS)) {
                 $this->error("Name `" . $lowerName . "` is a reserved word.", $token);
+            }
+            else if (preg_match('/^[A-Z]/', $exact)) {
+                $this->error("Name `" . $exact . "` must be pure lowerCamelCase.", $token);
             }
 
         } else {
@@ -199,6 +234,12 @@ class Validator {
 
         if ($name == '$') {
             $this->error("Variable is missing a name.", $token);
+        }
+        else if (preg_match('/[A-Z]/', $name[1])) {
+            $this->error("Variable name `$name` should be lower camelCase.", $token);
+        }
+        else if (preg_match('/[0-9]/', $name[1])) {
+            $this->error("Variable name `$name` must start with a letter.", $token);
         }
         else if (preg_match("/[A-Z][A-Z]/", $name)) {
             $this->error("Variable name `$name` should be pure camelCase.", $token);
@@ -216,26 +257,33 @@ class Validator {
 
     function validateWordFormat($name, $token, $type) {
 
-        if (preg_match("/[A-Z][A-Z]/", $name)) {
-            $case = 'camelCase';
-            if (preg_match("/^[A-Z]/", $name) && preg_match("/[a-z]/", $name)) {
-                $case = 'UpperCamelCase';
-            }
-            $this->error("Word `$name` should be pure $case.", $token);
-        }
-        else if (strlen($name) === 1 && $name >= 'A' && $name <= 'Z') {
-            $this->error("UpperCamelCase words must be longer than 1 character.", $token);
-        }
-        else if (strrpos($name, '_') > -1) {
+        if (strrpos($name, '_') > -1) {
             $this->error("Word `$name` should be camelCase. No underscores.", $token);
         }
+        else if (preg_match("/[A-Z][A-Z]/", $name)) {
+            if (preg_match("/^[a-z]/", $name)) {
+                $this->error("Word `$name` should be pure lowerCamelCase.", $token);
+            }
+            else {
+                $this->error("Word `$name` should be camelCase or UpperCamelCase.", $token);
+            }
+        }
+        else if (strlen($name) === 1 && $name >= 'A' && $name <= 'Z') {
+            $this->error("Word with only 1 character must be lower-case.", $token);
+        }
         else if (strrpos($name, '$') > -1) {
-            $this->error("Non-variable word can't contain a `$`.", $token);
+            $this->error("Non-variable word can not contain a `$`.", $token);
         }
         else if (strlen($name) > CompilerConstants::$MAX_WORD_LENGTH) {
             $this->error("Words must be " . CompilerConstants::$MAX_WORD_LENGTH . " characters or less.", $token);
         }
+    }
 
+    function validateFlagFormat($name, $token) {
+
+        if (preg_match("/[A-Z][A-Z]/", $name) || preg_match("/^-[A-Z]/", $name)) {
+            $this->error("Flag `$name` should be lowerCamelCase.", $token);
+        }
     }
 }
 

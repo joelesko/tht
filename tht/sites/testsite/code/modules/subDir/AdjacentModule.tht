@@ -1,0 +1,12 @@
+
+load('../TestModule')
+
+public fn callMe {
+    return 'adjacent'
+}
+
+public fn callUpperModule {
+    return TestModule.bareFun('adj')
+}
+
+

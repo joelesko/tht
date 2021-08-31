@@ -1,4 +1,0 @@
-
-
-print(Request.url().pathParts());
-

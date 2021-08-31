@@ -1,0 +1,4 @@
+fn main() {
+    Php.require('SideloadError.php');
+    Php.call('call_me');
+}

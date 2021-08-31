@@ -1,0 +1,11 @@
+
+
+class ComposeEmbeddedConflict {
+
+    public fn conflictMethodAdded {
+        return 'embeddedConflict'
+    }
+
+}
+
+

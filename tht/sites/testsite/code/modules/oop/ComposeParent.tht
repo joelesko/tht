@@ -1,0 +1,35 @@
+
+load('oop/ComposeHelper')
+load('oop/ComposeEmbedded')
+load('oop/ComposeEmbeddedOther')
+load('oop/ComposeEmbeddedConflict')
+
+class ComposeParent {
+
+    attach {
+        embed: ComposeEmbedded({ val: 123 })
+        other: ComposeEmbeddedOther()
+    }
+
+    public fields {
+        helper: ComposeHelper()
+    }
+
+    public fn useHelper {
+        return 'helper:' ~ @.helper.getNum()
+    }
+
+    public fn useEmbedded {
+        return 'embedded:' ~ @.ComposeEmbedded.val
+    }
+
+    public fn conflictMethod {
+        return @.ComposeEmbeddedOther
+    }
+
+    public fn addConflict {
+        @.zAddEmbeddedObject(ComposeEmbeddedConflict())
+    }
+
+}
+

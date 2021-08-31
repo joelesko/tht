@@ -3,10 +3,13 @@
 namespace o;
 
 class JsTemplateTransformer extends TemplateTransformer {
-    function onEndString($str) {
-        if (Tht::getConfig('minifyJsTemplates')) {
-            $str = Tht::module('Js')->u_minify($str);
+
+    function onEndChunk($str) {
+
+        if (Tht::getConfig('minifyAssetTemplates')) {
+            $str = Tht::module('Output')->minifyJs($str);
         }
+
         return $str;
     }
 }

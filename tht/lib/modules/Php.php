@@ -41,8 +41,15 @@ class u_Php extends OStdModule {
         return '\\' . $n;
     }
 
-    function u_version($getId=false) {
-        return $getId ? PHP_VERSION_ID : phpversion();
+    function u_get_version($flags=null) {
+
+        $this->ARGS('m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'num' => false,
+        ]);
+
+        return $flags['num'] ? PHP_VERSION_ID : phpversion();
     }
 
     function u_call () {
@@ -51,7 +58,8 @@ class u_Php extends OStdModule {
         $args = func_get_args();
         $func = array_shift($args);
 
-        $args = uv($args);
+        // Have to wrap it so unv works.
+        $args = unv(OList::create($args));
 
         $cleanName = $this->name($func);
         $this->checkPhpFunction($cleanName);
@@ -65,16 +73,25 @@ class u_Php extends OStdModule {
         return convertReturnValue($ret);
     }
 
+    function u_get_constant($c) {
+        $this->ARGS('s', func_get_args());
+        if (!defined($c)) {
+            $this->error("Undefined PHP constant: `$c`");
+        }
+        return constant($c);
+    }
+
     function u_options($options) {
         $this->ARGS('l', func_get_args());
         $n = 0;
         foreach ($options as $o) {
-            $n |= constant($o);
+            $n |= $this->u_get_constant($o);
         }
         return $n;
     }
 
     function u_require($phpFile) {
+
         Tht::module('Meta')->u_no_template_mode();
         if (!isset($this->isRequired[$phpFile])) {
             try {
@@ -84,7 +101,8 @@ class u_Php extends OStdModule {
             }
             $this->isRequired[$phpFile] = true;
         }
-        return new \o\ONothing('require');
+
+        return EMPTY_RETURN;
     }
 
     function u_new($cls) {
@@ -159,7 +177,7 @@ class PhpObject {
 
     function u_z_call($rawFuncName, $args=[]) {
         foreach ($args as $k => $v) {
-            $args[$k] = uv($v);
+            $args[$k] = unv($v);
         }
         $ret = call_user_func_array([$this->obj, $rawFuncName], $args);
 

@@ -1,0 +1,33 @@
+### THT APP
+
+DirectoryIndex index.html index.php front.php
+Options -Indexes
+
+# Redirect all non-static URLs to THT app
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ /front.php?_url=$1 [QSA,NC,L]
+
+# Uncomment to redirect to HTTPS
+# RewriteCond %{HTTPS} off
+# RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+# --- Performance ---
+
+# Activate client-side caching (30 days) of assets with 'v' param
+# See https://tht.dev/manual/module/web/asset-url
+<If "%{QUERY_STRING} =~ /v=\d+/ && %{REQUEST_URI} =~ /\.\w+$/">
+    Header set Cache-Control "public, max-age=2592000, immutable"
+    Header unset ETag
+    FileETag None
+</If>
+
+# Required for pre-gzipped assets
+<FilesMatch \.gz$>
+    Header set Content-Encoding gzip
+    RewriteRule \.css.*?\.gz$ - [T=text/css,E=no-gzip:1]
+    RewriteRule \.js.*?\.gz$ - [T=text/javascript,E=no-gzip:1]
+</FilesMatch>
+
+### END THT APP

@@ -4,31 +4,41 @@ namespace o;
 
 // Infix, but with a lower binding power
 class S_InfixWeak extends Symbol {
+
     var $type = SymbolType::INFIX;
     var $isAssignment = false;
 
     function asInner ($p, $left) {
+
         $p->next();
+
         if ($this->isAssignment && $p->expressionDepth >= 2 && !$p->allowAssignmentExpression) {
             $tip = $this->token[TOKEN_VALUE] == '=' ? "Did you mean `==`?" : '';
             $p->error("Assignment can not be used as an expression.  $tip", $this->token);
         }
 
-        $infixValue = $this->getValue();
         $this->space(' = ');
 
-        if ($p->symbol->isValue('(nl)')) {
+        if ($p->symbol->isNewline()) {
+            $infixValue = $this->getValue();
             $p->error("Unexpected newline.  Try: Put `$infixValue` on next line to continue statement.");
+        }
+
+        if ($this->isAssignment) {
+            $p->assignmentLeftSide = $left;
         }
 
         $right = $p->parseExpression($this->bindingPower - 1);
         if (!$right) {
-            $p->error('Missing right operand.');
+            $p->error('Missing right-hand expression.');
         }
+
+        $p->assignmentLeftSide = null;
+
 
         $this->setKids([$left, $right]);
 
-        if ($this->token[TOKEN_VALUE] == '=') {
+        if ($this->isValue('=')) {
             $p->validator->defineVar($left);
         }
 
@@ -43,32 +53,53 @@ class S_Assign extends S_InfixWeak {
     var $isAssignment = true;
 }
 
+// #:
+class S_ListFilter extends S_InfixWeak {
+
+    var $type = SymbolType::LISTFILTER;
+    var $bindingPower = 11;
+
+    function asInner ($p, $left) {
+
+        $p->lambdaDepth += 1;
+        parent::asInner($p, $left);
+        $p->lambdaDepth -= 1;
+
+        return $this;
+    }
+}
+
 // ||, &&
 class S_Logic extends S_InfixWeak {
     var $bindingPower = 20;
 }
 
-// +&, +|, etc.
-class S_Bitwise extends S_InfixWeak {
-    var $type = SymbolType::BITWISE;
-    var $bindingPower = 30;
-}
-
-// !=, ==, etc.
+// !=, ==, >=, etc.
 class S_Compare extends S_InfixWeak {
     var $bindingPower = 40;
+}
+
+// <=>
+class S_CompareSpaceship extends S_InfixWeak {
+    var $bindingPower = 41;
 }
 
 // &&:, ||:, etc.
 class S_ValGate extends S_InfixWeak {
     var $type = SymbolType::VALGATE;
-    var $bindingPower = 41;
+    var $bindingPower = 42;
 }
 
 // +>, +<, etc.
 class S_BitShift extends S_InfixWeak {
     var $type = SymbolType::BITSHIFT;
     var $bindingPower = 45;
+}
+
+// +&, +|, etc.
+class S_Bitwise extends S_InfixWeak {
+    var $type = SymbolType::BITWISE;
+    var $bindingPower = 46;
 }
 
 

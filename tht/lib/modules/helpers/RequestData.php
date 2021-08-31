@@ -4,46 +4,62 @@ namespace o;
 
 class u_RequestData {
 
-    private $matchesRequestMethod = false;
     private $method = '';
     private $dataSource = '';
-    private $allowExternal = false;
 
-    function __construct($method, $allowExternal=false) {
+    function __construct($method) {
 
         $this->method = $method;
-        $this->dataSource = $method == 'get' ? 'get' : 'post';
-        $this->matchesRequestMethod = Tht::module('Request')->u_method() === $method;
 
-        if (!$allowExternal) {
-            Security::validatePostRequest();
+        if ($method == 'get' || $method == 'post'){
+            $this->dataSource = $method;
+        }
+        else {
+            Tht::error('HTTP method must be `get` or `post`');
         }
     }
 
-    function field($fieldName, $sRule) {
+    function getField($fieldName, $sRule) {
+
         $rawVal = Tht::getPhpGlobal($this->dataSource, $fieldName);
+
         $validator = new u_InputValidator ();
         $validated = $validator->validateField($fieldName, $rawVal, $sRule);
 
         return $validated;
     }
 
-    function fields($rules) {
-        $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
-        $validator = new u_InputValidator ();
-        $validated = $validator->validateFields($rawVals, $rules);
+    function getFields($rulesMap) {
 
-        return v($validated);
+        $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
+
+        $validator = new u_InputValidator ();
+        $validated = $validator->validateFields($rawVals, $rulesMap);
+
+        return $validated;
     }
 
-    function fieldNames() {
+    function getFieldNames() {
+
         $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
-        return array_keys($rawVals);
+
+        return OList::create(
+            array_keys($rawVals)
+        );
     }
 
     function hasField($fieldName) {
+
         $rawVals = Tht::getPhpGlobal($this->dataSource, '*');
+
         return isset($rawVals[$fieldName]);
+    }
+
+    function getAllRawFields() {
+
+        $raw = Tht::getPhpGlobal($this->dataSource, '*');
+
+        return OMap::create($raw);
     }
 
 }

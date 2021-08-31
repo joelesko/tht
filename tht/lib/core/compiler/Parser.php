@@ -4,35 +4,39 @@ namespace o;
 
 class Parser {
 
-    var $symbol = null;
-
-    var $inTernary = false;
-    var $inClass = false;
-    var $inFieldMap = false;
-    var $numClasses = 0;
-    var $blockDepth = 0;
-    var $expressionDepth = 0;
-    var $breakableDepth = 0;
-    var $functionDepth = 0;
-    var $lambdaDepth = 0;
-    var $anonFunctionDepth = 0;
-    var $sOuterParen = false;
-
-    var $allowAssignmentExpression = false;
-    var $symbolTable = null;
-    var $prevToken = null;
-    var $validator = null;
-    var $loopBreaks = [];
-
-    var $prevLineWithStatement = -1;
-    var $prevLineStatement = null;
-
     private $tokenNum = 0;
     private $tokenStream = null;
     private $numTokens = 0;
     private $undefinedSymbols = [];
 
+    private $sOuterParen = false;
+    private $prevLineWithStatement = -1;
+    private $prevLineStatement = null;
+
+    public $symbol = null;
+
+    public $inTernary = false;
+    public $inClass = false;
+    public $inFieldMap = false;
+    public $allowAssignmentExpression = false;
     public $ignoreNewlines = false;
+    public $numClasses = 0;
+
+    public $blockDepth = 0;
+    public $expressionDepth = 0;
+    public $breakableDepth = 0;
+    public $functionDepth = 0;
+    public $lambdaDepth = 0;
+    public $anonFunctionDepth = 0;
+    public $outerParenExpressionDepth = -10;
+    public $inTemplate = false;
+    public $assignmentLeftSide = null;
+
+    public $symbolTable = null;
+    public $prevToken = null;
+    public $validator = null;
+    public $loopBreaks = [];
+
 
     // Main entry function
     function parse ($tokenStream) {
@@ -49,20 +53,22 @@ class Parser {
     }
 
     function error ($msg, $token = null, $isLineError = false) {
+
         if (!$token) { $token = $this->symbol->token; }
         ErrorHandler::addOrigin('parser');
+
         return ErrorHandler::handleThtCompilerError($msg, $token, Compiler::getCurrentFile(), $isLineError);
     }
 
 
 
-    ///
-    ///  Parsing Methods:   Block > Statement(s) > Expression(s)
-    ///
+    //  Parsing Methods:   Block > Statement(s) > Expression(s)
+    //-------------------------------------------------------------------------
 
 
     // Main top-level scope (block without braces)
     function parseMain () {
+
         $sStatements = [];
         $this->validator->newScope();
         $sMain = $this->makeAstList(AstList::BLOCK, []);
@@ -70,19 +76,31 @@ class Parser {
         $hasFunction = false;
 
         while (true) {
+
             $s = $this->symbol;
             if ($s->type === SymbolType::END) {
                 break;
             }
+
+            // Skip newlines
+            if ($s->isNewline()) {
+                $this->next();
+                continue;
+            }
+
             $sStatement = $this->parseStatement();
+
             if ($sStatement) {
+
                 $this->validateOneStatementPerLine($sStatement);
                 $sStatements []= $sStatement;
 
                 $type = $sStatement->type;
+
                 if ($type === SymbolType::NEW_FUN || $type === SymbolType::NEW_TEMPLATE || $type === SymbolType::NEW_CLASS) {
                     $hasFunction = true;
-                } else if ($hasFunction && $type !== SymbolType::PRE_KEYWORD) {
+                }
+                else if ($hasFunction && $type !== SymbolType::PRE_KEYWORD) {
                     $this->error("Top-level statements can only be declared before functions.", $sStatement->token);
                 }
             }
@@ -93,6 +111,7 @@ class Parser {
     }
 
     // A Block is a list of Statements (inside braces)
+    // TODO: don't allow statements on same line as mutli-line braces
     function parseBlock ($deferClosingScope = false) {
 
         $sStatements = [];
@@ -102,19 +121,33 @@ class Parser {
 
         // one-liner syntax
         if ($this->symbol->isValue(':')) {
-            $this->space('x:S', true)->next();
+
+            $this->space('x:S')->next();
             $s = $this->parseOneLineBlock($deferClosingScope);
+
+            // Make a single-statement block
             return $this->makeAstList(AstList::BLOCK, [$s]);
         }
 
-        if ($this->symbol->isSeparator('(nl)')) {
+        if ($this->symbol->isNewline()) {
             // This will get caught in the 'space' call below
             $this->next();
         }
 
-        $this->now('{', 'block.open')->space(' { ', true)->next();
+        $sOpenBrace = $this->symbol;
+
+        // Catch missing { in the line itself, instead of at next token position
+        if ($this->inTemplate && !$sOpenBrace->isValue('{')) {
+            $this->error('Expected `{` at end of template code line.', $this->prevToken, true);
+        }
+
+        // Strict Format: brace goes on same line
+        $space = Tht::isStrictFormat() ? 'S{ ' : ' { ';
+
+        $this->now('{', 'block.open')->space($space)->next();
 
         while (true) {
+
             $s = $this->symbol;
             if ($s->isValue('}')) {
                 break;
@@ -122,26 +155,31 @@ class Parser {
             if ($s->type === SymbolType::END) {
                 $this->error("Reached end of file without a closing block brace `}`.", $sOpenBrace->token, true);
             }
+
             $sStatement = $this->parseStatement();
             if ($sStatement) {
+
                 $this->validateOneStatementPerLine($sStatement);
                 $sStatements []= $sStatement;
 
                 if ($this->inClass && $this->blockDepth == 1) {
                     $allowed = 'CLASS_PLUGIN|CLASS_FIELDS|NEW_FUN|PRE_KEYWORD';
+
                     if (strpos($allowed, $sStatement->type) === false) {
                         $msg = 'Invalid statement inside `class` block.';
+
                         if ($sStatement->type == SymbolType::ASSIGN) {
                             $msg = 'Assignment not allowed in class block. Try: `fields {...}`';
                         }
-                        ErrorHandler::setOopErrorDoc();
+
+                        ErrorHandler::setOopHelpLink();
                         $this->error($msg, $sStatement->token);
                     }
                 }
             }
         }
 
-        $this->space(' }*', true);
+        $this->space(' }*');
 
         $this->blockDepth -= 1;
         $this->prevLineWithStatement = -1;
@@ -160,7 +198,6 @@ class Parser {
 
         if (!$deferClosingScope) {
             $this->validator->popScope();
-            $this->next();
         }
 
         $this->blockDepth -= 1;
@@ -181,7 +218,7 @@ class Parser {
         }
         else {
 
-            // Standalone expression as statement e.g. `foo();`
+            // Standalone expression as statement e.g. `foo()`
             $st = $this->parseExpression(0);
 
             if ($st) {
@@ -199,8 +236,17 @@ class Parser {
                         $this->error('Invalid standalone expression.' . $suggest, $st->token);
                     }
                 }
+            }
+            else {
+                if ($this->prevToken && $this->prevToken[TOKEN_VALUE] !== '(nl)') {
 
-              //  $this->now(';', 'statement.end');
+                    $desc = 'Unexpected';
+                    if (strpos(CompilerConstants::$CLOSING_SEPERATORS, $this->prevToken[TOKEN_VALUE]) !== false) {
+                        // Very common typo: Extra `)` or `]` or `}`
+                        $desc = 'Extra';
+                    }
+                    $this->error("$desc separator token.", $this->prevToken);
+                }
             }
         }
 
@@ -211,12 +257,16 @@ class Parser {
     // Expression starts with a 'left' Symbol, followed by 'inner' Symbols.
     // Symbols are collected into the expression if they have a higher Binding Power.
     // This is how associativity/precedence is determined.
-    function parseExpression ($baseBindingPower=0) {
+    function parseExpression ($baseBindingPower=0, $checkOuterParen = false) {
 
         $this->expressionDepth += 1;
 
+        if ($checkOuterParen) {
+            $this->startCheckOuterParens();
+        }
+
         $left = $this->symbol->asLeft($this);
-        $s = null;
+
         while (true) {
             $s = $this->symbol;
             if (!($s->bindingPower > $baseBindingPower)) {
@@ -225,9 +275,11 @@ class Parser {
             $left = $s->asInner($this, $left);
         }
 
-        $this->expressionDepth -= 1;
+        if ($checkOuterParen) {
+            $this->endCheckOuterParens();
+        }
 
-        $this->checkOuterParens($s, $baseBindingPower);
+        $this->expressionDepth -= 1;
 
         return $left;
     }
@@ -236,13 +288,15 @@ class Parser {
     // TODO: don't allow comma after opening delimiter
     function parseElementSeparator() {
 
-        if ($this->symbol->isSeparator('(nl)')) {
+        if ($this->symbol->isNewline()) {
              $this->next();
         }
         else if ($this->symbol->isSeparator(',')) {
+
             $this->now(',')->space('x, ');
             $this->next();
-            if ($this->symbol->isSeparator('(nl)')) {
+
+            if ($this->symbol->isNewline()) {
                 $this->next();
                 ErrorHandler::addSubOrigin('formatChecker');
                 $this->error('Comma `,` is not needed before a line break.', $this->prevToken);
@@ -250,44 +304,33 @@ class Parser {
         }
     }
 
-
-    // function parseCommaSeparator() {
-
-    //     // if ($this->symbol->isSeparator('(nl)')) {
-    //     //     $this->next();
-    //     // }
-    //  //   else if ($this->symbol->isSeparator(',')) {
-    //         $this->now(',')->space('x, ');
-    //         $this->next();
-    //         if ($this->symbol->isSeparator('(nl)')) {
-    //             $this->next();
-    //             //ErrorHandler::addSubOrigin('formatChecker');
-    //             //$this->error('Comma (,) is not needed before a line break.');
-    //         }
-    //   //  }
-    // }
-
     function skipNewline() {
-        if ($this->symbol->isSeparator('(nl)')) {
+
+        if ($this->symbol->isNewline()) {
             $this->next();
             return true;
         }
+
         return false;
     }
 
     // TODO: probably need to refactor duplication between parseMain & parseBlock
     function validateOneStatementPerLine($sStatement) {
-        if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TSTRING) {
+
+        if ($sStatement->type !== SymbolType::TEMPLATE_EXPR && $sStatement->type !== SymbolType::TMSTRING) {
             $lineNum = explode(',', $sStatement->token[TOKEN_POS])[0];
+
             if ($this->prevLineWithStatement == $lineNum) {
                 $this->error('Only one statement allowed per line.', $sStatement->token, true);
             }
+
             $this->prevLineWithStatement = $lineNum;
         }
     }
 
     // Don't allow e.g. `if (true) {...}`
-    function noOuterParens() {
+    function startCheckOuterParens() {
+
         if ($this->symbol->token[TOKEN_VALUE] == '(') {
             $this->sOuterParen = $this->symbol;
         }
@@ -297,9 +340,10 @@ class Parser {
         return $this;
     }
 
-    function checkOuterParens($s, $baseBindingPower) {
-        if ($this->sOuterParen && $baseBindingPower == 0 && $this->expressionDepth <= 1) {
-            if ($s->token[TOKEN_VALUE] == ')') {
+    function endCheckOuterParens() {
+
+        if ($this->sOuterParen) {
+            if ($this->prevToken[TOKEN_VALUE] == ')') {
                 ErrorHandler::addSubOrigin('formatChecker');
                 $this->outerParenError($this->sOuterParen);
             }
@@ -307,15 +351,15 @@ class Parser {
     }
 
     function outerParenError($sOuterParen) {
+
         ErrorHandler::addSubOrigin('formatChecker');
         $this->error('Please remove the outer parens `(...)`.', $sOuterParen->token);
     }
 
 
 
-    ///
-    /// Symbol-Level Methods
-    ///
+    //  Symbol-Level Methods
+    //------------------------------------------------------------------
 
 
     // Take next Token from input stream and return it as a Symbol
@@ -341,7 +385,6 @@ class Parser {
             if (in_array($nextToken[TOKEN_VALUE], CompilerConstants::$SKIP_NEWLINE_BEFORE)) {
                 return $this->next();
             }
-
         }
 
         $this->symbol = $this->tokenToSymbol($token);
@@ -355,16 +398,21 @@ class Parser {
     }
 
     // Assert the current Symbol value
-    function now ($expectValue, $context = '') {
+    function now ($expectValue, $context = '', $try = '') {
 
         if (!$expectValue) { return $this; }
 
         if (!$this->symbol->isValue($expectValue)) {
+
             $token = $this->symbol->token;
             $msg = "Expected `$expectValue` here instead.";
+
             if ($this->symbol->isValue('(end)')) {
                 $msg = "Expected `$expectValue` as next token.";
                 $token = $this->prevToken;
+            }
+            if ($try) {
+                $msg .= 'Try: ' . $try;
             }
 
             ErrorHandler::addSubOrigin('expect');
@@ -375,13 +423,17 @@ class Parser {
         return $this;
     }
 
-    function space ($mask, $isHard=false) {
-        $this->symbol->space($mask, $isHard);
+    function space ($mask) {
+
+        $this->symbol->space($mask);
+
         return $this;
     }
 
     function checkAltToken ($altValue, $token) {
+
         $tokenValue = $token[TOKEN_VALUE];
+
         if (isset(CompilerConstants::$SUGGEST_TOKEN[$tokenValue])) {
             $correct = CompilerConstants::$SUGGEST_TOKEN[$tokenValue];
             $this->error("Unknown token: `$tokenValue`  Try: `$correct`", $token);
@@ -398,8 +450,11 @@ class Parser {
             $symType = CompilerConstants::$LITERAL_TYPES[$tokenType];
             $symbol = new S_Literal ($token, $this, $symType);
         }
-        else if ($tokenType === TokenType::TSTRING) {
+        else if ($tokenType === TokenType::TMSTRING) {
             $symbol = new S_TemplateString ($token, $this);
+        }
+        else if ($tokenType === TokenType::FLAG) {
+            $symbol = new S_Flag ($token, $this);
         }
         else if ($tokenType === TokenType::VAR) {
             $type = SymbolType::USER_VAR;
@@ -453,6 +508,7 @@ class Parser {
     }
 
     function makeSymbol ($tokenType, $tokenValue, $symbolType) {
+
         $pos = is_null($this->prevToken) ? '0,0' : $this->prevToken[TOKEN_POS];
         $token = [
             $tokenType,
@@ -460,20 +516,34 @@ class Parser {
             0,
             $tokenValue
         ];
+
         return new Symbol ($token, $this, $symbolType);
     }
 
     // A AstList is a list of Symbols (e.g. block, list)
     function makeAstList ($type, $els) {
+
         $sList = $this->makeSymbol('(SEQ)', $type, SymbolType::AST_LIST);
         $sList->setKids($els);
+
         return $sList;
     }
 
     function registerUserFunction ($context, $token) {
+
         $this->validator->registerUserFunction($context, $token);
     }
 
+    // Catch missing $ for variables
+    function catchMissingDollarVar($symbol) {
+
+        if (!$symbol) { return; }
+
+        if ($symbol->type == SymbolType::BARE_WORD) {
+            $varName = '$' . $symbol->token[TOKEN_VALUE];
+            $this->error("Unexpected word. Did you mean to use a variable `$varName`?", $symbol->token);
+        }
+    }
 }
 
 

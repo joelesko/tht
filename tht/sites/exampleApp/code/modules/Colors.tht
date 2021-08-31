@@ -1,0 +1,19 @@
+
+
+fn main {
+
+    print('CONTROLLER!!!!')
+
+}
+
+fn otherFun {
+
+    print('OTHER FUN!')
+}
+
+fn mainDelete {
+
+    return {
+        'msg': 'I DELETEED!',
+    }
+}

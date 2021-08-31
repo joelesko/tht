@@ -2,201 +2,45 @@
 
 namespace o;
 
+require_once('InputValidatorRules.php');
+
 class u_InputValidator {
 
-    private $allRules;
+    use InputValidatorRules;
 
-    private $defaultRule = [
-        'required' => true,
-        'type' => 'string',
-
-        'min' => 4,
-        'max' => 100,
-        'regex' => '',
-        'default' => '',
-
-        'removeHtml'        => true,
-        'removeNewlines'    => true,
-        'removeExtraSpaces' => true,
-        'removeQuotes'      => true,
-    ];
-
-    private $baseRules = [
-
-        // Type Rules
-        //-------------------------------------------
-
-        'b' => [
-            'min' => 1,
-            'max' => 5,
-            'default' => false,
-        ],
-
-        'i' => [
-            'min' => 0,
-            'max' => 'none',
-            'regex' => '[0-9\-]+',
-            'type' => 'int',
-            'default' => 0,
-        ],
-
-        'f' => [
-            'min' => 0,
-            'max' => 'none',
-            'regex' => '[0-9\-\.]+',
-            'type' => 'float',
-            'default' => '0',
-        ],
-
-        's' => [
-            'min' => 1,
-            'max' => 100,
-            'removeQuotes' => false,
-        ],
-
-        // Semantic Rules
-        //-------------------------------------------
-
-        'id' => [
-            'min' => 1,
-            'max' => 100,
-            'regex' => '[a-zA-Z0-9\-\._]+',
-        ],
-
-        'accepted' => [
-            'min' => 1,
-            'max' => 5,
-            'default' => false,
-        ],
-
-        // same as reddit
-        // https://www.reddit.com/r/help/comments/1ttv80/what_are_the_valid_usernamecharacters/
-        'username' => [
-            'min' => 3,
-            'max' => 20,
-            'regex' => '[a-zA-Z0-9\-_]+',
-        ],
-
-        'password' => [
-            'min' => 8,
-            'max' => 100,
-            'removeQuotes' => false,
-            'removeHtml'   => false,
-        ],
-
-        'url' => [
-            'min' => 8,
-            'max' => 200,
-        ],
-
-        'email' => [
-            'min' => 4,
-            'max' => 60,
-            'regex' => '\S+?@[^@\s]+\.\S+',
-        ],
-
-        'phone' => [
-            'min' => 6,
-            'max' => 30,
-            'regex' => '[0-9\(\)\.\-\+ext ]+',
-        ],
-
-        'body' => [
-            'min' => 10,
-            'max' => 'none',
-            'removeNewlines' => false,
-            'removeQuotes' => false,
-        ],
-
-        'json' => [
-            'min' => 1,
-            'max' => 'none',
-            'removeQuotes'      => false,
-            'removeExtraSpaces' => false,
-            'removeNewlines'    => false,
-            'removeHtml'        => false,
-        ],
-
-        'xDangerRaw' => [
-            'min' => 1,
-            'max' => 'none',
-            'removeQuotes'      => false,
-            'removeExtraSpaces' => false,
-            'removeNewlines'    => false,
-            'removeHtml'        => false,
-        ],
-
-        // MISC
-
-        'age' => [
-            'min' => 0,
-            'max' => 130,
-            'regex' => '[0-9]+',
-        ],
-
-        'name' => [
-            'min' => 1,
-            'max' => 100,
-            'removeQuotes' => false,
-        ],
-
-    ];
-
-    private $modifierRules = [
-
-        'optional' => [
-            'required' => false,
-        ],
-
-        'dangerdDangerHtml' => [
-            'removeHtml' => false,
-            'removeQuotes' => false,
-        ],
-
-        'civilize' => [],
-
-        'list' => [],
-
-    ];
-
-    private $constraintRules = [
-        'min', 'max', 'regex',
-    ];
-
-    private $variableRules = [
-        'in', 'notIn', 'same', 'notSame'
-    ];
-
-    function __construct() {
-        $this->allRules = array_keys($this->baseRules);
-        $this->allRules = array_merge($this->allRules, array_keys($this->modifierRules));
-        $this->allRules = array_merge($this->allRules, $this->constraintRules);
-        $this->allRules = array_merge($this->allRules, $this->variableRules);
-        $this->allRules []= 'required';
-    }
+    private $inList = false;
 
     function error($msg) {
-        ErrorHandler::setErrorDoc('/reference/input-validation', 'Input Validation');
+
+        ErrorHandler::setHelpLink(
+            '/reference/input-validation',
+            'Input Validation'
+        );
+
         Tht::error($msg);
     }
 
-    public function validateFields($data, $fields) {
+    // Validate multiple fields and return aggregate result
+    public function validateFields($rawData, $fieldConfigs) {
 
         $allFieldsOk = true;
         $errors = [];
         $results = [];
 
-        foreach (uv($fields) as $fieldName => $rules) {
+        foreach (unv($fieldConfigs) as $fieldName => $fieldConfig) {
 
-            $val = isset($data[$fieldName]) ? $data[$fieldName] : '';
-            $result = $this->validateField($fieldName, $val, $rules);
+            $rawVal = isset($rawData[$fieldName]) ? $rawData[$fieldName] : '';
+            $rawRule = isset($fieldConfig['rule']) ? $fieldConfig['rule'] : '';
+
+            $result = $this->validateField($fieldName, $rawVal, $rawRule);
 
             if (!$result['ok']) {
                 $allFieldsOk = false;
-                $result = OMap::create($result);
-                $errors []= $result->u_slice(OList::create(['field', 'error']));
+                $errors []= OMap::create([
+                    'field' => $result['field'],
+                    'error' => $result['error'],
+                ]);
             }
-
             $results[$fieldName] = $result['value'];
         }
 
@@ -207,420 +51,317 @@ class u_InputValidator {
         ]);
     }
 
-    public function validateField($fieldName, $origVal, $rawRules, $inList=false) {
+    public function validateField($fieldName, $rawVal, $rawRules) {
 
-        $rules = $this->initRules($rawRules, $fieldName);
-        $constraints = $this->initConstraints($fieldName, $rules);
+        $rules = $this->initFieldRules($fieldName, $rawRules);
 
-        if (is_array($origVal) || OLIst::isa($origVal)) {
-            if (!in_array('list', $rules)) {
-                $origVal = '';
-            }
-            else if ($inList) {
-                return $this->errorValue($fieldName, 'Nested lists not allowed.', '');
+        // Handle lists
+        if (isset($rules['list']) || is_array($rawVal) || OList::isa($rawVal)) {
+            return $this->validateListField($fieldName, $rawVal, $rules);
+        }
+
+        // Handle Uploads
+        if ($rules['checkFile']) {
+            return $this->validateUploadedFile($fieldName, $rules);
+        }
+        else if ($rules['checkImage']) {
+            return $this->validateUploadedImage($fieldName, $rules);
+        }
+
+        // Sanitize
+        $cleanVal = $this->sanitizeValue($rawVal, $rules);
+
+        if (!$rawVal) {
+            if ($rules['optional']) {
+                // TODO: if number, use 'min' instead of default zero?
+                // Don't validate if optional field wasn't filled
+                $cleanVal = $this->defaultValueForType($rules['valueType']);
+                return $this->okField($fieldName, $cleanVal);
             }
             else {
-                return $this->validateList($fieldName, $origVal, $rawRules);
+                // BUG: this causes 'list' to fail
+                return $this->errorField($fieldName, 'Please fill this field.', $rules['valueType']);
             }
         }
 
-        $val = $this->filterValue($origVal, $constraints);
+        // Final Validation
+        foreach ($rules as $ruleName => $ruleValue) {
 
-        // Add Constraints
-        foreach (['regex', 'min', 'max', 'required'] as $c) {
-            $limit = $constraints[$c];
-            array_unshift($rules, 'constraint_' . $c . ':' . $limit);
-        }
+            $result = $this->validateFieldForRule($fieldName, $cleanVal, $ruleName, $ruleValue);
 
-        // Validate values
-        foreach ($rules as $r) {
-            $result = $this->validateRule($val, $r);
+            // Failed
             if (!$result['ok']) {
-                return $this->errorValue($fieldName, $result['error'], $constraints['default']);
+                return $this->errorField($fieldName, $result['error'], $rules['valueType']);
             }
-            $val = $result['cleanValue'];
+
+            $cleanVal = $result['cleanValue'];
         }
 
-        return $this->okValue($fieldName, $val);
+        // Post-processing
+        if ($rules['postProcess'] == 'parseJson') {
+            $cleanVal = Tht::module('Json')->u_decode($cleanVal);
+        }
+        else if ($rules['postProcess'] == 'hashPassword') {
+            $cleanVal = new \o\OPassword($cleanVal);
+        }
+        else if ($rules['postProcess'] == 'dateObject') {
+            $cleanVal = Tht::module('Date')->u_create($cleanVal);
+        }
+
+        return $this->okField($fieldName, $cleanVal);
     }
 
-    // TODO: make this error more useful, retain good values
-    private function validateList($fieldName, $origVal, $rawRules) {
-        $vals = [];
-        foreach ($origVal as $v) {
-            $listElResult = $this->validateField($fieldName, $v, $rawRules, true);
-            if (!$listElResult['ok']) {
-                return $this->errorValue($fieldName, $listElResult['error'], OList::create([]));
-            }
-            else {
-                $vals []= $listElResult['value'];
-            }
+    // Validate each value in a list
+    // TODO: Make this error more useful, retain good values?
+    private function validateListField($fieldName, $valList, $rules) {
+
+        if (!isset($rules['list'])) {
+            return $this->errorField($fieldName, 'Multiple values are only allowed via the `list` rule.', 's');
         }
-        return $this->okValue($fieldName, OList::create($vals));
+        else if ($this->inList) {
+            return $this->errorField($fieldName, 'Nested lists are not suported.', 'list');
+        }
+
+        if ($valList === '') {
+            // If no fields are checked, the client sends nothing
+            $valList = [];
+        }
+        if (!is_array($valList) && !OList::isa($valList)) {
+            // Treat single value as list
+            $valList = [$valList];
+        }
+
+        $cleanVals = [];
+        $this->inList = true;
+
+        // Remove 'list' rule for child elements
+        unset($rules['list']);
+
+        // Interpret `min` and `max` as number of items chosen.
+        if (isset($rules['in'])) {
+
+            if (isset($rules['min'])) {
+                if (count($valList) < $rules['min']) {
+                    $items = v('item')->u_plural(intval($rules['min']));
+                    return $this->errorField(
+                        $fieldName . '[]',
+                        'Please pick at least ' .  $rules['min'] . " $items.", 'list'
+                    );
+                }
+            }
+            if (isset($rules['max'])) {
+                if (count($valList) > $rules['max']) {
+                    $items = v('item')->u_plural(intval($rules['max']));
+                    return $this->errorField(
+                        $fieldName . '[]',
+                        'Please pick ' .  $rules['max'] . " $items or less.", 'list'
+                    );
+                }
+            }
+
+            // Remove for child elements
+            unset($rules['min']);
+            unset($rules['max']);
+        }
+
+        // Validate each element
+        foreach ($valList as $val) {
+
+            $result = $this->validateField($fieldName, $val, $rules);
+
+            if (!$result['ok']) {
+                return $this->errorField($fieldName, $result['error'], 'list');
+            }
+
+            $cleanVals []= $result['value'];
+        }
+
+        $this->inList = false;
+
+        return $this->okField($fieldName, OList::create($cleanVals));
     }
 
-    public function validateRule($val, $rule) {
+    private function validateUploadedFile($fieldName, $rules) {
 
-        $rule = trim($rule);
-        $arg = '';
-        if (strpos($rule, ':') !== false) {
-            $parts = explode(':', $rule, 2);
-            $rule = trim($parts[0]);
-            $arg = trim($parts[1]);
+        if (!$rules['dir']) {
+            $this->error('Rule `file` requires a `dir` field to specify the upload directory.');
+        }
+        if (!$rules['ext']) {
+            $this->error('Rule `file` requires an `ext` field with a comma-delimited list of allowed extensions.');
         }
 
-        $fnValidate = 'validate_' . strtolower($rule);
-        $checkRule = str_replace('constraint_', '', $rule);
+        $exts = preg_split('/\s*,\s*/', $rules['ext']);
 
-        $result = $val;
-        if (preg_match('/[^a-zA-Z_]/', $rule) || !in_array($checkRule, $this->allRules)) {
-            $this->error("Unknown validation rule: `$checkRule`");
-        } else {
-            if (method_exists($this, $fnValidate)) {
-                $result = call_user_func([$this, $fnValidate], $val, $arg);
-            }
-        }
+        $relPath = Tht::module('Input')->u_get_uploaded_file(
+            $fieldName,
+            $rules['dir'],
+            OList::create($exts),
+            intval($rules['sizeKb']),
+        );
 
-        $isOk = !is_array($result);
-        return [
-            'ok' => $isOk,
-            'cleanValue' => $isOk ? $result : '',
-            'error' => $isOk ? '' : $result[0]
-        ];
+        return $this->getUploadResult($fieldName, $relPath);
     }
 
+    function validateUploadedImage($fieldName, $rules) {
 
-    function okValue($fieldName, $value) {
-        return [
+        $rules = OMap::create($rules);
+
+        if (!$rules['dir']) {
+            $this->error('Rule `image` requires a `dir` field to specify the upload directory.');
+        }
+        if (!$rules['dim']) {
+            $this->error('Rule `image` requires a `dim` field to specify the image dimensions. Ex: dim:300x300');
+        }
+        if (!preg_match('/^\d+x\d+$/', $rules['dim'])) {
+            $this->error('Field `dim` should be in the format of `width x height`. Ex: dim:300x300');
+        }
+
+        $relPath = Tht::module('Input')->u_get_uploaded_image(
+            $fieldName,
+            $rules['dir'],
+            $rules['dim'],
+            OMap::create(['exactSize' => $rules['exactSize']])
+        );
+
+        return $this->getUploadResult($fieldName, $relPath);
+    }
+
+    function getUploadResult($fieldName, $relPath) {
+
+        if (!$relPath) {
+            return $this->errorField(
+                $fieldName,
+                Tht::module('Input')->u_get_upload_error(),
+                's'
+            );
+        }
+
+        return $this->okField($fieldName, $relPath);
+    }
+
+    public function validateFieldForRule($fieldName, $fieldValue, $ruleName, $ruleValue) {
+
+        $result = $fieldValue;
+
+        // Call validate_* function
+        $fnValidate = 'validate_' . strtolower($ruleName);
+        if (method_exists($this, $fnValidate) && !is_null($ruleValue)) {
+            $result = call_user_func([$this, $fnValidate], $fieldValue, $ruleValue, $fieldName);
+        }
+
+        if (is_array($result)) {
+            return OMap::create([
+                'ok' => false,
+                'error' => $result[0],
+            ]);
+        }
+        else {
+            return OMap::create([
+                'ok' => true,
+                'cleanValue' => $result,
+            ]);
+        }
+    }
+
+    function okField($fieldName, $value) {
+
+        return OMap::create([
             'ok'    => true,
             'error' => '',
             'field' => $fieldName,
             'value' => $value,
-        ];
+        ]);
     }
 
-    function errorValue($fieldName, $msg, $defaultValue) {
-        return [
+    function errorField($fieldName, $msg, $valueType) {
+
+        return OMap::create([
             'ok'    => false,
             'error' => $msg,
             'field' => $fieldName,
-            'value' => $defaultValue,
+            'value' => $this->defaultValueForType($valueType),
+        ]);
+    }
+
+    public function initFieldRules($fieldName, $rule) {
+
+        if ($rule == '') {
+            return $this->defaultRule;
+        }
+
+        if (is_string($rule)) {
+            $rule = $this->parseRuleString($rule);
+        }
+
+        foreach ($rule as $ruleName => $ruleArg) {
+            // Convert regex object to raw string
+            // TODO: warn if flags
+            if (ORegex::isa($ruleArg)) {
+                $rule[$ruleName] = $ruleArg->getRawPattern();
+            }
+
+            $this->assertRuleNameIsValid($ruleName, $fieldName);
+        }
+
+        $expandedRules = $this->expandRules($fieldName, $rule);
+
+        return $expandedRules;
+    }
+
+    function assertRuleNameIsValid($ruleName, $fieldName) {
+
+        if (!$ruleName) {
+            $this->error("Got an empty validation rule for input field `$fieldName`");
+        }
+
+        if (array_key_exists($ruleName, $this->defaultRule) ||
+            array_key_exists($ruleName, $this->typeRules)) {
+                return true;
+        }
+
+        $this->error("Unknown validation rule `$ruleName` for input field `$fieldName`");
+    }
+
+    // Merge higher-level rules into the default rule (overriding the default)
+    function expandRules($fieldName, $rules) {
+
+        $expandedRules = $this->defaultRule;
+
+        $typeRule = $rules['type'];
+        if (!isset($this->typeRules[$typeRule])) {
+            $this->error("Missing `type` validation rule for input field `$fieldName`");
+        }
+        $expandedRules = array_merge($expandedRules, $this->typeRules[$typeRule]);
+        unset($expandedRules[$typeRule]);
+
+        foreach ($rules as $ruleName => $ruleValue) {
+            $expandedRules[$ruleName] = $ruleValue;
+        }
+
+        return $expandedRules;
+    }
+
+    // Convert 'foo|bar:123' ---> ['foo' => true, 'bar' => 123]
+    function parseRuleString($rawRule) {
+
+        $rules = explode('|', $rawRule);
+
+        $type = array_shift($rules);
+        $map = [
+            'type' => $type
         ];
-    }
 
-    function initRules($rawRules, $fieldName) {
-        if ($rawRules == '') {
-            $rawRules = $this->autoRule($fieldName);
-        }
-
-        $rawRules = explode('|', $rawRules);
-
-        $rules = [];
-        foreach ($rawRules as $r) {
-            $r = trim($r);
-            $rules []= $r;
-
-            // TODO: handle arg/name splitting in one place, instead of in multiple places
-            if (strpos($r, ':') !== false) {
-                $parts = explode(':', $r, 2);
-                $r = trim($parts[0]);
-            }
-
-            if (!in_array($r, $this->allRules)) {
-                $this->error("Unknown validation rule for field `$fieldName`: `$r`");
-            }
-        }
-
-        return $rules;
-    }
-
-
-    /*
-
-        TODO:
-        COMMON FIELDS (taken from browser autocomplete)
-
-        initial
-        name
-        birth
-        email
-        address
-        city
-        state
-        zip
-        postal
-        country
-        areacode
-        phone
-        company
-
-        password
-        -Id
-        accept
-
-        subject
-        title
-        comment
-        body
-
-    */
-    // TODO: clean this up, DRY
-    function autoRule($af) {
-
-        $f = strtolower($af);
-
-        if (preg_match('#(email)#', $f)) {
-            return 'email';
-        }
-        else if (preg_match('#(password|passwd|pass)#', $f)) {
-            return 'password';
-        }
-        else if (preg_match('#(user|username)#', $f)) {
-            return 'username';
-        }
-        else if (preg_match('#id$#', $f)) {
-            return 'id';
-        }
-        else if (preg_match('#url#', $f)) {
-            return 'url';
-        }
-        else if (preg_match('#phone#', $f)) {
-            return 'phone';
-        }
-        else if (preg_match('#accept#', $f)) {
-            return 'accepted';
-        }
-        else if (preg_match('#body#', $f)) {
-            return 'body';
-        }
-        else if (preg_match('#name#', $f)) {
-            return 'name';
-        }
-        else if ($f == 'age') {
-            return 'age';
-        }
-
-        $this->error("Can't auto-detect validation rule for field `$af`");
-    }
-
-    function initConstraints($fieldName, $rules) {
-
-        // Build up constraints (min, max, regex, required)
-        $constraints = $this->defaultRule;
-
-        // Base Rules
-        $baseRule = '';
-        foreach ($rules as $rule) {
-            if (isset($this->baseRules[$rule])) {
-                $constraints = array_merge($constraints, $this->baseRules[$rule]);
-                break;
-            }
-        }
-
-        // Modifier Rules
-        foreach ($rules as $rule) {
-            if (isset($this->modifierRules[$rule])) {
-                $constraints = array_merge($constraints, $this->modifierRules[$rule]);
-            }
-        }
-
-        // Constraint Rules
-        foreach ($rules as $rawRule) {
-            $parts = explode(':', $rawRule, 2);
-            if (in_array($parts[0], $this->constraintRules)) {
-                if (count($parts) !== 2) {
-                    $this->error("Rule for field `$fieldName` is missing an argument. Tip: `" . $parts[0] . ':argument`');
-                }
-                $constraints[$parts[0]] = $parts[1];
-            }
-        }
-
-        return $constraints;
-    }
-
-    function filterValue($val, $constraints) {
-
-        $val = trim($val);
-
-        if ($constraints['removeQuotes']) {
-            $val = preg_replace('/[\'"]/', '', $val);
-        }
-
-        if ($constraints['removeHtml']) {
-            $val = preg_replace('/<.*?>/', '', $val);
-        }
-
-        if ($constraints['removeNewlines']) {
-            $val = preg_replace('/\n+/', ' ', $val);
-        }
-
-        if ($constraints['removeExtraSpaces']) {
-            $val = preg_replace('/[\t ]+/', ' ', $val);
-        }
-
-        if ($val !== '') {
-            if ($constraints['type'] == 'int') {
-                $val = intval($val);
-            }
-            else if ($constraints['type'] == 'float') {
-                $val = floatval($val);
-            }
-        }
-
-        return $val;
-    }
-
-
-
-    //  Validation Rules
-    //     Return the filtered value, or a List with an error message
-    // -------------------------------------------------------------------
-
-
-    function validate_constraint_required($val, $required) {
-        if ($val === '') {
-            if (!$required) {
-                return $val;
+        foreach ($rules as $r) {
+            $parts = explode(':', $r, 2);
+            if (count($parts) == 1) {
+                $map[$parts[0]] = true;
             }
             else {
-                return ['Must be filled.'];
+                $map[$parts[0]] = $parts[1];
             }
         }
-        return $val;
+
+        return $map;
     }
-
-    function validate_constraint_min($val, $limit) {
-        if ($limit === 'none') {
-            return $val;
-        }
-
-        $limit = intval($limit);
-        if (is_int($val) || is_float($val)) {
-            if ($val < $limit) {
-                return ["Must be $limit or more."];
-            }
-        } else {
-            if (mb_strlen($val) < $limit) {
-                return ["Must be $limit letters or longer."];
-            }
-        }
-        return $val;
-    }
-
-    function validate_constraint_max($val, $limit) {
-        if ($limit === 'none') {
-            return $val;
-        }
-        $limit = intval($limit);
-        if (is_int($val) || is_float($val)) {
-            if ($val > $limit) {
-                return ["Must be $limit or less."];
-            }
-        } else {
-            if (mb_strlen($val) > $limit) {
-                return ["Must be $limit letters or less."];
-            }
-        }
-        return $val;
-    }
-
-    function validate_constraint_regex($val, $pattern) {
-
-        if ($pattern === '') {
-            return $val;
-        }
-
-        $pattern = str_replace(':OR:', '|', $pattern);
-        if (!preg_match('#^' . $pattern . '$#', $val)) {
-            return ["Please double-check."];
-        }
-        return $val;
-    }
-
-    function validate_b($val) {
-        return ($val === 'true' || $val === '1');
-    }
-
-    function validate_body($val) {
-        $val = preg_replace('/ +/', ' ', $val);
-        $val = preg_replace('/\n{2,}/', "\n\n", $val);
-
-        return $val;
-    }
-
-    function validate_url($val) {
-        if (!Security::validateUserUrl($val)) {
-            return ['Please provide a valid URL:'];
-        }
-        return $val;
-    }
-
-    function validate_accepted($val) {
-        $val = $this->validate_b($val);
-        if ($val === true) {
-            return true;
-        }
-        else {
-            return ['Please accept this field:'];
-        }
-    }
-
-    function validate_password($val) {
-        if (!Security::validatePasswordStrength($val)) {
-            return ["Please choose a harder password:"];
-        }
-        return new \o\OPassword ($val);
-    }
-
-
-    function validate_list($val) {
-        return $val;
-    }
-
-    function validate_civilize($val) {
-        return v($val)->u_civilize();
-    }
-
-
-    //===== Variable Rules
-
-    function validate_same($val, $arg) {
-        if (!isset($this->data[$arg])) {
-            return ["RULE ERROR: 'same:$arg'."];
-        }
-        if (trim($val) !== trim($this->data[$arg])) {
-            $arg = ucfirst($arg);
-            return ["Please make sure this matches '$arg':"];
-        }
-        return $val;
-    }
-
-    function validate_notsame($val, $arg) {
-        if (!isset($this->data[$arg])) {
-            return ["RULE ERROR: 'notsame:$arg'."];
-        }
-        if (trim($val) === trim($this->data[$arg])) {
-            $arg = ucfirst($arg);
-            return ["Please make this field different than '$arg':"];
-        }
-        return $val;
-    }
-
-    function validate_in($val, $arg) {
-        $ary = preg_split('/\s*,\s*/', $arg);
-        if (!in_array('' + $val, $ary)) {
-            return ['Please double-check this field.'];
-        }
-        return $val;
-    }
-
-    function validate_notin($val, $arg) {
-        $ary = preg_split('/\s*,\s*/', $arg);
-        if (!in_array('' + $val, $ary)) {
-            return ['Please double-check this field.'];
-        }
-        return $val;
-    }
-
 }
 

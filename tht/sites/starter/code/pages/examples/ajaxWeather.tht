@@ -1,0 +1,72 @@
+fn main {
+
+    $page = Page.create({
+        title: 'Ajax Example',
+        css: [url'/vendor/basic.css'],
+        js: [url'https://unpkg.com/htmx.org@1.5.0'],
+    })
+
+    $html = mainHtml()
+    $page.setMain($html)
+
+    $page.send()
+}
+
+// See https://htmx.org/reference/ for how the "hx-" parameters are used.
+tm mainHtml {
+
+    <h1> Ajax Example
+
+    --- foreach weatherJcon() as $city/$weather {
+        <button {{ Web.htmx('getWeather', { city: $city }) }} hx-target="#result">
+            {{ $weather.city }}
+        </>
+    --- }
+
+    <.panel id="result" style="margin-top: 2rem"></>
+
+    <small> This example uses <a href="https://htmx.org">HTMX</> for Ajax functionality.
+}
+
+// Try adding your own city.
+tm weatherJcon {
+    {
+        sanJose: {
+            city: San Jose, USA
+            temp: Nice & Warm
+            chanceRain: Very Low
+        }
+
+        helsinki: {
+            city: Helsinki, Finland
+            temp: Cold & Freezing
+            chanceRain: Medium
+        }
+
+        lima: {
+            city: Lima, Peru
+            temp: Hot & Humid
+            chanceRain: Very High
+        }
+    }
+}
+
+// Handler for ajax request. Comes from the 'mode=getWeather' parameter.
+// See https://tht.dev/reference/page-modes
+fn getWeatherMode {
+
+    $cityName = Input.post('city')
+
+    $weather = weatherJcon()
+    $weatherForCity = $weather[$cityName]
+
+    return weatherHtml($weatherForCity)
+}
+
+tm weatherHtml($weather) {
+
+    <h3> {{ $weather.city }}
+
+    <p> Temperature: <b>{{ $weather.temp }}</b>
+    <p> Chance of Rain: <b>{{ $weather.chanceRain }}</b>
+}

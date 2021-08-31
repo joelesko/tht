@@ -54,42 +54,62 @@ class u_Test extends OStdModule {
         return $this;
     }
 
-    function u_dies ($callback, $msg) {
+    function u_dies ($callback, $desc, $matchError='') {
 
-        $this->ARGS('cs', func_get_args());
+        $this->ARGS('css', func_get_args());
 
         if (Tht::module('Perf')->isActive()) {
-            return $this->skip('Perf Panel on');
+            return $this->skip('Perf Panel ON | ' . $desc);
         }
 
-        $hasError = false;
         ErrorHandler::startTrapErrors();
+
+        $errorMsg = '';
+
         try {
             $callback();
         }
         catch (\Exception $e) {
-            $hasError = true;
+            $errorMsg = $e->getMessage();
         }
         catch (\TypeError $e) {
-            $hasError = true;
+            $errorMsg = $e->getMessage();
         }
         catch (\ArgumentCountError $e) {
-            $hasError = true;
+            $errorMsg = $e->getMessage();
         }
 
         $trapped = ErrorHandler::endTrapErrors();
+        if ($trapped) {
+            $errorMsg = $trapped['message'];
+        }
 
-        return $this->u_ok($hasError || $trapped, 'dies - ' . $msg);
+        $caughtError = !!$errorMsg;
+        if ($matchError) {
+            $fuzzy1 = str_replace('`', "'", strtolower($errorMsg));
+            $fuzzy2 = str_replace('`', "'", strtolower($matchError));
+            $caughtError = strpos($fuzzy1, $fuzzy2) !== false;
+        }
+
+        $out = 'dies - ' . $desc;
+        if (!$caughtError) {
+            $out .= ' | got: ' . $errorMsg;
+        }
+
+        return $this->u_ok($caughtError, $out);
     }
 
     function parserDies ($code, $match, $isFuzzy = false) {
 
         $matchError = false;
         $this->lastParserError = '';
+
         try {
             Tht::module('Meta')->u_parse($code);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             $this->lastParserError = $e->getMessage();
+
             $matchError = strpos(strtolower($e->getMessage()), strtolower($match));
             if (!$matchError && !$isFuzzy) {
                 // allow for matching of backticks without needing to escape
@@ -97,6 +117,7 @@ class u_Test extends OStdModule {
                 return $this->parserDies($code, $match, true);
             }
         }
+
         ErrorHandler::resetState();
 
         return $matchError;
@@ -105,7 +126,7 @@ class u_Test extends OStdModule {
     function u_parser_error ($code, $match, $msg=null) {
 
         if (Tht::module('Perf')->isActive()) {
-            return $this->skip('Perf Panel on');
+            return $this->skip('Perf Panel ON | ' . $match);
         }
 
         $dies = $this->parserDies($code, $match);
@@ -119,7 +140,7 @@ class u_Test extends OStdModule {
     function u_parser_ok ($code, $msg) {
 
         if (Tht::module('Perf')->isActive()) {
-            return $this->skip('Perf Panel on');
+            return $this->skip('Perf Panel ON | ' . $msg);
         }
 
         $dies = false;
@@ -132,7 +153,7 @@ class u_Test extends OStdModule {
         }
         $msg = str_replace("\n", "\\n", $code) . ' | ok: ' . $msg;
         if ($dies) {
-            $msg .= " | GOT: " . $err;
+            $msg .= " | got: " . $err;
         }
 
         return $this->u_ok(!$dies, $msg);
@@ -152,11 +173,11 @@ class u_Test extends OStdModule {
         $this->ARGS('', func_get_args());
         $this->u_section('Results');
 
-        $str = '<style> .test-result { font-family:' . Tht::module('Css')->u_font('monospace') . "}\n\n </style>\n\n";
+        $str = '<style> .test-result { font-family:' . Tht::module('Output')->font('monospace') . "}\n\n </style>\n\n";
         foreach ($this->out as $l) {
             if (isset($l['section'])) {
                 if (Tht::isMode('web')) {
-                    $str .= '<a name="test-' . v($l['section'])->u_to_token_case() . '"></a>';
+                    $str .= '<a name="test-' . v($l['section'])->u_slug() . '"></a>';
                     $str .= "<h2>" . $l['section'] . "</h2>\n";
                 } else {
                     $str .= "\n# " . $l['section'] . "\n\n";
@@ -186,19 +207,24 @@ class u_Test extends OStdModule {
         return new HtmlTypeString ($str);
     }
 
+    // Undocumented
     function u_check_args() {
+
         $args = func_get_args();
         $mask = array_shift($args);
-        $error = ARGS($mask, $args);
+
+        $error = validateFunctionArgs($mask, $args);
         if ($error) {
             Tht::error($error['msg']);
         }
+
         return true;
     }
 
     function u_shake($val) {
 
         $this->ARGS('*', func_get_args());
+
         if (!is_string($val)) {
             $val = json_encode($val);
         }

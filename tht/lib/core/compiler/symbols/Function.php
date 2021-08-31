@@ -3,12 +3,14 @@
 namespace o;
 
 class S_Function extends S_Statement {
+
     var $type = SymbolType::NEW_FUN;
     var $isExpression = false;
 
     // Function as an expression (anonymous)
     // e.g. $funFoo = function () { ... };
     function asLeft($p) {
+
         $this->isExpression = true;
 
         $p->anonFunctionDepth += 1;
@@ -16,6 +18,22 @@ class S_Function extends S_Statement {
         $p->anonFunctionDepth -= 1;
 
         return $s;
+    }
+
+    function getAnonSymbol($p) {
+        return $p->makeSymbol(
+            TokenType::WORD,
+            CompilerConstants::$ANON,
+            SymbolType::USER_FUN
+        );
+    }
+
+    function getTemplateTypeSymbol($p, $type) {
+        return $p->makeSymbol(
+            TokenType::WORD,
+            $type,
+            SymbolType::STRING
+        );
     }
 
     // function foo() { ... }
@@ -27,41 +45,67 @@ class S_Function extends S_Statement {
         $hasName = false;
 
         if ($p->symbol->token[TOKEN_TYPE] === TokenType::WORD) {
-            // function name
+
+             // function name
             $hasName = true;
             $sFunName = $p->symbol;
             $sName = $sFunName->token[TOKEN_VALUE];
+
             if (strlen($sName) < 2) {
                 $p->error("Function name `$sName` should be longer than 1 letter.  Try: Be more descriptive.");
             }
+
+            $sTemplateType = '';
+            if ($this->type == SymbolType::NEW_TEMPLATE) {
+                preg_match('/(' . CompilerConstants::$TEMPLATE_TYPES .')$/i', $sName, $m);
+                $sTemplateType = $m[1]; // was already validated in the Tokenizer
+            }
+
+            // PHP doesn't allow names in dynamic functions.
+            if ($this->isExpression) {
+                $sFunName = $this->getAnonSymbol($p);
+            }
+
             $sFunName->updateType(SymbolType::USER_FUN);
             $this->addKid($sFunName);
             $p->registerUserFunction('defined', $sFunName->token);
             $p->space(' name*')->next();
+
+            if ($sTemplateType) {
+                $smTemplateType = $this->getTemplateTypeSymbol($p, $sTemplateType);
+                $this->addKid($smTemplateType);
+            }
         }
         else {
             if (!$this->isExpression) {
                 $p->error("Top-level function must have a name.", $p->prevToken);
             }
+
+            if ($this->type == SymbolType::NEW_TEMPLATE) {
+                $p->error('Template function must have a name.');
+            }
+
             // anonymous function. e.g. fn () { ... }
-            $anon = $p->makeSymbol(
-                TokenType::WORD,
-                CompilerConstants::$ANON,
-                SymbolType::USER_FUN
-            );
+            $anon = $this->getAnonSymbol($p);
             $this->addKid($anon);
         }
+
+
+        $outerScopeVars = $p->validator->getAllInScope();
 
         $p->validator->newFunctionScope();
         $p->validator->newScope();
 
         $this->parseArgs($p, $hasName);
-
-        $closureVars = $this->parseClosureVars($p);
+        $closureVars = $this->parseClosureVars($p, $outerScopeVars);
 
         // block. { ... }
         $p->functionDepth += 1;
+        if ($this->type == SymbolType::NEW_TEMPLATE) {
+            $p->inTemplate = true;
+        }
         $this->addKid($p->parseBlock(true));
+        $p->inTemplate = false;
         $p->functionDepth -= 1;
 
         if (!$this->isExpression) {
@@ -87,11 +131,15 @@ class S_Function extends S_Statement {
         // List of args.  function foo (_args_) { ... }
         if ($p->symbol->isValue("(")) {
 
+            $sOpenParen = $p->symbol;
+
             $space = $hasName ? 'x(x' : ' (x';
             $p->now('(', 'function.args.open')->space($space, true)->next();
+
             $argSymbols = [];
             $hasOptionalArg = false;
             $seenName = [];
+
             while (true) {
 
                 if ($p->symbol->isValue(")")) {
@@ -155,7 +203,7 @@ class S_Function extends S_Statement {
                 if ($sNext->isValue('=')) {
 
                     if ($isSplat) {
-                        $p->error("Spread operator `...` can't have a default value.");
+                        $p->error("Spread operator `...` can not have a default value.");
                     }
 
                     $p->space(' = ');
@@ -179,50 +227,84 @@ class S_Function extends S_Statement {
                 $p->next();
             }
 
+            if (count($argSymbols) > CompilerConstants::$MAX_FUN_ARGS) {
+                ErrorHandler::setHelpLink('/reference/format-checker#max-arguments', 'Max Arguments');
+                $p->error('Can not have more than ' . CompilerConstants::$MAX_FUN_ARGS . ' arguments to a function. Try: Combine some arguments into a Map', $sOpenParen->token);
+            }
+
             $this->addKid($p->makeAstList(AstList::ARGS, $argSymbols));
 
-            $p->now(')', 'function.args.close')->space('x) ')->next();
+            $p->now(')', 'function.args.close')->space('x) ');
+
+            if (!count($argSymbols)) {
+                $p->error('Please remove the empty parens `()`.', $sOpenParen->token);
+            }
+
+            $p->next();
         }
         else {
             $this->addKid($p->makeAstList(AstList::ARGS, []));
         }
     }
 
-    // closure vars. e.g. function foo() keep (varName) { ... }
-    function parseClosureVars($p) {
+    // Just import everything from outer scope.
+    function parseClosureVars($p, $outerScopeVars) {
+
+        if (!$this->isExpression) { return []; }
 
         $closureVars = [];
-        if ($p->symbol->isValue('keep')) {
+        foreach ($outerScopeVars as $varName) {
 
-            $p->space(' keepx');
+            $varName = ltrim($varName, '$');
 
-            if (!$this->isExpression) {
-                ErrorHandler::setErrorDoc('/language-tour/intermediate-features#anonymous-functions', 'Anonymous Functions');
-                $p->error("Keyword `keep` can only be used with anonymous functions.");
-            }
+            $sNewVar = $p->makeSymbol(
+                TokenType::WORD,
+                $varName,
+                SymbolType::USER_VAR,
+            );
 
-            $p->next();
-            $p->now('(', 'keep')->next();
-            while (true) {
-                if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
-                    $p->error("Expected an outer variable inside `keep`.  Ex: `fn () keep (\$name) { ... }`");
-                }
+            $p->validator->defineVar($sNewVar, true);
 
-                $p->validator->defineVar($p->symbol, true);
-
-                $sArg = $p->symbol;
-                $sArg->updateType(SymbolType::USER_VAR);
-                $closureVars []= $sArg;
-
-                $s = $p->next();
-                if (!$s->isValue(',')) {
-                    break;
-                }
-                $p->now(',', 'function.keep.comma')->next();
-            }
-            $p->now(')', 'function.keep.close')->space('x) ')->next();
+            $closureVars []= $sNewVar;
         }
 
         return $closureVars;
+
+        // Used to have `keep` syntax for explicit import.
+        // Make this optional?
+
+        // $closureVars = [];
+        // if ($p->symbol->isValue('keep')) {
+
+        //     $p->space(' keepx');
+
+        //     if (!$this->isExpression) {
+        //         ErrorHandler::setHelpLink('/language-tour/intermediate-features#anonymous-functions', 'Anonymous Functions');
+        //         $p->error("Keyword `keep` can only be used with anonymous functions.");
+        //     }
+
+        //     $p->next();
+        //     $p->now('(', 'keep')->next();
+        //     while (true) {
+        //         if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
+        //             $p->error("Expected an outer variable inside `keep`.  Ex: `fn () keep (\$name) { ... }`");
+        //         }
+
+        //         $p->validator->defineVar($p->symbol, true);
+
+        //         $sArg = $p->symbol;
+        //         $sArg->updateType(SymbolType::USER_VAR);
+        //         $closureVars []= $sArg;
+
+        //         $s = $p->next();
+        //         if (!$s->isValue(',')) {
+        //             break;
+        //         }
+        //         $p->now(',', 'function.keep.comma')->next();
+        //     }
+        //     $p->now(')', 'function.keep.close')->space('x) ')->next();
+        // }
+
+        // return $closureVars;
     }
 }

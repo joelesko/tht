@@ -8,6 +8,7 @@ class u_Bare extends OStdModule {
     static $FUNCTIONS = [ 'load', 'print', 'range', 'die' ];
 
     static function isa ($word) {
+
         return in_array($word, u_Bare::$FUNCTIONS);
     }
 
@@ -16,16 +17,22 @@ class u_Bare extends OStdModule {
         $outs = [];
         foreach ($parts as $a) {
 
-            if (is_string($a)) {
-                if ($a === '') {
-                    $a = '(nothing)';
-                }
+            if ($a === '') {
+                $a = '(empty string)';
+            }
+            else if ($a === false) {
+                $a = 'false';
+            }
+            else if (is_string($a)) {
+                // keep as-is, no quotes
             }
             else {
-                $a = Tht::module('Json')->u_format($a);
+                $rawJson = Tht::module('Json')->u_encode($a);
+                $a = Tht::module('Json')->u_format($rawJson);
+
+                $a = OClass::tokensToBareStrings($a);
             }
 
-            $a = preg_replace("/'<<<(.*?)>>>'/", '<$1>', $a);
             if (Tht::isMode('web')) {
                 $a = htmlentities($a);
             }
@@ -47,35 +54,42 @@ class u_Bare extends OStdModule {
             echo $out, "\n";
         }
 
-        return new \o\ONothing('print');
+        return EMPTY_RETURN;
     }
 
     function u_load($relPath) {
+
         $this->ARGS('s', func_get_args());
+
         return ModuleManager::loadUserModule($relPath);
     }
 
+    // PERF: This is about 5x slower than a flat C-style for loop.
+    // I tried flattening in PhpEmitter, but handling both ascending
+    // and descending ranges got overcomplicated.
+    // TODO: Revisit flattening to standard loop.
     function u_range ($start, $end, $step=1) {
 
-        $this->ARGS('nnn', func_get_args());
+        $this->ARGS('nnN', func_get_args());
 
-        if ($step <= 0) {
-            $this->error('Step argument ' . $step . ' must be positive');
-        }
-
+        $i = ONE_INDEX - 1;
         if ($start < $end) {
-            for ($i = $start; $i <= $end; $i += $step) {
-                yield $i;
+            for ($num = $start; $num <= $end; $num += $step) {
+                $i += 1;
+                yield $i => $num;
             }
         } else {
-            for ($i = $start; $i >= $end; $i -= $step) {
-                yield $i;
+            for ($num = $start; $num >= $end; $num -= $step) {
+                $i += 1;
+                yield $i => $num;
             }
         }
     }
 
     function u_die ($msg, $data=null) {
+
         $this->ARGS('s*', func_get_args());
+
         ErrorHandler::addOrigin('die');
         Tht::error($msg, $data);
     }

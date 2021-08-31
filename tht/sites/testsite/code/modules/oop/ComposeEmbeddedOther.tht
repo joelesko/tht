@@ -1,0 +1,13 @@
+
+
+class ComposeEmbeddedOther {
+
+    public fn conflictMethod {
+        return 'embeddedMethodOther'
+    }
+
+    fn noConflictPrivate { }
+
+}
+
+

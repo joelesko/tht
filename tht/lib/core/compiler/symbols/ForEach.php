@@ -36,11 +36,11 @@ class S_ForEach extends S_Statement {
         $this->addKid($p->symbol);
         $p->next();
 
-        // $key:$value alias.  foreach ($map as $k:$v) { ... }
-        if ($p->symbol->isValue(',')) {
-            $p->space('x,S', true)->next();
+        // `$key/$value` alias.  foreach ($map as $k/$v) { ... }
+        if ($p->symbol->isValue('/')) {
+            $p->space('x/x', true)->next();
             if ($p->symbol->type !== SymbolType::USER_VAR) {
-                $p->error('Expected a key/value pair.  Ex: `foreach $users as $userName, $age { ... }`');
+                $p->error('Expected a key/value pair.  Ex: `foreach $users as $userName/$age { ... }`');
             }
             $p->validator->defineVar($p->symbol, true);
             $this->addKid($p->symbol);

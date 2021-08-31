@@ -10,12 +10,12 @@ class OTemplate {
         $str = '';
 
         foreach ($this->chunks as $c) {
-            $str .= $c['type'] === 'static' ? $c['body'] : $this->handleDynamic($c['context'], $c['body']);
+            $str .= $c['type'] === 'static' ? $c['val'] : $this->handleDynamic($c['context'], $c['indent'], $c['val']);
         }
 
         $str = $this->postProcess($str);
         if (is_string($str)) {
-            $str = v($str)->u_trim_indent() . "\n";
+            $str = v($str)->u_trim_indent(OMap::create(['keepRelative' => true])) . "\n";
         }
 
         if ($this->returnStringType) {
@@ -23,30 +23,36 @@ class OTemplate {
         } else {
             return $str;
         }
-
     }
 
     function addStatic($s) {
-        $this->chunks []= ['type' => 'static', 'body' => $s];
+        $this->chunks []= ['type' => 'static', 'val' => $s];
     }
 
-    function addDynamic ($context, $s) {
-        $this->chunks []= ['type' => 'dynamic', 'body' => $s, 'context' => $context];
+    function addDynamic ($contextRaw, $s) {
+        list($context, $indent) = explode(':', $contextRaw);
+        $s = $this->onAddDynamic($context, $s);
+        $this->chunks []= [
+            'type' => 'dynamic',
+            'val' => $s,
+            'indent' => $indent,
+            'context' => $context
+        ];
     }
 
-    function handleDynamic($context, $in) {
+    function handleDynamic($context, $indent, $val) {
 
         $out = '';
-        if (OList::isa($in)) {
-            foreach ($in as $chunk) {
-                $out .= $this->handleDynamic($context, $chunk);
+        if (OList::isa($val)) {
+            foreach ($val as $v) {
+                $out .= $this->handleDynamic($context, $indent, $v);
             }
         }
-        else if (OTypeString::isa($in)) {
-            $out = $this->handleTypeString($context, $in);
+        else if (OTypeString::isa($val)) {
+            $out = $this->handleTypeString($context, $val);
         }
         else {
-            $out = $this->escape($context, $in);
+            $out = $this->escape($context, $val);
         }
 
         return $out;
@@ -57,6 +63,10 @@ class OTemplate {
     }
 
     function postProcess($s) {
+        return $s;
+    }
+
+    function onAddDynamic($context, $s) {
         return $s;
     }
 
@@ -77,6 +87,7 @@ class OTemplate {
 ////////// TYPES //////////
 
 class TemplateHtml extends OTemplate {
+
     protected $returnStringType = 'html';
 
     function escape($context, $in) {
@@ -85,6 +96,10 @@ class TemplateHtml extends OTemplate {
             $esc = Security::sanitizeHtmlPlaceholder($esc);
         }
         return $esc;
+    }
+
+    function onAddDynamic($context, $s) {
+        return $s;
     }
 
     function handleTypeString($context, $s) {
@@ -97,10 +112,10 @@ class TemplateHtml extends OTemplate {
             return $plain;
         }
         else if ($type == 'css') {
-            return Tht::module('Css')->wrap($plain);
+            return Tht::module('Output')->wrapCss($plain);
         }
         else if ($type == 'js') {
-            return Tht::module('Js')->wrap($plain);
+            return Tht::module('Output')->wrapJs($plain);
         }
         else if ($type == 'url') {
             return $this->escape('url', $plain);
@@ -110,19 +125,19 @@ class TemplateHtml extends OTemplate {
     }
 }
 
-class TemplateLite extends TemplateHtml {}
+class TemplatLm extends TemplateHtml {}
 
 class TemplateJs extends OTemplate {
     protected $returnStringType = 'js';
     function escape($context, $in) {
-        return Tht::module('Js')->escape($in);
+        return Tht::module('Output')->escapeJs($in);
     }
 }
 
 class TemplateCss extends OTemplate {
     protected $returnStringType = 'css';
     function escape($context, $in) {
-        return Tht::module('Css')->escape($in);
+        return Tht::module('Output')->escapeCss($in);
     }
 }
 
@@ -132,7 +147,7 @@ class TemplateJcon extends OTemplate {
     function escape($context, $in) {
         if (is_bool($in)) {
             return $in ? 'true' : 'false';
-        } else if (is_numeric($in) || is_string($in)) {
+        } else if (vIsNumber($in) || is_string($in)) {
             $in = str_replace("\n", '\\n', $in);
             return $in;
         } else {

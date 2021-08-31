@@ -1,0 +1,74 @@
+
+// Used for creating screenshots of the THT error page with stack trace.
+
+
+fn autoFunction() {
+    userToJson({ username: 'rainbow123', id: 3692 })
+}
+
+fn main() {
+
+    $allUsers = getUsers(true).map(x{ $a['name'] })
+    $users = filterUsers($allUsers, true)
+    Input.printAll('get')
+
+}
+
+
+
+fn getUsers($doFilter) {
+    $allUsers = [
+        { id: 1, name: 'tacotime33' },
+        { id: 2, name: 'puppydog1' },
+        { id: 3, name: 'sidchip64' },
+    ]
+
+    return $allUsers
+}
+
+
+
+
+
+
+
+fn filterUsers($allUsers, $sort) {
+
+    foreach $allUsers as $u {
+        print(formatUserName($u))
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fn formatUserName($username) {
+   // $a = Math.cos()
+
+    return $username.toLower()
+}
+
+
+
+
+
+fn userToJson($user) {
+    return Json.stringify($user)
+}
+

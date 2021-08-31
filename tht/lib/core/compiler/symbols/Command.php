@@ -3,6 +3,8 @@
 namespace o;
 
 class S_Command extends S_Statement {
+
+    var $bindingPower = 0;
     var $type = SymbolType::COMMAND;
 
     // e.g. continue, break
@@ -21,3 +23,4 @@ class S_Command extends S_Statement {
         return $this;
     }
 }
+

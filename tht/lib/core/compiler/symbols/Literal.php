@@ -10,7 +10,7 @@ class S_Literal extends Symbol {
         if ($this->isValue('@')) {
             // allow use inside anon functions
             if (!$p->inClass && !$p->anonFunctionDepth && !$p->lambdaDepth) {
-                $p->error("Can't use `@` outside of an object.", $this->token);
+                $p->error("Can not use `@` outside of an object.", $this->token);
             }
         }
 
@@ -28,6 +28,20 @@ class S_Constant extends S_Name {
     var $type = SymbolType::CONSTANT;
 }
 
+class S_Boolean extends S_Literal {
+    var $type = SymbolType::BOOLEAN;
+}
+
 class S_Flag extends S_Literal {
+
     var $type = SymbolType::FLAG;
+
+    function asLeft($p) {
+
+        $p->next();
+
+        $p->validator->validateFlagFormat($this->getValue(), $this->token);
+
+        return $this;
+    }
 }

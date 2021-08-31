@@ -6,163 +6,269 @@ require_once('helpers/RequestData.php');
 
 class u_Input extends OStdModule {
 
-    private $forms = [];
     private $processedUpload = [];
 
-    public static $lastUploadError = '';
+    private static $uploadError = '';
+//    private $allowRemote = false;
 
     static private $IMAGE_MAX_DIMENSION = 2000;
     static private $IMAGE_JPEG_COMPRESSION = 90;
 
-    // Misc Getters
-
-    function u_is_post() {
-        return Tht::module('Request')->u_method() == 'post';
+    static function setUploadError($errorMsg) {
+        self::$uploadError = $errorMsg;
     }
 
-    function u_route ($key) {
-        $this->ARGS('s', func_get_args());
-        return WebMode::getWebRouteParam($key);
+    // function __construct($allowRemote = false) {
+    //     $this->allowRemote = $allowRemote;
+    // }
+
+    function getData($method) {
+        return new u_RequestData ($method);
     }
 
-    function u_form ($formId, $schema=null) {
-        $this->ARGS('sm', func_get_args());
-        if (is_null($schema)) {
-            if (isset($this->forms[$formId])) {
-                return $this->forms[$formId];
-            }
-            else {
-                Tht::error("Unknown formId `$formId`");
-            }
+
+    // Meta Getters
+    //------------------------------------------------
+
+    // function u_x_danger_allow_remote() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return new u_Input(true);
+    // }
+
+    function u_route($key, $rule = 'id', $default = null) {
+
+        $this->ARGS('s**', func_get_args());
+
+        $val = WebMode::getWebRouteParam($key, '');
+
+        $result = $this->u_validate_value($key, $val, $rule);
+
+        return $this->getFieldResult($result, $default);
+    }
+
+    function u_get($fieldName, $rule='', $default = null) {
+
+        $this->ARGS('ss*', func_get_args());
+
+        $rd = new u_RequestData ('get');
+
+        $result = $rd->getField($fieldName, $rule);
+
+        return $this->getFieldResult($result, $default);
+    }
+
+    function u_post($fieldName, $rule='', $default = null) {
+
+        $this->ARGS('ss*', func_get_args());
+
+        $rd = new u_RequestData ('post');
+
+        $result = $rd->getField($fieldName, $rule);
+
+        return $this->getFieldResult($result, $default);
+    }
+
+    function getFieldResult($result, $default) {
+
+        if ($result['ok']) {
+            return $result['value'];
         }
-
-        require_once('Form.php');
-        $f = new u_Form ($formId, $schema);
-        $this->forms[$formId] = $f;
-        return $f;
+        else {
+            return is_null($default) ? $result['value'] : $default;
+        }
     }
-
-
-    // Get Single Field
-
-    function u_get($name, $sRules='') {
-        $this->ARGS('ss', func_get_args());
-        $getter = new u_RequestData ('get');
-        return $getter->field($name, $sRules)['value'];
-    }
-
-    function u_post($name, $sRules='') {
-        $this->ARGS('ss', func_get_args());
-        $getter = new u_RequestData ('post');
-        return $getter->field($name, $sRules)['value'];
-    }
-
-    function u_remote($method, $fieldName, $sRules='') {
-        $this->ARGS('sss', func_get_args());
-        $getter = new u_RequestData ($method);
-        return $getter->field($fieldName, $sRules)['value'];
-    }
-
-
-    // Get Map of Fields
 
     function u_get_all($rules) {
+
         $this->ARGS('m', func_get_args());
-        $getter = new u_RequestData ('get');
-        return $getter->fields($rules);
+
+        $fieldConfig = [];
+        foreach ($rules as $field => $r) {
+            $fieldConfig[$field] = ['rule' => $r];
+        }
+
+        $rd = $this->getData('get');
+        return $rd->getFields($fieldConfig);
     }
 
     function u_post_all($rules) {
+
         $this->ARGS('m', func_get_args());
-        $getter = new u_RequestData ('post');
-        return $getter->fields($rules);
+
+        $fieldConfig = [];
+        foreach ($rules as $field => $r) {
+            $fieldConfig[$field] = ['rule' => $r];
+        }
+
+        $rd = $this->getData('post');
+
+        return $rd->getFields($fieldConfig);
     }
 
-    function u_remote_all($method, $rules) {
-        $this->ARGS('sm', func_get_args());
-        $getter = new u_RequestData ($method, true);
-        return $getter->fields($rules);
-    }
+    // Other Getters
+    //------------------------------------------------
 
-    function u_print_all($method) {
-        $this->ARGS('s', func_get_args());
-        $data = Tht::getPhpGlobal($method, '*', []);
-        $all = OMap::create($data);
+    function u_print_all() {
+
+        $this->ARGS('', func_get_args());
+
+        $post = $this->getData('post');
+        $get  = $this->getData('get');
+
+        $all = v([
+            'get'  => $get->getAllRawFields(),
+            'post' => $post->getAllRawFields(),
+     //       'allowRemotePost' => $this->allowRemote,
+        ]);
+
         Security::safePrint($all);
+
+        return EMPTY_RETURN;
     }
 
+    function u_x_danger_raw_data($method) {
 
-    // Meta-Getters
-
-    function u_fields($method) {
         $this->ARGS('s', func_get_args());
-        $getter = new u_RequestData ($method);
-        return OList::create($getter->fieldNames());
+
+        $rd = $this->getData($method);
+
+        $rawData = $rd->getAllRawFields();
+
+        return $rawData;
     }
 
-    function u_has_field($method, $fieldName) {
+    function u_field_names($method) {
+
+        $this->ARGS('s', func_get_args());
+
+        $rd = $this->getData($method);
+
+        return $rd->getFieldNames();
+    }
+
+    function u_has_field($fieldName, $method) {
+
         $this->ARGS('ss', func_get_args());
-        $getter = new u_RequestData ($method);
-        return $getter->hasField($fieldName);
+
+        $rd = $this->getData($method);
+
+        return $rd->hasField($fieldName);
     }
 
-    function u_validate($fieldName, $val, $rules) {
-        $this->ARGS('s*s', func_get_args());
+
+    // Manual Validation
+    //------------------------------------------------
+
+    function u_validate_value($name, $val, $rule) {
+
+        // TODO: Map/String
+        $this->ARGS('s**', func_get_args());
+
         $validator = new u_InputValidator ();
-        $validated = $validator->validateField($fieldName, $val, $rules);
+        $validated = $validator->validateField($name, $val, $rule);
 
-        return OMap::create($validated);
+        unset($validated['field']);
+
+        return $validated;
     }
 
-    function u_uploaded_file($key, $uploadDir, $allowedExts) {
+    // internal
+    function validateRawFields($rulesMap, $rawVals) {
 
-        $this->ARGS('ssl', func_get_args());
+        $validator = new u_InputValidator ();
+        $validated = $validator->validateFields($rawVals, $rulesMap);
 
-        Security::validatePostRequest();
-        self::$lastUploadError = '';
+        return v($validated);
+    }
+
+
+
+    // Uploads
+    //------------------------------------------------
+
+    function u_get_uploaded_file($key, $uploadDir, $allowedExts, $maxSizeKb=0) {
+
+        $this->ARGS('ssli', func_get_args());
+
+        self::$uploadError = '';
 
         $files = OMap::create(Tht::getPhpGlobal('files', '*'));
 
-        if (isset($files[$key])) {
-            $file = $files[$key];
-            $fileExt = Security::validateUploadedFile($file, $allowedExts);
-            if ($fileExt) {
-                $newName = Tht::module('String')->u_random(20, true) . '.' . $fileExt;
-                $newDir = Tht::path('files', $uploadDir);
-                Tht::module('File')->u_make_dir($newDir);
-                $newPath = Tht::path('files', $uploadDir, $newName);
-                move_uploaded_file($file['tmp_name'], $newPath);
-
-                $relPath = Tht::getRelativePath('files', $newPath);
-
-                return $relPath;
-            }
+        if (!isset($files[$key])) {
+            // Invalid key.
+            return '';
         }
 
-        return '';
+        $file = $files[$key];
+
+        if (!$this->validateFileSize($file, $maxSizeKb)) {
+            // File is too large.
+            return '';
+        }
+
+        $fileExt = Security::validateUploadedFile($file, $allowedExts);
+        if (!$fileExt) {
+            // Invalid extension.
+            return '';
+        }
+
+        // Make sure dir exists.
+        $newDir = Tht::path('files', $uploadDir);
+        Tht::module('File')->u_make_dir($newDir);
+
+        // Move file to dir with a random name.
+        $newName = Tht::module('String')->u_random(30) . '.' . $fileExt;
+        $newPath = Tht::path('files', $uploadDir, $newName);
+        move_uploaded_file($file['tmp_name'], $newPath);
+
+        $relPath = Tht::getRelativePath('files', $newPath);
+
+        return $relPath;
     }
 
-    function u_uploaded_image($key, $uploadDir, $maxX, $maxY) {
+    function validateFileSize($file, $maxSizeKb) {
 
-        $this->ARGS('ssnn', func_get_args());
+        if (!$maxSizeKb) { return true; }
 
-        Security::validatePostRequest();
-        self::$lastUploadError = '';
+        $sizeKb = ceil($file['size'] / 1024);
+        if ($sizeKb > $maxSizeKb) {
+            self::$uploadError = "File size ($sizeKb KB) can not be larger than $maxSizeKb KB.";
+            return false;
+        }
+
+        return true;
+    }
+
+    function u_get_uploaded_image($key, $uploadDir, $size='500x500', $flags=null) {
+
+        $this->ARGS('sssm', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'exactSize' => false,
+        ]);
+
+        if (!preg_match('#\d+x\d+#', $size)) {
+            $this->error("Size argument must be in the format of `HxY`.  Ex: `500x500` Got: `$size`.");
+        }
+        list($sizeX, $sizeY) = explode('x', $size);
+
+        self::$uploadError = '';
 
         if (isset($this->processedUpload[$key])) {
             return $this->processedUpload[$key];
         }
 
-        // Large files can take around 40 MB
-        ini_set('memory_limit', '100M');
+        $exts = OList::create(['png', 'jpg', 'jpeg', 'gif']);
+        $tempRelPath = $this->u_get_uploaded_file($key, $uploadDir, $exts);
 
-        $tempRelPath = $this->u_uploaded_file($key, $uploadDir, OList::create(['png', 'jpg', 'jpeg', 'gif']));
         if (!$tempRelPath) {
             $newRelPath = '';
         }
         else {
             $newRelPath = preg_replace('/\\.\\w+$/', '.jpg', $tempRelPath);
-            $ok = $this->resizeImage($tempRelPath, $newRelPath, $maxX, $maxY);
+            $ok = $this->resizeImage($tempRelPath, $newRelPath, $sizeX, $sizeY, $flags['exactSize']);
             $newRelPath = $ok ? $newRelPath : '';
         }
 
@@ -171,9 +277,13 @@ class u_Input extends OStdModule {
         return $newRelPath;
     }
 
-    function resizeImage($origRelPath, $newRelPath, $maxX, $maxY) {
+    // TODO: Move to Image helper?
+    // TODO: Can break this up into smaller functions, probably.
+    // Always output as jpeg for now.  No risk of being re-optimized by Image.optimize().
+    function resizeImage($origRelPath, $newRelPath, $maxX, $maxY, $exactSize) {
 
-        $this->ARGS('ssnn', func_get_args());
+        // Large files can take around 40 MB
+        ini_set('memory_limit', '100M');
 
         $origPath = Tht::path('files', $origRelPath);
         $newPath  = Tht::path('files', $newRelPath);
@@ -181,51 +291,72 @@ class u_Input extends OStdModule {
         list($origX, $origY) = getimagesize($origPath);
 
         if ($origX > self::$IMAGE_MAX_DIMENSION || $origY > self::$IMAGE_MAX_DIMENSION) {
+
             unlink($origPath);
-            self::$lastUploadError = 'File dimensions too large.  Maximum is ' . self::$IMAGE_MAX_DIMENSION . ' x ' . self::$IMAGE_MAX_DIMENSION;
+            self::$uploadError = 'File dimensions too large.  Maximum is '
+                 . self::$IMAGE_MAX_DIMENSION . ' x ' . self::$IMAGE_MAX_DIMENSION;
+
             return false;
         }
 
-        $ratioX = $origX / $maxX;
-        $ratioY = $origY / $maxY;
+        if ($exactSize) {
 
-        // expand the dimension that is furthest from the max,
-        // and allow other dimension to be cropped
-        if ($ratioX < $ratioY) {
-            $newX = $maxX;
-            $newY = $origY + floor((($newX - $origX) / $origX) * $origY);
-            $shiftY = floor(($maxY - $newY) / 2);
-            $shiftX = 0;
-        } else {
-            $newY = $maxY;
-            $newX = $origX + floor((($newY - $origY) / $origY) * $origX);
-            $shiftX = floor(($maxX - $newX) / 2);
-            $shiftY = 0;
+            // Expand the dimension that is furthest from the max,
+            // and crop the other dimension.
+
+            $ratioX = $origX / $maxX;
+            $ratioY = $origY / $maxY;
+
+            if ($ratioX < $ratioY) {
+                $newX = $maxX;
+                $newY = $origY + floor((($newX - $origX) / $origX) * $origY);
+                $shiftY = floor(($maxY - $newY) / 2);
+                $shiftX = 0;
+            }
+            else {
+                $newY = $maxY;
+                $newX = $origX + floor((($newY - $origY) / $origY) * $origX);
+                $shiftX = floor(($maxX - $newX) / 2);
+                $shiftY = 0;
+            }
+
+            $canvasX = $maxX;
+            $canvasY = $maxY;
+
         }
+        else {
 
-        // Scale only
-        // if ($origX > $origY) {
-        //     // horizontal
-        //     $ratio = $maxX / $origX;
-        //     $newX = $maxX;
-        //     $newY = $ratio * $origY;
-        // }
-        // else {
-        //     // vertical
-        //     $ratio = $maxY / $origY;
-        //     $newY = $maxY;
-        //     $newX = $ratio * $origX;
-        // }
+            // Scale along the largest dimension
+
+            $shiftX = 0;
+            $shiftY = 0;
+
+            if ($origX > $origY) {
+                // Horizontal (landscape)
+                $newX = $maxX;
+                $ratioX = $maxX / $origX;
+                $newY = $ratioX * $origY;
+            }
+            else {
+                // Vertical (portrait)
+                $newY = $maxY;
+                $ratioY = $maxY / $origY;
+                $newX = $ratioY * $origX;
+            }
+
+            $canvasX = $newX;
+            $canvasY = $newY;
+        }
 
         $type = $this->getImageType($origPath);
         if (!$type) {
-            self::$lastUploadError = 'Unsupported image type.  Only `.jpg`, `.png`, `.gif` are allowed.';
+            self::$uploadError = 'Unsupported image type.  Only `.jpg`, `.png`, `.gif` are allowed.';
             return '';
         }
 
         $fn = 'imagecreatefrom' . $type;
         $src = $fn($origPath);
-        $dst = imagecreatetruecolor($maxX, $maxY);
+        $dst = imagecreatetruecolor($canvasX, $canvasY);
 
         imagecopyresampled($dst, $src, $shiftX, $shiftY, 0, 0, $newX, $newY, $origX, $origY);
 
@@ -236,21 +367,27 @@ class u_Input extends OStdModule {
         return $ok;
     }
 
-    function u_last_upload_error() {
+    function u_get_upload_error() {
+
         $this->ARGS('', func_get_args());
-        return self::$lastUploadError;
+
+        return self::$uploadError;
     }
 
     function getImageType($filePath) {
+
         $mime = Tht::module('*File')->u_get_mime_type($filePath);
+
         $types = [
             'image/jpeg' => 'jpeg',
             'image/png'  => 'png',
             'image/gif'  => 'gif',
         ];
+
         if (!isset($types[$mime])) {
             return '';
         }
+
         return $types[$mime];
     }
 }

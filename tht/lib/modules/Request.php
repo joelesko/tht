@@ -8,6 +8,7 @@ class u_Request extends OStdModule {
     private $url = null;
 
     function u_print_info () {
+
         $this->ARGS('', func_get_args());
 
         $dump = Tht::getInfoDump();
@@ -15,13 +16,18 @@ class u_Request extends OStdModule {
         Security::safePrint($dump);
     }
 
-    function u_ip($allIps=false) {
-        $this->ARGS('f', func_get_args());
+    function u_get_ip($flags=null) {
+
+        $this->ARGS('m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'all'  => false,
+        ]);
 
         $ip = Tht::getPhpGlobal('server', 'REMOTE_ADDR');
         $ips = preg_split('/\s*,\s*/', $ip);
 
-        if ($allIps) {
+        if ($flags['all']) {
             return OList::create($ips);
         } else {
             return $ips[0];
@@ -30,37 +36,49 @@ class u_Request extends OStdModule {
 
     // TODO: support proxies (via HTTP_X_FORWARDED_PROTO?)
     function u_is_https () {
+
         $this->ARGS('', func_get_args());
+
         $https = Tht::getPhpGlobal('server', 'HTTPS');
         $port = Tht::getPhpGlobal('server', 'SERVER_PORT');
 
         return (!empty($https) && $https !== 'off') || intval($port) === 443;
     }
 
-    function u_user_agent() {
+    function u_get_user_agent() {
+
         $this->ARGS('', func_get_args());
+
         if ($this->userAgent) {
             return $this->userAgent;
         }
+
         $rawUa = Tht::getPhpGlobal('server', 'HTTP_USER_AGENT');
         $ua = $this->parseUserAgent($rawUa);
         $this->userAgent = OMap::create($ua);
+
         return $this->userAgent;
     }
 
-    function u_method() {
+    function u_get_method() {
+
         $this->ARGS('', func_get_args());
+
         $method = strtolower(Tht::getPhpGlobal('server', 'REQUEST_METHOD'));
+
         return $method;
     }
 
-    function u_referrer() {
+    function u_get_referrer() {
+
         $this->ARGS('', func_get_args());
-        return Tht::getPhpGlobal('headers', 'referrer');
+
+        return Tht::getPhpGlobal('server', 'HTTP_REFERER');
     }
 
     // THANKS: http://www.thefutureoftheweb.com/blog/use-accept-language-header
-    function u_languages () {
+    function u_get_languages () {
+
         $this->ARGS('', func_get_args());
 
         $langs = [];
@@ -81,18 +99,25 @@ class u_Request extends OStdModule {
     }
 
     function u_is_ajax () {
+
         $this->ARGS('', func_get_args());
+
         $requestedWith = Tht::getPhpGlobal('headers', 'x-requested-with');
+
         return (strtolower($requestedWith) === 'xmlhttprequest');
     }
 
-    function u_headers() {
+    function u_get_headers() {
+
         $this->ARGS('', func_get_args());
+
         $headers = Tht::getPhpGlobal('headers', '*');
+
         return OMap::create($headers);
     }
 
-    function u_url() {
+    function u_get_url() {
+
         $this->ARGS('', func_get_args());
 
         if ($this->url) {
@@ -118,15 +143,26 @@ class u_Request extends OStdModule {
 
 
     function relativeUrl() {
-        $path = Tht::getPhpGlobal('server', "REQUEST_URI");  // SCRIPT_URL
-        if (!$path) {
-            // Look for PHP dev server path instead.
-            $path = Tht::getPhpGlobal('server', "SCRIPT_NAME");
-            if (!$path) {
-                Tht::configError("Unable to determine route path.  Only Apache and PHP dev server are supported.");
-            }
+
+        // Need to get from query to support FastCGI
+        $pathFromQuery = Tht::getPhpGlobal('get', "_url");
+        if ($pathFromQuery) {
+            // url is passed without leading slash
+            return '/' . $pathFromQuery;
         }
-        return $path;
+
+        $path = Tht::getPhpGlobal('server', "REQUEST_URI");  // SCRIPT_URL
+        if ($path) {
+            return $path;
+        }
+
+        // Look for PHP dev server path instead.
+        $path = Tht::getPhpGlobal('server', "SCRIPT_NAME");
+        if ($path) {
+            return $path;
+        }
+
+        Tht::configError("Unable to determine route path.  Only Apache and PHP dev server are supported.");
     }
 
     // Very basic parsing to get browser & OS.

@@ -2,20 +2,21 @@
 
 namespace o;
 
+define('EMPTY_RETURN', false);
 
 class Runtime {
 
-    static $TYPES = [ 'OList', 'OString', 'ONumber', 'OBoolean', 'OFunction', 'ONothing' ];
+    static $TYPES = [ 'OList', 'OString', 'ONumber', 'OBoolean', 'OFunction' ];
 
-    static $PHP_TO_TYPE = [
-        'string'  => 'OString',
-        'array'   => 'OList',
-        'map'     => 'OMap',
-        'boolean' => 'OBoolean',
-        'null'    => 'ONothing',
-        'double'  => 'ONumber',
-        'integer' => 'ONumber',
-        'Closure' => 'OFunction',
+    static $PHP_TO_THT_CLASS = [
+        'string'   => '\o\OString',
+        'resource' => '\o\OString',  // temp placeholder for stack traces
+        'array'    => '\o\OList',
+        'boolean'  => '\o\OBoolean',
+        'null'     => '\o\OBoolean',
+        'double'   => '\o\ONumber',
+        'integer'  => '\o\ONumber',
+        'Closure'  => '\o\OFunction',
     ];
 
     static $MODE_TO_TEMPLATE = [
@@ -23,30 +24,35 @@ class Runtime {
         'html'     => 'TemplateHtml',
         'js'       => 'TemplateJs',
         'css'      => 'TemplateCss',
-        'lite'     => 'TemplateLite',
+        'lm'       => 'TemplatLm',
         'jcon'     => 'TemplateJcon',
         'text'     => 'TemplateText'
     ];
 
-    static $SIG_TYPE_KEY_TO_LABEL = [
-        'n' => 'number',
-        's' => 'string',
-        'f' => 'boolean',
-        'l' => 'list',
-        'm' => 'map',
-        'c' => 'callable',
-    ];
-
-    static $SINGLE = [];
 
     static private $templateLevel = 0;
     static $andStack = [];
 
-    static function _initSingletons () {
-        foreach (self::$PHP_TO_TYPE as $php => $tht) {
-            $c = '\\o\\' . $tht;
-            self::$SINGLE[$php] = new $c ();
-        }
+    // See perf note below.
+    static $AUTOBOX_OBJECT = [];
+    // static function _initAutoboxObjects () {
+    //     foreach (self::$PHP_TO_THT_CLASS as $php => $thtClass) {
+    //         self::$AUTOBOX_OBJECT[$php] = new $thtClass ();
+    //     }
+    // }
+
+    // Perf: Originally I used pre-made singletons of every type,
+    // but it resulted in bugs around nested autoboxing.
+    // This is around 3x slower, but the absolute impact is almost zero.
+    // With 10,000 calls, it's about 0.5ms.
+    // TODO: Look into some kind of pooling. Really only impacts Strings
+    // since Lists and Maps are usually objects from the beginning.
+
+    static function autoBoxObject($phpType) {
+
+        $thtClass = self::$PHP_TO_THT_CLASS[$phpType];
+
+        return new $thtClass ();
     }
 
     static function openTemplate ($mode) {
@@ -73,44 +79,55 @@ class Runtime {
 
     static function andPush ($result) {
         array_push(self::$andStack, $result);
-        return $result;
+        return self::truthy($result);
     }
 
     static function andPop () {
         return array_pop(self::$andStack);
     }
 
+    // This was added to allow [] and {} to be falsey.
+    static function truthy ($v) {
+        if (is_object($v)) {
+            return $v->u_is_truthy();
+        }
+        else {
+            return $v;
+        }
+    }
+
     static function concat ($a, $b) {
+
         $sa = OTypeString::isa($a);
         $sb = OTypeString::isa($b);
+
         if ($sa || $sb) {
             if (!($sa && $sb)) {
-                Tht::error("Can't combine (~) a TypeString with a non-TypeString.");
+                Tht::error("Can not combine (~) a TypeString with a non-TypeString.");
             }
             return OTypeString::concat($a, $b);
-        } else {
+        }
+        else {
             return self::concatVal($a) . self::concatVal($b);
         }
     }
 
     static function concatVal ($v) {
+
         $t = gettype($v);
+
         if ($t === 'boolean') {
             return $v ? 'true' : 'false';
-        } else if ($t === 'integer' || $t === 'double' || $t === 'string'){
-            return '' . $v;
-        } else if ($t === 'null') {
-            return '';
-        } else if ($v instanceof ONothing) {
-            $v->error();
-        } else {
-            Tht::error("Can't combine (~) an array or object.");
         }
-    }
-
-    static function spaceship($a, $b) {
-        if ($a === $b) { return 0; }
-        return $a > $b ? 1 : -1;
+        else if ($t === 'integer' || $t === 'double' || $t === 'string'){
+            return '' . $v;
+        }
+        else if ($t === 'null') {
+            return '';
+        }
+        else {
+            Tht::error("Can not combine (~) an array or object.");
+        }
     }
 
     static function match($v, $pattern) {
@@ -133,5 +150,129 @@ class Runtime {
         }
     }
 
+    static function matchDie($matchVal) {
+        Tht::error('`match` value did not match any of the conditions, and there was no `default` condition.');
+    }
+
+    static function listFilter($list, $fn) {
+
+        // if (is_callable($list)) {
+        //     Tht::debug($list, $fn);
+        //     $leftFn = $list;
+        //     return function ($el, $i) use ($leftFn)  {
+
+        //     };
+        // }
+
+        $out = [];
+        foreach ($list as $i => $el) {
+            $ret = $fn($el, $i);
+            if ($ret === true) {
+                $out []= $el;
+            }
+            else if ($ret === false) {
+                continue;
+            }
+            else {
+                $out []= $ret;
+            }
+        }
+
+        return OList::create($out);
+    }
+
+    static function checkNumericArg($side, $op, $value) {
+
+        if (!vIsNumber($value)) {
+            $type = v($value)->u_type();
+
+            $tip = '';
+            if (is_string($value)) {
+                if ($op == '+')  {  $tip = "Did you mean `~`?"; }
+                if ($op == '+=') {  $tip = "Did you mean `~=`?"; }
+            }
+
+            Tht::error("$side side of `$op` must be a number. Got: $type $tip");
+        }
+    }
+
+    // TODO: These infix methods can probably be replaced with type inference at compile time,
+    // instead of doing them at runtime.
+    static function infixMath($arg1, $op, $arg2) {
+
+        self::checkNumericArg('Left', $op, $arg1);
+        self::checkNumericArg('Right', $op, $arg2);
+
+        $op = rtrim($op, '=');
+
+        switch ($op) {
+            case '+':  return $arg1 +  $arg2;
+            case '-':  return $arg1 -  $arg2;
+            case '*':  return $arg1 *  $arg2;
+            case '**': return $arg1 ** $arg2;
+
+            case '/':
+                if ($arg2 == 0) {
+                    Tht::error("Right side of division `$op` can not be zero.");
+                }
+                return $arg1 / $arg2;
+
+            case '%':
+                if ($arg2 == 0) {
+                    Tht::error("Right side of modulo `$op` can not be zero.");
+                }
+                return $arg1 % $arg2;
+        }
+    }
+
+    static function infixMathAssign($arg1, $op, $arg2) {
+
+        return self::infixMath($arg1, $op, $arg2);
+    }
+
+    static function checkComparisonArg($side, $op, $value) {
+        if (!is_numeric($value) && !is_string($value)) {
+            $type = v($value)->u_type();
+            Tht::error("$side side of comparison `$op` must be a number or string. Got: $type");
+        }
+    }
+
+    // Relative comparisons must be either strings or numbers
+    static function infixCompare($arg1, $op, $arg2) {
+
+        self::checkComparisonArg('Left', $op, $arg1);
+        self::checkComparisonArg('Right', $op, $arg2);
+
+        $t1 = v($arg1)->u_type();
+        $t2 = v($arg2)->u_type();
+
+        if ($t1 !== $t2) {
+            Tht::error("Left and right side of comparison `$op` must be of the same type. Got: $t1 & $t2");
+        }
+
+        switch ($op) {
+            case '>':   return $arg1 >   $arg2;
+            case '>=':  return $arg1 >=  $arg2;
+            case '<':   return $arg1 <   $arg2;
+            case '<=':  return $arg1 <=  $arg2;
+            case '<=>': return $arg1 <=> $arg2;
+        }
+    }
+
+    // Equals comparisons can be between any types
+    static function infixEquals($arg1, $arg2) {
+
+        // Use double equals to allow comparison of int with float
+        if (vIsNumber($arg1) && vIsNumber($arg2)) {
+            return $arg1 == $arg2;
+        }
+
+        return $arg1 === $arg2;
+    }
+
+    static function infixNotEquals($arg1, $arg2) {
+
+        return !self::infixEquals($arg1, $arg2);
+    }
 }
 

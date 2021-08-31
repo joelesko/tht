@@ -1,0 +1,33 @@
+fn main {
+
+    // Call `newPage` function in 'code/modules/App.tht'
+    $page = App.newPage()
+
+    // Set page specific fields and send to the browser
+    $page.setTitle('Home')
+         .setMain(pageHtml())
+         .send()
+}
+
+tm pageHtml() {
+
+    <h1> {{ Web.icon('check') }} Ready
+
+    <.subline> This app is ready for development.
+
+    <h2>Edit this page at:
+    <p> code/pages/<b>home.tht</>
+
+    <h2> code/pages/examples
+
+    <ul>
+       <li> <a href="/examples/hello"> hello.tht
+       <li> <a href="/examples/hello-html"> helloHtml.tht
+       <li> <a href="/examples/hello-page"> helloPage.tht
+       <li> <a href="/examples/hello-query?name=Your+Name"> helloQuery.tht
+       <li> <a href="/examples/hello-form"> helloForm.tht
+       <li> <a href="/examples/colors-route"> colorsRoute.tht
+       <li> <a href="/examples/contact-form"> contactForm.tht
+       <li> <a href="/examples/database"> database.tht
+    </>
+}
