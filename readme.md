@@ -1,4 +1,4 @@
-# THT Web Language
+# THT
 
 **THT is a programming language for server-side web development.**
 
