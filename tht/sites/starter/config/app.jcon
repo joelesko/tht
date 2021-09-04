@@ -1,6 +1,4 @@
 //  App Config
-//
-//  Email & Database config is located in `config/app.local.jcon`
 //--------------------------------------------------------------
 {
     //  Dynamic URL Routes
@@ -43,4 +41,9 @@
         // of THT. THanks!
         sendErrors: true
     }
+
+    // Email Config & Database Config
+    //---------------------------------------------------
+
+    // See `config/app.local.jcon`
 }
