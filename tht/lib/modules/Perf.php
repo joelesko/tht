@@ -303,9 +303,9 @@ class u_Perf extends OStdModule {
                     // See:  https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming
                     var perf = window.performance.getEntries()[0];
                     var stats = {
-                        network: perf.responseEnd - perf.responseStart,
-                        server: perf.requestEnd - perf.requestStart,
-                        client: perf.loadEventEnd - perf.responseEnd,
+                        network: Math.ceil(perf.responseEnd - perf.responseStart),
+                        server: Math.ceil(perf.requestEnd - perf.requestStart),
+                        client: Math.ceil(perf.loadEventEnd - perf.responseEnd),
                     };
 
                     var totalTime = stats.client + <?= $scriptTime ?> + stats.network;
