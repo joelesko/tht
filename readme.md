@@ -1,8 +1,8 @@
-# THT Web Language
+# THT
 
 **THT is a programming language for server-side web development.**
 
-Please visit **[tht-lang.org](https://tht-lang.org)**.
+Please visit **[tht.dev](https://tht.dev)**.
 
 
 ## Bugs & Feedback
