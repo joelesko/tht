@@ -59,11 +59,11 @@ class u_Date extends OStdModule {
 
         $this->ARGS('*', func_get_args());
 
-        if (is_string($dateArg)) {
-            return $this->createFromString($dateArg);
-        }
-        else if (is_numeric($dateArg)) {
+        if (is_numeric($dateArg)) {
             return $this->createFromUnixTime($dateArg);
+        }
+        else if (is_string($dateArg)) {
+            return $this->createFromString($dateArg);
         }
         else if (OMap::isa($dateArg)) {
             return $this->createFromMap($dateArg);
