@@ -11,7 +11,7 @@
     //---------------------------------------------------
 
     routes: {
-        /examples/colors-route/{color}: examples/colorsRoute.tht
+        /examples/colors-route/{color}: examples/routeColors.tht
     }
 
 
