@@ -40,7 +40,7 @@ tm linksHtml {
 
     <.panel style="margin-top: 8rem">
         <p> This page uses a route defined in <code>config/app.jcon</code> as:
-        <pre> /examples/colors-route/{color}: examples/colorsRoute.tht
+        <pre> /examples/colors-route/{color}: examples/routeColors.tht
         <small> Note: The word "route" doesn't need to be in the name.
     </>
 }
