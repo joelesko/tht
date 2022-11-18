@@ -252,7 +252,7 @@ class OClass implements \JsonSerializable {
 
     function oopError($msg) {
 
-        ErrorHandler::setHelpLink('/language-tour/classes-and-objects', 'Classes & Objects');
+        ErrorHandler::setHelpLink('/language-tour/oop/classes-and-objects', 'Classes & Objects');
         $this->error($msg);
     }
 

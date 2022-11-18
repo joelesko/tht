@@ -200,9 +200,17 @@ class ErrorPageHtml {
                 font-family: $monospace;
             }
 
+            .tht-error-trace-bullet {
+                font-family: arial, sans-serif;
+                display: inline-block;
+                width: 0.8em;
+                text-align: center;
+            }
+
             .tht-error-line-pointer {
                 color: #eac222;
-                font-size: 105%;
+                font-size: 110%;
+                font-family: arial, sans-serif;
             }
 
             .tht-error-file {

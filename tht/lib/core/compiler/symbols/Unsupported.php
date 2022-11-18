@@ -14,10 +14,10 @@ class S_Unsupported extends Symbol {
             'require'  => ['`load`',        'Modules', '/language-tour/modules'],
             'include'  => ['`load`',        'Modules', '/language-tour/modules'],
 
-            'final'     => ['',                     'Classes & Objects', '/language-tour/classes-and-objects'],
-            'protected' => ['',                     'Classes & Objects', '/language-tour/classes-and-objects'],
-            'abstract'  => ['',                     'Classes & Objects', '/language-tour/classes-and-objects'],
-            'new'       => ['Remove `new` keyword', 'Classes & Objects', '/language-tour/classes-and-objects'],
+            'final'     => ['',                     'Classes & Objects', '/language-tour/oop/classes-and-objects'],
+            'protected' => ['',                     'Classes & Objects', '/language-tour/oop/classes-and-objects'],
+            'abstract'  => ['',                     'Classes & Objects', '/language-tour/oop/classes-and-objects'],
+            'new'       => ['Remove `new` keyword', 'Classes & Objects', '/language-tour/oop/classes-and-objects'],
 
 
             'static' => ['Module-level variable or function',  'Modules', '/language-tour/modules'],

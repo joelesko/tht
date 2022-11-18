@@ -7,7 +7,7 @@ require_once('ErrorPageComponent.php');
 class ErrorPageSourceLine extends ErrorPageComponent {
 
     private $MAX_SOURCE_LINE_LENGTH = 60;
-    private $POINTER_CHAR = '🠕';
+    private $POINTER_CHAR = '↑';
 
     private $isLongLine = false;
 
@@ -63,7 +63,7 @@ class ErrorPageSourceLine extends ErrorPageComponent {
 
         $fmtLine = $prefix . $line;
 
-        // Pointer (🠕)
+        // Pointer (↑)
         $pointer = "";
         if ($pos !== null && $pos >= $numSpaces) {
             $pointerPos = $pos - ($numSpaces + 1) + strlen($prefix);

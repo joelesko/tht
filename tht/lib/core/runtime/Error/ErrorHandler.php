@@ -136,7 +136,7 @@ class ErrorHandler {
     static function setOopHelpLink() {
 
         self::setHelpLink(
-            '/language-tour/classes-and-objects',
+            '/language-tour/oop/classes-and-objects',
             'Classes & Objects'
         );
     }

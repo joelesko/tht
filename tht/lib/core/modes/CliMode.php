@@ -148,6 +148,9 @@ class CliMode {
         // TODO: Create missing app directories or config file?
         // TODO: Check local THT version and copy to app if updated
 
+        echo "- Copying local THT runtime to app...\n";
+        self::copyLocalThtRuntimeToApp();
+
         self::printHeaderBox('Done!');
 
         flush();
@@ -247,11 +250,7 @@ class CliMode {
             // Make a local copy of the THT runtime to app tree
             Tht::module('*File')->u_copy_dir(__DIR__ . '/../../../sites/starter', $appDir);
 
-            // Copy THT runtime
-            $thtBinPath = Tht::realpath(dirname($_SERVER['SCRIPT_NAME']) . '/..');
-
-            Tht::module('*File')->u_copy_dir($thtBinPath . '/run', Tht::path('localTht', 'run'));
-            Tht::module('*File')->u_copy_dir($thtBinPath . '/lib', Tht::path('localTht', 'lib'));
+            self::copyLocalThtRuntimeToApp();
 
         } catch (\Exception $e) {
 
@@ -272,6 +271,14 @@ class CliMode {
         echo "\n\n";
 
         Tht::exitScript(0);
+    }
+
+    static private function copyLocalThtRuntimeToApp() {
+
+        $thtBinPath = Tht::realpath(dirname($_SERVER['SCRIPT_NAME']) . '/..');
+
+        Tht::module('*File')->u_copy_dir($thtBinPath . '/run', Tht::path('localTht', 'run'));
+        Tht::module('*File')->u_copy_dir($thtBinPath . '/lib', Tht::path('localTht', 'lib'));
     }
 
     static private function initNewAppBaseDirs($appDir) {

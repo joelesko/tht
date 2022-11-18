@@ -48,8 +48,8 @@ class S_OpenParen extends Symbol {
             if ($p->symbol->isValue(')')) { break; }
             $arg = $p->parseExpression(0);
             if ($arg->type == SymbolType::BOOLEAN) {
-                ErrorHandler::setHelpLink('/language-tour/flags', 'Flags');
-                $p->error('Can not use a Boolean as a function argument.  Try: Use a -flag instead.', $arg->token);
+                ErrorHandler::setHelpLink('/language-tour/option-maps', 'Option Maps');
+                $p->error('Can not use a Boolean as a function argument.  Try: Use an option map instead. Ex: `{ flag: true }`', $arg->token);
             }
             $args[]= $arg;
             if (!$p->symbol->isValue(",")) { break; }
