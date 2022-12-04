@@ -220,7 +220,7 @@ trait FormBuilder {
     }
 
     // TODO: flags is undocumented
-    function u_tag($fieldName, $atts=null, $flags = null) {
+    function u_tag($fieldName, $atts=null, $flags=null) {
 
         $this->ARGS('smm', func_get_args());
 
