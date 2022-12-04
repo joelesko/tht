@@ -6,7 +6,7 @@ class OVar extends OClass implements \JsonSerializable {
 
     public $val = null;
 
-    public function jsonSerialize() {
+    public function jsonSerialize():mixed {
         return $this->val;
     }
 

@@ -21,7 +21,7 @@ class OList extends OBag {
         'append'  => 'pushAll($items)',
     ];
 
-    public function jsonSerialize() {
+    public function jsonSerialize():mixed {
 
         if (!count($this->val)) {
             return '[EMPTY_LIST]';
@@ -225,14 +225,15 @@ class OList extends OBag {
 
         $pos = $this->checkIndex($apos);
 
-        if ($len <= 0) {
-            $len = null;
-        }
-
         $vlen = count($this->val);
         if ($pos + abs($len) > $vlen) {
             $alen = abs($len);
             $this->error("Arguments `index = $apos` & `length = $alen` are greater than List length `$vlen`.");
+        }
+
+        // Take all remaining elements
+        if ($len <= 0) {
+            $len = null;
         }
 
         return OList::create(

@@ -9,7 +9,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
     protected $isReadOnly = false;
     protected $hasNumericKeys = false;
 
-    function jsonSerialize() {
+    function jsonSerialize():mixed {
         Tht::debug('bag.serialize');
     }
 
@@ -90,14 +90,14 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
 
     // Countable
 
-    function count() {
+    function count():int {
 
         return count($this->val);
     }
 
     // ArrayAccess iterface (e.g. $var[1])
 
-    function checkNumericKey ($k) {
+    function checkNumericKey($k) {
 
         if ($this->hasNumericKeys) {
 
@@ -122,7 +122,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         return $k;
     }
 
-    function offsetGet ($k) {
+    function offsetGet($k):mixed {
 
         $k = $this->checkNumericKey($k);
 
@@ -137,7 +137,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         }
     }
 
-    function offsetSet ($ak, $v) {
+    function offsetSet($ak, $v):void {
 
         $k = $this->checkNumericKey($ak);
 
@@ -162,14 +162,14 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         }
     }
 
-    function offsetExists ($k) {
+    function offsetExists($k):bool {
 
         $k = $this->checkNumericKey($k);
 
         return isset($this->val[$k]);
     }
 
-    function offsetUnset ($k) {
+    function offsetUnset($k):void {
 
         $k = $this->checkNumericKey($k);
 
@@ -178,22 +178,21 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
 
     //// Iterator
 
-    function rewind () {
-
-        return reset($this->val);
+    function rewind():void {
+        reset($this->val);
     }
 
-    function current () {
+    function current():mixed {
 
         return current($this->val);
     }
 
-    function next () {
+    function next():void {
 
-        return next($this->val);
+        next($this->val);
     }
 
-    function key () {
+    function key():mixed {
 
         // Used for `foreach $list as $i, $v {...}`
         if ($this->hasNumericKeys && ONE_INDEX) {
@@ -203,7 +202,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         return key($this->val);
     }
 
-    function valid () {
+    function valid():bool {
 
         // if ($this->hasNumericKeys && ONE_INDEX) {
         //     $key -= 1;

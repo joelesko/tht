@@ -144,14 +144,14 @@ class ONumber extends OVar {
 
         $this->ARGS('', func_get_args());
 
-        return $this->val % 2 != 0;
+        return intval($this->val, 10) & 1;
     }
 
     function u_is_even() {
 
         $this->ARGS('', func_get_args());
 
-        return $this->val % 2 == 0;
+        return !(intval($this->val, 10) & 1);
     }
 
     function u_is_multiple_of($n) {

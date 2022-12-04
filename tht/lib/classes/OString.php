@@ -18,6 +18,8 @@ class OString extends OVar implements \ArrayAccess {
         'explode' => 'split(delimiter)',
         'find'    => 'indexOf(item), contains(item), match(regex)',
 
+        'replaceall' => 'replace()',
+
         'upper'       => 'upperCase()',
         'toupper'     => 'upperCase()',
         'touppercase' => 'upperCase()',
@@ -42,7 +44,7 @@ class OString extends OVar implements \ArrayAccess {
 
     // ArrayAccess iterface (e.g. $var[1])
 
-    function offsetGet ($k) {
+    function offsetGet($k):string {
 
         $k = $this->checkIndex($k, true);
 
@@ -55,7 +57,7 @@ class OString extends OVar implements \ArrayAccess {
 
     // Unfortunately, we can't do this because we can't autobox strings by reference.
     // And we can't do that because we also autobox expressions, which can't be passed by reference.
-    function offsetSet ($ak, $v) {
+    function offsetSet($ak, $v):void {
 
         if (is_null($ak)) {
             $this->error('Left side of `#=` must be a list. Got: string');
@@ -64,11 +66,11 @@ class OString extends OVar implements \ArrayAccess {
         $this->error('Can not use `[]` to set character on immutable string. Try: `.setChar($index, $newChar)`');
     }
 
-    function offsetExists ($k) {
+    function offsetExists($k):bool {
         // not used
     }
 
-    function offsetUnset ($k) {
+    function offsetUnset($k):void {
         // not used
     }
 
@@ -436,9 +438,23 @@ class OString extends OVar implements \ArrayAccess {
 
         $flags = $this->flags($flags, [
             'limit' => 0,
+            'first' => false,
         ]);
 
-        $limit = $flags['limit'] ? $flags['limit'] : -1;
+        $limit = $flags['limit'];
+        if ($flags['first']) {
+            $limit = 1;
+        }
+        else if ($flags['limit'] == 0) {
+            $limit = -1;
+        }
+        else if ($flags['limit'] < 0) {
+            $this->error("Option `limit` can not be negative. Got: `" . $flags['limit'] . "`");
+        }
+
+
+        $ret = $this->val;
+        $numReplaced = 0;
 
         if (ORegex::isa($find)) {
             $fn = is_callable($replace) ? 'preg_replace_callback' : 'preg_replace';
@@ -452,11 +468,25 @@ class OString extends OVar implements \ArrayAccess {
                     return $replace($mMap);
                 };
             }
-            return $fn($find->getPattern(), $replace, $this->val, $limit);
+
+            $ret = $fn($find->getPattern(), $replace, $this->val, $limit, $numReplaced);
         }
         else {
-            return str_replace($find, $replace, $this->val, $limit);
+            if ($limit > 0) {
+                $pos = strpos($this->val, $find);
+                if ($pos !== false) {
+                    $ret = substr_replace($this->val, $replace, $pos, strlen($find));
+                    $numReplaced = 1;
+                }
+            }
+            else {
+                $ret = str_replace($find, $replace, $this->val, $numReplaced);
+            }
         }
+
+        Tht::module('String')->lastReplaceCount = $numReplaced;
+
+        return $ret;
     }
 
     // Thanks: https://stackoverflow.com/questions/1454401/how-do-i-do-a-strtr-on-utf-8-in-php

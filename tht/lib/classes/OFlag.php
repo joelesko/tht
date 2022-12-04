@@ -65,7 +65,7 @@ class OFlag extends OVar {
         return OClass::getStringToken('Flag', $fmt);
     }
 
-    public function jsonSerialize() {
+    public function jsonSerialize():mixed {
 
         return $this->toStringToken();
     }

@@ -14,7 +14,7 @@ class OMap extends OBag {
     ];
 
 
-    public function jsonSerialize() {
+    public function jsonSerialize():mixed {
 
         if (!count($this->val)) {
             return '{EMPTY_MAP}';
@@ -25,6 +25,11 @@ class OMap extends OBag {
 
     static function create ($ary) {
         $m = new OMap ();
+
+        if (is_object($ary)) {
+            $ary = $ary->val;
+        }
+
         $m->setVal($ary);
         return $m;
     }

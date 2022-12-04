@@ -86,7 +86,7 @@ trait HookMethods {
     // TODO: This should probably be handled by a onToJson hook.
     // Problem is right now, `print` serializes via json.
     // Print should always get the token, but json should actually serialize.
-    function jsonSerialize() {
+    function jsonSerialize():mixed {
 
         return $this->toStringToken();
     }
