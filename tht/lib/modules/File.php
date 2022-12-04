@@ -27,13 +27,12 @@ class u_File extends OStdModule {
             Tht::module('Meta')->u_no_template_mode();
         }
 
-        // Validate each argument against a validation pattern
+        // Validate each argument against a validation pattern.
+        // There should be exactly one pattern for every argument.
         $fargs = [];
-        if ($validationList) {
-            $validationPatterns = explode("|", $validationList);
-            foreach ($args as $a) {
-                $fargs []= $this->checkArg($a, array_shift($validationPatterns));
-            }
+        $validationPatterns = explode("|", $validationList);
+        foreach ($args as $a) {
+            $fargs []= $this->checkArg($a, array_shift($validationPatterns));
         }
 
         $perfDetail = is_string($args[0]) ? $args[0] : '';
@@ -286,7 +285,7 @@ class u_File extends OStdModule {
 
         $path = str_replace('\\', '/', $path);
         $this->validatePath($path, true);
-        $info = $this->_call('pathinfo', [$path]);
+        $info = $this->_call('pathinfo', [$path], 'path,exists');
 
         $dirs = explode('/', trim($info['dirname'], '/'));
         $dirList = [];
@@ -576,7 +575,7 @@ class u_File extends OStdModule {
         $this->ARGS('ss', func_get_args());
 
         if (!is_dir($dest)) {
-            $this->_call('mkdir', [$dest, 0755]);
+            $this->_call('mkdir', [$dest, 0755], 'path|*');
         }
 
         // recursively copy dir contents
@@ -596,7 +595,7 @@ class u_File extends OStdModule {
             }
             else {
                 // copy file
-                $this->_call('copy', [$subSource, $subDest], '');
+                $this->_call('copy', [$subSource, $subDest], 'file,exists|path');
             }
         }
 
