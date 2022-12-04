@@ -2,26 +2,29 @@
 
 THanks for your interest in helping the project! :)
 
+## Bug Reports & Feedback
+
+https://github.com/joelesko/tht/issues
+
+Or join the Discord server: https://discord.gg/GuTgrxRRFC
+
+
 ## Contributions
 
 At this early stage, I am mainly open to the following contributions:
+
 - Bug reports
 - Bug fixes
 - Feedback on usability (setup, language, and standard library API)
 - Unit test coverage (see the `testsite` readme)
 - Security testing & feedback. Most sensitive operations are in `Security.php`.
 
-
-
-
 And support/compatibility for:
+
 - Nginx/PHP-FPM
 - Cache module: memcached, APC, Redis
 - Db module: PostgreSQL
 
-## Bug Reports & Feedback
-
-https://github.com/joelesko/tht/issues
 
 ## Usability Feedback
 
@@ -37,9 +40,12 @@ I am interested in feedback like the following:
 
 
 ## New Features
+
 I want to lead design and implementation of new features for now, so that the core direction is consistent.
 
 However, I'm open to design-related suggestions.
+
+
 
 ## THT Design Philosophy
 
@@ -53,6 +59,8 @@ In rough order of priority:
 - **Familiarity**.  We should favor design decisions that are already familiar to PHP & JavaScript developers, or web developers in general.  Unless those designs are widely considered to be flawed or conflict with THT's higher priorities (e.g. security).
 - **Borrow Good Ideas**.  We are all part of a greater open source community.  Let's freely take the best ideas from other projects (giving credit where we can), and be happy to share our own solutions with other projects.
 - **Can't Please Everyone**.  Programmers are an opinionated lot, and there are an infinite number of things to criticize in any programming language.  We can make good decisions and move things forward without getting bogged down in analysis paralysis or heated arguments.
+
+See also: https://tht.dev/about/design-notes
 
 
 ## Execution Flow
@@ -85,11 +93,14 @@ For example, `-` (minus) can have `asLeft` (prefix, e.g. '-123') and `asInner` (
 
 
 ## Performance
+
 It's probably too early to optimize for performance.  We will wait until the implementation is stable.
 
 The compiler itself doesn't have to be optimized much.  It is already less than a second in most cases, and this will only affect the developer when they make a change.
 
+
 ## Conduct
+
 It's probably too early for a full Code of Conduct.  Essentially, all contributors should be completely civil and professional.
 
 This is especially true when giving and receiving feedback, and expressing disagreement.  Choose your words carefully and don't be afraid to use smile emojis to lower the intensity. :)
