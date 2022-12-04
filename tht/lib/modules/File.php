@@ -28,10 +28,12 @@ class u_File extends OStdModule {
         }
 
         // Validate each argument against a validation pattern
-        $validationPatterns = explode("|", $validationList);
         $fargs = [];
-        foreach ($args as $a) {
-            $fargs []= $this->checkArg($a, array_shift($validationPatterns));
+        if ($validationList) {
+            $validationPatterns = explode("|", $validationList);
+            foreach ($args as $a) {
+                $fargs []= $this->checkArg($a, array_shift($validationPatterns));
+            }
         }
 
         $perfDetail = is_string($args[0]) ? $args[0] : '';
@@ -214,7 +216,7 @@ class u_File extends OStdModule {
             $data = str_replace("\n", '\\n', $data);
         }
 
-        $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $data . "\n";
+        $line = '[' . date('Y-m-d H:i:s') . "]  " . $data . "\n";
 
         return $this->_call('file_put_contents',
             [Tht::path('logs', $fileName), $line, LOCK_EX|FILE_APPEND],
