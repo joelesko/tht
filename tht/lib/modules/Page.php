@@ -112,7 +112,7 @@ class u_Page_Object extends OClass {
         }
 
         if ($part == 'bodyClass') {
-            if (!preg_match('/^[a-zA-Z0-9\-\_ ]+$/', $val)) {
+            if (!preg_match('/^[a-zA-Z0-9\-\_ ]*$/', $val)) {
                 $this->error("Value for `bodyClass` contains invalid characters. Got: `$val`");
             }
         }
