@@ -13,10 +13,7 @@ class Security {
     static private $SESSION_ID_LENGTH = 48;
     static private $SESSION_COOKIE_DURATION = 0;  // until browser is closed
 
-    // 30 tries allowed every 60 minutes
-    // A 10,000 word dictionary attack = 250 hours
     static private $THROTTLE_PASSWORD_WINDOW_SECS = 3600;
-    static private $THROTTLE_PASSWORD_WINDOW_TRIES = 30;
 
     static private $isCrossOrigin = null;
     static private $isCsrfTokenValid = null;
@@ -214,9 +211,9 @@ class Security {
 
     static function hashPassword($raw) {
 
-        self::checkPrevHash($raw);
-
         Tht::module('Perf')->u_start('Password.hash');
+
+        self::checkPrevHash($raw);
 
         $hash = password_hash($raw, PASSWORD_DEFAULT);
         self::$prevHash = $hash;
@@ -574,50 +571,59 @@ class Security {
 
         $isCorrectMatch = Security::verifyPassword($plainTextAttempt, $correctHash);
 
-        // truncate so the full hash isn't leaked elsewhere,
+        // Default: 30 failed attempts allowed every 60 minutes
+        // See: tht.dev/manual/class/password/check#rate-limiting
+        $attemptsAllowedPerHour = Tht::getConfig('passwordAttemptsPerHour');
+        if (!$attemptsAllowedPerHour) {
+            return $isCorrectMatch;
+        }
+
+        // Truncate so the full hash isn't leaked elsewhere,
         // but is still unique enough for this purpose
-        $correctHash = substr($correctHash, 0, 30);
+        $pwHashkey = substr(hash('sha256', $plainTextAttempt), 0, 40);
 
         $ip = Tht::module('Request')->u_get_ip();
 
         // Check if this IP has successfully used this password in the past
-        $okKey = 'passwordOk:' . $correctHash;
-        $allowList = Tht::module('Cache')->u_get($okKey, []);
+        $allowKey = 'pwAllow:' . $pwHashkey;
+        $allowList = Tht::module('Cache')->u_get($allowKey, []);
+
         $isInAllowList = in_array($ip, $allowList);
 
         if (!$isInAllowList) {
 
-            // Track both by IP and individual password to stifle some botnet attempts
-            $ipKey = 'passwordThrottleIp:' . $ip;
-            $pwKey = 'passwordThrottlePw:' . $correctHash;
+            // Track both by IP and individual password to stifle some botnet attempts.
+            // This should be checked even if the password is correct (could be brute forced)
+            $ipKey = 'pwThrottleIp:' . $ip;
+            $pwKey = 'pwThrottlePw:' . $pwHashkey;
 
-            if (self::isOverPasswordRateLimit($ipKey)) { return false; }
-            if (self::isOverPasswordRateLimit($pwKey)) { return false; }
+            if (self::isOverPasswordRateLimit($ipKey, $attemptsAllowedPerHour)) { return false; }
+            if (self::isOverPasswordRateLimit($pwKey, $attemptsAllowedPerHour)) { return false; }
         }
 
         // Add IP to allowList - 10 days
         if ($isCorrectMatch && !$isInAllowList) {
             $allowList []= $ip;
-            Tht::module('Cache')->u_set($okKey, $allowList, 10 * 24 * 3600);
+            Tht::module('Cache')->u_set($allowKey, $allowList, 10 * 24 * 3600);
         }
 
         return $isCorrectMatch;
     }
 
-    static private function isOverPasswordRateLimit($key) {
+    static private function isOverPasswordRateLimit($key, $attemptsAllowedPerHour) {
 
         $attempts = Tht::module('Cache')->u_get($key, []);
         $nowSecs = floor(microtime(true));
 
         foreach ($attempts as $tryTime) {
-            if (floor($tryTime) > $nowSecs - self::$THROTTLE_PASSWORD_WINDOW_SECS) {
+            if ($tryTime > $nowSecs - self::$THROTTLE_PASSWORD_WINDOW_SECS) {
                 $recentAttempts []= $tryTime;
             }
         }
 
         $recentAttempts []= $nowSecs;
 
-        if (count($recentAttempts) > self::$THROTTLE_PASSWORD_WINDOW_TRIES) {
+        if (count($recentAttempts) > $attemptsAllowedPerHour) {
             return true;
         }
 
@@ -700,7 +706,7 @@ class Security {
         mb_internal_encoding('utf-8');
 
         // logging
-        error_reporting(E_ALL);
+        error_reporting(E_ALL & ~E_DEPRECATED);
         ini_set('display_errors', (Tht::isMode('cli') || Tht::getConfig('_coreDevMode')) ? '1' : '0');
         ini_set('display_startup_errors', '1');
         ini_set('log_errors', '0');  // assume we are logging all errors manually
@@ -899,7 +905,7 @@ class Security {
     // ?foo[a]=1&foo[b]=2  -->  foo={a:1, b:2}
     static function stringifyQuery($queryMap) {
 
-        $q = http_build_query(unv($queryMap), null, '&', PHP_QUERY_RFC3986);
+        $q = http_build_query(unv($queryMap), '', '&', PHP_QUERY_RFC3986);
         $q = str_replace('%5B', '[', $q);
         $q = str_replace('%5D', ']', $q);
         $q = preg_replace('!\[([0-9]+)\]!', '[]', $q);
