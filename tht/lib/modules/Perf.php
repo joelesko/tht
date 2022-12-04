@@ -198,17 +198,23 @@ class u_Perf extends OStdModule {
 
         $opCache = '';
         if (Tht::isOpcodeCacheEnabled()) {
-            $opCache = '<span style="color: #393">OPCache</span>';
+            $opCache = '<span style="color: #393">ON</span>';
         }
         else {
-            $opCache = '<span style="color: #c33">None</span>';
+            $opCache = '<span style="color: #c33">OFF</span>';
         }
 
         $appCache = Tht::module('Cache')->u_get_driver();
+        if ($appCache == 'file') {
+            $appCache = '<span style="color: #c33">' . $appCache . '</span>';
+        }
+        else {
+            $appCache = '<span style="color: #393">' . $appCache . '</span>';
+        }
 
 
-        $phpColor = PHP_MAJOR_VERSION >= 7 ? '#393' : '#c33';
-        $phpVersion = "<span style=\"color: $phpColor\">" . phpVersion() . '</span>';
+
+        $phpVersion = phpVersion();
 
 
         echo $this->perfPanelCss();
