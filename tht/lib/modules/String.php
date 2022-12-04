@@ -4,6 +4,8 @@ namespace o;
 
 class u_String extends OStdModule {
 
+    public $lastReplaceCount = -1;
+
     function u_char_from_code ($num) {
 
         $this->ARGS('n', func_get_args());
@@ -57,5 +59,15 @@ class u_String extends OStdModule {
         return OList::create(str_split($s));
     }
 
+    function u_last_replace_count() {
+
+        $this->ARGS('', func_get_args());
+
+        if ($this->lastReplaceCount < 0) {
+            $this->error('No replacement method has been called yet.');
+        }
+
+        return $this->lastReplaceCount;
+    }
 
 }
