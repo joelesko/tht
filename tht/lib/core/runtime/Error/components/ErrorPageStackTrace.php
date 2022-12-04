@@ -50,7 +50,8 @@ class ErrorPageStackTrace extends ErrorPageComponent {
 
         $frames = $this->insertErrorFrame($frames);
 
-        $bullet = '🠗';
+        $topBullet = '↓';
+        $midBullet = '↓';
         $endBullet = 'X';
         $out = '';
 
@@ -61,9 +62,15 @@ class ErrorPageStackTrace extends ErrorPageComponent {
             $lineNum = $this->getLineNum($phpFrame);
             $args = $this->formatArgs($phpFrame);
 
-            if ($num == count($frames) - 1) {
+            $bullet = $midBullet;
+            if ($num == 0) {
+                $bullet = $topBullet;
+            }
+            else if ($num == count($frames) - 1) {
                 $bullet = $endBullet;
             }
+
+            $bullet = '<div class="tht-error-trace-bullet">' . $bullet . '</div>';
 
             // Combine everything
             $frameOut = $bullet . $this->out('&nbsp;&nbsp;', '  ');
