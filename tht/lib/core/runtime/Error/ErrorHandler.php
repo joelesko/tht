@@ -164,7 +164,7 @@ class ErrorHandler {
         $source = $e['source'];
         if (!$source['file']) {
             $source['file'] = self::$file;
-            if (!$source['file']) {
+            if (!$source['file'] && Tht::isMode('web')) {
                 $source['file'] = WebMode::$entryFile;
             }
         }
