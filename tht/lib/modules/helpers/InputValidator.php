@@ -293,7 +293,9 @@ class u_InputValidator {
             $rule = $this->parseRuleString($rule);
         }
 
+
         foreach ($rule as $ruleName => $ruleArg) {
+
             // Convert regex object to raw string
             // TODO: warn if flags
             if (ORegex::isa($ruleArg)) {
