@@ -82,12 +82,12 @@ class CliMode {
     static function printHeaderBox($title) {
 
         $title = trim(strtoupper($title));
-        $line = str_repeat('╌', strlen($title) + 8);
+        $line = str_repeat('-', strlen($title) + 8);
 
         echo "\n";
-        echo "╭$line" . "╮\n";
-        echo "╎    $title    ╎\n";
-        echo "╰$line" . "╯\n\n";
+        echo "-$line" . "-\n";
+        echo "     $title     \n";
+        echo "-$line" . "-\n\n";
 
         // $title = trim($title);
         // $line = str_repeat('-', strlen($title) + 8);
@@ -115,9 +115,11 @@ class CliMode {
     static private function info() {
 
         $info = [
-            '- THT Version'  => Tht::getThtVersion(),
-            '- PHP Version'  => Tht::module('Php')->u_get_version(),
-            '- php.ini File' => php_ini_loaded_file(),
+            '- THT Version'     => Tht::getThtVersion(),
+            '- PHP Version'     => Tht::module('Php')->u_get_version(),
+            '- php.ini File'    => php_ini_loaded_file(),
+            '- Opcache'         => is_array(opcache_get_status()) ? '✓ ON' : '✕ OFF',
+            '- APCu Cache'      => Tht::module('Cache')->u_get_driver() == 'apcu' ? '✓ ON' : '✕ OFF',
         ];
 
         self::printHeaderBox('THT Info');
@@ -148,8 +150,9 @@ class CliMode {
         // TODO: Create missing app directories or config file?
         // TODO: Check local THT version and copy to app if updated
 
-        echo "- Copying local THT runtime to app...\n";
-        self::copyLocalThtRuntimeToApp();
+        // TODO: This has a bug, and not sure if we want to do this yet.
+        //echo "- Copying local THT runtime to app...\n";
+        //self::copyLocalThtRuntimeToApp();
 
         self::printHeaderBox('Done!');
 
