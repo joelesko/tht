@@ -223,7 +223,7 @@ class u_Output extends OStdModule {
                 $title = $code === 404 ? 'Page Not Found' : 'Website Error';
             }
 
-            ?><html><head><title><?= $title ?></title></head><body style="margin: 0; padding: 0">
+            ?><!doctype html><html><head><title><?= $title ?></title></head><body style="margin: 0; padding: 0">
             <div style="border-top: solid 1em #ccc; text-align: center; color:#333; font-family: <?= Tht::module('Output')->font('sansSerif') ?>;">
             <h1 style="margin-top: 1em;"><?= $title ?></h1>
             <?php if ($desc) { ?>
@@ -437,7 +437,9 @@ class AssetOptimizer {
 
         $config = Tht::getConfig('optimizeAssets');
         $configFlags = explode('|', $config);
-        // images|minify|gzip|timestamps
+
+        // TODO: validate options
+        // images|minify|gzip|timestamps|none
 
         if (!$config || $config == 'none') {
             return $plainText;
