@@ -94,7 +94,7 @@ class HitCounter {
     // Date counter - 1 byte per hit
     static private function countDate() {
 
-        $date = strftime('%Y%m%d');
+        $date = date('Ymd');
 
         self::appendFile('date', $date, '+');
     }
@@ -131,8 +131,8 @@ class HitCounter {
             $ref = 'search: "' . $cleanQuery . '"';
         }
 
-        $logDate = strftime('%Y%m');
-        $lineDate = strftime('%Y-%m-%d');
+        $logDate = date('Ym');
+        $lineDate = date('Y-m-d');
         $pagePath = $url->u_get_path();
 
         $line = "[$lineDate] $ref -> $pagePath\n";
@@ -159,12 +159,12 @@ class HitCounter {
         $num30DayHits = 0;
         $dateHits = [];
         $medianDays = [];
-        $dayMod = strftime('%w', time());
+        $dayMod = date('w', time());
 
         // 12 weeks
         for ($i = 84 - (6 - $dayMod); $i >= 0; $i--) {
             $dateTime = time() - ($i * 24 * 3600) - (60 * 24 * 3600);
-            $ymdDate = strftime('%Y%m%d', $dateTime);
+            $ymdDate = date('Ymd', $dateTime);
             $dateLogPath = self::logPath('date', $ymdDate);
             $num = 0;
             if (file_exists($dateLogPath)) {
@@ -175,7 +175,7 @@ class HitCounter {
                 $num30DayHits += $num;
             }
 
-            $dateHits []= [ 'label' => $days[strftime('%w', $dateTime)], 'num' => $num ];
+            $dateHits []= [ 'label' => $days[date('w', $dateTime)], 'num' => $num ];
         }
 
         if ($dayMod < 6) {
