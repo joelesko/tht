@@ -31,13 +31,15 @@ tm html($results) {
                     THT Version: <b>{{ Meta.getThtVersion() }}
                 </>
 
-                <p> <a href="#test-results" style="font-weight: bold"> Jump to Results
+                <p> <a href="#test-results" style="font-weight: bold"> {{ Web.icon('arrowDown') }} Jump to Results
 
-                <p style="font-size: 100%; margin-top: 3rem">
-                    <b>Perf:</>&nbsp
-                    When measuring raw execution speed of this page:
-                    <li> Set <code>_coreDevMode: false</> and <code>showPerfPanel: true</>in <code>app.jcon</>
-                    <li> Reload with <a href="/all-tests?perf=true">perf=true</a>
+                <h3> Perf
+                <p style="font-size: 100%; margin-top: 3rem;">
+                    To measure raw execution speed of this page:
+                    <ul>
+                        <li> Set <code>_coreDevMode: false</> and <code>showPerfPanel: true</>in <code>app.jcon</>
+                        <li> Reload with <a href="/all-tests?perf=true">perf=true</a>
+                    </>
                 </>
 
                 {{ $results }}
@@ -634,6 +636,7 @@ fn testOop($t) {
     $b = BaseObject()
     $t.ok($b.zCallMethod('publicFn') == 'public', 'zCallMethod')
     $t.ok($b.zGetMethods().length() > 10, 'zGetMethods')
+
 
     // $t.section('OOP - Composition')
 
@@ -1488,6 +1491,13 @@ fn testLoops($t) {
         $s ~= $n
     }
     $t.ok($s == '12345', 'foreach, list')
+    $s = ''
+    foreach $nums as $n {
+        $s ~= $n
+    }
+    $t.ok($s == '12345', 'foreach, list - second time (reset)')
+
+
 
     $pairs = { a: 1, b: 2, c: 3 }
     $s = ''
@@ -1495,6 +1505,12 @@ fn testLoops($t) {
         $s ~= $number ~ $letter
     }
     $t.ok($s == '1a2b3c', 'foreach, map')
+
+    $s = ''
+    foreach $pairs as $letter/$number {
+        $s ~= $number ~ $letter
+    }
+    $t.ok($s == '1a2b3c', 'foreach, map - second time (reset)')
 
 
     $s = ''
@@ -2133,6 +2149,14 @@ fn testStrings($t) {
 
     // replace
 
+    $str = 'aa bb aa'
+    $replaced = 'aa bb aa'.replace('aa', 'xx')
+    $t.ok($replaced == 'xx bb xx', 'replace string - all occurances')
+    $t.ok(String.lastReplaceCount() == 2, 'getLastReplaceCount')
+
+    $t.ok('aa bb aa'.replace('aa', 'xx', { limit: 1 }) == 'xx bb aa', 'replace string - limit 1')
+    $t.ok('aa bb aa'.replace('aa', 'xx', -first) == 'xx bb aa', 'replace string - -first')
+
     $escTicks = 'hello \`WORLD\`'
     $t.ok($escTicks.replace(r'\`(\w+)\`', 'THERE') == 'hello THERE', 'escaped backticks')
 
@@ -2276,7 +2300,7 @@ fn testFlags($t) {
     // $flag.allow([-flagX, -flagY, -flagZ])
 
     // $t.ok($flag.is(-flagX) && $flag.is(-flagY), 'combined - separate checks')
-    // $t.ok($flag.is(-flagX|-flagY), 'combined - one check')
+    // $t.ok($flag.is(-flagX|-flagY), 'combined - one check')if !isPerfMode() {
 
     // $addedFlag = $flag.add(-flagZ)
     // $addedFlag.allow([-flagX, -flagY, -flagZ])
@@ -3068,25 +3092,26 @@ fn libFile($t) {
 
     $combined = []
     File.loopDir('loopMe', $fnLoop)
-    $sCombined = $combined.join('|')
+    $sCombined = $combined.sort().join('|')
+
     $expected = 'file1.txt|file2.txt'
     $t.ok($sCombined == $expected, 'File.loopDir - default')
 
     $combined = []
     File.loopDir('loopMe', $fnLoop, -deep)
-    $sCombined = $combined.join('|')
+    $sCombined = $combined.sort().join('|')
     $expected = 'file1.txt|file2.txt|subfile1.txt|subfile1.txt'
     $t.ok($sCombined == $expected, 'File.loopDir - -deep')
 
     $combined = []
     File.loopDir('loopMe', $fnLoop, { deep, filter: 'all' })
-    $sCombined = $combined.join('|')
-    $expected = 'dir1|dir2|file1.txt|file2.txt|subfile1.txt|subdir1|subfile1.txt'
+    $sCombined = $combined.sort().join('|')
+    $expected = 'dir1|dir2|file1.txt|file2.txt|subdir1|subfile1.txt|subfile1.txt'
     $t.ok($sCombined == $expected, 'File.loopDir - -deep, -includeDirs')
 
     $combined = []
     File.loopDir('loopMe', $fnLoop, { deep, filter: 'dirs' })
-    $sCombined = $combined.join('|')
+    $sCombined = $combined.sort().join('|')
     $expected = 'dir1|dir2|subdir1'
     $t.ok($sCombined == $expected, 'File.loopDir - -deep, -onlyDirs')
 
@@ -3095,23 +3120,23 @@ fn libFile($t) {
     $t.section('File.readDir')
 
     $files = File.readDir('loopMe')
-    $t.ok($files.length() == 2 && $files[2] == 'loopMe/file2.txt',
+    $t.ok($files.length() == 2 && $files.sort()[2] == 'loopMe/file2.txt',
         'readDir')
 
     $files = File.readDir('loopMe', { filter: 'all' })
-    $t.ok($files.length() == 4 && $files[2] == 'loopMe/dir2',
+    $t.ok($files.length() == 4 && $files.sort()[2] == 'loopMe/dir2',
         'readDir - filter: all')
 
     $files = File.readDir('loopMe', { filter: 'dirs' })
-    $t.ok($files.length() == 2 && $files[2] == 'loopMe/dir2',
+    $t.ok($files.length() == 2 && $files.sort()[2] == 'loopMe/dir2',
         'readDir - filter: dirs')
 
     $files = File.readDir('loopMe', { deep, filter: 'files' })
-    $t.ok($files.length() == 4 && $files[4] == 'loopMe/dir1/subfile1.txt',
+    $t.ok($files.length() == 4 && $files.sort()[2] == 'loopMe/dir2/subfile1.txt',
         'readDir - deep, filter: files')
 
     $files = File.readDir('loopMe', { deep, filter: 'all' })
-    $t.ok($files.length() == 7 && $files[6] == 'loopMe/dir1/subdir1',
+    $t.ok($files.length() == 7 && $files.sort()[2] == 'loopMe/dir1/subdir1',
         'readDir - deep, filter: all')
 
 
@@ -3200,16 +3225,24 @@ fn libDate($t) {
     $t.ok($today.toMap().hour == 0, 'today')
     $t.ok($now.clearTime().equals($today), 'clearTime')
 
+    $dateDst = Date.create('2022-12-01 15:00:00')
+    $t.ok($dateDst.getTimezone() == 'America/Los_Angeles', 'getTimezone is from app.jcon')
+    $tzDate = $dateDst.setTimezone('Europe/Helsinki')
+    $t.ok($tzDate.format().contains('+0200'), 'setTimezone')
+    $t.ok(!$tzDate.isDst(), 'isDst - false')
 
-    $t.ok($now.getTimezone() == 'America/Los_Angeles', 'getTimezone is from app.jcon')
-    $tzDate = $now.setTimezone('Europe/Helsinki')
-    $t.ok($tzDate.format().contains('+0300'), 'setTimezone')
+    $dateNotDst = Date.create('2022-05-01 15:00:00')
+    $tzDate = $dateNotDst.setTimezone('Europe/Helsinki')
+    $t.ok($tzDate.format().contains('+0300'), 'DST changes TZ offset')
+    $t.ok($tzDate.isDst(), 'isDst - true')
+
 
     // setlocale takes something like 0.3ms
-    Date.setLocale('de')
     $locDate = Date.create('2021-06-17')
-    $t.ok($locDate.format('l, F d, Y') == 'Donnerstag, Juni 17, 2021', 'setLocale')
-    Date.setLocale('en')
+    Date.setLocale('de_DE')
+    $t.ok($locDate.format('l, F d, Y') == 'Donnerstag, Junii 17, 2021', 'setLocale - de_DE')
+    Date.setLocale('en_US')
+    $t.ok($locDate.format('l, F d, Y') == 'Thursday, June 17, 2021', 'setLocale - en_US')
 
 
     $otherDate = $now.add('50 hours')
@@ -3257,11 +3290,10 @@ fn libPassword($t) {
 
     $t.dies(fn { String.xDangerPassword($h1).xDangerHash() },
         'no re-hash', 'already-hashed value')
-
 }
 
-
 fn libDb($t) {
+
 
     $t.section('Module: Db')
 
@@ -3802,6 +3834,10 @@ fn libMeta($t) {
 
     .ok(Meta.getThtVersion().match(r'\d+\.\d+\.\d+'), 'thtVersion')
     .ok(Meta.getThtVersion(-num).match(r'^\d{5}$'), 'thtVersion - digits')
+
+    if !isPerfMode() {
+        $t.ok(Meta.zGetStdLib()['File'].read.contains('filePath'), 'zGetStdLib')
+    }
 }
 
 fn metaCallMe {
@@ -4014,10 +4050,12 @@ fn libInput($t) {
 
     $t.ok(formValidate('1234', 'i') == 1234, 'int ok')
     $t.ok(formValidate('-123', { type: 'i', min: -200 }) == -123, 'negative')
+
     $t.ok(formValidate('$1', 'i') == 0, 'number not ok')
 
     $t.ok(formValidate('123.4', 'f') == 123.4, 'float ok')
     $t.ok(formValidate('-123.4', 'f|min:-200') == -123.4, 'float - negative')
+
     $t.ok(formValidate('0', 'f') == 0.0, 'float - 0')
     $t.ok(formValidate('1.2', 'f') == 1.2, 'float - 1.2')
     $t.ok(formValidate('11', 'f|min:1|max:10') == 0.0, 'float - out of range')
@@ -4171,7 +4209,7 @@ fn libForm($t) {
 
     $t.ok(
         $fhtml.contains('type="submit">Submit</button>'),
-        'form render - pass button'
+        'form render - submit button'
     )
 
     $t.ok(
