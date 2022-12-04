@@ -4,15 +4,35 @@ namespace o;
 
 class u_Date extends OStdModule {
 
+    private $locale = null;
+
     function u_set_locale ($loc) {
 
         $this->ARGS('s', func_get_args());
 
-        // PERF: This is actually a bit slow (on Windows at least), at around 0.3ms,
-        // but not sure if there is anything we can do.
-        setlocale(LC_TIME, $loc);
+        $this->locale = $loc;
 
         return $this;
+    }
+
+    function getLocalizedParts($ts) {
+
+        $formatter = new \IntlDateFormatter(
+            $this->locale,
+            \IntlDateFormatter::FULL,
+            \IntlDateFormatter::FULL,
+            null,
+            null,
+            'EEEE^^EEE^^MMMM^^MMM'
+        );
+        $fmt = explode('^^', $formatter->format($ts));
+
+        return [
+            'dayLong'    => $fmt[0],
+            'dayShort'   => $fmt[1],
+            'monthLong'  => $fmt[2],
+            'monthShort' => $fmt[3],
+        ];
     }
 
     function u_now() {
@@ -189,10 +209,13 @@ class u_Date_Object extends OClass {
 
         // Use strftime to get month/day names by locale
         $ts = $this->dti->getTimestamp();
-        $str = str_replace($this->dti->format('F'), strftime('%B', $ts), $str);  // long month
-        $str = str_replace($this->dti->format('M'), strftime('%b', $ts), $str);  // short month
-        $str = str_replace($this->dti->format('l'), strftime('%A', $ts), $str);  // long day
-        $str = str_replace($this->dti->format('D'), strftime('%a', $ts), $str);  // short day
+
+        $locParts = Tht::module('Date')->getLocalizedParts($ts);
+
+        $str = str_replace($this->dti->format('F'), $locParts['monthLong'], $str);
+        $str = str_replace($this->dti->format('M'), $locParts['monthShort'], $str);
+        $str = str_replace($this->dti->format('l'), $locParts['dayLong'], $str);
+        $str = str_replace($this->dti->format('D'), $locParts['dayShort'], $str);
 
         return $str;
     }
@@ -206,6 +229,13 @@ class u_Date_Object extends OClass {
         return new u_Date_Object(
             $this->dti->setTimezone($tz)
         );
+    }
+
+    function u_is_dst() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->dti->format('I') == '1';
     }
 
     function u_get_timezone() {
@@ -251,6 +281,8 @@ class u_Date_Object extends OClass {
         $ts = $this->dti->getTimestamp();
         $p = getdate($ts);
 
+        $locParts = Tht::module('Date')->getLocalizedParts($ts);
+
         $newParts = [
             'second'     => $p['seconds'],
             'minute'     => $p['minutes'],
@@ -261,10 +293,10 @@ class u_Date_Object extends OClass {
             'dayOfWeek'  => $p['wday'],
             'dayOfYear'  => $p['yday'],
 
-            'dayName'        => strftime('%A', $ts),
-            'dayNameShort'   => strftime('%a', $ts),
-            'monthName'      => strftime('%B', $ts),
-            'monthNameShort' => strftime('%b', $ts),
+            'dayName'        => $locParts['dayLong'],
+            'dayNameShort'   => $locParts['dayShort'],
+            'monthName'      => $locParts['monthLong'],
+            'monthNameShort' => $locParts['monthShort'],
         ];
 
         return OMap::create($newParts);
