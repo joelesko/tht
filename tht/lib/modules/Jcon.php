@@ -4,6 +4,20 @@ namespace o;
 
 require_once(Tht::getCoreVendorPath('php/Jcon.php'));
 
+/*
+
+    NOTE: Why use JCON over HJSON?
+
+    - At the time of development, I don't think HJSON was reliable enough?
+    - JCON is 2x as fast, and half the code. But that shouldn't matter if results are cached.
+    - JCON allows escapes in blockquotes, to inner quote fences (need this for docs content)
+    - JCON has a few more hooks, for perf, etc.
+    - HJSON does have Stringify, though
+
+    - However, I'm open to migrating to HJSON in the future.
+
+*/
+
 class u_Jcon extends OStdModule {
 
     private $jconObject = null;
