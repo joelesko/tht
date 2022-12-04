@@ -31,7 +31,7 @@ class ErrorPageHtml {
         $c = $this->getComponentHtml($components);
 
         ?>
-        <html>
+        <!doctype html><html>
         <body>
 
         <div style="<?= $this->panelOuterCss() ?>">
