@@ -239,11 +239,11 @@ class JconParser {
         $this->leaf = [];
 
         if ($type == 'map' && is_callable($this->flags['mapHandler'])) {
-            // This is so THT can initialize it as a map object
+            // This is so THT can initialize it as a Map object
             $this->leaf = call_user_func_array($this->flags['mapHandler'], []);
         }
         else if ($type == 'list' && is_callable($this->flags['listHandler'])) {
-            // This is so THT can initialize it as a map object
+            // This is so THT can initialize it as a List object
             $this->leaf = call_user_func_array($this->flags['listHandler'], []);
         }
 
