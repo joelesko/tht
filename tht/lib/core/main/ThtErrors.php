@@ -7,7 +7,7 @@ trait ThtErrors {
     static private function catchPhpCompileErrors() {
 
         // These will be overridden later
-        error_reporting(E_ALL);
+        error_reporting(E_ALL & ~E_DEPRECATED);
         ini_set('display_errors', '1');
         ini_set('display_startup_errors', '1');
     }
@@ -22,7 +22,7 @@ trait ThtErrors {
             $msg = ltrim(v($msg)->u_indent(2));
         }
 
-        $line = '[' . strftime('%Y-%m-%d %H:%M:%S') . "]  " . $msg . "\n";
+        $line = '[' . date('Y-m-d H:i:s') . "]  " . $msg . "\n";
 
         file_put_contents(self::path('logFile'), $line, FILE_APPEND);
     }

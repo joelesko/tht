@@ -10,8 +10,8 @@ trait ThtInit {
 
     static private function checkRequirements() {
 
-        if (PHP_VERSION_ID < 70100) {
-            self::reqError("THT Startup Error: PHP version 7.1+ is required.\n\nCurrent Version: " . phpversion());
+        if (PHP_VERSION_ID < self::$REQUIRE_PHP_VERSION_DIGITS) {
+            self::reqError("THT Startup Error: PHP version " . self::$REQUIRE_PHP_VERSION_STRING. " is required.\n\nCurrent Version: " . phpversion());
         }
 
         self::checkRequiredPhpLib('mbstring', 'startup');
