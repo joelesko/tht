@@ -4,6 +4,18 @@ namespace o;
 
 trait ThtConfig {
 
+    static private $VERSION = '0.7.1 - Beta';
+    static private $VERSION_DIGITS = '00701';
+    static private $VERSION_DIGITS_PHP = '';  // filled in later
+
+    static private $REQUIRE_PHP_VERSION_DIGITS = '00801';
+    static private $REQUIRE_PHP_VERSION_STRING = '8.1+';
+
+    static private $SRC_EXT = 'tht';
+
+    static private $THT_SITE = 'https://tht.dev';
+    static private $ERROR_API_URL = 'https://thtfeedback.dev/api/error';
+
     static private function getDefaultConfig () {
 
         $default = [];
@@ -41,6 +53,7 @@ trait ThtConfig {
             "contentSecurityPolicy"   => '',
             "showErrorPageForMins"    => 10,
             "xDangerAllowJsEval"      => false,
+            "passwordAttemptsPerHour" => 30,
 
             // misc
             "cacheGarbageCollectRate" => 100,

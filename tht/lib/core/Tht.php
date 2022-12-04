@@ -18,15 +18,6 @@ class Tht {
     use ThtConfig;
     use ThtErrors;
 
-    static private $VERSION = '0.7.0 - Beta';
-    static private $VERSION_DIGITS = '00700';
-    static private $VERSION_DIGITS_PHP = '';  // filled in later
-
-    static private $SRC_EXT = 'tht';
-
-    static private $THT_SITE = 'https://tht.dev';
-    static private $ERROR_API_URL = 'https://thtfeedback.dev/api/error';
-
     static private $files = [];
 
     static private $data = [
