@@ -3043,8 +3043,8 @@ fn libFile($t) {
     $t.ok($perm.execute == false, 'perms - execute')
     File.delete($path)
 
-    $t.ok(File.appPath().right(9) == '/testsite', 'appPath')
-    $t.ok(File.publicPath().right(7) == '/public', 'publicPath')
+    $t.ok(File.appPath().endsWith('/testApp'), 'appPath')
+    $t.ok(File.publicPath().endsWith('/public'), 'publicPath')
 
     $docFile = File.publicPath('foobar.html')
     $t.ok($docFile.right(19) == '/public/foobar.html', 'documentPath with file')
