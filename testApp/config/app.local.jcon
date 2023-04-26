@@ -36,7 +36,7 @@
         host: smtp.sendgrid.net
         port: 587
         username: apikey
-        password: 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
+        password: <api_key>
     }
 
     app: {
