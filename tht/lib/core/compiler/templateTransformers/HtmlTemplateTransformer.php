@@ -11,6 +11,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     private $lineHasContent = false;
     private $currentTagPos = 0;
     private $inQuote = '';
+    private $indent = 0;
+    public $reader = null;
 
     static $VOID_TAGS = [
         'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',

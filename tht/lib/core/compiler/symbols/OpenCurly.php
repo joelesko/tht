@@ -5,6 +5,7 @@ namespace o;
 class S_OpenCurly extends Symbol {
 
     var $type = SymbolType::AST_LIST;
+    public $value = '';
 
     // Map Literal { ... }
     function asLeft($p) {

@@ -51,6 +51,7 @@ class Tokenizer extends StringReader {
 
     private $prevToken = [];
     private $tokens = [];
+    private $tokenStream = null;
 
     private $stringMod = '';
     private $inMultiLineString = false;

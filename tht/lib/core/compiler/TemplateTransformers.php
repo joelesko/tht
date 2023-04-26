@@ -9,6 +9,7 @@ class TemplateTransformer {
     protected $tokenizer = null;
     protected $currentContext = 'none';
     protected $currentIndent = 0;
+    protected $reader = null;
 
     static function loadTransformers() {
 

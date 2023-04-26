@@ -29,6 +29,8 @@ class StringReader {
 
     public $isDigit = [];
     public $isAlpha = [];
+    public $isHexDigit = [];
+    public $isBinaryDigit = [];
 
     // OVERRIDE
     function onNewline() {}
