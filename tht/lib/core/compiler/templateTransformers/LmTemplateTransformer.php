@@ -4,6 +4,8 @@ namespace o;
 
 class LmTemplateTransformer extends TemplateTransformer {
 
+    private $indent = 0;
+
     // preserve code within code fences, so there is no need to escape anything
     function transformNext() {
         $r = $this->reader;
