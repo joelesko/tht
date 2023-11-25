@@ -116,8 +116,9 @@ class CliMode {
 
         $info = [
             '- THT Version'     => Tht::getThtVersion(),
+            '- THT Path'        => $_SERVER['SCRIPT_FILENAME'],
             '- PHP Version'     => Tht::module('Php')->u_get_version(),
-            '- php.ini File'    => php_ini_loaded_file(),
+            '- php.ini Path'    => php_ini_loaded_file(),
             '- Opcache'         => is_array(opcache_get_status()) ? '✓ ON' : '✕ OFF',
             '- APCu Cache'      => Tht::module('Cache')->u_get_driver() == 'apcu' ? '✓ ON' : '✕ OFF',
         ];
