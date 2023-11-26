@@ -252,7 +252,8 @@ class CliMode {
             Tht::initAppPaths($appRoot);
 
             // Make a local copy of the THT runtime to app tree
-            Tht::module('*File')->u_copy_dir(__DIR__ . '/../../../sites/starter', $appDir);
+            $srcPath = realpath(__DIR__ . '/../../../sites/starter');
+            Tht::module('*File')->u_copy_dir($srcPath, $appDir);
 
             self::copyLocalThtRuntimeToApp();
 
