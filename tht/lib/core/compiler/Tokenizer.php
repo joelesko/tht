@@ -400,8 +400,17 @@ class Tokenizer extends StringReader {
 
                 // Remove line comments
                 $list = preg_replace('#^\s*//.*$#m', '', $list);
+                $list = trim($list);
 
-                $words = preg_split('/\s+/', trim($list));
+                $words = [];
+
+                if (preg_match('/\n/', $list)) {
+                    $words = preg_split('/\s*\n+\s*/', $list);
+                }
+                else {
+                    $words = preg_split('/\s+/', $list);
+                }
+
                 $this->makeToken(TokenType::GLYPH, '[', 'noAfter');
                 $i = 0;
 
