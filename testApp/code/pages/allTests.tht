@@ -2625,8 +2625,8 @@ fn testLists($t) {
         aa bb
         'cc'
     ]
-    $t.ok($ml[2] == 'bb', 'multiline quoted list')
-    $t.ok($ml[3] == '`cc`', 'multiline quoted list + quotes')
+    $t.ok($ml[1] == 'aa bb', 'multiline quoted list')
+    $t.ok($ml[2] == '`cc`', 'multiline quoted list + quotes')
     $t.ok({ a: q[a b c] }.a[2] == 'b', 'quoted list in single-line map key')
 
     // Truthiness
@@ -3255,13 +3255,14 @@ fn libDate($t) {
     $longAgo = $now.add('-1000 days')
     $t.ok($longAgo.diffHuman() == '2 years', 'diffHuman - years')
 
-    $date1 = Date.create('50 days')
-    $date2 = Date.create('300 days ago')
-    $t.ok($date1.diffHuman($date2) == '1 year', 'diffHuman - otherDate')
+    $monthish = $now.add('3 days')
+    $t.ok($monthish.diff() == 259200, 'diff - no args')
 
-    $t.ok($date1.diff() == 4320000, 'diff - no args')
-    $t.ok($date1.diff($date2, 'days').ceil() == 350, 'diff - otherDate')
-    $t.ok($date2.diff($date1, 'days').floor() == -350, 'diff - negative')
+    $date1 = Date.create('2022-02-01')
+    $date2 = Date.create('2021-03-01')
+    $t.ok($date1.diffHuman($date2) == '1 year', 'diffHuman - otherDate')
+    $t.ok($date1.diff($date2, 'days').ceil() == 337, 'diff - otherDate')
+    $t.ok($date2.diff($date1, 'days').floor() == -337, 'diff - negative')
 
     $past = Date.create('3 mins ago')
     $future = Date.create('+3 mins')
@@ -3744,6 +3745,12 @@ fn testNumber($t) {
     .ok((1).sign() == 1, 'sign positive')
     .ok((0).sign() == 0, 'sign zero')
     .ok((-1).sign() == -1, 'sign negative')
+
+    .ok((1).appendSign() == '+1', 'appendSign positive')
+    .ok((-1).appendSign() == '-1', 'appendSign negative')
+    .ok((0).appendSign() == '0', 'appendSign zero')
+    .ok((0).appendSign({ zero: '-' }) == '-0', 'appendSign zero negative')
+    .ok((0).appendSign({ zero: '+' }) == '+0', 'appendSign zero positive')
 
     .ok((-5).abs() == 5, 'abs - negative')
     .ok((0).abs() == 0, 'abs - zero')
