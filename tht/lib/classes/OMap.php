@@ -282,7 +282,9 @@ class OMap extends OBag {
                 }
 
                 if ($enums && !in_array($v, $enums)) {
-                    $this->error("Invalid option map value for `$k`" . ' Got: ' . $v . "  Try: " . implode(', ', $enums));
+                    $tryEnums = array_map(function($a){ return "`" . $a . "`"; }, $enums);
+
+                    $this->error("Invalid option map value for `$k`" . ' Got: ' . $v . "  Try: " . implode(', ', $tryEnums));
                 }
             }
         }
