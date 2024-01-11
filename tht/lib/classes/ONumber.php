@@ -21,6 +21,36 @@ class ONumber extends OVar {
         return 0;
     }
 
+    function u_append_sign ($flags=null) {
+
+        $this->ARGS('m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'zero' => '|+|-',
+        ]);
+
+        if ($this->val === 0) {
+            if ($flags['zero'] == '+') {
+                return '+0';
+            }
+            else if ($flags['zero'] == '-') {
+                return '-0';
+            }
+            else {
+                return '0';
+            }
+        }
+
+        $sign = $this->u_sign();
+
+        if ($sign == -1) {
+            return '' . $this->val;
+        }
+        else {
+            return '+' . $this->val;
+        }
+    }
+
     function u_floor () {
 
         $this->ARGS('', func_get_args());
