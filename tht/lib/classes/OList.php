@@ -401,7 +401,8 @@ class OList extends OBag {
 
         $out = [];
         for ($i = 0; $i < $numItems; $i += 1) {
-            $out []= $this->val[$i];
+            $randIndex = $indexes[$i];
+            $out []= $this->val[$randIndex];
         }
 
         return $aNumItems == 1 ? $out[0] : OList::create($out);
