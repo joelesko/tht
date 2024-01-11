@@ -10,6 +10,7 @@ class EmitterPHP extends Emitter {
     private $preKeywordDepth = 0;
     private $functionDepth = 0;
     private $classDepth = 0;
+    private $numMatchPatterns = 0;
     private $importedModules = [];
     private $collectKeys = false;
     private $collectedKeys = [];
