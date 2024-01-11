@@ -330,8 +330,12 @@ class FileCacheDriver extends CacheDriver {
         $numDeleted = 0;
 
         Tht::module('*File')->u_loop_dir(Tht::path('kvCache'), function($f) use ($now, $numDeleted){
-            if (filemtime($f['fullPath']) <= $now) {
-                unlink($f['fullPath']);
+            $fullPath = $f['path'];
+            if (filemtime($fullPath) <= $now) {
+                if (!file_exists($fullPath)) {
+                    Tht::error("Can't unlink cache file: `" . $fullPath . "`");
+                }
+                unlink($fullPath);
                 $numDeleted += 1;
                 if ($numDeleted == 100) {
                     return true;
