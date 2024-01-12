@@ -16,6 +16,8 @@ trait ThtConfig {
     static private $THT_SITE = 'https://tht.dev';
     static private $ERROR_API_URL = 'https://thtfeedback.dev/api/error';
 
+    static private $isTimezoneError = false;
+
     static private function getDefaultConfig () {
 
         $default = [];
@@ -138,6 +140,24 @@ trait ThtConfig {
 
     static public function isStrictFormat() {
         return Tht::getConfig('formatChecker') == 'strict';
+    }
+
+    // Safe way to get timezone if timezone ID in config is invalid.
+    // Error handling code also uses Date methods, so it's a catch 22.
+    static public function getTimezone() {
+
+        if (self::$isTimezoneError) {
+            return \date_default_timezone_get();
+        }
+
+        $config = Tht::getConfig('timezone');
+        try {
+            $tz = new \DateTimeZone($config);
+            return $config;
+        } catch (\Exception $e) {
+            self::$isTimezoneError = true;
+            Tht::configError("Timezone ID `$config` is not valid.");
+        }
     }
 
 }

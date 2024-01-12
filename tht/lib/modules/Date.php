@@ -527,6 +527,10 @@ class u_Date_Object extends OClass {
 }
 
 function newDti($arg = 'now') {
-    $tz = new \DateTimeZone(Tht::getConfig('timezone'));
-    return new \DateTimeImmutable($arg, $tz);
+
+     $tz = new \DateTimeZone(Tht::getTimezone());
+
+     return new \DateTimeImmutable($arg, $tz);
 }
+
+

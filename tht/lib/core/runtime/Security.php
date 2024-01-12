@@ -700,7 +700,7 @@ class Security {
     static function initPhpIni () {
 
         // locale
-        date_default_timezone_set(Tht::getCOnfig('timezone'));
+        date_default_timezone_set(Tht::getTimezone());
 
         ini_set('default_charset', 'utf-8');
         mb_internal_encoding('utf-8');
