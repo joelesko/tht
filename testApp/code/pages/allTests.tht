@@ -196,6 +196,8 @@ fn testCompileErrors($t) {
 
     $t.parserError('for ($ary as $a) { }', 'try: \`foreach')
     $t.parserError('$ary = []\nforeach $a in $ary { }', 'expected `as`')
+    $t.parserError('$m = { a: 3 }\nforeach $m as $k => $v {', 'expected `/`')
+
     $t.parserError('$a = 1 ^ 2',  '+^')
     $t.parserError('$a = 1 & 2',  '+&')
     $t.parserError('$a = 1 | 2',  '+|')

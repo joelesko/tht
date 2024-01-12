@@ -34,6 +34,13 @@ class S_ForEach extends S_Statement {
 
         $p->validator->defineVar($p->symbol, true);
         $this->addKid($p->symbol);
+
+        $peekToken = $p->peekNextToken();
+        if ($peekToken[TOKEN_VALUE] == '=>') {
+            $p->error('Expected `/` instead. Try: `foreach $map as $k/$v { ... }`', $peekToken);
+        }
+
+
         $p->next();
 
         // `$key/$value` alias.  foreach ($map as $k/$v) { ... }

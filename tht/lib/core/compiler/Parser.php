@@ -423,6 +423,10 @@ class Parser {
         return $this;
     }
 
+    function peekNextToken() {
+        return $this->tokenStream->lookahead();
+    }
+
     function space ($mask) {
 
         $this->symbol->space($mask);
