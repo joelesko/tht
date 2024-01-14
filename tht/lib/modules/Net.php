@@ -107,7 +107,9 @@ class u_Net extends OStdModule {
 
 
         Tht::module('Perf')->u_start('Net.httpRequest', $method . ' ' . $url);
-        set_error_handler(function() { /* ignore errors */ });
+        set_error_handler(function() {
+            /* ignore errors */
+        });
 
         if ($functionName == 'httpStatus' || $functionName == 'httpHead') {
             $response = get_headers($url, 0, $context);
@@ -135,7 +137,7 @@ class u_Net extends OStdModule {
             return (int)$m[1];
         }
         else if ($response === false) {
-           Tht::error("Unable to open URL: `$url`");
+            return '';
         }
 
         if ($functionName == 'httpHead') {
