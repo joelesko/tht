@@ -85,12 +85,8 @@ class ErrorTelemetry {
         else {
 
             if (rand(1, 100) <= self::$SEND_RATE) {
-                try {
-                    $res = Tht::module('Net')->u_http_post($url, OMap::create($error));
-                }
-                catch (\Exception $e) {
-                    // NOOP - Drop on floor
-                }
+                // Fire and forget. Don't do anything with response.
+                $res = Tht::module('Net')->u_http_post($url, OMap::create($error));
             }
         }
     }
