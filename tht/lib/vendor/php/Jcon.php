@@ -2,6 +2,22 @@
 
 namespace Jcon;
 
+/*
+
+     TODO: support programmatic edits?
+           overrides appended at end of file?
+           allow serialize/deserialize with comments?
+
+     Comments should appear before named keys. eg:
+     {
+        __commentForTitle: "Second book in the trilogy"
+        title: "The Two Towers"
+     }
+
+*/
+
+class JconException extends \Exception {}
+
 class JconParser {
 
     private $flags = [];
@@ -40,12 +56,15 @@ class JconParser {
 
     private function error($msg) {
 
-        $msg = 'JCON: Line ' . $this->lineNum . ' - ' . $msg;
+        throw new JconException ($msg);
+    }
 
+    private function handleError($msg) {
         if (is_callable($this->flags['errorHandler'])) {
-            call_user_func_array($this->flags['errorHandler'], [$msg]);
+            call_user_func_array($this->flags['errorHandler'], [$msg, $this->getState()]);
         }
         else {
+            $msg = 'JCON Error - Line ' . $this->lineNum . ' - ' . $this->file . ': ' . $msg;
             throw new \Exception ($msg);
         }
     }
@@ -54,44 +73,60 @@ class JconParser {
     public function getState() {
 
         return [
-            'file' => $this->file,
+            'file'    => $this->file,
             'lineNum' => $this->lineNum,
-            'line' => $this->line,
+            'line'    => $this->line,
         ];
     }
 
     public function parseFile($file) {
 
-        $this->file = $file;
+        try {
+            $this->file = $file;
 
-        if (!file_exists($file)) {
-            $this->error("JCON file not found: `$file`");
+            if (!file_exists($file)) {
+                $this->error("JCON file not found: `$file`");
+            }
+
+            $raw = file_get_content($file);
+
+            $parsed = $this->parse($raw);
+        }
+        catch (JconException $e) {
+            $this->handleError($e->getMessage());
+            return [];
         }
 
-        $raw = file_get_content($file);
-
-        return $this->parse($raw);
+        return $parsed;
     }
 
     public function parse($text) {
 
         $text = trim($text);
 
+        $this->file = '';
         $this->len = strlen($text);
         $this->text = $text;
         $this->pos = 0;
         $this->lineNum = 0;
 
-        if (!$this->len) {
-            $this->error('Empty JCON string.');
-        }
+        try {
 
-        while (true) {
-            $isLastLine = $this->readLine();
-            if ($isLastLine) { break; }
-        }
+            if (!$this->len) {
+                $this->error('Empty JCON string.');
+            }
 
-        $this->validateFinalState();
+            while (true) {
+                $isLastLine = $this->readLine();
+                if ($isLastLine) { break; }
+            }
+
+            $this->validateFinalState();
+
+        } catch (JconException $e) {
+            $this->handleError($e->getMessage());
+            return [];
+        }
 
          return $this->leaf[0];
     }
@@ -229,6 +264,9 @@ class JconParser {
             }
             else {
                 // literal value
+                if (mb_substr($val, -1) == ',' && mb_strlen($val) > 1) {
+                    $this->error("Please remove trailing comma `,`.");
+                }
                 $this->assignVal($key, $val);
             }
         }
