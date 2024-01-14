@@ -3424,6 +3424,9 @@ fn libJconTest($t) {
     $d = Jcon.parse('{\nkey: value\n}\n')
     $t.ok($d.key == 'value', 'string value')
 
+    $d = Jcon.parse('{\n key: "hello"\n }')
+    $t.ok($d.key == 'hello', 'quoted string value')
+
     $d = Jcon.parse('{\nkey: true\n}\n')
     $t.ok($d.key == true, 'true value')
 
@@ -3449,6 +3452,13 @@ fn libJconTest($t) {
     $t.ok(Jcon.fileExists('app.jcon'), 'fileExists')
     $t.ok(!Jcon.fileExists('missing.jcon'), 'fileExists - not')
 
+    $t.dies(fn { Jcon.parse('sdfsdf') }, 'missing top-level')
+    $t.dies(fn { Jcon.parse('{ foo: 123 }') }, 'Missing newline after open brace')
+    $t.dies(fn { Jcon.parse('{\n foo: 123, \n}') }, 'remove trailing comma')
+    $t.dies(fn { Jcon.parse('{\n foo: 1\n foo: 2\n }') }, 'duplicate key')
+    $t.dies(fn { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
+    $t.dies(fn { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
+    $t.dies(fn { Jcon.parse('') }, 'empty JCON string')
 }
 
 

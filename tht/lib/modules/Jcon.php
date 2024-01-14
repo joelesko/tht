@@ -21,6 +21,7 @@ require_once(Tht::getCoreVendorPath('php/Jcon.php'));
 class u_Jcon extends OStdModule {
 
     private $jconObject = null;
+    private $parsedFile = '';
 
     public function getFilePath($file) {
 
@@ -52,6 +53,8 @@ class u_Jcon extends OStdModule {
         }
 
         $text = Tht::module('*File')->u_read($path, OMap::create(['join' => true]));
+
+        $this->parsedFile = $path;
         $data = $this->u_parse($text);
 
         Tht::module('Cache')->u_set($cacheKey, $data, 0);
@@ -79,6 +82,14 @@ class u_Jcon extends OStdModule {
         Tht::module('Perf')->u_start('jcon.parse', $text);
 
         $this->jconObject = new \Jcon\JconParser([
+
+            'errorHandler' => function ($msg, $info) {
+                if ($this->parsedFile) {
+                    $info['file'] = $this->parsedFile;
+                    $this->parsedFile = '';
+                }
+                ErrorHandler::handleJconError($msg, $info['file'], $info['lineNum'], $info['line']);
+            },
 
             'mapHandler' => function () {
                 return OMap::create([]);

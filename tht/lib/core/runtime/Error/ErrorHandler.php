@@ -145,6 +145,10 @@ class ErrorHandler {
         self::$file = $filePath;
     }
 
+    static function setLine($line) {
+        self::$line = $line;
+    }
+
     static private function clearMemoryBuffer() {
 
         self::$memoryBuffer = '';
@@ -186,8 +190,6 @@ class ErrorHandler {
 
         $page = new ErrorPage ($e);
         $page->print();
-
-
     }
 
     static function printInlineWarning($msg) {
@@ -612,6 +614,8 @@ class ErrorHandler {
 
     static function handleJconError ($msg, $srcFile, $lineNum, $line) {
 
+        self::setHelpLink('/reference/jcon-configuration-format', 'JCON Format');
+
         $source = [
             'lang'       => 'jcon',
             'file'       => $srcFile,
@@ -624,7 +628,7 @@ class ErrorHandler {
             'category' => 'runtime',
             'origin'   => 'jcon.parser',
             'message'  => $msg,
-            'trace'    => null,
+            'trace'    => debug_backtrace(),
             'source'   => $source,
         ]);
     }

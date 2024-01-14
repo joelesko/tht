@@ -136,7 +136,8 @@ trait ThtInit {
             foreach (unv($config[$mainKey]) as $k => $v) {
                 if (!isset($defConfig[$mainKey][$k])) {
                     ErrorHandler::setHelpLink('/reference/app-config', 'App Config');
-                    self::configError("Unknown config key `$mainKey.$k` in `" . $file . "`.");
+                    ErrorHandler::setFile($file);
+                    self::configError("Unknown config key `$mainKey.$k`.");
                 }
             }
         }

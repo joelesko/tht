@@ -131,6 +131,11 @@ class ErrorPage {
 
     function cleanPath ($path, $keepPath = false) {
 
+        if (preg_match('#\.jcon$#', $path)) {
+            $path = Tht::stripAppRoot($path);
+            return $path;
+        }
+
         $path = Tht::getThtPathForPhp($path);
 
         $path = Tht::stripAppRoot($path);
