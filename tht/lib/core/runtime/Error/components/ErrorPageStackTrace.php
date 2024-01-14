@@ -235,7 +235,7 @@ class ErrorPageStackTrace extends ErrorPageComponent {
                 // Skip internal entry point
                 continue;
             }
-            else if (preg_match('#/lib/(core|classes|modules)#', $phpFrame['file'])) {
+            else if (preg_match('#/lib/(core|classes|modules|vendor)#', $phpFrame['file'])) {
                 // Skip internal library
                 continue;
             }
