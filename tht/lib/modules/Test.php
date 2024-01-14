@@ -62,6 +62,10 @@ class u_Test extends OStdModule {
             return $this->skip('Perf Panel ON | ' . $desc);
         }
 
+        if (!$matchError) {
+            $matchError = $desc;
+        }
+
         ErrorHandler::startTrapErrors();
 
         $errorMsg = '';
