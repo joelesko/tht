@@ -1428,21 +1428,6 @@ fn testMathAndLogic($t) {
     $t.ok($aa == 25, '**=')
 
 
-    $t.section('Number Methods')
-
-    $num = 1234.56
-    $t.ok($num.format() == '1,235', 'format')
-    $t.ok($num.format(1) == '1,234.6', 'format - numDecimals')
-    $t.ok($num.format(2, '') == '1234.56', 'format - blank sep')
-    $t.ok($num.format(2, ' ', ',') == '1 234,56', 'format - sep & dec')
-
-    $t.ok($num.toString() == '1234.56', 'toString')
-
-    $t.ok($num.toBoolean() == true, 'toBoolean')
-    $t.ok((0).toBoolean() == false, 'toBoolean - false')
-    $t.ok((-1).toBoolean() == true, 'toBoolean - negative')
-    $t.ok((0.1).toBoolean() == true, 'toBoolean - float')
-
     $t.section('Float & Ints')
 
     $t.ok(5 == 5.0, '5 == 5.0')
@@ -1450,14 +1435,6 @@ fn testMathAndLogic($t) {
     $t.ok(1 + 2.0 == 3.0, '1 + 2.0 == 3.0')
     $t.ok(1.0 + 2.0 == 3.0, '1.0 + 2.0 == 3.0')
     $t.ok(1.11111 + 2.22222 == 3.33333, '1.11111 + 2.22222 == 3.33333')
-
-    $t.ok((1.0).isInt() == true, 'isInt true')
-    $t.ok((1.2).isInt() == false, 'isInt false')
-    $t.ok((1.2).isFloat() == true, 'isFloat true')
-    $t.ok((1).isFloat() == false, 'isFloat false')
-    $t.ok((1.2).toInt() == 1, 'toInt')
-    $t.ok((1).toFloat() == 1.0, 'toFloat')
-
 
 
 }
@@ -3758,12 +3735,6 @@ fn testNumber($t) {
     .ok((0).sign() == 0, 'sign zero')
     .ok((-1).sign() == -1, 'sign negative')
 
-    .ok((1).appendSign() == '+1', 'appendSign positive')
-    .ok((-1).appendSign() == '-1', 'appendSign negative')
-    .ok((0).appendSign() == '0', 'appendSign zero')
-    .ok((0).appendSign({ zero: '-' }) == '-0', 'appendSign zero negative')
-    .ok((0).appendSign({ zero: '+' }) == '+0', 'appendSign zero positive')
-
     .ok((-5).abs() == 5, 'abs - negative')
     .ok((0).abs() == 0, 'abs - zero')
     .ok((1.1).abs() == 1.1, 'abs - positive float')
@@ -3817,7 +3788,59 @@ fn testNumber($t) {
     .ok((-16).isMultipleOf(2), 'isMultipleOf - negative')
     .ok(!(16).isMultipleOf(5), '!isMultipleOf')
     .ok((0).isMultipleOf(2), 'isMultipleOf zero')
+
+
+    $num = 1234.56
+    $t.ok($num.format() == '1,235', 'format')
+    $t.ok($num.format({ numDecimals: 1 }) == '1,234.6', 'format - numDecimals')
+    $t.ok($num.format({ numDecimals: 2, thousandSep: '' }) == '1234.56', 'format - blank sep')
+    $flags = { numDecimals: 2, thousandSep: ' ', decimalSep: ',' }
+    $t.ok($num.format($flags) == '1 234,56', 'format - sep & dec')
+    $t.ok($num.format({ sign: true, numDecimals: 1 }) == '+1,234.6',
+        'format - sign positive')
+    $t.ok($num.format({ parens: true }) == '1,235',
+        'format - negative parens / positive')
+
+    $num = -1234.56
+    $t.ok($num.format() == '-1,235', 'format - negative')
+    $t.ok($num.format({ numDecimals: 1 }) == '-1,234.6', 'format - negative - numDecimals')
+    $t.ok($num.format({ parens: true }) == '(1,235)',
+        'format - negative parens / negative')
+
+
+    $num = 0
+    $t.ok($num.format() == '0', 'format - negative')
+    $t.ok($num.format({ numDecimals: 3 }) == '0.000', 'format - zero - numDecimals')
+    $t.ok($num.format({ sign: true, zeroSign: '-' }) == '-0', 'format - zero - negative')
+    $t.ok($num.format({ sign: true, zeroSign: '+' }) == '+0', 'format - zero - positive')
+    $t.ok(
+        $num.format({ parens: true, zeroSign: '-' }) == '(0)',
+        'format - zero - negative parens'
+    )
+    $t.ok(
+        $num.format({ parens: true, zeroSign: '-', numDecimals: 3 }) == '(0.000)',
+        'format - zero - negative parens - numDecimals'
+    )
+
+    $num = 1234.56
+    $t.dies(fn { $num.format({ thousandSep: '*&*' }) }, 'Invalid option map value')
+
+
+    $num = 1234.56
+    $t.ok($num.toString() == '1234.56', 'toString')
+    $t.ok($num.toBoolean() == true, 'toBoolean')
+    $t.ok((0).toBoolean() == false, 'toBoolean - false')
+    $t.ok((-1).toBoolean() == true, 'toBoolean - negative')
+    $t.ok((0.1).toBoolean() == true, 'toBoolean - float')
+
+    $t.ok((1.0).isInt() == true, 'isInt true')
+    $t.ok((1.2).isInt() == false, 'isInt false')
+    $t.ok((1.2).isFloat() == true, 'isFloat true')
+    $t.ok((1).isFloat() == false, 'isFloat false')
+    $t.ok((1.2).toInt() == 1, 'toInt')
+    $t.ok((1).toFloat() == 1.0, 'toFloat')
 }
+
 fn libMath($t) {
 
     $t.section('Module: Math')
@@ -3833,9 +3856,7 @@ fn libMath($t) {
 
     $t.ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin')
     .ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec')
-
 }
-
 
 fn libMeta($t) {
 

@@ -21,36 +21,6 @@ class ONumber extends OVar {
         return 0;
     }
 
-    function u_append_sign ($flags=null) {
-
-        $this->ARGS('m', func_get_args());
-
-        $flags = $this->flags($flags, [
-            'zero' => '|+|-',
-        ]);
-
-        if ($this->val === 0) {
-            if ($flags['zero'] == '+') {
-                return '+0';
-            }
-            else if ($flags['zero'] == '-') {
-                return '-0';
-            }
-            else {
-                return '0';
-            }
-        }
-
-        $sign = $this->u_sign();
-
-        if ($sign == -1) {
-            return '' . $this->val;
-        }
-        else {
-            return '+' . $this->val;
-        }
-    }
-
     function u_floor () {
 
         $this->ARGS('', func_get_args());
@@ -137,11 +107,75 @@ class ONumber extends OVar {
         }
     }
 
-    function u_format ($numDec=0, $thousandSep=',', $decimalPt='.') {
+    function u_format ($flags=null) {
 
-        $this->ARGS('Iss', func_get_args());
+        $this->ARGS('m', func_get_args());
 
-        return number_format($this->val, $numDec, $decimalPt, $thousandSep);
+        // Have to do this because OMap.check() splits off of /\s*\|\s*/
+        if (isset($flags['thousandSep']) && $flags['thousandSep'] == ' ') {
+            $flags['thousandSep'] = '(space)';
+        }
+        if (isset($flags['decimalSep']) && $flags['decimalSep'] == ' ') {
+            $flags['decimalSep'] = '(space)';
+        }
+
+        $flags = $this->flags($flags, [
+            'sign' => false,
+            'parens' => false,
+            'zeroSign' => '|+|-',
+            'numDecimals' => 0,
+            'thousandSep' => ",|.|'|_|(space)|",
+            'decimalSep' =>  ".|,|'|_|(space)|",
+        ]);
+
+        if ($flags['thousandSep'] == '(space)') {
+            $flags['thousandSep'] = ' ';
+        }
+        if ($flags['decimalSep'] == '(space)') {
+            $flags['decimalSep'] = ' ';
+        }
+
+        $formattedVal = number_format($this->val, $flags['numDecimals'], $flags['decimalSep'], $flags['thousandSep']);
+
+        if ($flags['parens']) {
+            $formattedVal = $this->wrapParens($this->val, $formattedVal, $flags['zeroSign']);
+        }
+        else if ($flags['sign']) {
+            $formattedVal = $this->appendSign($this->val, $formattedVal, $flags['zeroSign']);
+        }
+
+        return $formattedVal;
+    }
+
+    private function wrapParens ($val, $formattedVal, $zeroSign) {
+
+        if ($val === 0) {
+            if ($zeroSign == '-') {
+                return '(' . $formattedVal . ')';
+            }
+        }
+        else if ($val < 0) {
+            return '(' . trim($formattedVal, '-') . ')';
+        }
+
+        return $formattedVal;
+    }
+
+    private function appendSign ($val, $formattedVal, $zeroSign) {
+
+        if ($val === 0) {
+            if ($zeroSign == '+') {
+                return '+' . $formattedVal;
+            }
+            else if ($zeroSign == '-') {
+                return '-' . $formattedVal;
+            }
+        }
+        else if ($val > 0) {
+            return '+' . $formattedVal;
+        }
+
+        return $formattedVal;
     }
 
     // TODO: localization
