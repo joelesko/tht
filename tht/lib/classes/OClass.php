@@ -524,7 +524,7 @@ class OClass implements \JsonSerializable {
         $umethod = strtolower($method);
 
         if (method_exists($this, $umethod)) {
-            $suggest = 'Try: Call method `' . $ufield . '()`';
+            $suggest = 'Try: Call method `' . $umethod . '()`';
         }
 
         // Common alias,  e.g. explode -> split
