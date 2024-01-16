@@ -270,7 +270,7 @@ class OMap extends OBag {
                 $okType = v($defaultVal)->u_type();
                 $gotType = v($this->val[$k])->u_type();
 
-                if ($okType == 'boolean' && $gotType == 'string' && $k == $this->val[$k]) {
+                if ($okType == 'boolean' && $gotType == 'string' && $k === $this->val[$k]) {
                     // Allow { someFlag }
                     $this->val[$k] = true;
                 }
@@ -281,10 +281,11 @@ class OMap extends OBag {
                     $this->error("Option value `$k` must be of type `$okType`. Got: `$gotType`");
                 }
 
+                $v = $this->val[$k];
+
                 if ($enums && !in_array($v, $enums)) {
                     $tryEnums = array_map(function($a){ return "`" . $a . "`"; }, $enums);
-
-                    $this->error("Invalid option map value for `$k`" . ' Got: ' . $v . "  Try: " . implode(', ', $tryEnums));
+                    $this->error("Invalid option map value for `$k`" . ' Got: `' . $v . "`  Try: " . implode(', ', $tryEnums));
                 }
             }
         }
