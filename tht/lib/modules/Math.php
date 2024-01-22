@@ -167,6 +167,26 @@ class u_Math extends OStdModule {
         return $toBase === 10 ? v($res)->u_to_number() : $res;
     }
 
+    function u_dec_to_hex ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return strtoupper(dechex($n));
+    }
+
+    function u_hex_to_dec ($s) {
+
+        $this->ARGS('s', func_get_args());
+
+        $s = ltrim($s, '#');
+
+        if (preg_match('/[^#xA-Za-z0-9]/', $s)) {
+            $this->error("Invalid character in hex string. Got: `$s`");
+        }
+
+        return hexdec($s);
+    }
+
     function u_whoa ($n) {
 
         $this->ARGS('n', func_get_args());
