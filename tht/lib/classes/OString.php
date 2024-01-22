@@ -830,6 +830,9 @@ class OString extends OVar implements \ArrayAccess {
 
         $this->ARGS('Is', func_get_args());
 
+        // TODO: for PHP 8.3+:
+        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_BOTH);
+
         return $this->pad($padLen, $padStr, 'both');
     }
 
@@ -837,12 +840,18 @@ class OString extends OVar implements \ArrayAccess {
 
         $this->ARGS('Is', func_get_args());
 
+        // TODO: for PHP 8.3+:
+        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_LEFT);
+
         return $this->pad($padLen, $padStr, 'left');
     }
 
     function u_pad_right($padLen, $padStr = ' ') {
 
         $this->ARGS('Is', func_get_args());
+
+        // TODO: for PHP 8.3+:
+        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_RIGHT);
 
         return $this->pad($padLen, $padStr, 'right');
     }
