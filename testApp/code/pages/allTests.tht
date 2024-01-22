@@ -840,7 +840,8 @@ fn testFunctions($t) {
 
     $t.section('Function - Argument Checking')
 
-    $t.ok($t.checkArgs('s', ''), 'string')
+    $t.ok($t.checkArgs('s', 'x'), 'string')
+    $t.ok($t.checkArgs('S', ''), ' empty string')
     $t.ok($t.checkArgs('n', 123), 'number')
     $t.ok($t.checkArgs('l', []), 'list')
     $t.ok($t.checkArgs('b', 1 == 0), 'boolean')
@@ -859,8 +860,10 @@ fn testFunctions($t) {
     $t.dies(fn { $t.checkArgs('n', '123') }, 'String as number', 'to be a `number`')
 
     $t.dies(fn { $t.checkArgs('snl', [], 123, []) }, 'Multi (snl): bad #1', 'be a `string`')
-    $t.dies(fn { $t.checkArgs('snl', '', '123', []) }, 'Multi (snl): bad #2', 'be a `number`')
-    $t.dies(fn { $t.checkArgs('snl', '', 123, 'x') }, 'Multi (snl): bad #3', 'be a `list`')
+    $t.dies(fn { $t.checkArgs('snl', 'x', '123', []) }, 'Multi (snl): bad #2', 'be a `number`')
+    $t.dies(fn { $t.checkArgs('snl', 'x', 123, 'x') }, 'Multi (snl): bad #3', 'be a `list`')
+
+    $t.dies(fn { $t.checkArgs('s', '') }, 'Empty string')
 
     $t.dies(fn { $t.checkArgs('i', 3.0) }, 'No float for int', 'toInt')
     $t.dies(fn { $t.checkArgs('I', -3) }, 'Positive int: -3', 'negative')
@@ -1820,7 +1823,7 @@ fn testStrings($t) {
     $t.ok('abc'.setChar(-1, 'Z') == 'abZ', 'setChar negative')
     $t.dies(x{ 'abc'.setChar(5, 'xx') }, 'setChar - out of bounds',
         'outside of string length')
-    $t.dies(x{ 'abc'.setChar(2, '') }, 'setChar - empty char',
+    $t.dies(x{ 'abc'.setChar(1, 'xx') }, 'setChar - 1 character',
         'must be exactly 1 character')
 
     $t.ok(''.toBoolean() == false, 'toBoolean - empty string')
@@ -2946,7 +2949,7 @@ fn libFile($t) {
         'Parent shortcut `..` not allowed')
     $t.dies(fn { File.read('http://yahoo.com') }, 'stop remote file read',
         'Remote URL not allowed')
-    $t.dies(fn { File.exists('') }, 'empty path', 'File path cannot be empty')
+    $t.dies(fn { File.exists('') }, 'empty path', 'empty string')
     $t.dies(fn { File.exists('./path') }, 'dotted relative path', 'Dot directory `.` not allowed')
     $t.dies(fn { File.exists('/passwd') }, 'outside of sandbox',
         'Path must be relative to `data/files`')
@@ -3240,8 +3243,8 @@ fn libDate($t) {
     $date1 = Date.create('2022-02-01')
     $date2 = Date.create('2021-03-01')
     $t.ok($date1.diffHuman($date2) == '1 year', 'diffHuman - otherDate')
-    $t.ok($date1.diff($date2, 'days').ceil() == 337, 'diff - otherDate')
-    $t.ok($date2.diff($date1, 'days').floor() == -337, 'diff - negative')
+    $t.ok($date1.diff($date2, 'days').roundDown() == 337, 'diff - otherDate')
+    $t.ok($date2.diff($date1, 'days').roundUp() == -337, 'diff - negative')
 
     $past = Date.create('3 mins ago')
     $future = Date.create('+3 mins')
@@ -3435,7 +3438,7 @@ fn libJconTest($t) {
     $t.dies(fn { Jcon.parse('{\n foo: 1\n foo: 2\n }') }, 'duplicate key')
     $t.dies(fn { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
     $t.dies(fn { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
-    $t.dies(fn { Jcon.parse('') }, 'empty JCON string')
+    $t.dies(fn { Jcon.parse('') }, 'empty string')
 }
 
 
@@ -3721,11 +3724,11 @@ fn testNumber($t) {
     .ok((2.6).round() == 3, 'round - up')
     .ok((2.4).round() == 2, 'round - down ')
 
-    .ok((2.4).ceil() == 3, 'ceil')
-    .ok((-2.4).ceil() == -2, 'ceil negative')
+    .ok((2.4).roundUp() == 3, 'roundUp')
+    .ok((-2.4).roundUp() == -2, 'roundUp negative')
 
-    .ok((2.6).floor() == 2, 'floor')
-    .ok((-2.6).floor() == -3, 'floor negative')
+    .ok((2.6).roundDown() == 2, 'roundDown')
+    .ok((-2.6).roundDown() == -3, 'roundDown negative')
 
     .ok((5).clamp(1, 10) == 5, 'clamp in boundary')
     .ok((20).clamp(1, 10) == 10, 'clamp max')
@@ -3761,12 +3764,13 @@ fn testNumber($t) {
     .dies(fn { Math.range(1, 10, 100) }, 'less than total range',
         'can not be greater than the total range')
 
-    .ok((123).zeroPad(2) == '123', 'zeroPad - less')
-    .ok((123).zeroPad(6) == '000123', 'zeroPad - more')
-    .ok((123.4).zeroPad(6) == '000123', 'zeroPad - float - no dec zeros')
-    .ok((123.4).zeroPad(6, 2) == '000123.40', 'zeroPad - float - dec zeros')
-    .ok((123).zeroPad(0, 2) == '123.00', 'zeroPad - int - dec zeros, no leading')
-    .ok((123.4).zeroPad(0, 2) == '123.40', 'zeroPad - float - dec zeros, no leading')
+    .ok((123).zeroPadLeft(2) == '123', 'zeroPadLeft - less')
+    .ok((123).zeroPadLeft(6) == '000123', 'zeroPadLeft - more')
+    .ok((123.4).zeroPadLeft(6) == '000123', 'zeroPadLeft - float is removed')
+
+    .ok((123).zeroPadRight(2) == '123.00', 'zeroPadRight - int ')
+    .ok((123.4).zeroPadRight(3) == '123.400', 'zeroPadRight - float 3')
+    .ok((123.4567).zeroPadRight(2) == '123.46', 'zeroPadRight - float - less')
 
     .ok((1).isOdd(), 'isOdd: 1')
     .ok((-1).isOdd(), 'isOdd: -1')
@@ -3839,6 +3843,17 @@ fn testNumber($t) {
     $t.ok((1).isFloat() == false, 'isFloat false')
     $t.ok((1.2).toInt() == 1, 'toInt')
     $t.ok((1).toFloat() == 1.0, 'toFloat')
+
+    $t.ok((0).humanizeCount() == '0th', 'humanizeCount - 0th')
+    $t.ok((1).humanizeCount() == '1st', 'humanizeCount - 1st')
+    $t.ok((2).humanizeCount() == '2nd', 'humanizeCount - 2nd')
+    $t.ok((3).humanizeCount() == '3rd', 'humanizeCount - 3rd')
+    $t.ok((4).humanizeCount() == '4th', 'humanizeCount - 4th')
+    $t.ok((9).humanizeCount() == '9th', 'humanizeCount - 9th')
+    $t.ok((30).humanizeCount() == '30th', 'humanizeCount - 30th')
+    $t.ok((31).humanizeCount() == '31st', 'humanizeCount - 31st')
+    $t.ok((32).humanizeCount() == '32nd', 'humanizeCount - 32nd')
+    $t.ok((33).humanizeCount() == '33rd', 'humanizeCount - 33rd')
 }
 
 fn libMath($t) {
@@ -3851,11 +3866,19 @@ fn libMath($t) {
 
     $t
     .ok($rand >= 6 && $rand <= 8, 'random')
-    .ok($rand.floor() == $rand, 'random is int')
+    .ok($rand.roundDown() == $rand, 'random is int')
     .ok($rnd >= 0.0 && $rnd < 1.0, 'random float')
 
     $t.ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin')
     .ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec')
+
+    $t.ok(Math.hexToDec('F1') == 241, 'hexToDex')
+    $t.ok(Math.hexToDec('FF0000') == 16711680, 'hexToDex - color')
+    $t.ok(Math.hexToDec('#FF0000') == 16711680, 'hexToDex - CSS color')
+    $t.ok(Math.hexToDec('0xFF0000') == 16711680, 'hexToDex - 0x prefix')
+    $t.ok(Math.decToHex(241) == 'F1', 'decToHex')
+    $t.ok(Math.decToHex(16) == '10', 'decToHex')
+
 }
 
 fn libMeta($t) {
