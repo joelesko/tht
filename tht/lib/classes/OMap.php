@@ -113,7 +113,9 @@ class OMap extends OBag {
     }
 
     function u_remove ($k) {
-        $this->ARGS('s', func_get_args());
+
+        $this->ARGS('S', func_get_args());
+
         $v = isset($this->val[$k]) ? $this->val[$k] : null;
         unset($this->val[$k]);
         if (is_null($v)) {
@@ -127,7 +129,7 @@ class OMap extends OBag {
     }
 
     function u_has_key ($key) {
-        $this->ARGS('s', func_get_args());
+        $this->ARGS('S', func_get_args());
         return isset($this->val[$key]);
     }
 

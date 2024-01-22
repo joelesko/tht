@@ -96,10 +96,11 @@ class ArgUtil {
         'i' => 'integer',
         'n' => 'number',  // float or int
         's' => 'string',
+        'S' => 'string', // non-empty okay
         'b' => 'boolean',
         'l' => 'list',
         'm' => 'map',
-        'c' => 'callable',
+        'c' => 'callable',  // TODO: change this to 'f' and use 'c' for char?
         '*' => 'any',
     ];
 }
@@ -156,11 +157,17 @@ function validateFunctionArgs($sig, $arguments) {
                 $slot = lcfirst($slot);
             }
 
+            $slotAllowsEmptyString = false;
+            if ($slot == 'S') {
+                $slotAllowsEmptyString = true;
+                $slot = lcfirst($slot);
+            }
+
             if ($argType == 'integer' || $argType == 'float') {
 
                 if ($slotIsPositive) {
                     if ($arg < 0) {
-                        // Error: negative number - force mismatch
+                        // Error: negative number - force mismatch below
                         $slot = ucfirst($slot);
                         $argType = 'negative ' . $argType;
                     }
@@ -191,6 +198,14 @@ function validateFunctionArgs($sig, $arguments) {
                 }
                 else if (get_class($arg) == 'Closure') {
                     $argType = 'callable';
+                }
+            }
+            else if ($argType == 'string') {
+
+                if ($arg == '' && !$slotAllowsEmptyString) {
+                    // Error: empty string - force mismatch below
+                    $slot = ucfirst($slot);
+                    $argType = 'empty ' . $argType;
                 }
             }
 

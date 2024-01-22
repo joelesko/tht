@@ -48,7 +48,7 @@ class u_Perf extends OStdModule {
 
     function u_start ($baseTaskId, $value='') {
 
-        $this->ARGS('ss', func_get_args());
+        $this->ARGS('sS', func_get_args());
 
         if ($this->isActive()) {
             $this->start($baseTaskId, $value);

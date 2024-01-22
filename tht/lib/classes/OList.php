@@ -517,7 +517,7 @@ class OList extends OBag {
 
     function u_join ($delim='') {
 
-        $this->ARGS('s', func_get_args());
+        $this->ARGS('S', func_get_args());
 
         return implode($delim, $this->val);
     }
