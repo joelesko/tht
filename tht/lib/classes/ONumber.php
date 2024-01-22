@@ -21,14 +21,14 @@ class ONumber extends OVar {
         return 0;
     }
 
-    function u_floor () {
+    function u_round_down () {
 
         $this->ARGS('', func_get_args());
 
         return (int) floor($this->val);
     }
 
-    function u_ceil () {
+    function u_round_up () {
 
         $this->ARGS('', func_get_args());
 
@@ -85,26 +85,20 @@ class ONumber extends OVar {
         return abs($this->val);
     }
 
+    function u_zero_pad_left($numLeadingZeros) {
 
+        $this->ARGS('I', func_get_args());
 
+        return sprintf('%0' . $numLeadingZeros . 'd', $this->val);
+    }
 
+    function u_zero_pad_right($numDecZeros) {
 
+        $this->ARGS('I', func_get_args());
 
+        $pattern = "%0.{$numDecZeros}f";
 
-
-    function u_zero_pad($numLeadingZeros, $numDecZeros = 0) {
-
-        $this->ARGS('II', func_get_args());
-
-        if ($numDecZeros) {
-            $decSep = ".";
-            $adjLeadingZeros = $numLeadingZeros + mb_strlen($decSep) + $numDecZeros;
-            $pattern = "%0{$adjLeadingZeros}{$decSep}{$numDecZeros}f";
-            return sprintf($pattern, $this->val);
-        }
-        else {
-            return sprintf('%0' . $numLeadingZeros . 'd', $this->val);
-        }
+        return sprintf($pattern, $this->val);
     }
 
     function u_format ($flags=null) {
@@ -120,12 +114,12 @@ class ONumber extends OVar {
         }
 
         $flags = $this->flags($flags, [
-            'sign' => false,
-            'parens' => false,
-            'zeroSign' => '|+|-',
+            'sign'        => false,
+            'parens'      => false,
+            'zeroSign'    => '|+|-',
             'numDecimals' => 0,
             'thousandSep' => ",|.|'|_|(space)|",
-            'decimalSep' =>  ".|,|'|_|(space)|",
+            'decimalSep'  => ".|,|'|_|(space)|",
         ]);
 
         if ($flags['thousandSep'] == '(space)') {
