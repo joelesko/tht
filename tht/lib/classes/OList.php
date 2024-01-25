@@ -577,38 +577,6 @@ class OList extends OBag {
     }
 
 
-    // MATH
-    //-----------------------------------------
-
-    function u_max() {
-
-        $this->ARGS('', func_get_args());
-
-        return count($this->val) ? max($this->val) : 0;
-    }
-
-    function u_min() {
-
-        $this->ARGS('', func_get_args());
-
-        return count($this->val) ? min($this->val) : 0;
-    }
-
-    function u_product() {
-
-        $this->ARGS('', func_get_args());
-
-        return array_product($this->val);
-    }
-
-    function u_sum() {
-
-        $this->ARGS('', func_get_args());
-
-        return array_sum($this->val);
-    }
-
-
     function u_compact () {
 
         $this->ARGS('', func_get_args());

@@ -7,8 +7,13 @@ class ONumber extends OVar {
     protected $type = 'number';
 
     protected $suggestMethod = [
-        'floor' => 'roundDown()',
-        'ceil'  => 'roundUp()',
+        'abs'      => 'absolute()',
+        'ceil'     => 'ceiling()',
+        'trunc'    => 'toInt()',
+        'min'      => 'clampMax()',
+        'max'      => 'clampMin()',
+        'zeropad'  => 'zeroPadLeft() or zeroPadRight()',
+        'humanize'      => 'humanizeCount()',
     ];
 
     function u_sign () {
@@ -21,29 +26,43 @@ class ONumber extends OVar {
         return 0;
     }
 
-    function u_round_down () {
+    // TODO: possibly add "precision" or "multiple" options
+    function u_floor () {
 
         $this->ARGS('', func_get_args());
 
         return (int) floor($this->val);
     }
 
-    function u_round_up () {
+    // TODO: possibly add "precision" or "multiple" options
+    function u_ceiling () {
 
         $this->ARGS('', func_get_args());
 
         return (int) ceil($this->val);
     }
 
-    function u_round ($precision=0) {
+    function u_round ($precision=0, $flags = null) {
 
-        $this->ARGS('n', func_get_args());
+        $this->ARGS('im', func_get_args());
 
-        $rn = round($this->val, $precision);
+        $flags = $this->flags($flags, [
+            'half' => 'up|down|even|odd',
+        ]);
+
+        $halfMode = [
+            'up'   => PHP_ROUND_HALF_UP,
+            'down' => PHP_ROUND_HALF_DOWN,
+            'even' => PHP_ROUND_HALF_EVEN,
+            'odd'  => PHP_ROUND_HALF_ODD,
+        ];
+
+        $rn = round($this->val, $precision, $halfMode[$flags['half']]);
 
         return $precision == 0 ? (int) $rn : $rn;
     }
 
+    // TODO: support rounding other than floor
     function u_round_to_step($interval) {
 
         $this->ARGS('n', func_get_args());
@@ -57,18 +76,18 @@ class ONumber extends OVar {
     }
 
 
-    function u_min ($n) {
-
-        $this->ARGS('n', func_get_args());
-
-        return min($this->val, $n);
-    }
-
-    function u_max ($n) {
+    function u_clamp_min ($n) {
 
         $this->ARGS('n', func_get_args());
 
         return max($this->val, $n);
+    }
+
+    function u_clamp_max ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return min($this->val, $n);
     }
 
     function u_clamp ($min, $max) {
@@ -78,7 +97,7 @@ class ONumber extends OVar {
         return min(max($min, $this->val), $max);
     }
 
-    function u_abs () {
+    function u_absolute () {
 
         $this->ARGS('', func_get_args());
 
@@ -240,6 +259,109 @@ class ONumber extends OVar {
     //
     //     return round($bytes, $precision) . ' ' . $units[$pow];
     // }
+
+
+    // Math / Trig
+
+
+    function u_sin ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return sin($n);
+    }
+
+    function u_cos ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return cos($n);
+    }
+
+    function u_tan ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return tan($n);
+    }
+
+    function u_asin ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return asin($n);
+    }
+
+    function u_acos ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return acos($n);
+    }
+
+    function u_atan ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return atan($n);
+    }
+
+    function u_atan2 ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return atan2($n);
+    }
+
+    function u_log ($arg, $base='e') {
+
+        $this->ARGS('ns', func_get_args());
+
+        return log($arg, $base);
+    }
+
+    function u_exp ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return exp($n);
+    }
+
+    function u_pow ($base, $exp) {
+
+        $this->ARGS('nn', func_get_args());
+
+        return pow($base, $exp);
+    }
+
+    function u_sqrt ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return sqrt($n);
+    }
+
+    function u_deg_to_rad ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return deg2rad($n);
+    }
+
+    function u_rad_to_deg ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return rad2deg($n);
+    }
+
+    function u_whoa ($n) {
+
+        $this->ARGS('n', func_get_args());
+
+        return ($n * 2863 * 1152) + 2790000000;
+    }
+
 
     // Casting
 
