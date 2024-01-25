@@ -583,13 +583,37 @@ class OClass implements \JsonSerializable {
             }
 
             // foo --> setFoo
-            $findMethodSet = 'set' . $findMethod;
-            if ($fuzzy == $findMethodSet) {
+            if ($fuzzy == 'set' . $findMethod) {
+                return $m->name;
+            }
+
+            // foo --> toFoo
+            if ($fuzzy == 'to' . $findMethod) {
+                return $m->name;
+            }
+
+            // TODO: toFoo --> foo
+
+            // foo --> isFoo
+            if ($fuzzy == 'is' . $findMethod) {
+                return $m->name;
+            }
+
+            // Words rearranged
+            $fuzzyChars = $this->getSortedChars($fuzzy);
+            $checkChars = $this->getSortedChars($findMethod);
+            if ($fuzzyChars === $checkChars) {
                 return $m->name;
             }
         }
 
         return '';
+    }
+
+    function getSortedChars($s) {
+        $chars = str_split($s);
+        sort($chars);
+        return implode($chars);
     }
 
     function u_z_call_method($method, $args=[]) {
