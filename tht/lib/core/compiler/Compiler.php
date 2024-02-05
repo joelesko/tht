@@ -196,11 +196,6 @@ class Compiler {
             Tht::error('Source file must be saved in UTF-8 format.');
         }
 
-        if (preg_match('/\t/', $rawSource)) {
-            ErrorHandler::setFile($sourceFile);
-            Tht::strictFormatError("Source file must not contain (tab) characters. Try: Configure your editor to use soft tabs with 4 spaces.");
-        }
-
         return $rawSource;
     }
 
