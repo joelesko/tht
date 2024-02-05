@@ -5,7 +5,7 @@ fn main {
 
     $test = Test()
 
-    run($test)
+    $test = run($test)
 
     Output.sendHtml(html($test.resultsHtml()))
 }
@@ -53,71 +53,68 @@ fn run($t:o) {
 
     $startTime = Perf.now()
 
-    testValidator($t)
-    testRuntimeErrors($t)
-    testCompileErrors($t)
+    $t = testValidator($t)
+    $t = testRuntimeErrors($t)
+    $t = testCompileErrors($t)
 
-    testMathAndLogic($t)
-    testBitwise($t)
+    $t = testMathAndLogic($t)
+    $t = testBitwise($t)
 
-    testTypes($t)
-    testStrings($t)
-    testNumber($t)
-    testFlags($t)
-    testTypeStrings($t)
-    testUrlTypeStrings($t)
+    $t = testTypes($t)
+    $t = testStrings($t)
+    $t = testNumber($t)
+    $t = testFlags($t)
+    $t = testTypeStrings($t)
+    $t = testUrlTypeStrings($t)
 
-    testLoops($t)
-    testControlFlow($t)
+    $t = testLoops($t)
+    $t = testControlFlow($t)
 
-    testLists($t)
-    testMaps($t)
+    $t = testLists($t)
+    $t = testMaps($t)
 
-    testFunctions($t)
-    testTypeDeclarations($t)
-    testTemplates($t)
+    $t = testFunctions($t)
+    $t = testTypeDeclarations($t)
+    $t = testTemplates($t)
 
-    testCustomModules($t)
-    testOop($t)
+    $t = testCustomModules($t)
+    $t = testOop($t)
 
-    testPerf($t)
-    testMisc($t)
+    $t = testPerf($t)
+    $t = testMisc($t)
 
 
     // Modules
+    $t = libFile($t)
+    $t = libDate($t)
+    $t = libPassword($t)
+    $t = libJconTest($t)
+    $t = libJson($t)
+    $t = libLitemark($t)
+    $t = libMath($t)
+    $t = libMeta($t)
+    $t = libRequest($t)
+    $t = libPhp($t)
+    $t = libWeb($t)
+    $t = libPage($t)
+    $t = libInput($t)
+    $t = libForm($t)
+    $t = libOutput($t)
+    $t = libConfig($t)
+    $t = libSession($t)
+    $t = libCookie($t)
+    $t = libSystem($t)
+    $t = libDb($t)
+    $t = libCache($t)
+    $t = libNet($t)
 
-    libFile($t)
-    libDate($t)
-    libPassword($t)
-    libJconTest($t)
-    libJson($t)
-    libLitemark($t)
-    libMath($t)
-    libMeta($t)
-    libRequest($t)
-    libPhp($t)
-    libWeb($t)
-    libPage($t)
-    libInput($t)
-    libForm($t)
-    libOutput($t)
-    libConfig($t)
-    libSession($t)
-    libCookie($t)
-    libSystem($t)
-    libDb($t)
-    libCache($t)
-
-
-    libNet($t)
-
-
-    // libMapDb($t)
-    // libPerf($t)
+    // $t = libPerf($t)
 
     $duration = Perf.now() - $startTime
 
     if isPerfMode(): print('Perf Duration: ' ~ $duration ~ ' ms')
+
+    return $t
 }
 
 fn testRuntimeErrors($t) {
@@ -144,6 +141,7 @@ fn testRuntimeErrors($t) {
     $t.dies(x{ (1).leftZeroPad() }, 'word order', 'Try: `zeroPadLeft` (exact case)')
     $t.dies(x{ (1).even() }, 'is-', 'Try: `isEven` (exact case)')
 
+    return $t
 }
 
 fn testCompileErrors($t) {
@@ -248,7 +246,11 @@ fn testCompileErrors($t) {
     $t.parserError('if 2 => 1 { }', '>=')
     $t.parserError('if 1 =< 2 { }', '<=')
     $t.parserError('$a = 1 <> 2', '!=')
-    $t.parserError('fn foo', 'Expected `{`')
+
+
+    $t.parserError('fn foo\n$a = 1', 'Expected `{`')
+
+
     $t.parserError('if false && ($a == 3) return', 'Expected `{`')
     $t.parserError('$a = { FOO: `bar` }', 'camelCase')
     $t.parserError('$a = { foo: `bar`, foo: 1 }', 'duplicate key')
@@ -306,11 +308,11 @@ fn testCompileErrors($t) {
     $t.parserOk('$a = fn { $c = 1 }', 'Statement in anon function')
     $t.parserOk('if true { $a = 1 }', 'Statement in conditional block')
 
-    // Allow dangling open braces
-    $t.parserOk('if true\n{ }', 'dangling brace')
-    $t.parserOk('if true {\n}\nelse\n{ }', 'newline after `else`')
-    $t.parserOk('foreach [`a`] as $a\n{ }',     'newline after foreach')
-    $t.parserOk('fn fnn\n{ }',        'newline after fn name')
+    // Don't allow dangling open braces
+    $t.parserError('if true\n{ }',             'Please move open brace')
+    $t.parserError('if true {\n}\nelse\n{ }',  'Please move open brace')
+    $t.parserError('foreach [`a`] as $a\n{ }', 'Please move open brace')
+    $t.parserError('fn fnn\n{ }',              'Please move open brace')
 
 
     $t.section('Parser Errors - Spaces')
@@ -363,32 +365,31 @@ fn testCompileErrors($t) {
     $t.parserError('String.\n    random(4)', 'space after `.`')
     $t.parserOk('String\n    .random(4)', 'newline before `.`')
 
-
+    $t.parserError('\tfoo()', 'tab character not supported')
+    $t.parserError('$foo = \t123', 'tab character not supported')
+    $t.parserError('\ntm fHtml {\n\t    Test\n}', 'tab character not supported')
 
 
     $t.section('Parser Errors - Templates')
 
     // TODO: there is a bug if a tm is the first line of source code
     $t.parserError('\ntm fHtml {<',                'newline')
-    $t.parserError('\ntm fHtml {\n  ---$a = 1',        'space after `---`')
-    $t.parserError('\ntm fHtml {\n  --- $a = \n}\n',       'Unexpected newline')
-    $t.parserOk('\ntm fHtml {\n  {{5 }}\n}\n',     'space after `{{`')
-    $t.parserOk('\ntm fHtml {\n  {{ 5}}\n}\n',     'space before `}}`')
-    $t.parserError('\ntm fHtml {\n  {{ \n5 }}',    'unexpected newline')
-    $t.parserError('\ntm fHtml {\n <p class="foo>\n }',     'missing a closing quote')
-    $t.parserError('\ntm fHtml {\n  <b>Hi</div>',    'expected `</b>`')
-    $t.parserOk('\ntm fffHtml {\n  </>\n}\n',  'extra closing tag')
-    $t.parserError('\ntm fHtml {\n  <p>\n  </>\n  </>}\n',  'extra closing tag')
-    $t.parserOk('\ntm fHtml {\n  </b>\n}\n',  'named closing tag')
-    $t.parserError('fn fHtml {\n  <',              'unexpected `<`', '')
-    $t.parserError('\ntm fHtml {\n <b>\n}', 'missing closing tag')
-    $t.parserOk('\ntm fHtml {\n <b>\n </...>\n}', 'continue tag')
+    $t.parserError('\ntm fHtml {\n    ---$a = 1',        'space after `---`')
+    $t.parserError('\ntm fHtml {\n    --- $a = \n}\n',       'Unexpected newline')
+    $t.parserOk('\ntm fHtml {\n    {{5 }}\n}\n',     'space after `{{`')
+    $t.parserOk('\ntm fHtml {\n    {{ 5}}\n}\n',     'space before `}}`')
+    $t.parserError('\ntm fHtml {\n    {{ \n5 }}',    'unexpected newline')
+    $t.parserError('\ntm fHtml {\n    <p class="foo>\n }',     'missing a closing quote')
+    $t.parserError('\ntm fHtml {\n    <b>Hi</div>',    'expected `</b>`')
+    $t.parserOk('\ntm fffHtml {\n    </>\n}\n',  'extra closing tag')
+    $t.parserError('\ntm fHtml {\n    <p>\n    </>\n    </>}\n',  'extra closing tag')
+    $t.parserOk('\ntm fHtml {\n    </b>\n}\n',  'named closing tag')
+    $t.parserError('fn fHtml {\n    <',              'unexpected `<`', '')
+    $t.parserError('\ntm fHtml {\n    <b>\n}', 'missing closing tag')
+    $t.parserOk('\ntm fHtml {\n    <b>\n    </...>\n}', 'continue tag')
     $t.parserError('\ntm foo {\n',                   'missing type')
     $t.parserError('\ntm fHtml {\nTest\n}', 'should be indented')
-    $t.parserOk('\ntm fHtml {\n\tTest\n}', 'tab indent')
-    $t.parserOk('\n  tm fHtml {\n\tTest\n}', 'tab indent(4) vs space(2)')
     $t.parserError('\ntm {\nTest\n}', 'must have a name')
-
 
 
     $t.section('Parser Errors - Assignment as Expression')
@@ -463,13 +464,13 @@ fn testCompileErrors($t) {
     //$code = '$outer = 1\nfn()\fn fn() {\nprint($outer)\n}'
     //$t.parserError($code, 'unknown variable', '')
 
-
+    return $t
 }
 
 
 fn testPerf($t) {
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     $t.section('Performance')
 
@@ -509,6 +510,8 @@ fn testPerf($t) {
     // Perf.stop()
     // $elapsed = Date.unixTime(true) - $start
     // $t.ok($elapsed <= 1, 'optimized loop ({0} iters) took <= 1 ms'.fill($numIters))
+
+    return $t
 }
 
 
@@ -533,6 +536,7 @@ fn testMisc($t) {
       .reverse()
     $t.ok($map.str == 'FED CBA', 'dot assign: $foo = .method()')
 
+    return $t
 }
 
 
@@ -576,8 +580,9 @@ fn testCustomModules($t) {
     $t.ok(AdjacentModule.callUpperModule() == 'bareFunction:adj', 'call rel parent module')
 
     $t.dies(fn { load('subDir/Adjacentmodule') }, 'file name mismatch', 'Check exact spelling')
-}
 
+    return $t
+}
 
 fn testOop($t) {
 
@@ -665,6 +670,8 @@ fn testOop($t) {
     // $t.ok($o.val == 123, 'embedded field from init map')
     // $t.ok($o.useEmbedded() == 'embedded:123', 'embedded reference in base')
     // $t.dies(fn () keep($o) { $o.addConflict() }, 'conflicting method')
+
+    return $t
 }
 
 
@@ -725,7 +732,7 @@ fn testTypes($t) {
     // $t.ok(3 + '33' == 36, 'int + stringint')
     // $t.ok(3 + '33.3' == 36.3, 'int + stringfloat')
     // $t.ok(0.1 + '33.1' == 33.2, 'float + stringfloat')
-
+    return $t
 }
 
 
@@ -789,12 +796,36 @@ fn testFunctions($t) {
     $t.ok($fnNamed() == '123OUT', 'named closure')
 
 
+
+
+
+
     fn addToList($list) {
         $list #= 4
     }
     $refList = [1, 2, 3]
     addToList($refList)
-    $t.ok($refList.length() == 4, 'list (object) - pass by ref - changed')
+    $t.ok($refList.join() == '123', 'pass-by-copy - list')
+
+    fn modNested($n) {
+        $n.map.list[2] = 22222
+    }
+    $nested = {
+        num: 111,
+        map: { list: [1, 2, 3] },
+    }
+    modNested($nested)
+    $t.ok($nested.map.list[2] == 2, 'pass-by-copy - nested')
+
+    fn modTypeStr($ats) {
+        return $ats.fill('FILLED')
+    }
+    $ts = html'<b>String {}</b>'
+    $tsOk = modTypeStr($ts)
+    $t.ok(!$ts.renderString().contains('FILLED'), 'pass-by-copy - typestring')
+    $t.ok($tsOk.renderString().contains('FILLED'), 'pass-by-copy - typestring returned')
+
+
 
     $refList.reverse()
     $t.ok($refList[1] == 1, 'list.reverse - not changed in place')
@@ -902,6 +933,8 @@ fn testFunctions($t) {
 
     $fxJoin = [1, 2, 3].map(x{ $a + 6 }).join('')
     $t.ok($fxJoin == '789', 'functional usage')
+
+    return $t
 }
 
 
@@ -961,6 +994,8 @@ fn testTypeDeclarations($t) {
 
     $t.dies(fn { 'abc'.getChar(1.5) }, 'stdlib args: integer', 'be a `integer`')
     $t.dies(fn { 'abc'.limit(-3) }, 'stdlib args: positive integer', 'be a `positive integer`')
+
+    return $t
 }
 
 fn takesString($val:s) {
@@ -1219,7 +1254,10 @@ fn testMaps($t) {
     $dcopy[4].l[2] += 1
 
     $njson = Json.encode($nested)
-    $dcJson = Json.encode($dcopy)
+
+    $njson = Json.encode($nested).renderString()
+    $dcJson = Json.encode($dcopy).renderString()
+
     $t.ok($njson == '[1,[2,3],{"a":4},{"l":[5,6]}]', 'deep copy - list - orig unchanged')
     $t.ok($dcJson == '[2,[3,3],{"a":5},{"l":[5,7]}]', 'deep copy - list - modified copy')
 
@@ -1233,8 +1271,8 @@ fn testMaps($t) {
     $mapCopy.m.a[2] += 1
     $mapCopy.m['b'] = 9
 
-    $mapJson = Json.encode($nestMap)
-    $copyJson = Json.encode($mapCopy)
+    $mapJson = Json.encode($nestMap).renderString()
+    $copyJson = Json.encode($mapCopy).renderString()
 
     $t.ok($mapJson == '{"a":1,"l":[2,3],"m":{"a":[4,5]}}', 'deep copy - map - orig unchanged')
     $okJson = '{"a":2,"l":[2,4],"m":{"a":[4,6],"b":9}}'
@@ -1290,6 +1328,8 @@ fn testMaps($t) {
 
     $ops = { num: 123 }
     $t.dies(fn { $ops.check({ num: 'foo' }) }, 'must be of type `string`')
+
+    return $t
 }
 
 fn testMathAndLogic($t) {
@@ -1443,7 +1483,7 @@ fn testMathAndLogic($t) {
     $t.ok(1.0 + 2.0 == 3.0, '1.0 + 2.0 == 3.0')
     $t.ok(1.11111 + 2.22222 == 3.33333, '1.11111 + 2.22222 == 3.33333')
 
-
+    return $t
 }
 
 
@@ -1557,6 +1597,7 @@ fn testLoops($t) {
     $t.parserError('$a = 1\nbreak', '`break` not allowed')
     $t.parserError('$a = 1\ncontinue', '`continue` not allowed')
 
+    return $t
 }
 
 
@@ -1741,6 +1782,8 @@ fn testControlFlow($t) {
     $t.ok($ifDo == 2, 'one-liner - true')
     if false: $ifDo = 9
     $t.ok($ifDo == 2, 'one-liner - false')
+
+    return $t
 }
 
 fn testValidator($t) {
@@ -1767,6 +1810,8 @@ fn testValidator($t) {
     $t.parserError('$a.UPPER', 'camelCase')
     $t.parserError('fn DoSomething {}', 'pure lowerCamelCase')
     $t.parserError('$a.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 1', 'or less')
+
+    return $t
 }
 
 
@@ -2265,6 +2310,7 @@ fn testStrings($t) {
     // $t.ok($csvData[2] == 4.9, 'parseCsv - float')
     // $t.ok($csvData[3] == 'ab cd', 'parseCsv - quoted string')
 
+    return $t
 }
 
 
@@ -2330,6 +2376,8 @@ fn testFlags($t) {
     // $defFlag = -someFlag
     // $t.ok(!$defFlag.is(-default), 'set flag is not -default')
     // $t.ok($defFlag.remove(-someFlag).is(-default), 'empty flag is -default')
+
+    return $t
 }
 
 fn testTypeStrings($t) {
@@ -2365,6 +2413,8 @@ fn testTypeStrings($t) {
         $escOut = '<b>xget &quot;http://test.com/?foo=val 27s&quot; &gt; file.txt</b>\n'
     }
     $t.ok($lHtml.renderString() == $escOut, 'recursive escaped renderString()')
+
+    return $t
 }
 
 fn testUrlTypeStrings($t) {
@@ -2476,7 +2526,7 @@ fn testUrlTypeStrings($t) {
 //    https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600&family=Roboto:wght@400;500&display=swap
 
 
-
+    return $t
 }
 
 tm deepEscHtml($val) {
@@ -2841,6 +2891,7 @@ fn testLists($t) {
 
     $t.dies(fn { $a = [1].groupBy(x{ false }) }, 'string key')
 
+    return $t
 }
 
 fn testTemplates($t) {
@@ -2862,11 +2913,11 @@ fn testTemplates($t) {
 
     $t.section('HTML Templates')
 
-    $t.parserError('tm html {\n <b class=foo> hi\n }', 'missing quote')
-    $t.parserError('tm html {\n <b class= "foo"> hi\n }', 'space after `=`')
-    $t.parserError('tm html {\n <b class ="foo"> hi\n }', 'space before `=`')
-    $t.parserError('tm html {\n <b class="foo> hi\n }', 'closing quote')
-    $t.parserError('tm html {\n  <p>\n  sdfsdf\n}', 'closing tag')
+    $t.parserError('tm html {\n    <b class=foo> hi\n }', 'missing quote')
+    $t.parserError('tm html {\n    <b class= "foo"> hi\n }', 'space after `=`')
+    $t.parserError('tm html {\n    <b class ="foo"> hi\n }', 'space before `=`')
+    $t.parserError('tm html {\n    <b class="foo> hi\n }', 'closing quote')
+    $t.parserError('tm html {\n    <p>\n    sdfsdf\n}', 'closing tag')
 
 
     .section('Template Escaping')
@@ -2913,6 +2964,8 @@ fn testTemplates($t) {
 
     $out = listOfChunksHtml($chunks).renderString()
     $t.ok($out.contains('C5') && $out.contains('C9'), 'list of nested templates')
+
+    return $t
 }
 
 fn testBitwise($t) {
@@ -2932,12 +2985,14 @@ fn testBitwise($t) {
     .ok(0b100 +& 0b110 == 0b100, 'AND (+&) with binary number')
     .ok(0b100 +^ 0b110 == 0b010, 'XOR (+^) with binary number')
     .ok(+~0b110 == -7, 'NOT (+~) with binary number')
+
+    return $t
 }
 
 
 fn libFile($t) {
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     $t.section('Module: File')
 
@@ -3133,6 +3188,7 @@ fn libFile($t) {
     $adate = File.getAccessTime($tfile)
     $t.ok($mdate.isFuture() && $adate.isPast(), 'touch - only modify')
 
+    return $t
 }
 
 
@@ -3246,13 +3302,15 @@ fn libDate($t) {
     $future = Date.create('+3 mins')
     $t.ok($past.isPast() && !$past.isFuture(), 'isPast')
     $t.ok(!$future.isPast() && $future.isFuture(), 'isFuture')
+
+    return $t
 }
 
 fn libPassword($t) {
 
     $t.section('Module: Password')
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     $p1 = String.xDangerPassword('p@ssw0rd ⒶⒷⒸ 123')
     $h1 = $p1.xDangerHash()
@@ -3269,6 +3327,8 @@ fn libPassword($t) {
 
     $t.dies(fn { String.xDangerPassword($h1).xDangerHash() },
         'no re-hash', 'already-hashed value')
+
+    return $t
 }
 
 fn libDb($t) {
@@ -3276,7 +3336,7 @@ fn libDb($t) {
 
     $t.section('Module: Db')
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     Db.xDangerDropTable('test')
     Db.createTable('test', { key: 'varchar(255)', value: 'varchar(255)' })
@@ -3388,9 +3448,9 @@ fn libDb($t) {
     // TODO: test inserted, updated Date
     // TODO: test returned date column (and col with "-date" suffix)
 
-
     //Db.selectRows('shows', { 'publishDate >': date'48 hours' })
 
+    return $t
 }
 
 fn libJconTest($t) {
@@ -3435,6 +3495,8 @@ fn libJconTest($t) {
     $t.dies(fn { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
     $t.dies(fn { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
     $t.dies(fn { Jcon.parse('') }, 'empty string')
+
+    return $t
 }
 
 
@@ -3442,20 +3504,24 @@ fn libJson($t) {
 
     $t.section('Module: Json')
 
-    .ok(Json.decode('{"k1":[123,"hello"]}')['k1'][2] == 'hello', 'decode sub-list')
-    .ok(Json.decode('{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map')
-    .ok(Json.decode('[1,2,3]')[2] == 2, 'decode list')
-    .ok(Json.decode('true') == true, 'decode boolean')
-    .ok(Json.decode('123.45') == 123.45, 'decode number')
+    .ok(Json.decode(json'{"k1":[123,"hello"]}')['k1'][2] == 'hello', 'decode sub-list')
+    .ok(Json.decode(json'{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map')
+    .ok(Json.decode(json'[1,2,3]')[2] == 2, 'decode list')
+    .ok(Json.decode(json'true') == true, 'decode boolean')
+    .ok(Json.decode(json'123.45') == 123.45, 'decode number')
 
     $st = Json.encode({ a: 'hi', b: [1, 2, 3] })
     $t
-    .ok($st.contains('"hi"'), 'encode string')
-    .ok($st.contains('[1,2,3]'), 'encode list')
-    .ok($st.contains('"b":'), 'encode key')
+    .ok($st.renderString().contains('"hi"'), 'encode string')
+    .ok($st.renderString().contains('[1,2,3]'), 'encode list')
+    .ok($st.renderString().contains('"b":'), 'encode key')
 
     $obj = Json.decode($st)
     $t.ok($obj.b[2] == 2, 'decode after encode')
+
+    $author = { name: 'Thoreau', born: 1817 }
+
+    return $t
 }
 
 fn libLitemark($t) {
@@ -3710,6 +3776,7 @@ fn libLitemark($t) {
     }
     $t.dies($lm, 'end in number', 'end with number')
 
+    return $t
 }
 
 fn testNumber($t) {
@@ -3873,6 +3940,8 @@ fn testNumber($t) {
     $t.ok((31).humanizeCount() == '31st', 'humanizeCount - 31st')
     $t.ok((32).humanizeCount() == '32nd', 'humanizeCount - 32nd')
     $t.ok((33).humanizeCount() == '33rd', 'humanizeCount - 33rd')
+
+    return $t
 }
 
 fn libMath($t) {
@@ -3897,6 +3966,8 @@ fn libMath($t) {
     $t.ok(Math.hexToDec('0xFF0000') == 16711680, 'hexToDex - 0x prefix')
     $t.ok(Math.decToHex(241) == 'F1', 'decToHex')
     $t.ok(Math.decToHex(16) == '10', 'decToHex')
+
+    return $t
 }
 
 fn libMeta($t) {
@@ -3919,6 +3990,8 @@ fn libMeta($t) {
     if !isPerfMode() {
         $t.ok(Meta.zGetStdLib()['File'].read.contains('filePath'), 'zGetStdLib')
     }
+
+    return $t
 }
 
 fn metaCallMe {
@@ -4000,6 +4073,8 @@ fn libPhp($t) {
     $t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)')
 
     $t.ok(Php.call('Abc/VendorClass::staticFunction', 123) == 'STATIC: 123', 'static call')
+
+    return $t
 }
 
 fn libWeb($t) {
@@ -4023,6 +4098,7 @@ fn libWeb($t) {
     // $url = Web.assetUrl(url'/images/image.png')
     // $t.ok($url.getQuery().get('v', 'i') > 1000, 'Web.assetUrl added v param')
 
+    return $t
 }
 
 fn libPage($t) {
@@ -4081,6 +4157,7 @@ fn libPage($t) {
 
     $t.dies(fn { Page.create({ foo: 123 }) }, 'invalid page field')
 
+    return $t
 }
 
 
@@ -4090,6 +4167,8 @@ fn libOutput($t) {
 
     $t.dies(fn {  Output.redirect('http://google.com') }, 'redirect - normal',
         'must be passed a `url`')
+
+    return $t
 }
 
 fn libInput($t) {
@@ -4243,6 +4322,8 @@ fn libInput($t) {
     // TODO: same/notSame
 
     // TODO: test get, post, and post w/out csrf
+
+    return $t
 }
 
 fn libForm($t) {
@@ -4305,6 +4386,7 @@ fn libForm($t) {
 
     // TODO: more tests!
 
+    return $t
 }
 
 
@@ -4336,21 +4418,8 @@ fn libConfig($t) {
     $t.ok(Config.get('local').localVar == 789, 'local config')
 
     $t.ok(Config.get('aUrl').rawString() == 'https://asite.com', 'url typestring')
-}
 
-fn libMapDb($t) {
-
-    $t.section('Module: MapDb')
-
-    $t.ok(MapDb.deleteBucket('test'), 'delete bucket')
-
-    $t.ok(MapDb.insertMap('test', 'hello', { hello: 'World!' }), 'insert')
-    $t.ok(MapDb.insertMap('test', 'hello', { hello: 'There!' }), 'insert')
-
-
-    $t.ok(MapDb.selectMap('test', 1).hello == 'World!', 'selectMap')
-    $t.ok(MapDb.selectMaps('test', 'hello').length() == 2, 'selectMaps')
-    $t.ok(MapDb.buckets()[0].numMaps == 2, 'buckets()')
+    return $t
 }
 
 fn libCookie($t) {
@@ -4367,6 +4436,8 @@ fn libCookie($t) {
     $t.dies(fn {
         Cookie.set('test', '{"a":123}')
     }, 'alphanumeric')
+
+    return $t
 }
 
 fn libSession($t) {
@@ -4409,11 +4480,12 @@ fn libSession($t) {
 
     $t.dies(fn { Session.get('missing') }, 'get bad key', 'Unknown session key')
 
+    return $t
 }
 
 fn libCache($t) {
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     $t.section('Module: Cache')
 
@@ -4477,11 +4549,13 @@ fn libCache($t) {
     Cache.delete('short')
     Cache.delete('med')
     Cache.delete('forever')
+
+    return $t
 }
 
 fn libNet($t) {
 
-    if isPerfMode(): return
+    if isPerfMode(): return $t
 
     $t.section('Module: Net')
 
@@ -4502,6 +4576,7 @@ fn libNet($t) {
    $t.ok(Net.httpStatus(url'https://tht-nope.dev')    == 0, 'urlExists - bad hostname')
    $t.ok(Net.httpStatus(url'https://tht.dev/sdfsdf')  == 404, 'urlExists - missing path')
 
+   return $t
 }
 
 fn libSystem($t) {
@@ -4518,6 +4593,8 @@ fn libSystem($t) {
 
     // Can't be called in webMode
     //$t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command')
+
+    return $t
 }
 
 // TODO: This is all hardcoded to my local setup
@@ -4541,6 +4618,8 @@ fn libRequest($t) {
 
     $t.ok(Request.getMethod() == 'get', 'method')
     $t.ok(Request.getHeaders().hasKey('accept-encoding'), 'headers')
+
+    return $t
 }
 
 
