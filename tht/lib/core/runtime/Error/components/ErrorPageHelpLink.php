@@ -142,7 +142,7 @@ class ErrorPageHelpLink extends ErrorPageComponent {
 
         // Method data from tht.dev/manual?main=allMethods&asData=true
         $rawJson = file_get_contents(__DIR__ . '/../../../data/stdLibMethods.json');
-        $package = json_decode($rawJson, true);
+        $package = Security::jsonDecode($rawJson);
 
         if (isset($package[$module])) {
 

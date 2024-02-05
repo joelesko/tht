@@ -284,6 +284,48 @@ class Security {
         return $str;
     }
 
+    // https://bishopfox.com/blog/json-interoperability-vulnerabilities
+    static function jsonDecode($rawJsonString) {
+
+        // TODO: unfortunately, the standard json_decode doesn't have a flag to fail on duplicate keys
+        $jsonData = json_decode($rawJsonString, false, JSON_INVALID_UTF8_SUBSTITUTE);
+
+        if (is_null($jsonData)) {
+            self::error("Unable to decode JSON string: `" . v($rawJsonString)->u_limit(20) . "`");
+        }
+
+        return self::convertJsonToBags($jsonData);
+    }
+
+    // Recursively convert to THT Lists and Maps
+   static private function convertJsonToBags ($obj, $key='(root)') {
+
+        if (is_object($obj)) {
+
+            $map = [];
+            foreach (get_object_vars($obj) as $key => $val) {
+                $map[$key] = self::convertJsonToBags($val, $key);
+            }
+
+            return OMap::create($map);
+        }
+        else if (is_array($obj)){
+
+            foreach ($obj as $i => $val) {
+                $obj[$i] = self::convertJsonToBags($obj[$i], $i);
+            }
+
+            return OList::create($obj);
+        }
+        else {
+            if ($obj === INF) {
+                self::error("Invalid large number for JSON key `$key`.");
+            }
+
+            return $obj;
+        }
+    }
+
     // Fisher-Yates with crypto-secure random_int()
     // Assumably more secure than built-in shuffle()
     static function shuffleList($list) {

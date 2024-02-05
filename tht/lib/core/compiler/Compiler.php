@@ -263,7 +263,7 @@ class Compiler {
 
                 if ($sourceMapFound) {
 
-                    $sourceMap = json_decode($match[1], true);
+                    $sourceMap = Security::jsonDecode($match[1]);
 
                     if ($fnName) {
                         $phpLineNum = self::findRealSourceLineForFunctionCall($fnName, $phpLineNum, $phpLines);

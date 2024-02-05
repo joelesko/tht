@@ -26,7 +26,7 @@ class SourceAnalyzer {
             if ($line === false) {  break;  }
             if (strpos($line, '/* STATS') !== false) {
                 preg_match('#STATS=({.*}) \*/#', $line, $m);
-                return json_decode($m[1], true);
+                return Security::jsonDecode($m[1]);
             }
         }
 

@@ -32,39 +32,9 @@ class u_Json extends OStdModule {
 
         $this->ARGS('*', func_get_args());
 
-        $jsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
+        $rawJsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
 
-        $jsonData = json_decode($jsonString, false);
-        if (is_null($jsonData)) {
-            $this->error("Unable to decode JSON string: `" . v($jsonString)->u_limit(20) . "`");
-        }
-
-        return $this->convertToBags($jsonData);
-    }
-
-    // Recursively convert to THT Lists and Maps
-    function convertToBags ($obj) {
-
-        if (is_object($obj)) {
-
-            $map = [];
-            foreach (get_object_vars($obj) as $key => $val) {
-                $map[$key] = $this->convertToBags($val);
-            }
-
-            return OMap::create($map);
-        }
-        else if (is_array($obj)){
-
-            foreach ($obj as $i => $val) {
-                $obj[$i] = $this->convertToBags($obj[$i]);
-            }
-
-            return OList::create($obj);
-        }
-        else {
-            return $obj;
-        }
+        return Security::jsonDecode($rawJsonString);
     }
 
     function deepSortKeys ($obj) {
