@@ -55,6 +55,10 @@ class Runtime {
         return new $thtClass ();
     }
 
+    static function cloneArg($a) {
+        return is_object($a) && !is_callable($a) ? $a->cloneArg() : $a;
+    }
+
     static function openTemplate ($mode) {
         self::$templateLevel += 1;
         $mode = strtolower($mode);

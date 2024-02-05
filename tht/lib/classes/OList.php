@@ -80,7 +80,7 @@ class OList extends OBag {
             'refs' => false,
         ]);
 
-        // php apparently copies the array when assigned to a new var
+        // php copies the array when assigned to a new var
         $a = $this->val;
 
         if (!$flags['refs']) {

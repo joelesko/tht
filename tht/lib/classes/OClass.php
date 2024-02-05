@@ -39,6 +39,11 @@ trait HookMethods {
         return true;
     }
 
+    // pass by copy
+    public function cloneArg() {
+        return clone $this;
+    }
+
     function u_z_clone() {
 
         $this->ARGS('', func_get_args());
@@ -165,12 +170,12 @@ class OClass implements \JsonSerializable {
             $str .= " $summary";
         }
 
-        return '⟪ ' . $str . ' ⟫';
+        return '《 ' . $str . ' 》';
     }
 
     // Print bare object without surrounding quotes
     static public function tokensToBareStrings($raw) {
-         return preg_replace('/\'⟪(.+?)⟫\'/', '⟪$1⟫', $raw);
+         return preg_replace('/[\'\"]《(.+?)》[\'\"]/', '《$1》', $raw);
     }
 
     protected function cleanPackageName($p) {

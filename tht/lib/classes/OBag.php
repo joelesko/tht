@@ -21,6 +21,17 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
         $this->error('Can not convert a Map or List to a SQL insert value.');
     }
 
+    // override
+    function cloneArg() {
+
+        $a = [];
+        foreach ($this->val as $k => $el) {
+            $a[$k] = Runtime::cloneArg($el);
+        }
+
+        return $this->hasNumericKeys ? OList::create($a) : OMap::create($a);
+    }
+
     function __get ($field) {
 
         $plainField = unu_($field);

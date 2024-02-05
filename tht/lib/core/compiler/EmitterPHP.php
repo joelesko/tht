@@ -6,6 +6,7 @@ class EmitterPHP extends Emitter {
 
     private $defaultArgName = '';
     private $defaultArgTypes = [];
+    private $currentFunArgs = [];
     private $inClosureVars = false;
     private $preKeywordDepth = 0;
     private $functionDepth = 0;
@@ -362,6 +363,8 @@ class EmitterPHP extends Emitter {
             return $typeDecl . $out;
         }
 
+        $this->currentFunArgs []= u_($value);
+
         return $typeDecl . $this->format('$###', u_($value));
     }
 
@@ -604,10 +607,6 @@ class EmitterPHP extends Emitter {
 
     // Member access
 
-    function expand ($part) {
-        return explode("\t", $part);
-    }
-
     function pCall ($value, $k) {
 
         // Object initializer: e.g. $user = User()
@@ -661,7 +660,7 @@ class EmitterPHP extends Emitter {
 
         $this->functionDepth += 1;
 
-        $t = "function ### (###) ### {\n %!WRAP% %!IMPLICIT% ### return EMPTY_RETURN; }";
+        $t = "function ### (###) ### {\n %!WRAP% %!CLONE% %!IMPLICIT% ### return EMPTY_RETURN; }";
 
         // If class method, default to 'private'
         if ($this->classDepth == 1 && $this->functionDepth == 1 &&
@@ -675,6 +674,8 @@ class EmitterPHP extends Emitter {
         $out .= $this->exportFunction($k[0]);
 
         $this->functionDepth -= 1;
+
+
 
         // wrap any lists or maps that come in as an argument
         $objectWrappers = '';
@@ -694,16 +695,21 @@ class EmitterPHP extends Emitter {
             //         "$varName = \o\OMap::createFromArg('$fnName', $varName);\n";
             // }
         }
-
         $this->defaultArgTypes = [];
         $out = preg_replace('/%!WRAP%/', $objectWrappers, $out, 1);
+
+
+        // Clone objects coming in for pass-by-copy
+        $cloneWrappers = $this->getPassByCopy();
+        $out = preg_replace('/%!CLONE%/', $cloneWrappers, $out, 1);
+
+
 
         // Create implicit $a, $b, $c for anon functions
         $implicitArgs = '';
         if ($k[0]['value'] == '(ANON)') {
             $implicitArgs = '$_all = func_get_args(); if (isset($_all[0])) { $u_a = func_get_arg(0);  if (isset($_all[1])) { $u_b = func_get_arg(1); if (isset($_all[2])) { $u_c = func_get_arg(2); }}}';
         }
-
         $out = preg_replace('/%!IMPLICIT%/', $implicitArgs, $out, 1);
 
         $out = $this->getFnMarker('fn', $k[0]) . $out;
@@ -733,7 +739,7 @@ class EmitterPHP extends Emitter {
         $args = $k[2];
         $block = $k[3];
 
-        $template = 'function ### (###) ### {' .
+        $template = 'function ### (###) ### { %!CLONE% ' .
                     '$t = \o\Runtime::openTemplate(###); ### ' .
                     '\o\Runtime::closeTemplate(); return $t->getString(); }';
 
@@ -746,11 +752,26 @@ class EmitterPHP extends Emitter {
             $this->out($block, true)
         );
 
+        // Clone objects coming in for pass-by-copy
+        $cloneWrappers = $this->getPassByCopy();
+        $out = preg_replace('/%!CLONE%/', $cloneWrappers, $out, 1);
+
         $out .= $this->exportFunction($k[0]);
 
         $out = $this->getFnMarker('tm', $k[0]) . $out;
 
         return $out;
+    }
+
+    function getPassByCopy() {
+
+        $cloneWrappers = '';
+        foreach ($this->currentFunArgs as $arg) {
+            $cloneWrappers .= '$' . $arg . ' = \o\Runtime::cloneArg($' . $arg . ');' . "\n";
+        }
+        $this->currentFunArgs = [];
+
+        return $cloneWrappers;
     }
 
     function exportFunction($fnName) {
