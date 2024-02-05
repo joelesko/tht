@@ -3511,15 +3511,26 @@ fn libJson($t) {
     .ok(Json.decode(json'123.45') == 123.45, 'decode number')
 
     $st = Json.encode({ a: 'hi', b: [1, 2, 3] })
+
     $t
     .ok($st.renderString().contains('"hi"'), 'encode string')
     .ok($st.renderString().contains('[1,2,3]'), 'encode list')
     .ok($st.renderString().contains('"b":'), 'encode key')
+    .dies(fn { Json.decode(json'{"a":123,/*"b":"comment"*/}') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"test\ud800":123}') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"te\st":123}') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"a":123}=') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"a":NaN}') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"a":Inf}') }, 'unable to decode')
+    .dies(fn { Json.decode(json'{"a":1.0e4096}') }, 'invalid large number')
 
     $obj = Json.decode($st)
     $t.ok($obj.b[2] == 2, 'decode after encode')
 
-    $author = { name: 'Thoreau', born: 1817 }
+    // Waiting for PHP security patch
+    // $dupe = json'{"a":123,"a":999}'
+    // >> $dupe
+    // >> Json.decode($dupe)
 
     return $t
 }
