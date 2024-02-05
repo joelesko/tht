@@ -4,8 +4,8 @@ namespace o;
 
 trait ThtConfig {
 
-    static private $VERSION = '0.7.1 - Beta';
-    static private $VERSION_DIGITS = '00701';
+    static private $VERSION = '0.7.2 - Beta';
+    static private $VERSION_DIGITS = '00702';
     static private $VERSION_DIGITS_PHP = '';  // filled in later
 
     static private $REQUIRE_PHP_VERSION_DIGITS = '00801';
@@ -138,9 +138,6 @@ trait ThtConfig {
         return self::$data['config'];
     }
 
-    static public function isStrictFormat() {
-        return Tht::getConfig('formatChecker') == 'strict';
-    }
 
     // Safe way to get timezone if timezone ID in config is invalid.
     // Error handling code also uses Date methods, so it's a catch 22.

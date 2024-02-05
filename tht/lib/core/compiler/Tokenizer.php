@@ -48,6 +48,7 @@ class TokenStream {
 class Tokenizer extends StringReader {
 
     private $ADJ_TOKEN_TYPES = ['V', 'N', 'S', 'TS', 'RS', 'W'];
+    private $TEMPLATE_INDENT_SPACES = 4;
 
     private $prevToken = [];
     private $tokens = [];
@@ -360,6 +361,9 @@ class Tokenizer extends StringReader {
         }
         else if ($c === ' ') {
             $this->prevSpace = true;
+        }
+        else {
+            // Noop: skip all other whitespace chars
         }
 
         $this->next();
@@ -788,12 +792,12 @@ class Tokenizer extends StringReader {
                 return TemplateMode::EXPR;
             }
             else if ($this->atStartOfLine() && !$this->isWhitespace($c)
-                && $this->indent <= $this->templateIndent) {
+                && $this->indent < $this->templateIndent + $this->TEMPLATE_INDENT_SPACES) {
 
                 // End of template body '}'
 
                 if (!$this->isGlyph('}')) {
-                    $this->templateError("Line should be indented inside template `"
+                    $this->templateError("Line should be indented at least " . $this->TEMPLATE_INDENT_SPACES . " spaces inside template `"
                         . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
                 }
 

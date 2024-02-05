@@ -32,14 +32,21 @@ class StringReader {
     public $isHexDigit = [];
     public $isBinaryDigit = [];
 
+    private $tabStrategy = '';
+
+
     // OVERRIDE
     function onNewline() {}
 
-    function __construct($fullText) {
+    function __construct($fullText, $tabStrategy='error') {
 
         $fullText = rtrim($fullText) . "\n";
 
-        $fullText = str_replace("\t", "    ", $fullText);
+        $this->tabStrategy = $tabStrategy;
+        if ($tabStrategy == 'expandToSpaces') {
+            $fullText = str_replace("\t", "    ", $fullText);
+        }
+
         $fullText = str_replace("\r", "", $fullText);
 
         $this->fullText = $fullText;
@@ -121,6 +128,11 @@ class StringReader {
         if ($this->i >= $this->len) { return; }
 
         $c = $this->fullText[$this->i];
+
+        if ($c === "\t" && $this->tabStrategy == 'error') {
+            ErrorHandler::setHelpLink('/reference/format-checker#indent-with-spaces', 'Format Checker - Indent With Spaces');
+            $this->error("Tab character not supported. Please set your TAB key to insert 4 spaces.SR");
+        }
 
         $this->line .= $c;
 
@@ -223,7 +235,7 @@ class StringReader {
     }
 
     function isWhitespace($c) {
-        return $c === " " || $c === "\n";
+        return $c === " " || $c === "\n" || $c === "\t";
     }
 
     function slurpNumber() {

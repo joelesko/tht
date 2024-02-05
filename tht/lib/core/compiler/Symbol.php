@@ -38,12 +38,10 @@ class Symbol {
             'OpenCurly',
             'OpenSquare',
             'Dot',
-       //     'New',
             'ClassPlugin',
             'ClassFields',
             'Class',
             'Ternary',
-       //     'Var',
             'PreKeyword',
             'TryCatch',
             'TemplateExpr',
@@ -128,6 +126,10 @@ class Symbol {
         return $this->token[TOKEN_SPACE] & NEWLINE_AFTER_BIT;
     }
 
+    function hasNewlineBefore() {
+        return $this->token[TOKEN_SPACE] & NEWLINE_BEFORE_BIT;
+    }
+
     // Whitespace rule for this token (before and after).
     // The middle symbol(s) are arbitrary.  Only the left and right have meaning.
     // Examples:
@@ -139,15 +141,15 @@ class Symbol {
     // '*|S' = anything before, space (not newline) required after
     function space ($pattern) {
 
-        $this->spacePos('L', $pattern[0]);
-        $this->spacePos('R', $pattern[strlen($pattern) - 1]);
+        $this->validateSpacePos('L', $pattern[0]);
+        $this->validateSpacePos('R', $pattern[strlen($pattern) - 1]);
 
         return $this;
     }
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
-    function spacePos ($pos, $require) {
+    function validateSpacePos ($pos, $require) {
 
         if ($require == '*') { return; }
 
@@ -173,19 +175,19 @@ class Symbol {
             return;
         }
 
-        $msg = '';
+        $verb = '';
         $what = 'space';
         if ($require === 'S' && $hasNewline) {
-            $msg = 'remove the';
+            $verb = 'remove the';
             $what = 'newline';
         } else if ($require === 'B' && !$hasNewline) {
-            $msg = 'add a';
+            $verb = 'add a';
             $what = 'newline';
         } else if ($hasSpace && !$isRequired) {
-            $msg = 'remove the';
+            $verb = 'remove the';
         }
         else if (!$hasSpace && $isRequired) {
-            $msg = 'add a';
+            $verb = 'add a';
             if ($pos === 'R') {
                 $nextToken = $p->next()->token;
                 if ($nextToken[TOKEN_VALUE] === ';') {
@@ -197,12 +199,17 @@ class Symbol {
             }
         }
 
-        if ($msg) {
+        if ($verb) {
+
             $sPos = $pos === 'L' ? 'before' : 'after';
             $aPos = explode(',', $t[TOKEN_POS]);
-            $posDelta = $pos === 'L' ? -1 : strlen($t[TOKEN_VALUE]);
 
-            $fullMsg = 'Please ' . $msg . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
+            $posDelta = 0;
+            if ($verb == 'remove the') {
+                $posDelta = $pos === 'L' ? -1 : strlen($t[TOKEN_VALUE]);
+            }
+
+            $fullMsg = 'Please ' . $verb . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
 
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 

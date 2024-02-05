@@ -41,17 +41,6 @@ trait ThtErrors {
         throw new StartupError ($msg);
     }
 
-    static public function strictFormatError($msg) {
-
-        if (!Tht::isStrictFormat()) {
-            return;
-        }
-
-        ErrorHandler::addSubOrigin('formatChecker');
-
-        throw new ThtError ($msg);
-    }
-
     static public function catchPreThtError() {
 
         $ob = ob_get_clean();

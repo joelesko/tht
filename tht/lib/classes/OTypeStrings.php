@@ -97,6 +97,15 @@ class LmTypeString  extends OTypeString {
     }
 }
 
+class JsonTypeString  extends OTypeString {
+
+    protected $stringType = 'json';
+
+    protected function u_z_escape_param($k) {
+        $this->error('JSON data should be added before being converted to a String.');
+    }
+}
+
 // Relying on File module security measures instead.
 // class FileTypeString extends OTypeString {
 //     protected $type = 'file';

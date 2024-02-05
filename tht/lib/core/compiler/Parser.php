@@ -141,10 +141,15 @@ class Parser {
             $this->error('Expected `{` at end of template code line.', $this->prevToken, true);
         }
 
-        // Strict Format: brace goes on same line
-        $space = Tht::isStrictFormat() ? 'S{ ' : ' { ';
+        $this->now('{', 'block.open');
 
-        $this->now('{', 'block.open')->space($space)->next();
+        // Brace goes on same line
+        if ($sOpenBrace->hasNewlineBefore()) {
+            ErrorHandler::addSubOrigin('formatChecker');
+            $this->error('Please move open brace `{` to the end of the previous line.');
+        }
+
+        $this->space('S{ ')->next();
 
         while (true) {
 

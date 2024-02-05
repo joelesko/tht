@@ -41,7 +41,7 @@ class ErrorPageSourceLine extends ErrorPageComponent {
         $lines = $this->readSourceFile($srcPath, $srcLineNum1);
 
         $line = (count($lines) > $srcLineNum0) ? $lines[$srcLineNum0] : '';
-        $line = preg_replace('/\t/', '    ', $line);
+
 
         // trim indent
         preg_match('/^(\s*)/', $line, $matches);
