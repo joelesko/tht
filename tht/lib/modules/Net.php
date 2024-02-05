@@ -148,6 +148,8 @@ class u_Net extends OStdModule {
             return OList::create($response);
         }
         else {
+
+            // Interpret as JSON
             if ($response[0] == '{' && $response[strlen($response) - 1] == '}') {
                 $response = OMap::create(json_decode($response, true));
             }

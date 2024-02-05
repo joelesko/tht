@@ -104,7 +104,7 @@ class u_Output extends OStdModule {
         else if (URLTypeString::isa($out)) {
             $this->u_redirect($out);
         }
-        else if (OMap::isa($out)) {
+        else if (OMap::isa($out) || JsonTypeString::isa($out)) {
             $this->u_send_json($out);
         }
         else if (u_Page_Object::isa($out)) {
@@ -126,13 +126,26 @@ class u_Output extends OStdModule {
         return $out;
     }
 
-    function u_send_json ($map, $expiryDelta=0) {
-        $this->ARGS('mi', func_get_args());
+    function u_send_json ($jsonOrMap, $expiryDelta=0) {
+
+        $this->ARGS('*i', func_get_args());
+
+        if (OMap::isa($jsonOrMap)) {
+            $jsonTypeString = Tht::module('Json')->u_encode($jsonOrMap);
+        }
+        else if (OTypeString::isa($jsonOrMap, 'json')) {
+            $jsonTypeString = $jsonOrMap;
+        }
+        else {
+            $this->argumentError('Argument #1 must be of type `JsonTypeString` or `Map`.');
+        }
+
+        $rawJson = $jsonTypeString->u_render_string();
 
         $this->u_set_header('Content-Type', 'application/json; charset=utf-8');
         $this->u_set_cache_header($expiryDelta);
 
-        $this->output(json_encode(unv($map)), 'json');
+        $this->output($rawJson, 'json');
 
         Tht::module('Web')->u_skip_hit_counter(true);
 

@@ -27,10 +27,13 @@ class u_Bare extends OStdModule {
                 // keep as-is, no quotes
             }
             else {
-                $rawJson = Tht::module('Json')->u_encode($a);
-                $a = Tht::module('Json')->u_format($rawJson);
+                $jsonTypeString = Tht::module('Json')->u_encode($a);
+                $a = Tht::module('Json')->u_format($jsonTypeString)->u_render_string();
 
                 $a = OClass::tokensToBareStrings($a);
+
+                // Remove escaped quotes.  Ugly, but need to undo JSON serialized string.
+                $a = preg_replace("/\\\\([\"\'])/", '$1', $a);
             }
 
             if (Tht::isMode('web')) {

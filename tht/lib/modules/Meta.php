@@ -177,8 +177,9 @@ class u_Meta extends OStdModule {
     function u_z_get_std_lib() {
 
         $rawJson = file_get_contents(__DIR__ . '/../core/data/stdLibMethods.json');
+        $json = new JsonTypeString($rawJson);
 
-        return Tht::module('Json')->u_decode($rawJson);
+        return Tht::module('Json')->u_decode($json);
     }
 
     // Undocumented

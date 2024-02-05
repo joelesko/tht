@@ -9,6 +9,7 @@ class u_Json extends OStdModule {
         'parse'     => 'decode()',
     ];
 
+    // Convert to JSON TypeString
     function u_encode ($v, $flags=null) {
 
         $this->ARGS('*m', func_get_args());
@@ -23,22 +24,22 @@ class u_Json extends OStdModule {
             $json = $this->u_format($json);
         }
 
-        // TODO: this is duplicated in u_format()
-      //  $json = str_replace("'{EMPTY_MAP}'", '{}', $json);
-
-        return $json;
+        return new JsonTypeString ($json);
     }
 
-    function u_decode ($v) {
+    // Convert JSON string to data
+    function u_decode ($jsonTypeString) {
 
-        $this->ARGS('s', func_get_args());
+        $this->ARGS('*', func_get_args());
 
-        $dec = json_decode($v, false);
-        if (is_null($dec)) {
-            $this->error("Unable to decode JSON string: `" . v($v)->u_limit(20) . "`");
+        $jsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
+
+        $jsonData = json_decode($jsonString, false);
+        if (is_null($jsonData)) {
+            $this->error("Unable to decode JSON string: `" . v($jsonString)->u_limit(20) . "`");
         }
 
-        return $this->convertToBags($dec);
+        return $this->convertToBags($jsonData);
     }
 
     // Recursively convert to THT Lists and Maps
@@ -82,7 +83,7 @@ class u_Json extends OStdModule {
 
     function formatOneLineSummary($obj, $maxLen) {
 
-        $json = $this->u_encode($obj);
+        $json = $this->u_encode($obj)->u_render_string();
 
         $json = OClass::tokensToBareStrings($json);
 
@@ -96,8 +97,10 @@ class u_Json extends OStdModule {
         $json = preg_replace('!\\\/!', '/', $json);
         $json = preg_replace('!\\\\\\\\!', '\\', $json);
 
-        $json = str_replace('"⟪', '⟪', $json);
-        $json = str_replace('⟫"', '⟫', $json);
+        $json = OClass::tokensToBareStrings($json);
+
+    //    $json = str_replace('"⟪', '⟪', $json);
+    //    $json = str_replace('⟫"', '⟫', $json);
 
 
         // truncate
@@ -114,19 +117,26 @@ class u_Json extends OStdModule {
             }
         }
 
-
-
         return $json;
     }
 
     // Make JSON output human-readable
-    function u_format($rawJson, $flags=null) {
+    function u_format($jsonOrMap, $flags=null) {
 
         $this->ARGS('*m', func_get_args());
 
-        if (!is_string($rawJson)) {
-            $rawJson = $this->u_encode($rawJson);
+        if (OMap::isa($jsonOrMap)) {
+            $jsonTypeString = $this->u_encode($jsonOrMap);
         }
+        else if (OTypeString::isa($jsonOrMap, 'json')) {
+            $jsonTypeString = $jsonOrMap;
+        }
+        else {
+            $this->argumentError('Argument #1 must be of type `JsonTypeString` or `Map`.');
+        }
+
+        $rawJson = $jsonTypeString->u_render_string();
+
 
         $flags = $this->flags($flags, [
             'strict' => false,
@@ -188,7 +198,7 @@ class u_Json extends OStdModule {
         $out = str_replace("'{EMPTY_MAP}'", '{}', $out);
         $out = str_replace("'[EMPTY_LIST]'", '[]', $out);
 
-        return $out;
+        return new JsonTypeString($out);
     }
 }
 

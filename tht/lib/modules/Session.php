@@ -56,10 +56,14 @@ class u_Session extends OStdModule {
 
     function wrapVal($val) {
 
-        return Tht::module('Json')->u_encode(OMap::create(['v' => $val]));
+        $map = OMap::create(['v' => $val]);
+
+        return Tht::module('Json')->u_encode($map)->u_render_string();
     }
 
     function unwrapVal($val) {
+
+        $val = new JsonTypeString($val);
 
         return Tht::module('Json')->u_decode($val)['v'];
     }

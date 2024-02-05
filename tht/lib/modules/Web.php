@@ -72,13 +72,6 @@ class u_Web extends OStdModule {
     //     return Tht::parseTemplateString('html', $raw);
     // }
 
-    // function parseTemplateString ($type, $lRawText) {
-
-    //     $rawText = OTypeString::getUntyped($lRawText, $type);
-    //     $tsr = new TemplateStringReader ($type, $rawText);
-    //     return $tsr->parse();
-    // }
-
     // TODO: document
     function u_table ($rows, $keys, $headings=[], $params=[]) {
 
@@ -387,7 +380,7 @@ $fields
         $data['csrfToken'] = Security::getCsrfToken();
         $data['mode'] = $mode;
 
-        $vals = Tht::module('Json')->u_encode($data);
+        $vals = Tht::module('Json')->u_encode($data)->u_render_string();
 
         return new HtmlTypeString("hx-post=\"\" hx-vals='$vals'");
     }

@@ -99,7 +99,8 @@ class u_InputValidator {
 
         // Post-processing
         if ($rules['postProcess'] == 'parseJson') {
-            $cleanVal = Tht::module('Json')->u_decode($cleanVal);
+            $json = new JsonTypeString($cleanVal);
+            $cleanVal = Tht::module('Json')->u_decode($json);
         }
         else if ($rules['postProcess'] == 'hashPassword') {
             $cleanVal = new \o\OPassword($cleanVal);
