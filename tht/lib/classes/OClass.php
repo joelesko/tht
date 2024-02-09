@@ -197,6 +197,10 @@ class OClass implements \JsonSerializable {
 
     public function bareClassName() {
 
+        if ($this->cleanClass) {
+            return $this->cleanClass;
+        }
+
         if ($this->bareClassName) {
             return $this->bareClassName;
         }
