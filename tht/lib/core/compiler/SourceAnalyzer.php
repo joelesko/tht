@@ -77,11 +77,12 @@ class SourceAnalyzer {
         $inFunction = false;
         $inFunctionName = '';
         $inFunctionLines = 0;
+        $inFunctionStartLineNum = 0;
 
         $fh = fopen($thtFile, "r");
         if (!$fh) { return false; }
 
-        $lineNum = -1;
+        $lineNum = 0;
 
         while (true) {
 
@@ -120,6 +121,7 @@ class SourceAnalyzer {
                 $inFunctionName = $m[2];
                 $inFunctionLines = 0;
                 $stats['numFunctions'] += 1;
+                $inFunctionStartLineNum = $lineNum;
             }
             else if ($inFunction) {
                 $inFunctionLines += 1;
@@ -127,7 +129,7 @@ class SourceAnalyzer {
                 if ($inFunctionLines > $stats['longestFunctionLines']) {
                     $stats['longestFunctionLines'] = $inFunctionLines;
                     $stats['longestFunctionName'] = $inFunctionName;
-                    $stats['longestFunctionLineNum'] = $lineNum;
+                    $stats['longestFunctionLineNum'] = $inFunctionStartLineNum;
                 }
             }
         }
