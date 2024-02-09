@@ -102,7 +102,7 @@ class JsonTypeString  extends OTypeString {
     protected $stringType = 'json';
 
     protected function u_z_escape_param($k) {
-        $this->error('JSON data should be added before being converted to a String.');
+        $this->error('JSON params should be added to the data before being converted to a String.');
     }
 }
 
