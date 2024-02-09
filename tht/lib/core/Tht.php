@@ -136,7 +136,7 @@ class Tht {
     static public function dump ($v) {
 
         print("<pre style='font-weight: bold; font-size: 150%;'>");
-        print(Tht::module('Json')->u_format($v));
+        print_r($v);
         print("</pre>");
         exit(0);
     }
