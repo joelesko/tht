@@ -19,7 +19,7 @@ abstract class OTypeString extends OClass implements \JsonSerializable {
     function __construct ($s) {
 
         if (OTypeString::isa($s)) {
-            $s = $s->getString();
+            $s = $s->u_raw_string();
         }
 
         $this->str = $s;
