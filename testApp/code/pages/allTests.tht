@@ -216,7 +216,13 @@ fn testCompileErrors($t) {
     $t.parserError('$a = 1 ?: 0',  '||:')
     $t.parserError('$a = 1 ?? 0',  '||:')
     $t.parserError('$a = ``\n$a .= `xyz`',  '~=')
+    $t.parserError('2 > 1 ? true : false', 'unnecessary ternary')
+    $t.parserError('2 > 1 ? false : true', 'unnecessary ternary')
 
+    // $b = 'foo'
+    // if 'foo' == $b {
+    //     >> 'yoda'
+    // }
 
     $t.section('Parser Errors - Misc')
 
@@ -247,7 +253,6 @@ fn testCompileErrors($t) {
     $t.parserError('if 1 =< 2 { }', '<=')
     $t.parserError('$a = 1 <> 2', '!=')
 
-
     $t.parserError('fn foo\n$a = 1', 'Expected `{`')
 
 
@@ -277,6 +282,12 @@ fn testCompileErrors($t) {
     $t.parserError('foo()]', 'extra separator')
     $t.parserError('foo()}', 'extra separator')
 
+    $t.parserError('`foo` == $a', 'right side of the expression')
+    $t.parserError('1 == $a', 'right side of the expression')
+    $t.parserError('true == $a', 'right side of the expression')
+    $t.parserError('true == bar()', 'right side of the expression')
+    $t.parserError('`foo` == bar()', 'right side of the expression')
+    $t.parserError('`foo` == $a.key', 'right side of the expression')
 
     $t.section('Parser Errors - Adjacent Tokens')
 
@@ -1456,8 +1467,8 @@ fn testMathAndLogic($t) {
     $t.ok(0 != false, '0 != false')
     $t.ok('0' != 0, '`0` == 0')
     $t.ok(1 != true, '1 != true')
-    $t.ok(true != [1], 'true != list')
-    $t.ok(false != [], 'false != empty list')
+    $t.ok([1] != true, 'true != list')
+    $t.ok([] != false, 'false != empty list')
 
 
     $t.section('Math Assignment')
@@ -1774,8 +1785,8 @@ fn testControlFlow($t) {
 
     $t.section('Other Operators')
 
-    $t.ok(2 > 1 ? true : false, 'ternary - true')
-    $t.ok(1 > 2 ? false : true, 'ternary 0 false')
+    $t.ok(2 > 1 ? 'yes' : '', 'ternary - true')
+    $t.ok(1 > 2 ? '' : 'yes', 'ternary 0 false')
 
     $ifDo = 1
     if true: $ifDo = 2
@@ -2118,7 +2129,7 @@ fn testStrings($t) {
 
     $t.section('Strings - Escapes')
 
-    $t.ok('ab\cd' == 'ab' ~ '\\' ~ 'cd', 'string - escape normal char')
+    $t.ok('ab' ~ '\\' ~ 'cd' == 'ab\cd', 'string - escape normal char')
     $t.ok('ab\ncd'.match(r'ab\scd'), 'string - newline')
     $esc = '$_SERVER["REMOTE_ADDR"]'
     $t.ok(!'lot\'s\t "double $quote"'.contains('\\'), 'no leaked backslashes')
