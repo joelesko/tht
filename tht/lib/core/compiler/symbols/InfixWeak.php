@@ -42,6 +42,19 @@ class S_InfixWeak extends Symbol {
             $p->validator->defineVar($left);
         }
 
+        // Don't allow "yoda" expressions.
+        if ($this->token[TOKEN_VALUE] == '==' || $this->token[TOKEN_VALUE] == '!=') {
+
+            $leftClass = get_class($left);
+            $leftIsLiteral = $leftClass == 'o\S_Literal' || $leftClass == 'o\S_Boolean';
+            $rightClass = get_class($right);
+            $rightIsLiteral = $rightClass == 'o\S_Literal' || $rightClass == 'o\S_Boolean';
+
+            if ($leftIsLiteral && !$rightIsLiteral) {
+                $p->error("Literal value should go on the right side of the expression. Try: (example) `\$a == 'foo'` instead of `'foo' == \$a`", $left->token);
+            }
+        }
+
         return $this;
     }
 }
