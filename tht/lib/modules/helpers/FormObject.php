@@ -44,11 +44,6 @@ class Form extends OClass {
 
         $validator = new u_InputValidator();
 
-        // Require HTML input type
-        if (!isset($fieldConfig['tag'])) {
-            $this->error("Input field `$fieldName` needs a `tag`.");
-        }
-
         // Derive the rule from the type, if missing.
         if (!isset($fieldConfig['rule'])) {
             $tag = $fieldConfig['tag'];
@@ -65,6 +60,10 @@ class Form extends OClass {
         // Process Rule
         $fieldConfig['rule'] = $validator->initFieldRules($fieldName, $fieldConfig['rule']);
 
+        // Derive the tag from the rule
+        if (!isset($fieldConfig['tag'])) {
+            $fieldConfig['tag'] = $fieldConfig['rule']['fieldType'];
+        }
 
         // Some rules only work with certain field tags. e.g. email
         $tagType = $fieldConfig['tag'];
@@ -130,7 +129,6 @@ class Form extends OClass {
 
         return $fieldConfig;
     }
-
 
     // Basic Methods
     // --------------------------------------------------

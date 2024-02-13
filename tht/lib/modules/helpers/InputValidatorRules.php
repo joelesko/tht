@@ -3,7 +3,6 @@
 namespace o;
 
 /*
-    Rule to input type
 
     OVERRIDE
 
@@ -53,9 +52,10 @@ trait InputValidatorRules {
     private $defaultRule = [
 
         // Types (internal)
-        'type'      => '',
-        'valueType' => 'string',
-        'fieldType' => '',
+        'type'         => '',
+        'valueType'    => 'string',
+        'fieldType'    => '',
+        'autocomplete' => '',
 
         // Common constraints
         'min' => 0,
@@ -167,6 +167,7 @@ trait InputValidatorRules {
             'regex' => 'http(s?)://\S+\.\S+',
             'checkUrl' => true,
             'fieldType' => 'url',
+            'autocomplete' => 'url',
         ],
 
         'color' => [
@@ -180,6 +181,7 @@ trait InputValidatorRules {
             'min' => 1,
             'max' => 100,
             'fieldType' => 'search',
+            'autocomplete' => 'off',
         ],
 
 
@@ -193,6 +195,7 @@ trait InputValidatorRules {
             'max' => 20,
             'regex' => '[a-zA-Z0-9_]+',
             'fieldType' => 'text',
+            'autocomplete' => 'username',
         ],
 
         'password' => [
@@ -202,6 +205,7 @@ trait InputValidatorRules {
             'removeQuotes' => false,
             'xDangerAllowHtml' => true,
             'postProcess' => 'hashPassword',
+            'autocomplete' => 'current-password',
         ],
 
         // Same as 'password' but has strength check in client
@@ -212,6 +216,7 @@ trait InputValidatorRules {
             'removeQuotes' => false,
             'xDangerAllowHtml' => true,
             'postProcess' => 'hashPassword',
+            'autocomplete' => 'new-password',
         ],
 
         'email' => [
@@ -220,6 +225,7 @@ trait InputValidatorRules {
             'regex' => '\S+?@[^@\s]+\.\S+',
             'fieldType' => 'email',
             'checkEmail' => true,
+            'autocomplete' => 'email',
         ],
 
         'phone' => [
@@ -227,24 +233,28 @@ trait InputValidatorRules {
             'max' => 30,
             'regex' => '[0-9\(\)\.\-\+ext ]+',
             'fieldType' => 'tel',
+            'autocomplete' => 'tel',
         ],
 
         'name' => [
             'min' => 1,
             'max' => 50,
             'fieldType' => 'text',
+            'autocomplete' => 'name',
         ],
 
         'firstName' => [
             'min' => 1,
             'max' => 20,
             'fieldType' => 'text',
+            'autocomplete' => 'given-name',
         ],
 
         'lastName' => [
             'min' => 1,
             'max' => 30,
             'fieldType' => 'text',
+            'autocomplete' => 'family-name',
         ],
 
 
