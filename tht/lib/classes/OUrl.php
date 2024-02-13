@@ -304,7 +304,7 @@ class UrlTypeString extends OTypeString {
 
         if (!$baseOrigin) {
             $currentUrl = Tht::module('Request')->u_get_url();
-            $baseOrigin = $currentUrl->u_origin();
+            $baseOrigin = $currentUrl->u_get_origin();
         }
 
         $baseOrigin = rtrim($baseOrigin, '/');
@@ -334,6 +334,27 @@ class UrlTypeString extends OTypeString {
         }
 
         return $this;
+    }
+
+    function u_is_local() {
+
+        $this->ARGS('', func_get_args());
+
+        if ($this->u_is_relative()) {
+            return true;
+        }
+
+        $currentUrl = Tht::module('Request')->u_get_url();
+        $siteOrigin = $currentUrl->u_get_origin();
+
+        return $this->origin == $siteOrigin;
+    }
+
+    function u_is_remote() {
+
+        $this->ARGS('', func_get_args());
+
+        return !$this->u_is_local();
     }
 
     function u_link($label, $params=null) {
