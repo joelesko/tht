@@ -216,7 +216,7 @@ trait FormBuilder {
 
         $this->ARGS('sm', func_get_args());
 
-        return $this->u_tag($fieldName, $atts, true);
+        return $this->u_tag($fieldName, $atts, OMap::create(['tagOnly' => true]));
     }
 
     // TODO: flags is undocumented
@@ -326,11 +326,24 @@ trait FormBuilder {
             $atts['placeholder'] = $fieldConfig['placeholder'];
         }
 
+        if (isset($fieldConfig['rule']['autocomplete']) && $fieldConfig['rule']['autocomplete']) {
+            $atts['autocomplete'] = $fieldConfig['rule']['autocomplete'];
+        }
+
         // Attributes override fieldConfig
         $value = isset($fieldConfig['value']) ? $fieldConfig['value'] : '';
 
         if (isset($atts['value'])) {
             $value = $atts['value'];
+        }
+        else if ($type == 'number' && !$value) {
+            $value = 0;
+        }
+        else if ($type == 'date' && !$value) {
+            $value = Tht::module('Date')->u_now()->u_format('Y-m-d\\TH:i:s');
+        }
+        else if ($type == 'datetime-local' && !$value) {
+            $value = Tht::module('Date')->u_now()->u_format('Y-m-d\\TH:i:s');
         }
 
         $atts['name'] = $name;

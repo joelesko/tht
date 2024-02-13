@@ -375,7 +375,7 @@ class LitemarkParser {
 
         // add nofollow param
         if ($cmd == 'link') {
-            $linkRel = $this->features['indexLinks'] ? '' : ' rel="nofollow"';
+            $linkRel = $this->features['indexLinks'] ? ' rel="noopener"' : ' rel="nofollow noopener"';
             $out = str_replace('{linkrel}', $linkRel, $out);
         }
 
@@ -682,7 +682,7 @@ class LitemarkInlineParser {
             }
         }
 
-        $nofollow = $this->parent->features['indexLinks'] ? '' : ' rel="nofollow"';
+        $nofollow = $this->parent->features['indexLinks'] ? ' rel="noopener"' : ' rel="nofollow noopener"';
 
         $str = '<a href="'. $url . '"' . $nofollow . '>' . $url . '</a>';
         $str .= $after;
