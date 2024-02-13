@@ -1,15 +1,7 @@
 <?php
 
-// types of uses:
-//   key/value (ad hoc indexing)
-//   lists indexed by key (e.g. userId)
-//   how to order by a subkey? (e.g. most xp? lastVisitDate?)
-// re-add isDeleted
-// auto index numeric values?
-// performant way to iterate through many rows
-// one time query to get list of all tables and databases?  (a registry table on seperate db)
-// just check if database file exists on first access
 
+// TODO: Use ->> operator to reach into JSON objects.
 
 namespace o;
 
@@ -31,122 +23,132 @@ namespace o;
 class u_MapDb extends OStdModule {
 
     private $dbh = null;
+    private $doCreateBucket = false;
 
     private function connect() {
         if (is_null($this->dbh)) {
-            $this->dbh = Tht::module('Db')->u_use('mapDb');
+            $this->dbh = Tht::module('Db')->u_use_database('mapDb');
         }
     }
+    // create table users(id integer primary key autoincrement, primaryIndex varchar(255), parentIndex varchar(255), createDate unsigned int, level unsigned int, data text not null);
+    // create index idx_users_primary on users (primaryIndex);
+    // create index idx_users_parent on users (parentIndex);
 
-    public function u_insert_map($bucket, $key, $map) {
-
-        $this->connect();
+    public function u_add($bucket, $map) {
 
         if (isset($map['id'])) {
-            Tht::error("MapDb: Key `id` not allowed for `$bucket/$key`.  This is a reserved key.");
+            Tht::error("MapDb: Key `id` not allowed for `$bucket`.  This is a reserved key.");
         }
         if (isset($map['createDate'])) {
-            Tht::error("MapDb: Key `createDate` not allowed for `$bucket/$key`.  This is a reserved key.");
+            Tht::error("MapDb: Key `createDate` not allowed for `$bucket`.  This is a reserved key.");
         }
 
-        $record = [
-            'createDate' => time(),
-            'bucket'     => $bucket,
-            'key'        => $key,
-            'data'       => json_encode(unv($map)),
-        ];
+        $self = $this;
+        return $this->executeForBucket($bucket, function() use ($self, $bucket, $map) {
 
-        $this->dbh->u_insert_row('maps', OMap::create($record));
+            // TODO: expand Date objects (to SqlString?)
+            $record = [
+                'createDate' => time(),
+                'data'       => json_encode(unv($map)),
+                         //   'level'      => 0,
+             //   'primaryIndex' => $primaryIndex,
+            ];
 
-        return $this->dbh->u_last_insert_id();
+            $self->dbh->u_insert_row($bucket, OMap::create($record));
+
+            return $self->dbh->u_last_insert_id();
+        });
     }
 
-    public function u_select_id($bucket, $id) {
+    public function u_get($bucket, $id) {
+
+        $self = $this;
+        return $this->executeForBucket($bucket, function() use ($self, $id, $bucket) {
+
+            $sql = new \o\SqlTypeString('select * from `' . $bucket . '` where id = {id} limit 1');
+            $sql->u_fill(OMap::create([ 'id' => $id ]));
+
+            $row = $self->dbh->u_select_row($sql);
+
+            return $self->convertRowToMap($row);
+
+        });
+    }
+
+    public function u_get_many($bucket, $whereOrMap) {
+
+        $this->ARGS('*m', func_get_args());
+
+        if ($whereMap) {
+            $whereSql = $this->mapToWhereSql($whereMap, true);
+            $sql->appendTypeString($whereSql);
+        }
+
+        $self = $this;
+        return $this->executeForBucket($bucket, function() use ($self, $id, $bucket) {
+
+            $sql = new \o\SqlTypeString('select * from `' . $bucket . '` where id = {id} limit 1');
+            $sql->u_fill(OMap::create([ 'id' => $id ]));
+
+            $row = $self->dbh->u_select_row($sql);
+
+            return $self->convertRowToMap($row);
+
+        });
+    }
+
+    private function executeForBucket($bucket, $fn) {
 
         $this->connect();
 
-        $sql = new \o\SqlTypeString('select * from maps where bucket = {bucket} and id = {id} limit 1');
-        $sql->u_fill([ 'bucket' => $bucket, 'id' => $id ]);
+        try {
+            return $fn();
+        } catch (\Exception $e) {
 
-        $row = $this->dbh->u_select_row($sql);
-        return $this->convertRowToMap($row);
-    }
-
-    // public function u_update_map($bucket, $id, $map) {
-
-    //     $this->connect();
-
-    //     if (!is_numeric($id)) {
-    //         Tht::error('selectMap() argument `id` must be a Number.');
-    //     }
-    //     $where = new \o\SqlTypeString('where bucket = {bucket} and id = {id} limit 1');
-    //     $where->u_fill([ 'bucket' => $bucket, 'id' => $id, 'data' => ]);
-
-    //     $row = $this->dbh->u_update_rows('map_db', [ 'data' => $map ], $where);
-    //     return $this->convertRowToMap($row);
-    // }
-
-
-    // TODO:
-    // older than / younger than createDate
-    // limit
-    public function u_select_maps($bucket, $key='', $limit=100) {
-
-        $this->connect();
-
-        $sql = new \o\SqlTypeString('select * from maps where bucket = {bucket} and key = {key} order by id desc limit {limit}');
-        $sql->u_fill([ 'bucket' => $bucket, 'key' => $key, 'limit' => $limit ]);
-
-        $rows = $this->dbh->u_select_rows($sql);
-
-        $maps = [];
-        foreach ($rows as $row) {
-            $maps []= $this->convertRowToMap($row);
+            $msg = $e->getMessage();
+            if (preg_match('/no such table/i', $msg)) {
+                $this->createBucket($bucket);
+                return $fn();
+            }
         }
 
-        return OList::create($maps);
+        return '';
+    }
+
+    private function createBucket($bucket) {
+
+        // TODO: validate bucket
+
+        $this->dbh->u_run_query(new SqlTypeString("
+             create table $bucket(
+                id integer primary key autoincrement,
+                primaryIndex varchar(255),
+                parentIndex varchar(255),
+                createDate unsigned int,
+                level unsigned int,
+                data text not null
+            );
+        "));
+
+        $this->dbh->u_run_query(new SqlTypeString("
+            create index idx_primary_$bucket on users (primaryIndex);
+        "));
+
+        $this->dbh->u_run_query(new SqlTypeString("
+            create index idx_parent_$bucket on users (parentIndex);
+        "));
     }
 
     private function convertRowToMap($row) {
-        if (!$row) { return []; }
-        $map = json_decode($row['data'], true);
+
+        if (!$row) { return OMap::create([]); }
+
+        $map = Tht::module('Json')->u_decode(new JsonTypeString($row['data']));
+
         $map['id'] = intval($row['id']);
-        $map['createDate'] = intval($row['createDate']);
-        return OMap::create($map);
-    }
+        $map['createDate'] = $row['createDate'];
 
-    public function u_buckets() {
-        $this->connect();
-        $sql = new \o\SqlTypeString('select bucket, count(*) numMaps from maps group by bucket order by bucket ASC');
-        $rows = $this->dbh->u_select_rows($sql);
-        foreach ($rows as $row) {
-            $row['numMaps'] = intval($row['numMaps']);
-        }
-        return OList::create($rows);
-    }
-
-    public function u_delete_bucket($bucket) {
-        $this->connect();
-        $where = new OTypeString('bucket = {0}');
-        $where->u_fill($bucket);
-        $this->dbh->u_delete_rows('maps', $where);
-        return true;
-    }
-
-    public function u_delete_id($bucket, $id) {
-        $this->connect();
-        $where = new OTypeString('bucket = {0} and id = {1}');
-        $where->u_fill($bucket, $id);
-        $this->dbh->u_delete_rows('maps', $where);
-        return true;
-    }
-
-    public function u_delete_key($bucket, $key) {
-        $this->connect();
-        $where = new OTypeString('bucket = {0} and key = {1}');
-        $where->u_fill($bucket, $key);
-        $this->dbh->u_delete_rows('maps', $where);
-        return true;
+        return $map;
     }
 
 
