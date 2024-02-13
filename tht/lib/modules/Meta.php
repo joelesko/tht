@@ -84,20 +84,20 @@ class u_Meta extends OStdModule {
 
     // TODO: isTestServer
 
-    function u_no_template_mode () {
+    function u_fail_if_template_mode () {
 
         $this->ARGS('', func_get_args());
 
         if (Runtime::inTemplate()) {
             Runtime::resetTemplateLevel();
-            $this->callerError('can not be called in Template mode. Try: Process data outside the template and pass it in.');
+            $this->callerError('can not be called in Template mode. Try: Process the data first, then pass it into the template.');
         }
 
         return EMPTY_RETURN;
     }
 
     // TODO: Undocumented
-    function u_admin_only () {
+    function u_fail_if_admin_mode () {
 
         $this->ARGS('', func_get_args());
 
@@ -109,7 +109,7 @@ class u_Meta extends OStdModule {
         return EMPTY_RETURN;
     }
 
-    function u_no_web_mode () {
+    function u_fail_if_web_mode () {
 
         $this->ARGS('', func_get_args());
 

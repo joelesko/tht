@@ -9,7 +9,7 @@ class u_System extends OStdModule {
 
     function _call ($fn, $args=[], $checkReturn=true) {
 
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $ret = \call_user_func_array($fn, $args);
         if ($checkReturn && $ret === false) {
@@ -24,8 +24,8 @@ class u_System extends OStdModule {
 
     //     $this->ARGS('', func_get_args());
 
-    //     Tht::module('Meta')->u_no_web_mode();
-    //     Tht::module('Meta')->u_no_template_mode();
+    //     Tht::module('Meta')->u_fail_if_web_mode();
+    //     Tht::module('Meta')->u_fail_if_template_mode();
 
     //     global $argv;
 
@@ -37,8 +37,8 @@ class u_System extends OStdModule {
 
     //     $this->ARGS('*m', func_get_args());
 
-    //     Tht::module('Meta')->u_no_web_mode();
-    //     Tht::module('Meta')->u_no_template_mode();
+    //     Tht::module('Meta')->u_fail_if_web_mode();
+    //     Tht::module('Meta')->u_fail_if_template_mode();
 
     //     $cmd = OTypeString::getUntyped($typedCmd, 'cmd');
 
@@ -130,7 +130,7 @@ class u_System extends OStdModule {
             print trim($msg) . " ";
         }
 
-        Tht::module('Meta')->u_no_web_mode();
+        Tht::module('Meta')->u_fail_if_web_mode();
 
         $in = trim(fgets(STDIN));
         if ($in === '') {
@@ -143,7 +143,7 @@ class u_System extends OStdModule {
 
         $this->ARGS('ss', func_get_args());
 
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $raw = Tht::getPhpGlobal('env', $key, $default);
 
@@ -153,7 +153,7 @@ class u_System extends OStdModule {
     // TODO: undocumented
     function u_confirm ($msg, $default=false) {
 
-        Tht::module('Meta')->u_no_web_mode();
+        Tht::module('Meta')->u_fail_if_web_mode();
 
         $yn = $default ? '(Y/n)' : '(y/N)';
         print $msg . " $yn? ";

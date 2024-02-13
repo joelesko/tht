@@ -24,7 +24,7 @@ class u_File extends OStdModule {
     function _call ($fn, $args=[], $validationList='', $checkReturn=true) {
 
         if (!$this->isSandboxDisabled) {
-            Tht::module('Meta')->u_no_template_mode();
+            Tht::module('Meta')->u_fail_if_template_mode();
         }
 
         // Validate each argument against a validation pattern.

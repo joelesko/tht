@@ -53,7 +53,7 @@ class u_Php extends OStdModule {
     }
 
     function u_call () {
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $args = func_get_args();
         $func = array_shift($args);
@@ -92,7 +92,7 @@ class u_Php extends OStdModule {
 
     function u_require($phpFile) {
 
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
         if (!isset($this->isRequired[$phpFile])) {
             try {
                 require_once(Tht::path('phpLib', $phpFile));
@@ -107,7 +107,7 @@ class u_Php extends OStdModule {
 
     function u_new($cls) {
 
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $cls = str_replace('/', '\\', $cls);
 
