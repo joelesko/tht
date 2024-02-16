@@ -96,7 +96,7 @@ class u_Litemark extends OStdModule {
 
         if (!$flags) { $flags = OMap::create([]); }
 
-        $this->ARGS('sm', [$raw, $flags]);
+        $this->ARGS('Sm', [$raw, $flags]);
         $flags = $this->initFlags($flags);
 
         Tht::module('Perf')->u_start('Litemark.parse', $raw);
