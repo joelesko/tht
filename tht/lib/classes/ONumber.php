@@ -13,7 +13,7 @@ class ONumber extends OVar {
         'min'      => 'clampMax()',
         'max'      => 'clampMin()',
         'zeropad'  => 'zeroPadLeft() or zeroPadRight()',
-        'humanize'      => 'humanizeCount()',
+        'humanize' => 'humanizeCount()',
     ];
 
     function u_sign () {
