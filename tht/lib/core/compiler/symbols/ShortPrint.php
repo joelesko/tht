@@ -7,9 +7,13 @@ class S_ShortPrint extends S_Command {
     // e.g. >> 'some message'
     function asStatement ($p) {
 
+        if (!$this->hasNewlineBefore()) {
+            $p->error('Print shortcut `>>` can only be used at the beginning of a line. Try: `+>` (bit shift right)');
+        }
+
         $p->next();
 
-        $this->space('B>> ', true);
+        $this->space('B>> ');
 
         $p->expressionDepth += 1; // prevent assignment
         $sReturnVal = $p->parseExpression(0, 'noOuterParens');
