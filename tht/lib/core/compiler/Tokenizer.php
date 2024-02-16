@@ -562,6 +562,10 @@ class Tokenizer extends StringReader {
 
         $this->validateAdjToken('string', $str);
         $this->makeToken($type, $str);
+
+        if ($this->char() == Glyph::QUOTE) {
+            $this->error("Extra quote `'` character.");
+        }
     }
 
     // e.g. -myFlag|-otherFlag
