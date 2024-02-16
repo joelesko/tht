@@ -244,13 +244,13 @@ class Parser {
             }
             else {
                 if ($this->prevToken && $this->prevToken[TOKEN_VALUE] !== '(nl)') {
-
+                    $tokenVal = $this->prevToken[TOKEN_VALUE];
                     $desc = 'Unexpected';
-                    if (strpos(CompilerConstants::$CLOSING_SEPERATORS, $this->prevToken[TOKEN_VALUE]) !== false) {
+                    if (strpos(CompilerConstants::$CLOSING_SEPERATORS, $tokenVal) !== false) {
                         // Very common typo: Extra `)` or `]` or `}`
                         $desc = 'Extra';
                     }
-                    $this->error("$desc separator token.", $this->prevToken);
+                    $this->error("$desc separator token `$tokenVal`.", $this->prevToken);
                 }
             }
         }
