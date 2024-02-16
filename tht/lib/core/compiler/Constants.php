@@ -275,8 +275,8 @@ class CompilerConstants {
         '=<'  => '<=',
         '=>'  => ">= (comparison) or colon ':' (map key)",
         '<>'  => '!=',
-   //     '>>'  => '+> (bit shift)',
-        '<<'  => '+< (bit shift) or #=',
+        // '>>'  => '+> (bit shift)', // has to be caught downstream by ShortPrint
+        '<<'  => '+< (bit shift left)',
         '++'  => '+= 1',
         '--'  => '-= 1',
         '->'  => 'dot (.)',
