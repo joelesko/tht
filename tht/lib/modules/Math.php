@@ -154,7 +154,7 @@ class u_Math extends OStdModule {
 
         $this->ARGS('n', func_get_args());
 
-        return strtoupper(dechex($n));
+        return strtolower(dechex($n));
     }
 
     function u_hex_to_dec ($s) {

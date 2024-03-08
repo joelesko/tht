@@ -56,6 +56,7 @@ class Tokenizer extends StringReader {
 
     private $stringMod = '';
     private $inMultiLineString = false;
+    private $inQuickList = false;
     private $inComment = false;
 
     private $indentBlocks = [];
@@ -184,7 +185,7 @@ class Tokenizer extends StringReader {
 
     function onNewline() {
         if ($this->colNum > CompilerConstants::$MAX_LINE_LENGTH && $this->templateMode !== TemplateMode::BODY
-            && !$this->inMultiLineString && !$this->inComment) {
+            && !$this->inMultiLineString && !$this->inComment && !$this->inQuickList) {
 
             $try = '';
             if (preg_match("/'(.*?)'/", $this->line, $m)) {
@@ -193,7 +194,10 @@ class Tokenizer extends StringReader {
                 }
             }
 
-            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . CompilerConstants::$MAX_LINE_LENGTH . '.' . $try);
+            // align error pointer with last character in line
+            $endTokenPos = $this->getTokenPos();
+            $endTokenPos[1] = $this->colNum - 1;
+            $this->error('Line has ' . $this->colNum . ' characters.  Maximum is ' . CompilerConstants::$MAX_LINE_LENGTH . '.' . $try, $endTokenPos);
         }
     }
 
@@ -209,30 +213,41 @@ class Tokenizer extends StringReader {
             else if ($c <= ' ') {
                 $this->handleWhitespace($c);
             }
-            else if ($c == '$') {
-                $this->handleVarName();
-            }
-            else if (isset($this->isAlpha[$c])) {
-                $this->handleWord($c);
-            }
-            else if (isset($this->isDigit[$c])) {
-                $this->handleNumber($c);
-            }
-            else if ($c === Glyph::QUOTE) {
-                $this->handleString($c);
-            }
-            else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
-                $this->handleLineComment();
-            }
-            else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
-                $this->handleBlockComment($c);
-            }
-            else if ($c == '-') {
-                $this->handleFlag($c);
-            }
             else {
-                $this->handleGlyph($c);
+
+                // Ignore comment lines, multiline strings, etc.
+                // if ($this->atStartOfLine() && $this->indent % 4 > 0) {
+                //     $this->error('Please set indent to an exact 4-space interval.');
+                // }
+
+
+                if ($c == '$') {
+                    $this->handleVarName();
+                }
+                else if (isset($this->isAlpha[$c])) {
+                    $this->handleWord($c);
+                }
+                else if (isset($this->isDigit[$c])) {
+                    $this->handleNumber($c);
+                }
+                else if ($c === Glyph::QUOTE) {
+                    $this->handleString($c);
+                }
+                else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
+                    $this->handleLineComment();
+                }
+                else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
+                    $this->handleBlockComment($c);
+                }
+                else if ($c == '-') {
+                    $this->handleFlag($c);
+                }
+                else {
+                    $this->handleGlyph($c);
+                }
             }
+
+
 
 
             if ($this->templateMode === TemplateMode::BODY) {
@@ -398,9 +413,11 @@ class Tokenizer extends StringReader {
             // quoted list `q[ word1 word2 etc ]`
             if ($c === Glyph::QUOTED_LIST_PREFIX) {
 
+                $this->inQuickList = true;
                 $this->next();
                 $this->next();
                 $list = $this->slurpUntil(']');
+                $this->inQuickList = false;
 
                 // Remove line comments
                 $list = preg_replace('#^\s*//.*$#m', '', $list);
@@ -568,7 +585,7 @@ class Tokenizer extends StringReader {
         }
     }
 
-    // e.g. -myFlag|-otherFlag
+    // // e.g. -myFlag|-otherFlag
     function handleFlag ($c) {
 
         $nc = $this->nextChar();

@@ -23,9 +23,10 @@ class ORegex extends OVar {
 
     function getPattern () {
 
-        $pat = str_replace('/', '\\/', $this->pattern);
+        $pat = $this->getRawPattern();
 
-        return '/' . $pat . '/' . $this->flags;
+        // Always implicitly add u = unicode
+        return '/' . $pat . '/u' . $this->flags;
     }
 
     function getRawPattern() {

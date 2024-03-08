@@ -2,20 +2,6 @@
 
 namespace Jcon;
 
-/*
-
-     TODO: support programmatic edits?
-           overrides appended at end of file?
-           allow serialize/deserialize with comments?
-
-     Comments should appear before named keys. eg:
-     {
-        __commentForTitle: "Second book in the trilogy"
-        title: "The Two Towers"
-     }
-
-*/
-
 class JconException extends \Exception {}
 
 class JconParser {

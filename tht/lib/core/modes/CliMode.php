@@ -257,6 +257,15 @@ class CliMode {
 
             self::copyLocalThtRuntimeToApp();
 
+            self::createAppFavicon(basename($appDir));
+
+             self::createAppFavicon('My');
+             self::createAppFavicon('Wp');
+             self::createAppFavicon('Ja');
+             self::createAppFavicon('Tr');
+             self::createAppFavicon('Li');
+             self::createAppFavicon('As');
+
         } catch (\Exception $e) {
 
             echo "<!> Sorry, something went wrong.\n\n";
@@ -331,5 +340,43 @@ class CliMode {
         flush();
 
         passthru("php -S $hostName:$port $docRootArg $controllerArg");
+    }
+
+    static function createAppFavicon($appName) {
+
+        $text = strtoupper(substr($appName, 0, 1));
+
+        $image = imagecreate(128, 128);
+        imagecolorallocate($image, 0,0,0);
+        $textColor = imagecolorallocate($image, 255,255,255);
+
+        imagefilledrectangle($image, 0, 128 - 12, 128, 128 - 10, $textColor);
+
+        $size = 80;
+        $angle = 0;
+        $font = Tht::path('localTht', 'lib/modules/helpers/resources/opensans_min.ttf');
+
+        // origin is bottom left of baseline
+        list($blX, $blY, $brX, $brY, $trX, $trY, $tlX, $tlY) = imagettfbbox($size, $angle, $font, $text);
+
+        print("--- $text ---\n");
+        print_r([
+            [$blX, $blY], [$brX, $brY], [$trX, $trY], [$tlX, $tlY]
+        ]);
+
+        $textSizeX = $trX - $tlX;
+        $textSizeY = $blY - $tlY;
+
+     //   print($text . ' = ' . $textSizeY . " sizeY \n");
+
+        $x = 20;
+        $baselineY = 100;
+        imagettftext($image, $size, $angle, $x, $baselineY, $textColor, $font, $text);
+
+        imagerectangle($image, $x + $blX, $baselineY - $textSizeY, $x + $textSizeX, $baselineY, $textColor);
+
+        imagepng($image, Tht::path('images', 'favicon_' . $text . '_128.png'));
+        imagepng($image, Tht::path('images', 'favicon_128.png'));
+        imagedestroy($image);
     }
 }

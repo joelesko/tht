@@ -28,6 +28,8 @@ RewriteRule ^(.*)$ /front.php?_url=$1 [QSA,NC,L]
     Header set Content-Encoding gzip
     RewriteRule \.css.*?\.gz$ - [T=text/css,E=no-gzip:1]
     RewriteRule \.js.*?\.gz$ - [T=text/javascript,E=no-gzip:1]
+
+    AddOutputFilterByType DEFLATE image/x-icon
 </FilesMatch>
 
 ### END THT APP

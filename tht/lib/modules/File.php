@@ -222,6 +222,13 @@ class u_File extends OStdModule {
             'logfile|string|*');
     }
 
+    function u_empty($filePath) {
+
+        $this->ARGS('s', func_get_args());
+
+        return $this->write($filePath, '', false);
+    }
+
     // TODO: implement later.
     // public function u_truncate($fileName, $keepNumBytes) {
 

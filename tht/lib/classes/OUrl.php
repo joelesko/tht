@@ -363,4 +363,32 @@ class UrlTypeString extends OTypeString {
 
         return Tht::module('Web')->u_link($this, $label);
     }
+
+    function u_append_slug($longText, $skipWords=null) {
+
+        $this->ARGS('ss', func_get_args());
+
+        $slug = v($longText)->u_to_url_slug($skipWords);
+
+        return $this->u_append_path($slug);
+    }
+
+    function u_append_path($pathPart) {
+
+        $this->ARGS('s', func_get_args());
+
+        $pathSubParts = explode('/', $pathPart);
+
+        $path = rtrim($this->u_get_path(), '/');
+        foreach ($pathSubParts as $subPart) {
+            if (strlen($subPart)) {
+                $pathPartToken = v($subPart)->u_to_token_case('-');
+                if ($pathPartToken) {
+                    $path .= '/' . ltrim($pathPartToken, '/');
+                }
+            }
+        }
+
+        return $this->u_set_path($path);
+    }
 }

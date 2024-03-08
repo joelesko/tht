@@ -13,6 +13,7 @@ trait ThtPaths {
         'app'       => 'app',
 
         'public'    => 'public',
+        'images'    =>   'images',
 
         'code'      => 'code',
         'pages'     =>   'pages',
@@ -73,6 +74,7 @@ trait ThtPaths {
             ['app', 'config'],
 
             ['app', 'public'],
+                ['public', 'images'],
 
             ['app', 'system'],
                 ['system', 'localTht'],

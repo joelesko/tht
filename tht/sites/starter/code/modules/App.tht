@@ -5,6 +5,7 @@ public fn newPage {
     $page = Page.create({
 
         appName: @@.AppName,
+        icon: url'/images/favicon_128.png',
 
         header: headerHtml(),
         footer: footerHtml(),

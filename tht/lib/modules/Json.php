@@ -2,6 +2,7 @@
 
 namespace o;
 
+
 class u_Json extends OStdModule {
 
     protected $suggestMethod = [
@@ -28,13 +29,13 @@ class u_Json extends OStdModule {
     }
 
     // Convert JSON string to data
-    function u_decode ($jsonTypeString) {
+    function u_decode ($jsonTypeString, $useAlt='') {
 
-        $this->ARGS('*', func_get_args());
+        $this->ARGS('*s', func_get_args());
 
         $rawJsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
 
-        return Security::jsonDecode($rawJsonString);
+        return Security::jsonDecode($rawJsonString, $useAlt);
     }
 
     function deepSortKeys ($obj) {
@@ -63,15 +64,11 @@ class u_Json extends OStdModule {
         $json = preg_replace('/\s*\n+\s*/', '', $json);
         $json = preg_replace('/\s+/', ' ', $json);
 
-        // TODO: would prefer not to need this, but windows paths are still escaped?
+        // TODO: would prefer not to need this, but Windows paths are still escaped?
         $json = preg_replace('!\\\/!', '/', $json);
         $json = preg_replace('!\\\\\\\\!', '\\', $json);
 
         $json = OClass::tokensToBareStrings($json);
-
-    //    $json = str_replace('"⟪', '⟪', $json);
-    //    $json = str_replace('⟫"', '⟫', $json);
-
 
         // truncate
         if (strlen($json) > $maxLen) {

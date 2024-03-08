@@ -39,6 +39,7 @@ class LibModules {
         'Form',
         'Email',
         'Page',
+        'Gd',
     ];
 
     public static function load () {

@@ -26,6 +26,9 @@ class u_Bare extends OStdModule {
             else if (is_string($a)) {
                 // keep as-is, no quotes
             }
+            else if (OClass::isa($a)) {
+                $a = $a->u_on_print();
+            }
             else {
                 $jsonTypeString = Tht::module('Json')->u_encode($a);
                 $a = Tht::module('Json')->u_format($jsonTypeString)->u_render_string();
@@ -37,7 +40,12 @@ class u_Bare extends OStdModule {
             }
 
             if (Tht::isMode('web')) {
-                $a = htmlentities($a);
+                if (HtmlTypeString::isa($a)) {
+                    $a = $a->u_render_string();
+                }
+                else {
+                    $a = htmlentities($a);
+                }
             }
 
             $outs []= $a;

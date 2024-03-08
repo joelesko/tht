@@ -79,7 +79,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         if ($r->nextChar() === '!') {
             // HTML comment <!-- -->
-            $r->slurpUntil('>');
+            $comment = $r->slurpUntil('>');
+            $str .= $comment . '>';
         }
         else if ($r->nextChar() === '/') {
 
