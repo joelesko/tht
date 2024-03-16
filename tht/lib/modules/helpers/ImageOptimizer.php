@@ -5,20 +5,11 @@ namespace o;
 /*
     Algorithm:
 
-    if thumb
-       - convert to jpeg
-       - resize
+    if png with small palette:
+        palettize image and save with .webp extension (for easier cache checking)
 
-    if png
-       - if flat image, index with smallest palette possible
-       - if colors < 256, then palettize
-       - if colors > 256
-            - if has alpha: quantize
-            - if no alpha: convert to jpeg encoding, but keep png extension
-              (this isn't ideal, but simplifies cache checking)
-
-    if jpeg
-       - just resize down to 1200
+    otherwise:
+        convert to webp
 
 */
 
@@ -128,39 +119,22 @@ class u_Image_Optimizer {
         ini_set('memory_limit', '200M');
         ini_set('max_execution_time', '0');
 
-        $img = null;
+        $img = $this->loadImage();
+        $img = $this->resizeImage();
 
-        // Analyze image
         if ($this->newImageType == 'png') {
-
-            $img = $this->loadImage();
 
             list($hasAlpha, $palette) = $this->createPalette($img);
 
+            // If small palette, palettize image.
             if (count($palette) <= self::$MAX_NUM_PALETTE_COLORS) {
-                // Small palette -> index it (best case)
                 $img = $this->palettizeImage($img, $palette);
-            }
-            else if ($hasAlpha) {
-                // Large palette + alpha -> resize & quantize
-                $img = $this->resizeImage();
-                $img = $this->quantizeImage($img);
-            }
-            else {
-                // Large palette + no alpha -> Convert to jpeg internally,
-                // but keep 'png' file extension.
-                $this->newImageType = 'jpg';
+                imagepng($img, $this->newFileName, self::$PNG_COMPRESSION);
+                return;
             }
         }
 
-        // Write file
-        if ($this->newImageType == 'png') {
-            imagepng($img, $this->newFileName, self::$PNG_COMPRESSION);
-        }
-        else if ($this->newImageType == 'jpg' || $this->newImageType == 'jpeg') {
-            $img = $this->resizeImage();
-            imagejpeg($img, $this->newFileName, self::$JPEG_QUALITY);
-        }
+        imagewebp($img, $this->newFileName, self::$JPEG_QUALITY);
     }
 
     // Check if the file has already been optimized and hasn't been updated.
@@ -168,7 +142,7 @@ class u_Image_Optimizer {
     function isAlreadyOptimized() {
 
         // Comment this out to regenerate images during debugging.
-        // return false;
+        return false;
 
         // Trap error if file doesn't exist.
         ErrorHandler::startTrapErrors();
@@ -193,7 +167,7 @@ class u_Image_Optimizer {
         $newBaseName = preg_replace('!\.(png|jpg|jpeg)$!i', '', $this->oldFileName);
         $newBaseName .= '_' . $this->fileTag;
 
-        return $newBaseName . '.' . $this->newImageType;
+        return $newBaseName . '.webp'; //  . $this->newImageType;
     }
 
     // Calculate new size
@@ -249,11 +223,6 @@ class u_Image_Optimizer {
 
         return $newImage;
     }
-
-    // function convertToWebp($newFilename) {
-    //     $oldImage = $this->resizeImage();
-    //     return imagewebp($oldImage, $newFilename);
-    // }
 
     // Can be around 30 MB for large images
     function createPalette($img) {
@@ -385,39 +354,6 @@ class u_Image_Optimizer {
         }
 
         return $pImage;
-    }
-
-    // Naive quantization.
-    // TODO: I tried applying Floyd-Steinberg dithering but it was WAY too slow.
-    //       Would be good to find a fast way to do decent-quality dithering.
-    //       However, this is only applied to rich PNGs with alpha, so it might not be a common case.
-    function quantizeImage($img) {
-
-        $w = imagesx($img);
-        $h = imagesy($img);
-
-        $qImage = imagecreatetruecolor($w, $h);
-        imagesavealpha($qImage, true);
-        imagealphablending($qImage, false);
-
-        for ($x = 0; $x < $w; $x += 1) {
-            for ($y = 0; $y < $h; $y += 1) {
-
-                $rgba = $this->readPixel($img, $x, $y);
-
-                $qval = [];
-                foreach (range(0, 3) as $ch) {
-                    $max = $ch == 3 ? 127 : 255;
-                    $qstep = $ch == 3 ? 2 : 6;
-                    $qval []= $this->quantizeValue($rgba[$ch], $qstep, $max);
-                }
-
-                $color = imagecolorallocatealpha($qImage, $qval[0], $qval[1], $qval[2], $qval[3]);
-                imagesetpixel($qImage, $x, $y, $color);
-            }
-        }
-
-        return $qImage;
     }
 
     function quantizeValue($v, $step, $max=255) {
