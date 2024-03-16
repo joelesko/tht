@@ -7,12 +7,13 @@ class u_Db extends OStdModule {
     private $connectionCache = [];
     private $dbId = 'default';
     private $driver = '';
+    private $server = '';
     private $lastStatus = [ 'numRows' => -1, 'fnGetInsertId' => null ];
     private $oneQueryIsSafe = [];
 
     private function connect () {
 
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $dbId = $this->dbId;
 
@@ -27,6 +28,7 @@ class u_Db extends OStdModule {
         $this->checkConfig($dbConfig, ['driver']);
 
         $this->driver = $dbConfig['driver'];
+        $this->server = $dbConfig['server'];
 
         if ($dbConfig['driver'] == 'sqlite') {
 
@@ -47,22 +49,34 @@ class u_Db extends OStdModule {
 
             $this->checkRequiredLib($dbConfig['driver']);
 
-            // TODO: allow arbitrary options
-
             $this->checkConfig($dbConfig, ['database', 'server', 'username', 'password']);
 
-            $dsn = $dbConfig['driver'] . ':host=' . $dbConfig['server'] . '; ';
+            // Change localhost to 127.0.0.1
+            // See https://stackoverflow.com/questions/21046672/pdo-not-working-with-port
+            $server = ($dbConfig['server'] == 'localhost') ? '127.0.0.1' : $dbConfig['server'];
+
+            $dsn = $dbConfig['driver'] . ':';
+            $dsn .= 'host=' . $server . '; ';
             $dsn .= 'dbname=' . $dbConfig['database'] . '; ';
+            if (isset($dbConfig['port'])) {
+                $dsn .= 'port=' . $dbConfig['port'] . '; ';
+            }
             $dsn .= 'charset=UTF8;';
+
+            $atts = [];
+            if ($dbConfig['driver'] == 'mysql') {
+                $atts = $this->initMysqlAtts($dbConfig);
+            }
 
             $dbh = new \PDO(
                 $dsn,
                 $dbConfig['username'],
                 $dbConfig['password'],
-                [\PDO::ATTR_PERSISTENT => false]
+                $atts,
             );
         }
 
+        $dbh->setAttribute(\PDO::ATTR_PERSISTENT, false);
         $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
         $this->connectionCache[$dbId] = $dbh;
@@ -74,10 +88,44 @@ class u_Db extends OStdModule {
 
     function checkConfig($conf, $fields) {
         foreach ($fields as $f) {
-            if (!isset($conf[$f]) || !$conf[$f]) {
+            // Password can be empty, but everything else should be defined.
+            if (!isset($conf[$f]) || ($f != 'password' && !$conf[$f])) {
                 $this->error("Missing field `$f` in config for database `" . $this->dbId . "`. Try: Update `config/app.local.jcon`");
             }
         }
+    }
+
+    // See https://www.php.net/manual/en/ref.pdo-mysql.php
+    function initMysqlAtts($dbConfig) {
+
+        $atts = [];
+
+        // Security: don't allow multiple statements in a query by default
+        $atts[\PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
+
+        // Enable network compression for databases thare are not on localhost
+        if ($dbConfig['server'] != '127.0.0.1') {
+            $atts[\PDO::MYSQL_ATTR_COMPRESS] = true;
+        }
+
+        // Map string keys to PHP numeric constants
+        $attKeys = [
+            'sslKey'    => \PDO::MYSQL_ATTR_SSL_KEY,
+            'sslCert'   => \PDO::MYSQL_ATTR_SSL_CERT,
+            'sslCa'     => \PDO::MYSQL_ATTR_SSL_CA,
+            'sslCaPath' => \PDO::MYSQL_ATTR_SSL_CAPATH,
+            'sslCipher' => \PDO::MYSQL_ATTR_SSL_CIPHER,
+            'sslVerifyServerCert' => \PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT,
+            'allowMultiStatements' => \PDO::MYSQL_ATTR_MULTI_STATEMENTS,
+        ];
+
+        foreach ($attKeys as $k => $v) {
+            if (isset($dbConfig[$k])) {
+                $atts[$v] = $dbConfig[$k];
+            }
+        }
+
+        return $atts;
     }
 
     function checkRequiredLib($rawDriver) {
@@ -124,7 +172,10 @@ class u_Db extends OStdModule {
 
         $this->ARGS('s', func_get_args());
 
-        return OMap::create(Tht::getTopConfig('databases', $dbId));
+        $topConfig = Tht::getTopConfig('databases', $dbId);
+        if (!$topConfig['server']) { $topConfig['server'] = 'localhost'; }
+
+        return OMap::create($topConfig);
     }
 
     function u_last_insert_id ($seqName = null) {
@@ -257,7 +308,7 @@ class u_Db extends OStdModule {
             $sqlString = new \o\SqlTypeString (
                 "SELECT name FROM sqlite_master WHERE type='table'"
             );
-            return v($this->u_select_rows($sqlString))->u_column('name');
+            return v($this->u_select_rows($sqlString))->u_get_column('name');
         }
         else {
 
@@ -289,7 +340,7 @@ class u_Db extends OStdModule {
 
     function fetchColNames($tableName) {
 
-        $sth = $this->query('SHOW COLUMNS FROM ' . $tableName);
+        $sth = $this->query(new SqlTypeString('SHOW COLUMNS FROM ' . $tableName));
 
         return $this->fetchOneCol($sth);
     }
@@ -316,21 +367,121 @@ class u_Db extends OStdModule {
         }
     }
 
-    function u_get_columns ($tableName){
+    // function u_get_columns ($tableName){
 
-        $this->ARGS('s', func_get_args());
+    //     $this->ARGS('s', func_get_args());
 
-        $tableName = $this->validateName($tableName, 'table');
+    //     $tableName = $this->validateName($tableName, 'table');
 
-        if ($this->driver == 'sqlite') {
-            $sqlString = new \o\SqlTypeString ("PRAGMA table_info(" . $tableName . ")");
-            return $this->u_select_rows($sqlString);
+    //     if ($this->driver == 'sqlite') {
+    //         $sqlString = new \o\SqlTypeString ("PRAGMA table_info(" . $tableName . ")");
+    //         return $this->u_select_rows($sqlString);
+    //     }
+    //     else {
+    //         // return OList::create(
+    //         //     $this->fetchColNames($tableName)
+    //         // );
+
+    //         return OMap::create(
+    //             $this->getColThtTypes($tableName)
+    //         );
+    //     }
+    // }
+
+    function getTableInfo_Mysql($table) {
+
+        // Field       Type                    Null     Key     Default      Extra
+        // group_id    bigint(20) unsigned     NO       PRI     NULL         auto_increment
+        // slug        varchar(255)            NO       MUL     NULL
+
+        $rows = $this->u_select_rows(new SqlTypeString("describe $table"));
+
+        $info = [];
+        foreach ($rows as $row) {
+            $colName = $row['Field'];
+            unset($row['Field']);
+            $colInfo = [];
+            foreach ($row as $k => $v) {
+                if ($k == 'Null') {
+                    $v = $v == 'YES';
+                }
+                if ($k == 'Key') {
+                    $map = ['PRI' => 'primary', 'MUL' => 'multiple', 'UNI' => 'unique'];
+                    $v = isset($map[$v]) ? $map[$v] : $v;
+                }
+                $colInfo[lcfirst($k)] = $v;
+            }
+            $colInfo['thtType'] = $this->getThtType($colName, $colInfo['type']);
+            $info[$colName] = OMap::create($colInfo);
         }
-        else {
-            return OList::create(
-                $this->fetchColNames($tableName)
-            );
+
+        // schema: "show create table $table"
+
+        return $info;
+    }
+
+    function getTableInfo_Sqlite($table) {
+
+        // cid  name      type           notnull  dflt_value  pk
+        // ---  --------  -------------  -------  ----------  --
+        // 0    AlbumId   INTEGER        1                    1
+        // 1    Title     NVARCHAR(160)  1                    0
+        // 2    ArtistId  INTEGER        1                    0
+
+        $rows = $this->u_select_rows(new SqlTypeString("PRAGMA table_info($table)"));
+
+        $info = [];
+        foreach ($rows as $row) {
+            $colName = $row['name'];
+            unset($row['name']);
+            unset($row['cid']);
+            $colInfo = [];
+            foreach ($row as $k => $v) {
+                if ($k == 'notnull') {
+                    $k = 'null';
+                    $v = $v == 0;
+                }
+                else if ($k == 'dflt_value') {
+                    $k = 'default';
+                }
+                else if ($k == 'pk') {
+                    $k = 'key';
+                    $v = 'primary';
+                }
+                else if ($k == 'type') {
+                    $v = strtolower($v);
+                }
+
+                // TODO: auto_increment
+                   // $schema = $this->u_select_rows(new SqlTypeString("select * from sqlite_schema where type=\"table\" and tbl_name = \"$table\""));
+                  //  $info['_schema'] = $schema;
+                //  CREATE TABLE users(id integer primary key autoincrement, primaryIndex varchar(255), parentIndex varchar(255), createDate unsigned int, level unsigned int, data text not null)
+
+                $colInfo[lcfirst($k)] = $v;
+            }
+            $colInfo['thtType'] = $this->getThtType($colName, $colInfo['type']);
+            $info[$colName] = OMap::create($colInfo);
         }
+
+        return $info;
+    }
+
+    function u_get_columns($table) {
+
+        $info = [];
+
+        if ($this->driver == 'mysql') {
+            $info = $this->getTableInfo_Mysql($table);
+        }
+        else if ($this->driver == 'sqlite') {
+            $info = $this->getTableInfo_Sqlite($table);
+        }
+
+        foreach ($info as $colName => $colSchema) {
+            $info[$colName]['validationRule'] = $this->getValidationRule($colName, $colSchema);
+        }
+
+        return OMap::create($info);
     }
 
     function u_x_danger_drop_table($table)  {
@@ -347,6 +498,20 @@ class u_Db extends OStdModule {
         );
 
         return true;
+    }
+
+    function u_x_delete_all_rows($table)  {
+
+        $this->ARGS('s', func_get_args());
+
+        $table = $this->validateName($table, 'table');
+        $sql = "TRUNCATE TABLE $table";
+
+        $this->query(
+            new \o\SqlTypeString ($sql)
+        );
+
+        return $this->lastStatus['numRows'];
     }
 
     function u_create_table($table, $cols)  {
@@ -381,7 +546,7 @@ class u_Db extends OStdModule {
 
         $this->ARGS('ss', func_get_args());
 
-        $cols = $this->fetchColNames();
+        $cols = $this->fetchColNames($table);
         if (!in_array($col, $cols)) {
             $this->error("Column `$col` does not exist in table `$table`");
         }
@@ -396,6 +561,24 @@ class u_Db extends OStdModule {
         );
 
         return $this;
+    }
+
+    function u_get_server() {
+
+        $this->ARGS('', func_get_args());
+
+        $dbConfig = $this->u_get_config($this->dbId);
+
+        return $dbConfig['server'];
+    }
+
+    function u_get_driver() {
+
+        $this->ARGS('', func_get_args());
+
+        $dbConfig = $this->u_get_config($this->dbId);
+
+        return $dbConfig['driver'];
     }
 
 
@@ -415,17 +598,17 @@ class u_Db extends OStdModule {
 
         $sth = $this->query($sql);
         $rows = [];
-        $colTypes = [];
+        $colThtTypes = [];
 
         while (true) {
             $row = $sth->fetch(\PDO::FETCH_ASSOC);
 
             if (!$row) { break; }
 
-            if (!$colTypes) {
-                $colTypes = $this->getColTypes($sth, $row);
+            if (!$colThtTypes) {
+                $colThtTypes = $this->getColThtTypes($sth, $row);
             }
-            $row = $this->convertColTypes($row, $colTypes);
+            $row = $this->convertToThtTypes($row, $colThtTypes);
 
             $rows []= OMap::create($row);
         }
@@ -664,7 +847,7 @@ class u_Db extends OStdModule {
         $sql = OTypeString::getUntyped($sqlTypeString, 'sql', true);
 
         Tht::module('Perf')->u_start('Db.query', $sql);
-        Tht::module('Meta')->u_no_template_mode();
+        Tht::module('Meta')->u_fail_if_template_mode();
 
         $sql = $this->buildQuery($sql);
         $params = $sqlTypeString->u_params();
@@ -815,33 +998,20 @@ class u_Db extends OStdModule {
         return $sth;
     }
 
-    function getColTypes($sth, $row) {
+    function getColThtTypes($sth, $cols) {
 
         $colToType = [];
 
         $i = 0;
-        foreach ($row as $colName => $colValue) {
+        foreach ($cols as $colName => $colValue) {
 
             // Unfortunately, native_type doesn't really normalize the
             // value as you would expect.  The types aren't really native PHP types,
             // so we have to do some fuzzy matching.
             $meta = $sth->getColumnMeta($i);
-            $type = strtolower($meta['native_type']);
+            $metaType = strtolower($meta['native_type']);
 
-            // Note: sqlite does not have date/time column types
-            if (preg_match('/date|time/', $type) || preg_match('/date$/i', $colName)) {
-                $colToType[$colName] = 'date';
-            }
-            else if (preg_match('/^(long|tiny|bit|short|int)/', $type)) {
-                $colToType[$colName] = 'int';
-            }
-            else if (preg_match('/double|float|decimal|numeric/', $type)) {
-                $colToType[$colName] = 'float';
-            }
-            else {
-                // Basically leave it as is, which will be a string.
-                $colToType[$colName] = 'auto';
-            }
+            $colToType[$colName] = $this->getThtType($colName, $metaType);
 
             $i += 1;
         }
@@ -849,26 +1019,168 @@ class u_Db extends OStdModule {
         return $colToType;
     }
 
-    function convertColTypes($row, $colTypes) {
+    function getThtType($colName, $sqlType) {
 
-        foreach ($row as $colName => $colValue) {
+        $type = preg_replace('/\s*unsigned\s*/i', '', $sqlType);
 
+        if (preg_match('/date|time/', $type) || preg_match('/date$/i', $colName)) {
+            return 'date';
+        }
+        else if (preg_match('/^(long|tiny|bit|short|int|tinyint|smallint|mediumint|bigint)/', $type)) {
+            return 'int';
+        }
+        else if (preg_match('/double|float|decimal|numeric/', $type)) {
+            return 'float';
+        }
+        else if (preg_match('/^(tinyint\(1\)|bool)/', $type)) {
+            return 'boolean';
+        }
+        else {
+            // Basically leave it as is, which will be a string.
+            return 'string';
+        }
+    }
+
+    function convertToThtTypes($row, $colTypes) {
+
+        foreach ($row as $colName => $sqlValue) {
             $type = $colTypes[$colName];
-
-            if ($type == 'date') {
-                $row[$colName] = Tht::module('Date')->u_create($colValue);
-            }
-            else if ($type == 'int') {
-                $row[$colName] = intval($colValue);
-            }
-            else if ($type == 'float') {
-                $row[$colName] = floatval($colValue);
-            }
-            else if (is_null($colValue)) {
-                $row[$colName] = '';
-            }
+            $row[$colName] = $this->convertToThtType($type, $sqlValue);
         }
 
         return $row;
+    }
+
+    function convertToThtType($type, $sqlVal) {
+
+        if ($type == 'date') {
+            return Tht::module('Date')->u_create($sqlVal);
+        }
+        else if ($type == 'int') {
+            return intval($sqlVal);
+        }
+        else if ($type == 'float') {
+            return floatval($sqlVal);
+        }
+        else if ($type == 'boolean') {
+            // Mysql is tinyint(1).  pgsql is strings.
+            return $sqlVal == '1' || $sqlVal == 'true' || $sqlVal == 'on' || $sqlVal == 'yes';
+        }
+        else if (is_null($sqlVal)) {
+            return '';
+        }
+
+        // string
+        return $sqlVal;
+    }
+
+    function getIntRange($bytes, $unsigned) {
+
+
+        $byteMap = [
+            1 => 255,
+            2 => 65535,
+            3 => 16777215,
+            4 => 4294967295,
+            8 => pow(2, 64) -1,
+        ];
+
+        $num = $byteMap[$bytes];
+        if ($unsigned) {
+            return [0, $num];
+        }
+        else {
+            return [-1 * ceil($num/2), floor($num/2)];
+        }
+    }
+
+    function getBytesForSqlType($sqlType) {
+
+        $type = preg_replace('/\s*unsigned\s*/i', '', $sqlType);
+
+        $typeToBytes = [
+            'tinyint'    => 1,
+            'smallint'   => 2,
+            'mediumint'  => 3,
+            'int'        => 4,
+            'integer'    => 4,
+            'bigint'     => 8,
+
+            'tinytext'   => 1,
+            'text'       => 2,
+            'mediumtext' => 3,
+            'longtext'   => 4,
+
+            'tinyblob'   => 1,
+            'blob'       => 2,
+            'mediumblob' => 3,
+            'longblob'   => 4,
+        ];
+
+        return isset($typeToBytes[$type]) ? $typeToBytes[$type] : 2;
+    }
+
+    function getValidationRule($colName, $colSchema) {
+
+        $type = $colSchema['thtType'];
+
+        $size = 0;
+        if (preg_match('/\((\d+)\)/', $colSchema['type'], $m)) {
+            $size = intval($m[1]);
+        }
+
+        if ($type == 'date') {
+            //     Password_timestamp: {
+            // type: 'timestamp(6)',
+            // null: false,
+            // key: 'primary',
+            // default: 'CURRENT_TIMESTAMP(6)',
+            // extra: 'DEFAULT_GENERATED',
+            // thtType: 'date',
+            // validationRule: 'date'
+
+            // date, dateTime, dateWeek, dateMonth, time
+            return 'dateTime';
+        }
+        else if ($type == 'int') {
+            if (!$size) {
+                $size = $this->getBytesForSqlType($type);
+            }
+
+            $isUnsigned = preg_match('/unsigned/i', $colSchema['type']);
+            $range = $this->getIntRange($size, $isUnsigned);
+            return 'i|min:' . $range[0] . '|max:' . $range[1];
+
+            return 'i';
+        }
+        else if ($type == 'float') {
+            // TODO: how to validate this? (total digits)
+            return 'f';
+        }
+        else if ($type == 'boolean') {
+            return 'b';
+        }
+        else {
+
+            $isMultiline = false;
+            if (!$size) {
+                $bytes = $this->getBytesForSqlType($type);
+                $range = $this->getIntRange($bytes, false);
+                $size = $range[1];
+                if ($bytes >= 2) {
+                    $isMultiline = true;
+                }
+            }
+
+            // TODO: enum
+
+            $validationType = $isMultiline ? 'ms' : 's';
+
+            return $validationType . '|max:' . $size;
+        }
+
+        // TODO:
+        //   max rules
+        //   longtext/text = 'ms'
     }
 }
