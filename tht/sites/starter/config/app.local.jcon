@@ -5,6 +5,13 @@
 //----------------------------------------------------------------
 
 {
+    tht: {
+        // Do NOT change this after your app goes live.
+        // ALL of the URLs that contain scrambled IDs will change!
+        // See: https://tht.dev/manual/class/string/scramble-num
+        scrambleNumSecretKey: __scrambleNumSecretKey__
+    }
+
     //  Database Config
     //
     //  See: https://tht.dev/manual/module/db
