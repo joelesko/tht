@@ -105,6 +105,9 @@ class u_InputValidator {
         else if ($rules['postProcess'] == 'hashPassword') {
             $cleanVal = new \o\OPassword($cleanVal);
         }
+        else if ($rules['postProcess'] == 'unscrambleNum') {
+            $cleanVal = Tht::module('String')->u_unscramble_num($cleanVal);
+        }
         else if ($rules['postProcess'] == 'dateObject') {
             $cleanVal = Tht::module('Date')->u_create($cleanVal);
         }

@@ -152,6 +152,15 @@ trait InputValidatorRules {
             'min' => 1,
             'max' => 100,
             'regex' => '[a-zA-Z0-9\-\._]+',
+            'fieldType' => 'hidden',
+        ],
+
+        'unscramble' => [
+            'min' => 1,
+            'max' => 20,
+            'regex' => '[a-z0-9]+',
+            'postProcess' => 'unscrambleNum',
+            'fieldType' => 'hidden',
         ],
 
         'accepted' => [
@@ -453,6 +462,7 @@ trait InputValidatorRules {
         if ($rules['civilize']) {
             $val = v($val)->u_civilize();
         }
+
 
         // Cast to Type
         if ($rules['valueType'] == 'int') {
