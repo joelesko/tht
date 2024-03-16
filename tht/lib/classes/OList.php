@@ -638,12 +638,18 @@ class OList extends OBag {
         );
     }
 
-    function u_reduce ($fn, $initial) {
+    function u_reduce ($fn, $startVal=null) {
 
         $this->ARGS('c*', func_get_args());
 
-        // Single return value
-        return array_reduce($this->val, $fn, $initial);
+        $list = $this->val;
+        if (is_null($startVal)) {
+            if (!count($list)) { $this->error("Can not call `reduce` on an empty List without a `startValue`."); }
+            $startVal = array_shift($list);
+            return array_reduce($list, $fn, $startVal);
+        }
+
+        return array_reduce($this->val, $fn, $startVal);
     }
 
     function u_filter ($fn) {
