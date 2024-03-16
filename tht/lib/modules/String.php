@@ -6,7 +6,7 @@ class u_String extends OStdModule {
 
     public $lastReplaceCount = -1;
 
-    function u_char_from_code ($num) {
+    function u_unicode_to_char ($num) {
 
         $this->ARGS('n', func_get_args());
 
@@ -26,13 +26,30 @@ class u_String extends OStdModule {
         return Security::createPassword($plaintext);
     }
 
-    function u_random ($len) {
+    function u_random_token ($len) {
 
         $this->ARGS('n', func_get_args());
 
         $s = Security::randomString($len);
 
         return $s;
+    }
+
+    function u_scramble_num($idToScramble) {
+        $this->ARGS('n', func_get_args());
+        return Security::encodeHashId($idToScramble);
+    }
+
+    function u_unscramble_num($scrambledId) {
+        $this->ARGS('s', func_get_args());
+        return Security::decodeHashId($scrambledId);
+    }
+
+    function u_unique_id() {
+
+        $this->ARGS('', func_get_args());
+
+        return Security::createUuid();
     }
 
     function u_char_list($listId) {
@@ -57,6 +74,21 @@ class u_String extends OStdModule {
         }
 
         return OList::create(str_split($s));
+    }
+
+    function u_from_bytes($bytes) {
+
+        $this->ARGS('l', func_get_args());
+
+        foreach ($bytes as $b) {
+            if (!is_int($b) || $b < 0) {
+                $this->error('Argument #1 must be a list of positive integers.');
+            }
+        }
+
+        $str = pack('C*', ...$bytes);
+
+        return $str;
     }
 
     function u_last_replace_count() {

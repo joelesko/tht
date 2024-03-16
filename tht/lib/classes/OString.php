@@ -39,31 +39,28 @@ class OString extends OVar implements \ArrayAccess {
 
         'substr'    => 'substring()',
         'slice'     => 'substring()',
+
+        'beginswith'  => 'startsWith()',
     ];
 
 
     // ArrayAccess iterface (e.g. $var[1])
 
+    // Reserve [] for Maps and Lists
     function offsetGet($k):string {
 
-        $k = $this->checkIndex($k, true);
-
-        if ($k == -1) {
-            return '';
-        }
-
-        return mb_substr($this->val, $k, 1);
+        $this->error('Can not use `[]` to get a character in a string. Try: `$string.getChar($index)`');
     }
 
-    // Unfortunately, we can't do this because we can't autobox strings by reference.
-    // And we can't do that because we also autobox expressions, which can't be passed by reference.
+    // Reserve [] for Maps and Lists
+    // Also, we can't modify strings in place anyway because of how autoboxing works.
     function offsetSet($ak, $v):void {
 
         if (is_null($ak)) {
-            $this->error('Left side of `#=` must be a list. Got: string');
+            $this->error('Left side of `#=` must be a list. Got: `string`');
         }
 
-        $this->error('Can not use `[]` to set character on immutable string. Try: `.setChar($index, $newChar)`');
+        $this->error('Can not use `[]` to set a character in a string. Try: `$string.setChar($index, $newChar)`');
     }
 
     function offsetExists($k):bool {
@@ -149,14 +146,14 @@ class OString extends OVar implements \ArrayAccess {
         return ($index < 0 || $index > mb_strlen($this->val) - 1);
     }
 
-    function u_has_index($i) {
+    // function u_has_index($i) {
 
-        $this->ARGS('i', func_get_args());
+    //     $this->ARGS('i', func_get_args());
 
-        $i = $this->checkIndex($i, true);
+    //     $i = $this->checkIndex($i, true);
 
-        return $i === -1 ? false : true;
-    }
+    //     return $i === -1 ? false : true;
+    // }
 
     function u_get_char($i) {
 
@@ -170,20 +167,32 @@ class OString extends OVar implements \ArrayAccess {
         return mb_substr($this->val, $i, 1);
     }
 
-    function u_get_char_code($i = 1) {
+    function u_char_to_unicode() {
 
-        $this->ARGS('i', func_get_args());
+        $this->ARGS('', func_get_args());
 
-        $i = $this->checkIndex($i, true);
-
-        if ($i == -1) {
-            return -1;
+        if (mb_strlen($this->val) != 1) {
+            $this->error('`charToUnicode` requires a single character.');
         }
 
-        $char = mb_substr($this->val, $i, 1);
-
+        $char = mb_substr($this->val, 0, 1);
         return unpack('V', iconv('UTF-8', 'UCS-4LE', $char))[1];
     }
+
+
+    // function u_get_char_codes() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     $codes = [];
+    //     $len = $this->u_length();
+    //     for ($i = 0; $i < $len; $i += 1) {
+    //         $char = $this->val[$i];
+    //         $codes []= $this->getCharCode($i);
+    //     }
+
+    //     return OList::create($codes);
+    // }
 
     function u_set_char($i, $c) {
 
@@ -215,30 +224,6 @@ class OString extends OVar implements \ArrayAccess {
         return $n <= 0 ? '' : $this->u_substring(-1 * $n, $n);
     }
 
-    function u_index_of($s, $flags=null) {
-
-        $this->ARGS('sm', func_get_args());
-
-        $flags = $this->flags($flags, [
-            'startAt' => ONE_INDEX,
-            'ignoreCase' => false
-        ]);
-
-        return $this->_strpos($s, $flags['ignoreCase'], $flags['startAt']);
-    }
-
-    function u_last_index_of($s, $flags=null) {
-
-        $this->ARGS('sm', func_get_args());
-
-        $flags = $this->flags($flags, [
-            'startAt' => ONE_INDEX,
-            'ignoreCase' => false
-        ]);
-
-        return $this->_strrpos($s, $flags['ignoreCase'], $flags['startAt']);
-    }
-
     function u_substring($start, $len=null) {
 
         $this->ARGS('ii', func_get_args());
@@ -250,58 +235,205 @@ class OString extends OVar implements \ArrayAccess {
         return mb_substr($this->val, $start, $len);
     }
 
-    function u_contains($s, $flags=null) {
+    function checkMatchArg($strOrRx, $methodName) {
 
-        $this->ARGS('sm', func_get_args());
+        if (ORegex::isa($strOrRx)) {
+            return 'regex';
+        }
+        else if (is_string($strOrRx) || gettype($strOrRx) == 'integer') {
+            return 'string';
+        }
+        else {
+            $this->argumentError("Argument #1 of `$methodName` must be a `string` or `regex`. Got: `" . v($strOrRx)->u_type() . '`', $methodName);
+        }
+    }
+
+    function u_index_of($strOrRx, $flags=null) {
+
+        $this->ARGS('*m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'startIndex' => ONE_INDEX,
+            'ignoreCase' => false
+        ]);
+
+        $matchType = $this->checkMatchArg($strOrRx, 'indexOf');
+
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            if ($flags['startIndex']) {
+                $strOrRx->u_start_index($flags['startIndex']);
+            }
+            $i = $this->u_match($strOrRx)['index'];
+            return $i ? $i : 0;
+        }
+        else if ($matchType == 'string') {
+            return $this->_strpos($strOrRx, $flags['ignoreCase'], $flags['startIndex']);
+        }
+    }
+
+    function u_last_index_of($strOrRx, $flags=null) {
+
+        $this->ARGS('*m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'startIndex' => ONE_INDEX,
+            'ignoreCase' => false
+        ]);
+
+        $matchType = $this->checkMatchArg($strOrRx, 'indexOf');
+
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            if ($flags['startIndex']) {
+                $strOrRx->u_start_index($flags['startIndex']);
+            }
+            $matches = $this->u_match_all($strOrRx);
+            if (count($matches)) {
+                $m = $matches->u_pop();
+                return $m['index'];
+            }
+            return 0;
+        }
+        else if ($matchType == 'string') {
+            return $this->_strrpos($strOrRx, $flags['ignoreCase'], $flags['startIndex']);
+        }
+    }
+
+    function u_contains($strOrRx, $flags=null) {
+
+        $this->ARGS('*m', func_get_args());
 
         $flags = $this->flags($flags, [
             'ignoreCase' => false
         ]);
 
-        return $this->_strpos($s, $flags['ignoreCase']) > -1 + ONE_INDEX;
+        $matchType = $this->checkMatchArg($strOrRx, 'contains');
+
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            return $this->u_match($strOrRx)['full'] !== '';
+        }
+        else if ($matchType == 'string') {
+            return $this->_strpos($strOrRx, $flags['ignoreCase']) > -1 + ONE_INDEX;
+        }
+        else {
+            $this->argumentError("Argument #1 of `contains` must be a `string` or `regex`. Got: `" . v($strOrRx)->u_type() . '`', 'contains');
+        }
     }
 
-    function u_count($s, $flags=null) {
+    function u_count($strOrRx, $flags=null) {
 
-        $this->ARGS('sm', func_get_args());
+        $this->ARGS('*m', func_get_args());
 
         $flags = $this->flags($flags, [
             'ignoreCase' => false
         ]);
 
-        $haystack = $flags['ignoreCase'] ? strtolower($this->val) : $this->val;
-        $needle   = $flags['ignoreCase'] ? strtolower($s) : $s;
+        $matchType = $this->checkMatchArg($strOrRx, 'count');
 
-        return substr_count($haystack, $needle);
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            return $this->u_match_all($strOrRx)->u_length();
+        }
+        else if ($matchType == 'string') {
+            $haystack = $flags['ignoreCase'] ? mb_strtolower($this->val) : $this->val;
+            $needle   = $flags['ignoreCase'] ? mb_strtolower($strOrRx) : $strOrRx;
+
+            return mb_substr_count($haystack, $needle);
+        }
+
     }
 
-    function u_starts_with($s, $flags = null) {
+    function u_starts_with($strOrRx, $flags = null) {
 
-        $this->ARGS('sm', func_get_args());
+        $this->ARGS('*m', func_get_args());
 
         $flags = $this->flags($flags, [
             'ignoreCase' => false
         ]);
 
-        return $this->_strpos($s, $flags['ignoreCase']) === ONE_INDEX;
+        $matchType = $this->checkMatchArg($strOrRx, 'startsWith');
+
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            $pat = $strOrRx->getRawPattern();
+            $pat = v($pat)->u_ensure_left('^');
+            $strOrRx->setPattern($pat);
+            return $this->u_match($strOrRx)->u_length();
+        }
+        else if ($matchType == 'string') {
+            return $this->_strpos($strOrRx, $flags['ignoreCase']) === ONE_INDEX;
+        }
+
     }
 
-    function u_ends_with($s, $flags = null) {
+    function u_ends_with($strOrRx, $flags = null) {
 
-        $this->ARGS('sm', func_get_args());
+        $this->ARGS('*m', func_get_args());
 
         $flags = $this->flags($flags, [
             'ignoreCase' => false
         ]);
 
-        $x = $this->val;
-        $suffLen = v($s . '')->u_length();
-        $this->val = $x;
+        $matchType = $this->checkMatchArg($strOrRx, 'endsWith');
 
-        return $this->_strpos($s, $flags['ignoreCase']) == ($this->u_length() - $suffLen) + ONE_INDEX;
+        if ($matchType == 'regex') {
+            if ($flags['ignoreCase']) {
+                $strOrRx->addFlag('i');
+            }
+            $pat = $strOrRx->getRawPattern();
+            $pat = v($pat)->u_ensure_right('$');
+            $strOrRx->setPattern($pat);
+            return $this->u_match($strOrRx)->u_length();
+        }
+        else if ($matchType == 'string') {
+            $x = $this->val;
+            $suffLen = v($strOrRx . '')->u_length();
+            $this->val = $x;
+            return $this->_strpos($strOrRx, $flags['ignoreCase']) == ($this->u_length() - $suffLen) + ONE_INDEX;
+        }
     }
 
+    function u_ensure_left($s) {
+        $this->ARGS('s', func_get_args());
 
+        if (!$this->u_starts_with($s)) {
+            return $s . $this->val;
+        }
+
+        return $this->val;
+    }
+
+    function u_ensure_right($s) {
+        $this->ARGS('s', func_get_args());
+
+        if (!$this->u_ends_with($s)) {
+            return $this->val . $s;
+        }
+
+        return $this->val;
+    }
+
+    function u_ensure_wrap($ls, $rs) {
+        $this->ARGS('s', func_get_args());
+
+        if (!($this->u_starts_with($ls) && $this->u_ends_with($rs))) {
+            return $ls . $this->val . $rs;
+        }
+
+        return $this->val;
+    }
 
 
 
@@ -359,14 +491,17 @@ class OString extends OVar implements \ArrayAccess {
             return $this->getMatchReturn($matches, $sGroupNames);
         }
 
-        return '';
+        return OMap::create([]);
     }
 
     function getMatchReturn($matches, $sGroupNames) {
 
         // No capture groups. Just return the full match.
         if (count($matches) == 1) {
-            return $matches[0][0];
+            return OMap::create([
+                'full' => $matches[0][0],
+                'index' => $matches[0][1] + ONE_INDEX,
+            ]);
         }
         else {
             // Return Map of capture groups
@@ -378,7 +513,7 @@ class OString extends OVar implements \ArrayAccess {
             $ret['indexOf'] = OMap::create([]);
 
             if ($sGroupNames) {
-                $groupNames = preg_split('/\s*\|\s*/', $sGroupNames);
+                $groupNames = preg_split('/\s*\|\s*/u', $sGroupNames);
                 $numNames = count($groupNames);
                 $numGroups = count($matches);
 
@@ -512,11 +647,11 @@ class OString extends OVar implements \ArrayAccess {
 
     // Mapping from #192 to #383
     // https://docs.oracle.com/cd/E29584_01/webhelp/mdex_basicDev/src/rbdv_chars_mapping.html
-    function u_remove_accents() {
+    function u_to_ascii() {
         $this->ARGS('', func_get_args());
 
-        $from = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſ";
-        $to   = "AAAAAAACEEEEIIIIENOOOOOOUUUUYPsaaaaaaaceeeeiiiienoooooouuuuypyAaAaAaCcCcCcCcDdDdEeEeEeEeEeGgGgGgGgHhHhIiIiIiIiIiIiJjKklLlLlLlLlLnNnNnNnnNoOoOoOoOrRrRrRsSsSsSsStTtTtTuUuUuUuUuUuUwWyYyYZzZzZzs";
+        $from = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž";
+        $to   = "AAAAAAACEEEEIIIIENOOOOOOUUUUYPsaaaaaaaceeeeiiiienoooooouuuuypyAaAaAaCcCcCcCcDdDdEeEeEeEeEeGgGgGgGgHhHhIiIiIiIiIiIiJjKklLlLlLlLlLnNnNnNnnNoOoOoOoOrRrRrRrSsSsSsStTtTtTuUuUuUuUuUuUwWyYyYZzZzZz";
 
         $str = $this->u_replace_chars($from, $to);
 
@@ -682,65 +817,127 @@ class OString extends OVar implements \ArrayAccess {
         return implode(array_reverse($chars[0]));
     }
 
-    function u_upper_case () {
+    function u_to_case($case, $skipWords=null) {
 
-        $this->ARGS('', func_get_args());
+        $this->ARGS('s', func_get_args());
+
+        if ($case == 'lower') {
+            return mb_strtolower($this->val);
+        }
+        else if ($case == 'upper') {
+            return mb_strtoupper($this->val);
+        }
+        else if ($case == 'lowerFirst') {
+            $first = mb_strtolower(mb_substr($this->val, 0, 1));
+            return $first . mb_substr($this->val, 1);
+        }
+        else if ($case == 'upperFirst') {
+            $first = mb_strtoupper(mb_substr($this->val, 0, 1));
+            return $first . mb_substr($this->val, 1);
+        }
+        else if ($case == 'camel') {
+            return $this->camelCase();
+        }
+        else if ($case == 'upperCamel') {
+            return $this->camelCase(true);
+        }
+        else if ($case == 'label') {
+            return $this->u_humanize();
+        }
+        else if ($case == 'title') {
+            if (is_null($skipWords)) {
+                $skipWords = ['the', 'a', 'is', 'to', 'at', 'by', 'for', 'in', 'of'];
+            }
+
+            $titleCased = preg_replace_callback(
+                '/([\S]+)/u',
+                function ($match) use ($skipWords) {
+                    if ($skipWords && in_array($match[0], $skipWords)) {
+                        return $match[0];
+                    }
+                    return v(v($match[0])->u_to_case('lower'))->u_to_case('upperFirst');
+                },
+                $this->val
+            );
+
+            return v($titleCased)->u_to_case('upperFirst');
+        }
+        else {
+            $this->error("Unknown case `$case`.");
+        }
+
+    }
+
+    function u_test_remove_tags() {
+        return Security::removeHtmlTags($this->val);
+    }
+
+    // TODO: When updating this, re-test app creation code. It uses the 'label' call.
+    function u_to_token_case($joiner='') {
+
+        $this->ARGS('s', func_get_args());
+
+        if ($joiner == '') {
+            return $this->camelCase();
+        }
+        else if ($joiner == 'label') {
+            return $this->u_humanize();
+        }
+        else {
+            if (mb_strlen($joiner) > 2) {
+                $this->error('Joiner must be 1 or 2 characters long.');
+            }
+
+            return $this->tokenize($joiner);
+        }
+    }
+
+    function u_to_upper_case ($flags = null) {
+
+        $this->ARGS('m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'first' => false,
+        ]);
+
+        if ($flags['first']) {
+            $first = mb_strtoupper(mb_substr($this->val, 0, 1));
+            return $first . mb_substr($this->val, 1);
+        }
 
         return mb_strtoupper($this->val);
     }
 
-    function u_lower_case () {
+    function u_to_lower_case ($flags = null) {
 
-        $this->ARGS('', func_get_args());
+        $this->ARGS('m', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'first' => false,
+        ]);
+
+        if ($flags['first']) {
+            $first = mb_strtolower(mb_substr($this->val, 0, 1));
+            return $first . mb_substr($this->val, 1);
+        }
 
         return mb_strtolower($this->val);
     }
 
-    function u_upper_case_first () {
+    function u_to_title_case () {
 
         $this->ARGS('', func_get_args());
 
-        $first = mb_strtoupper(mb_substr($this->val, 0, 1));
-
-        return $first . mb_substr($this->val, 1);
+        // Why simple?
+        // https://stackoverflow.com/questions/58858772/what-is-the-purpose-of-the-mb-case-simple-constants
+        return mb_convert_case($this->val, MB_CASE_TITLE_SIMPLE);
     }
 
-    function u_lower_case_first () {
-
-        $this->ARGS('', func_get_args());
-
-        $first = mb_strtolower(mb_substr($this->val, 0, 1));
-
-        return $first . mb_substr($this->val, 1);
-    }
-
-    function u_title_case ($skipWords=null) {
-
-        $this->ARGS('l', func_get_args());
-
-        if (is_null($skipWords)) {
-            $skipWords = ['the', 'a', 'is', 'to', 'at', 'by', 'for', 'in', 'of'];
-        }
-
-        $titleCased = preg_replace_callback(
-            '/([\S]+)/u',
-            function ($match) use ($skipWords) {
-                if ($skipWords && in_array($match[0], $skipWords)) {
-                    return $match[0];
-                }
-                return v(v($match[0])->u_lower_case())->u_upper_case_first();
-            },
-            $this->val
-        );
-
-        return v($titleCased)->u_upper_case_first();
-    }
-
-    function u_plural ($num=2, $plural='') {
+    function u_to_plural ($num=2, $plural='') {
 
         $this->ARGS('ns', func_get_args());
 
-        $last = substr($this->val, -1, 1);
+        $last = mb_substr($this->val, -1, 1);
 
         if ($plural === '') {
             if ($last === 's') {
@@ -754,15 +951,9 @@ class OString extends OVar implements \ArrayAccess {
         return $num == 1 ? $this->val : $plural;
     }
 
-    function u_camel_case ($flags=null) {
+    function camelCase ($isUpper=false) {
 
-        $this->ARGS('m', func_get_args());
-
-        $flags = $this->flags($flags, [
-            'upper' => false,
-        ]);
-
-        $v = $this->val;
+        $v = $this->u_to_ascii();
 
         $v = strtolower($v);
         $v = preg_replace('/[^a-z0-9]+/', ' ', $v);
@@ -774,28 +965,101 @@ class OString extends OVar implements \ArrayAccess {
             $camel .= ucfirst($p);
         }
 
-        return $flags['upper'] ? $camel : lcfirst($camel);
+        return $isUpper ? $camel : lcfirst($camel);
     }
 
-    function u_snake_case () {
-
-        $this->ARGS('', func_get_args());
-
-        return $this->u_slug('_');
-    }
-
-    function u_dash_case () {
-
-        $this->ARGS('', func_get_args());
-
-        return $this->u_slug('-');
-    }
-
-    function u_slug($delim = '-') {
+    function u_to_url_slug($skipWords = '') {
 
         $this->ARGS('s', func_get_args());
 
-        $v = $this->val;
+        if ($skipWords == ':common') {
+            $skipWords = "
+                a an the for in as of on at
+                to and or but not nor vs
+                is am was are be been being were will
+                have had has
+                it its
+                his her
+                do does did done
+                go goes went gone going
+                i you your my their
+                from with about
+                this these those that
+                than then
+                will now soon
+                so very too just
+                why who what when where how
+                cant wont
+                -ly
+            ";
+        }
+
+        $slug = v($this->val)->u_to_ascii();
+        $slug = trim(mb_strtolower($slug));
+
+        // Glue some substrings together before splitting
+        $slug = preg_replace("/(\d)[,'’`](\d)/u", '$1$2', $slug);   // 10,000 -> 10000
+        $slug = preg_replace("/\b(\w)\./u", '$1', $slug);           // acronym: U.S. -> US
+
+        if ($skipWords) {
+            // English contractions
+            $slug = preg_replace("/['’`](ve)\b/u", ' have', $slug);
+            $slug = preg_replace("/['’`](re)\b/u", ' are', $slug);
+            $slug = preg_replace("/['’`](ll)\b/u", ' will', $slug);
+            $slug = preg_replace("/\bcan['’`]t\b/u", 'can not', $slug);
+            $slug = preg_replace("/\bwon['’`]t\b/u", 'will not', $slug);
+            $slug = preg_replace("/\b(have|could|is|do)n['’`]t\b/u", '$1 not', $slug);
+            $slug = preg_replace("/\b(who|what|when|where|why|how|it)['’`]s\b/u", '$1 is', $slug);
+            $slug = preg_replace("/\b(was|is|had|has|do|does|did|could|would)n['’`]t\b/u", '$1 not', $slug);
+            $slug = preg_replace("/['’`]d\b/u", '', $slug);
+            $slug = preg_replace("/['’`]s\b/u", '', $slug);    // Convert posessive to keyword (Company's -> Company)
+        }
+
+        $slug = preg_replace("/(\w)['’`](\w)/u", '$1$2', $slug);   // glue remaining contractions together
+
+        $words = preg_split('/[^a-z0-9]+/u', trim($slug));
+
+        $slugWords = $words;
+
+        if ($skipWords) {
+            $slugWords = [];
+            $skipWords = preg_split('/\s+/', trim($skipWords));
+            foreach ($words as $word) {
+                if (!$this->isSlugSkipWord($word, $skipWords)) {
+                    $slugWords []= $word;
+                }
+            }
+            $slugWords = array_unique($slugWords, SORT_STRING);
+        }
+
+        $slug = implode('-', $slugWords);
+        $slug = trim($slug, '-');
+
+        return $slug;
+    }
+
+    function isSlugSkipWord($word, $skipWords) {
+
+        foreach ($skipWords as $skipWord) {
+            if ($word == $skipWord) {
+                return true;
+            }
+            else if ($skipWord[0] == '-') {
+                // Allow fuzzy end-match with `-`: -ly -> really, finally, etc.
+                $match = ltrim($skipWord, '-');
+                if (preg_match("/\b\w+" . $match . "\b\-?/u", $word)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    function tokenize($delim = '-') {
+
+        $this->ARGS('s', func_get_args());
+
+        $v = $this->u_to_ascii();
 
         // Convert from camel
         $v = preg_replace("/([A-Z]+)/", " $1", $v);
@@ -806,13 +1070,6 @@ class OString extends OVar implements \ArrayAccess {
         $v = rtrim($v, $delim);
 
         return $v;
-    }
-
-    function u_fingerprint() {
-
-        $this->ARGS('', func_get_args());
-
-        return Security::hashString($this->val);
     }
 
     function u_repeat ($num) {
@@ -830,53 +1087,50 @@ class OString extends OVar implements \ArrayAccess {
 
         $this->ARGS('Is', func_get_args());
 
-        // TODO: for PHP 8.3+:
-        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_BOTH);
+        return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_BOTH);
 
-        return $this->pad($padLen, $padStr, 'both');
+    //    return $this->pad($padLen, $padStr, 'both');
     }
 
     function u_pad_left($padLen, $padStr = ' ') {
 
         $this->ARGS('Is', func_get_args());
 
-        // TODO: for PHP 8.3+:
-        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_LEFT);
+        return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_LEFT);
 
-        return $this->pad($padLen, $padStr, 'left');
+      //  return $this->pad($padLen, $padStr, 'left');
     }
 
     function u_pad_right($padLen, $padStr = ' ') {
 
         $this->ARGS('Is', func_get_args());
 
-        // TODO: for PHP 8.3+:
-        // return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_RIGHT);
+        return mb_str_pad($this->val, $padLen, $padStr, STR_PAD_RIGHT);
 
-        return $this->pad($padLen, $padStr, 'right');
+     //   return $this->pad($padLen, $padStr, 'right');
     }
 
-    function pad($padLen, $padStr = ' ', $dir = 'right') {
+    // function pad($padLen, $padStr = ' ', $dir = 'right') {
 
-        $this->ARGS('Iss', func_get_args());
+    //     $this->ARGS('Iss', func_get_args());
 
-        $str = $this->val;
+    //     $str = $this->val;
 
-        $padLeft  = $dir === 'both' || $dir === 'left';
-        $padRight = $dir === 'both' || $dir === 'right';
+    //     $padLeft  = $dir === 'both' || $dir === 'left';
+    //     $padRight = $dir === 'both' || $dir === 'right';
 
-        $padLen -= mb_strlen($str);
-        $targetLen = $padLeft && $padRight ? $padLen / 2 : $padLen;
+    //     $padLen -= mb_strlen($str);
+    //     $targetLen = $padLeft && $padRight ? $padLen / 2 : $padLen;
 
-        $strToRepeatLen = mb_strlen($padStr);
-        $repeatTimes = ceil($targetLen / $strToRepeatLen);
-        $repeatedString = str_repeat($padStr, max(0, $repeatTimes));
+    //     $strToRepeatLen = mb_strlen($padStr);
+    //     $repeatTimes = ceil($targetLen / $strToRepeatLen);
+    //     $repeatedString = str_repeat($padStr, max(0, $repeatTimes));
 
-        $left = $padLeft  ? mb_substr($repeatedString, 0, floor($targetLen)) : '';
-        $right = $padRight ? mb_substr($repeatedString, 0, ceil($targetLen)) : '';
+    //     $left = $padLeft  ? mb_substr($repeatedString, 0, floor($targetLen)) : '';
+    //     $right = $padRight ? mb_substr($repeatedString, 0, ceil($targetLen)) : '';
 
-        return $left . $str . $right;
-    }
+    //     return $left . $str . $right;
+    // }
 
     function u_trim ($mask='') {
 
@@ -934,7 +1188,7 @@ class OString extends OVar implements \ArrayAccess {
 
         while (count($lines)) {
             $line = $lines[0];
-            if (preg_match('/\S/', $line)) {
+            if (preg_match('/\S/u', $line)) {
                 break;
             } else {
                 array_shift($lines);
@@ -972,8 +1226,8 @@ class OString extends OVar implements \ArrayAccess {
             // Count relative indent
             $minIndent = 999;
             foreach ($lines as $line) {
-                if (!preg_match('/\S/', $line)) { continue; }
-                preg_match('/^(\s*)/', $line, $match);
+                if (!preg_match('/\S/u', $line)) { continue; }
+                preg_match('/^(\s*)/u', $line, $match);
                 $indent = strlen($match[1]);
                 $minIndent = min($indent, $minIndent);
                 if (!$indent) { break; }
@@ -1073,65 +1327,9 @@ class OString extends OVar implements \ArrayAccess {
         self::$fillArgNum = ONE_INDEX;
         self::$me = $this;
 
-        $filled = preg_replace_callback('/\{([a-zA-Z0-9]*)\}/', '\o\OString::cbFill', $this->val);
+        $filled = preg_replace_callback('/\{([a-zA-Z0-9]*)\}/u', '\o\OString::cbFill', $this->val);
 
         return $filled;
-    }
-
-
-    // Encoding
-
-    function u_encode_html ($flags = null) {
-
-        $this->ARGS('m', func_get_args());
-
-        $flags = $this->flags($flags, [
-            'allChars' => false,
-        ]);
-
-        if ($flags['allChars']) {
-            $str = mb_convert_encoding($this->val , 'UTF-32', 'UTF-8');
-            $t = unpack("N*", $str);
-            $t = array_map(function($n) { return "&#$n;"; }, $t);
-            return implode("", $t);
-        }
-
-        return Security::escapeHtml($this->val);
-    }
-
-    function u_decode_html () {
-
-        $this->ARGS('', func_get_args());
-
-        return Security::unescapeHtml($this->val);
-    }
-
-    function u_encode_url () {
-
-        $this->ARGS('', func_get_args());
-
-        return rawurlencode($this->val);
-    }
-
-    function u_decode_url () {
-
-        $this->ARGS('', func_get_args());
-
-        return rawurldecode($this->val);
-    }
-
-    function u_encode_base64 () {
-
-        $this->ARGS('', func_get_args());
-
-        return base64_encode($this->val);
-    }
-
-    function u_decode_base64 () {
-
-        $this->ARGS('', func_get_args());
-
-        return base64_decode($this->val);
     }
 
     function u_escape_regex () {
@@ -1140,6 +1338,9 @@ class OString extends OVar implements \ArrayAccess {
 
         return preg_quote($this->val, '`');
     }
+
+
+
 
     // TODO: move this to a Csv module with related methods
     // function u_parse_csv () {
@@ -1163,77 +1364,208 @@ class OString extends OVar implements \ArrayAccess {
 
     // Checks
 
-    function u_is_upper_case() {
+    // function u_has_char_type($charType) {
 
-        $this->ARGS('', func_get_args());
+    //     $rxClass = $this->ereg_class($charType);
 
-        return $this->u_has_upper_case() && !$this->u_has_lower_case();
+    //     return preg_match('/' . $rxClass . '/u', $this->val);
+    // }
+
+    // function u_has_all_char_type($charType) {
+
+    //     $rxClass = $this->ereg_class($charType);
+
+    //     return preg_match('/^' . $rxClass . '+$/u', $this->val);
+
+    // }
+
+
+
+    // function u_is_upper_case() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return $this->u_has_upper_case() && !$this->u_has_lower_case();
+    // }
+
+    // function u_has_upper_case() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return mb_ereg_match('.*[[:upper:]]', $this->val);
+    // }
+
+    // function u_is_lower_case() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return $this->u_has_lower_case() && !$this->u_has_upper_case();
+    // }
+
+    // function u_has_lower_case() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return mb_ereg_match('.*[[:lower:]]', $this->val);
+    // }
+
+    // function u_is_whitespace() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     // Matches python's isspace logic
+    //     if ($this->val === '') { return false; }
+
+    //     return mb_ereg_match('^[[:space:]]+$', $this->val);
+    // }
+
+    // function u_has_whitespace() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return mb_ereg_match('.*[[:space:]]', $this->val);
+    // }
+
+    // function u_is_alpha() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return mb_ereg_match('^[[:alpha:]]+$', $this->val);
+    // }
+
+    // function u_is_alpha_numeric() {
+
+    //     $this->ARGS('', func_get_args());
+
+    //     return mb_ereg_match('^[[:alnum:]]+$', $this->val);
+    // }
+
+    // TODO: Allow scientific notation?
+    function u_is_numeric($numType='any') {
+
+        $this->ARGS('s', func_get_args());
+
+        if (!preg_match('/^-?[0-9]+\.?[[0-9]*$/u', $this->val)) {
+            return false;
+        }
+
+        if ($numType == 'float') {
+            return is_float($this->val);
+        }
+        else if ($numType == 'any' || $numType == 'int') {
+            return true;
+        }
+        else {
+            $this->error('Invalid `numType` argument: `$numType`. Try: `int`, `float`, `any`');
+        }
     }
 
-    function u_has_upper_case() {
+    // function u_is_ascii() {
 
-        $this->ARGS('', func_get_args());
+    //     $this->ARGS('', func_get_args());
 
-        return mb_ereg_match('.*[[:upper:]]', $this->val);
+    //     return mb_ereg_match('^[[:ascii:]]*$', $this->val);
+    // }
+
+    // Encoding
+
+    function u_to_encoding($encodingId) {
+
+        $this->ARGS('s', func_get_args());
+
+        if ($encodingId == 'html') {
+            return Security::escapeHtml($this->val);
+        }
+        else if ($encodingId == 'htmlAll') {
+            return Security::escapeHtmlAllChars($this->val);
+        }
+        else if ($encodingId == 'url') {
+            return rawurlencode($this->val);
+        }
+        else if ($encodingId == 'base64') {
+            return base64_encode($this->val);
+        }
+        else if ($encodingId == 'punycode') {
+            $out = idn_to_ascii($this->val);
+            if ($out === false) {
+                $this->error("Unable to convert string to `punycode`: `" . $this->val . "`");
+            }
+            return $out;
+        }
+        else {
+            return $this->convertEncoding($this->val,'to', $encodingId);
+        }
     }
 
-    function u_is_lower_case() {
+    function u_from_encoding($encodingId) {
 
-        $this->ARGS('', func_get_args());
+        $this->ARGS('s', func_get_args());
 
-        return $this->u_has_lower_case() && !$this->u_has_upper_case();
+        if ($encodingId == 'html' || $encodingId == 'htmlAll') {
+            return Security::unescapeHtml($this->val);
+        }
+        else if ($encodingId == 'url') {
+            return rawurldecode($this->val);
+        }
+        else if ($encodingId == 'base64') {
+            $failIfInvalidChar = true;
+            $plain = base64_decode($this->val, $failIfInvalidChar);
+            if ($plain === false) {
+                $this->error('base64 string contains invalid character.');
+            }
+            return $plain;
+        }
+        else if ($encodingId == 'punycode') {
+            $out = idn_to_utf8($this->val);
+            if ($out === false) {
+                $this->error("Unable to convert string from `punycode`: `" . $this->val . "`");
+            }
+            return $out;
+        }
+        else {
+            return $this->convertEncoding($this->val, 'from', $encodingId);
+        }
     }
 
-    function u_has_lower_case() {
-
-        $this->ARGS('', func_get_args());
-
-        return mb_ereg_match('.*[[:lower:]]', $this->val);
+    function convertEncoding($str, $toFrom, $encodingId) {
+        if (!in_array($encodingId, mb_list_encodings())) {
+            $this->error("Invalid encoding: `$encodingId`");
+        }
+        $out = mb_convert_encoding($this->val, $toFrom == 'to' ? $encodingId : 'UTF-8');
+        if ($out === false) {
+            $this->error("Unable to convert string $toFrom `$encodingId`.");
+        }
+        return $out;
     }
 
-    function u_is_space() {
+    function u_fingerprint($algo='sha256', $flags=null) {
 
-        $this->ARGS('', func_get_args());
+        $flags = $this->flags($flags, [
+            'binary' => false,
+        ]);
 
-        // Matches python's isspace logic
-        if ($this->val === '') { return false; }
+        $this->ARGS('s*', func_get_args());
 
-        return mb_ereg_match('^[[:space:]]+$', $this->val);
+        if (!in_array($algo, hash_algos())) {
+            $this->error("Unknown hash algorithm `$algo`.");
+        }
+
+        $hash = Security::hashString($this->val, $algo, $flags['binary']);
+
+        return $hash;
     }
 
-    function u_has_space() {
+    function u_to_bytes() {
 
         $this->ARGS('', func_get_args());
 
-        return mb_ereg_match('.*[[:space:]]', $this->val);
-    }
+        $len = strlen($this->val);
+        $bytes = [];
+        for ($i = 0; $i < $len; $i += 1) {
+            $bytes []= unpack('C*', $this->val[$i])[1];
+        }
 
-    function u_is_alpha() {
-
-        $this->ARGS('', func_get_args());
-
-        return mb_ereg_match('^[[:alpha:]]+$', $this->val);
-    }
-
-    function u_is_alpha_numeric() {
-
-        $this->ARGS('', func_get_args());
-
-        return mb_ereg_match('^[[:alnum:]]+$', $this->val);
-    }
-
-    function u_is_number() {
-
-        $this->ARGS('', func_get_args());
-
-        return mb_ereg_match('^-?[[:digit:]]+\.?[[:digit:]]*$', $this->val);
-    }
-
-    function u_is_ascii() {
-
-        $this->ARGS('', func_get_args());
-
-        return mb_ereg_match('^[[:ascii:]]*$', $this->val);
+        return OList::create($bytes);
     }
 
 
@@ -1242,24 +1574,24 @@ class OString extends OVar implements \ArrayAccess {
 
     // Casting
 
-    function u_to_number ($thousand=',', $decimal='.') {
+    function u_to_number ($numType='any') {
 
-        $this->ARGS('ss', func_get_args());
+        if (!$this->u_is_numeric()) { return 0; }
 
-        $v = $this->val;
-
-        if ($thousand !== '') {
-            $v = str_replace($thousand, '', $v);
+        if ($numType == 'float') {
+            return floatval($this->val);
         }
-
-        if ($decimal !== '' && $decimal !== '.') {
-            $v = str_replace($decimal, '.', $v);
+        else if ($numType == 'int') {
+            return intval($this->val);
         }
-
-        $f = floatval($v);
-        $i = intval($v);
-
-        return $f == $i ? $i : $f;
+        else if ($numType == 'any') {
+            $f = floatval($this->val);
+            $i = intval($this->val);
+            return $f == $i ? $i : $f;
+        }
+        else {
+            $this->error('Invalid `numType` argument: `$numType`. Try: `int`, `float`, `any`');
+        }
     }
 
     function u_to_boolean () {
@@ -1301,7 +1633,7 @@ class OString extends OVar implements \ArrayAccess {
         else if ($v === 'false') {
             return false;
         }
-        else if (preg_match('/^-?[0-9\.]+$/', $v)) {
+        else if (preg_match('/^-?[0-9\.]+$/u', $v)) {
             if (strpos($v, '.') !== false) {
                 return floatval($v);
             } else {
@@ -1329,14 +1661,14 @@ class OString extends OVar implements \ArrayAccess {
         if ($isStrict) {
             $v = ltrim($this->val);
 
-            return preg_match('~^(https?:)?//~i', $v);
+            return preg_match('~^(https?:)?//~iu', $v);
         }
         else {
             if (preg_match('/^[a-zA-Z]:/', $this->val)) {
                 // windows path with drive letter
                 return false;
             }
-            return preg_match('~(:|//)~', $this->val);
+            return preg_match('~(:|//)~u', $this->val);
         }
 
     }
@@ -1355,14 +1687,14 @@ class OString extends OVar implements \ArrayAccess {
         $s = $this->removeAllCaps($s);
 
         // truncate repeated characters
-        $s = preg_replace('/\n{4,}/', "\n\n\n", $s);
-        $s = preg_replace("/!{2,}/", "!", $s);
-        $s = preg_replace("/\?{2,}/", "?", $s);
-        $s = preg_replace('/[\?!]{3,}/', "?!", $s);
-        $s = preg_replace("/(.)\\1{4,}/", '\\1\\1\\1', $s);
+        $s = preg_replace('/\n{4,}/u', "\n\n\n", $s);
+        $s = preg_replace("/!{2,}/u", "!", $s);
+        $s = preg_replace("/\?{2,}/u", "?", $s);
+        $s = preg_replace('/[\?!]{3,}/u', "?!", $s);
+        $s = preg_replace("/(.)\\1{4,}/u", '\\1\\1\\1', $s);
 
         // TODO: break lines over 80 chars instead?
-        $s = preg_replace_callback("/(\S{40,})/", '\o\OString::truncateLongString', $s);
+        $s = preg_replace_callback("/(\S{40,})/u", '\o\OString::truncateLongString', $s);
 
         return $s;
     }
@@ -1371,13 +1703,13 @@ class OString extends OVar implements \ArrayAccess {
 
         $this->ARGS('', func_get_args());
 
-        $s = $this->u_slug(' ');
+        $s = $this->tokenize(' ');
         $s = trim($s);
 
         // Remove ID
-        $s = preg_replace('/^(.*) id$/i', '$1', $s);
+        $s = preg_replace('/^(.*) id$/iu', '$1', $s);
 
-        $s = v($s)->u_title_case();
+        $s = v($s)->u_to_case('title');
 
         return $s;
     }
@@ -1385,17 +1717,17 @@ class OString extends OVar implements \ArrayAccess {
     // prevent ALL CAPS
     function removeAllCaps($s) {
 
-        $alphaOnly = preg_replace("/[^a-zA-Z]/", "", $s);
+        $alphaOnly = preg_replace("/[^a-zA-Z]/u", "", $s);
         $numAlpha = mb_strlen($alphaOnly);
 
-        $capsOnly = preg_replace("/([^A-Z])/", '', $alphaOnly);
+        $capsOnly = preg_replace("/([^A-Z])/u", '', $alphaOnly);
         $numCaps = mb_strlen($capsOnly);
 
         $maxCaps = floor($numAlpha * 0.6);
 
         if ($numCaps >= $maxCaps) {
-            $s = strtolower($s);
-            $s = ucfirst($s);
+            $s = mb_strtolower($s);
+            $s = v($s)->u_to_upper_case(Omap::create([ 'first' => true ]));
         }
 
         return $s;
@@ -1403,7 +1735,7 @@ class OString extends OVar implements \ArrayAccess {
 
     static function truncateLongString ($raw) {
 
-        if (preg_match("/http/i", $raw[1])) {
+        if (preg_match("/http/ui", $raw[1])) {
             # preserve URLs
             return $raw[1];
         }
