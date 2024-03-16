@@ -6,7 +6,7 @@
 @@.ConstantMap = { Red, Green, Blue }
 
 public fn changeConstantAndDie {
-   @@.ModuleConstant = 'another'
+    @@.ModuleConstant = 'another'
 }
 
 public fn bareFun($name) {
