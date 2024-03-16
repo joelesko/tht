@@ -107,20 +107,26 @@ tm linksHtml {
     </>
 
     <.links>
-        {{ button('addTacos') }}
-        {{ button('deleteAllTacos') }}
-        {{ button('addTaters') }}
-        {{ button('deleteAllTaters') }}
+        {{ button('addTacos', 'plus') }}
+        {{ button('deleteAllTacos', 'cancel') }}
+        {{ button('addTaters', 'plus') }}
+        {{ button('deleteAllTaters', 'cancel') }}
     </>
 }
 
 // Creates a button that submits data via a hidden form,
 // wthout the need for AJAX.
-fn button($mode) {
+fn button($mode, $iconType) {
 
     $data = { mode: $mode }
-    $label = $mode.humanize().titleCase()
+    $label = $mode.humanize().toTitleCase()
+    $iconLabel = iconLabelHtml($label, $iconType)
 
-    return Web.postLink($label, url'this', $data)
+    return Web.postLink($iconLabel, url'this', $data)
 }
+
+tm iconLabelHtml($label, $iconType) {
+    {{ Web.icon($iconType) }} {{ $label }}
+}
+
 

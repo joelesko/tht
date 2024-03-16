@@ -18,7 +18,7 @@ tm pageHtml($color) {
 
     <div style="border-top: solid 2rem {{ $color }}; padding-top: 1rem">
 
-        <h1> {{ $color.upperCaseFirst() }}
+        <h1> {{ $color.toTitleCase() }}
 
         {{ linksHtml() }}
 
@@ -32,13 +32,13 @@ tm linksHtml {
     --- foreach $colors as $color {
 
         <a.button href="/examples/colors-route/{{ $color }}">
-            {{ $color.upperCaseFirst() }}
+            {{ $color.toTitleCase() }}
         </>
 
     --- }
 
     <.panel style="margin-top: 8rem">
         <p> This page uses a route defined in <code>config/app.jcon</code> as:
-        <pre> /examples/colors-route/{color}: examples/routeColors.tht
+        <pre> /examples/colors-route/{color}: examples/route-colors.tht
     </>
 }
