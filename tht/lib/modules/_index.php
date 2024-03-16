@@ -32,14 +32,13 @@ class LibModules {
         'Cache',
         'Net',
         'MapDb',
-//        'Image',
         'Input',
         'Config',
         'Bare',
         'Form',
         'Email',
         'Page',
-        'Gd',
+        'Image',
     ];
 
     public static function load () {
