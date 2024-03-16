@@ -56,6 +56,8 @@ class u_Test extends OStdModule {
 
     function u_dies ($callback, $desc, $matchError='') {
 
+
+
         $this->ARGS('css', func_get_args());
 
         if (Tht::module('Perf')->isActive()) {
@@ -87,6 +89,7 @@ class u_Test extends OStdModule {
         if ($trapped) {
             $errorMsg = $trapped['message'];
         }
+
 
         $caughtError = !!$errorMsg;
         if ($matchError) {
@@ -181,7 +184,7 @@ class u_Test extends OStdModule {
         foreach ($this->out as $l) {
             if (isset($l['section'])) {
                 if (Tht::isMode('web')) {
-                    $str .= '<a name="test-' . v($l['section'])->u_slug() . '"></a>';
+                    $str .= '<a name="test-' . v($l['section'])->u_to_token_case('-') . '"></a>';
                     $str .= "<h2>" . $l['section'] . "</h2>\n";
                 } else {
                     $str .= "\n# " . $l['section'] . "\n\n";

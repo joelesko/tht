@@ -132,7 +132,7 @@ class u_Web extends OStdModule {
 
         $this->ARGS('s', func_get_args());
 
-        $slug = v($label)->u_slug();
+        $slug = v($label)->u_to_token_case('-');
         $html = "<a href=\"#$slug\" class=\"anchor-link\">#</a><a name=\"$slug\"></a>";
 
         return OTypeString::create('html', $html);
@@ -349,11 +349,11 @@ $fields
         $emailLeft = substr($email, 0, $spanPos);
         $emailRight = $this->encodeAllChars(substr($email, $spanPos));
 
-        $randClass1 = strtolower(Tht::module('String')->u_random(rand(6,12)));
+        $randClass1 = strtolower(Tht::module('String')->u_random_token(rand(6,12)));
         $randClass1 = preg_replace('/[^a-z]/', '', $randClass1);
 
         // random "content" that will be hidden
-        $randContent = Tht::module('String')->u_random(rand(10,30));
+        $randContent = Tht::module('String')->u_random_token(rand(10,30));
 
         $xe = $emailLeft . "<div class=\"$randClass1\">$randContent</div>" . $emailRight;
         $xe .= "<style>.$randClass1{display:none;}</style>";

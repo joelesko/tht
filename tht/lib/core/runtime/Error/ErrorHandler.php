@@ -76,7 +76,7 @@ class ErrorHandler {
     static function setMainEntryFunction($file, $fun) {
 
         $fun = preg_replace('/.*u_/', '', $fun);
-        $fun = v($fun)->u_camel_case();
+        $fun = v($fun)->u_to_token_case();
 
         self::$topLevelFunction = [
             'file' => Tht::getPhpPathForTht($file),
@@ -120,14 +120,14 @@ class ErrorHandler {
 
     static function setStdLibHelpLink($type, $packageName, $method='') {
 
-        $packageToken = strtolower(v($packageName)->u_slug());
+        $packageToken = strtolower(v($packageName)->tokenize('-'));
         $url = '/manual/' . $type . '/' . $packageToken;
         $label = $packageName;
 
         if ($method) {
-            $methodToken = strtolower(v($method)->u_slug());
+            $methodToken = strtolower(v($method)->tokenize('-'));
             $url .= '/' . $methodToken;
-            $label .= '.' . v(unu_($method))->u_camel_case();
+            $label .= '.' . v(unu_($method))->u_to_token_case();
         }
 
         return self::setHelpLink($url, $label);

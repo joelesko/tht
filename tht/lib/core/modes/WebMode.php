@@ -276,20 +276,7 @@ class WebMode {
 
     static private function getPageFileController($path) {
 
-        $apath = '';
-
-        // Convert dash-case URL to camelCase file path
-        $parts = explode('/', $path);
-        $camelParts = [];
-
-        foreach ($parts as $p) {
-            $camelParts []= v($p)->u_camel_case();
-        }
-
-        $camelParts []= array_pop($camelParts);
-        $apath = implode('/', $camelParts);
-
-        $thtPath = self::getFullRoutePath(Tht::getThtFileName($apath));
+        $thtPath = self::getFullRoutePath(Tht::getThtFileName($path));
 
         if (!file_exists($thtPath)) {
 
@@ -343,7 +330,7 @@ class WebMode {
             // Function defined in app.jcon/routes
             // e.g. /foo: foo.tht @ someFunction
 
-            $callFunction = $nameSpace . '\\u_' . v($userFunction)->u_slug('_');
+            $callFunction = $nameSpace . '\\u_' . v($userFunction)->tokenize('_');
 
             if (!function_exists($callFunction)) {
 
@@ -448,7 +435,7 @@ class WebMode {
 
     static private function resolveModeFunction($controllerFile, $nameSpace, $rawName) {
 
-        $modeName = v($rawName)->u_slug('_');
+        $modeName = v($rawName)->tokenize('_');
         $fullModeFunction = $nameSpace . '\\u_' . $modeName . '_Mode';
 
         if (!function_exists($fullModeFunction)) {
