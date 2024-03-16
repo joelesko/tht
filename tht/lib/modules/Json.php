@@ -56,11 +56,17 @@ class u_Json extends OStdModule {
 
         $json = $this->u_encode($obj)->u_render_string();
 
+        if (OMap::isa($obj)) {
+            $json = preg_replace('/"([^"]+?)":/', "$1: ", $json);
+            $json = preg_replace('/,(\w)/', ", $1", $json);
+            $json = preg_replace('/"/', "'", $json);
+        }
+
         $json = OClass::tokensToBareStrings($json);
 
         $json = preg_replace('/,\n/', ', ', $json);
-        $json = preg_replace('/{\s+/', '{ ', $json);
-        $json = preg_replace('/\s+}/', ' }', $json);
+        $json = preg_replace('/{\s*/', '{ ', $json);
+        $json = preg_replace('/\s*}/', ' }', $json);
         $json = preg_replace('/\s*\n+\s*/', '', $json);
         $json = preg_replace('/\s+/', ' ', $json);
 
