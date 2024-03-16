@@ -162,6 +162,96 @@ class u_Perf extends OStdModule {
         ]);
     }
 
+    function codeQuality() {
+        // scan through all compiled files in code/modules and code/pages
+        // get stats
+        // compile a score
+
+        $totalStats = [
+            'numFiles' => 0,
+            'numLines' => 0,
+            'numFunctions' => 0,
+            'longestFunctionLines' => 0,
+            'longestFunctionName' => '',
+            'longestFunctionLineNum' => 0,
+            'longestFunctionFile' => '',
+            'longestFileLines' => 0,
+            'longestFile' => '',
+            'workTime' => 0,
+            'numCompiles' => 0,
+        ];
+
+
+        $fnEachFile = function ($file) use (&$totalStats) {
+
+            $phpPath = Tht::getPhpPathForTht($file['path']);
+            if (!file_exists($phpPath)) { return; }
+
+            $content = Tht::module('*File')->u_read($phpPath, OMap::create([ 'join' => true ]));
+
+            preg_match('#/\* STATS=(\{.*\})#', $content, $m);
+            $jsonString = $m[1];
+
+            $stats = unv(Security::jsonDecode($jsonString));
+
+            $totalStats['numFiles'] += 1;
+
+            $totalStats['workTime'] += $stats['totalWorkTime'];
+            $totalStats['numCompiles'] += $stats['numCompiles'];
+
+            $totalStats['numLines'] += $stats['numLines'];
+            $totalStats['numFunctions'] += $stats['numFunctions'];
+
+            if ($stats['longestFunctionLines'] > $totalStats['longestFunctionLines']) {
+                $totalStats['longestFunctionLines'] = $stats['longestFunctionLines'];
+                $totalStats['longestFunctionName'] = $stats['longestFunctionName'];
+                $totalStats['longestFunctionLineNum'] = $stats['longestFunctionLineNum'];
+                $totalStats['longestFunctionFile'] = Tht::stripAppRoot($file['path']);
+            }
+            if ($stats['numLines'] > $totalStats['longestFileLines']) {
+                $totalStats['longestFileLines'] = $stats['numLines'];
+                $totalStats['longestFile'] = Tht::stripAppRoot($file['path']);
+            }
+        };
+
+        $flags = OMap::create([ 'deep' => true, 'filter' => 'files' ]);
+        Tht::module('*File')->u_loop_dir(THT::path('pages'), $fnEachFile, $flags);
+
+        $linesPerFile = floor($totalStats['numLines'] / $totalStats['numFiles']);
+        $linesPerFunction = floor($totalStats['numLines'] / $totalStats['numFunctions']);
+
+        $fileDenom = 500;
+        $functionDenom = 50;
+
+        $cqScore = array_sum([
+            ($fileDenom - $linesPerFile) / $fileDenom,
+            ($fileDenom - $totalStats['longestFileLines']) / $fileDenom,
+            ($functionDenom - $linesPerFunction) / $functionDenom,
+            ($functionDenom - $totalStats['longestFunctionLines']) / $functionDenom,
+        ]) / 4;
+
+        $cqStats = [
+            'SCORE' => floor($cqScore * 100) . '/100',
+            'linesPerFile' => $linesPerFile,
+            'linesPerFunction' => $linesPerFunction ,
+            'longestFile' => $totalStats['longestFile'] . ' - ' . $totalStats['longestFileLines'] . ' lines',
+            'longestFunction' => $totalStats['longestFunctionName'] . ' - ' . $totalStats['longestFunctionLines'] . ' lines',
+            'numCompiles' => $totalStats['numCompiles'],
+            'workTime' => round($totalStats['workTime'] / 3600, 1) . ' hours',
+        ];
+
+
+        // Longest function lines
+        // avg function size
+
+        // avg lines per file
+        // longest file
+
+
+
+        Tht::dump($cqStats);
+    }
+
     // TODO: no CLI mode
     // TODO: this is all pretty ugly - refactor
     function printResults () {
