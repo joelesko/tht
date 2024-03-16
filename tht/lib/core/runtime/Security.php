@@ -319,12 +319,16 @@ class Security {
         return (($r ^ self::hashIdTransform($l)) << 16) + $l;
     }
 
+    static public function getRandomScrambleKey() {
+        return self::randomHex(8);
+    }
+
     static private function hashIdTransform($i) {
 
         $secretKeyHex = Tht::getConfig('scrambleNumSecretKey');
 
         if (!preg_match('/^[0-9a-f]{8}+$/', $secretKeyHex)) {
-            $randomHex = self::randomHex(8);
+            $randomHex = self::getRandomScrambleKey();
             self::error("Config key `scrambleNumSecretKey` must be a 8-digit hex string. Got: `$secretKeyHex` Try: `$randomHex` (randomly generated)");
         }
         $secretKeyDec = hexdec($secretKeyHex);
