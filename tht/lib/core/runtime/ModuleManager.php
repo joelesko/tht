@@ -35,6 +35,7 @@ class ModuleManager {
 
         $ns = $relPath;
         $ns = str_replace('/', '\\', $ns);
+        $ns = str_replace('-', '_', $ns);
         $ns = str_replace('.tht', '', $ns);
         $ns = 'tht\\' . $ns . '_x'; // work around reserved PHP words
 
