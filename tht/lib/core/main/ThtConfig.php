@@ -8,8 +8,8 @@ trait ThtConfig {
     static private $VERSION_DIGITS = '00702';
     static private $VERSION_DIGITS_PHP = '';  // filled in later
 
-    static private $REQUIRE_PHP_VERSION_DIGITS = '00801';
-    static private $REQUIRE_PHP_VERSION_STRING = '8.1+';
+    static private $REQUIRE_PHP_VERSION_DIGITS = '00803';
+    static private $REQUIRE_PHP_VERSION_STRING = '8.3+';
 
     static private $SRC_EXT = 'tht';
 
@@ -71,6 +71,8 @@ trait ThtConfig {
             'timezone' => 'UTC',
 
             'turboMode' => false,
+
+            'scrambleNumSecretKey' => '',
         ];
 
         return $default;
