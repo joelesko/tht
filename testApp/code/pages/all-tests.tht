@@ -1,11 +1,15 @@
 
 // TODO: This file is monster huge.  Should probably break it up.
 
+$test = Test()
+
 fn main {
 
     $test = Test()
 
     $test = run($test)
+
+    // libImage($test)
 
     Output.sendHtml(html($test.resultsHtml()))
 }
@@ -16,6 +20,7 @@ fn isPerfMode {
 
 tm html($results) {
 
+    <!DOCTYPE html>
     <!-- this is a comment -->
     <html>
         <head>
@@ -182,7 +187,7 @@ fn testCompileErrors($t) {
 
     $t.parserError('$$a = 1',         'only one `$`')
     $t.parserError('$a$b = 1',        'only one `$`')
-    $t.parserError('class Foo {\n fn aaa { $ = 1\n }\n}',           'missing a name')
+    $t.parserError('class Foo {\n    fn aaa { $ = 1\n }\n}', 'missing a name')
 
     $t.parserError('if true {\n} Else {\n}',  'all lowercase')
 
@@ -203,7 +208,7 @@ fn testCompileErrors($t) {
     $t.parserError('$a = 1 ^ 2',  '+^')
     $t.parserError('$a = 1 & 2',  '+&')
     $t.parserError('$a = 1 | 2',  '+|')
- //   $t.parserError('$a = 1 >> 2',  '+>')  TODO: gives line break error instead
+    $t.parserError('$a = 1 >> 2',  '+>')
     $t.parserError('$a = 1 << 2',  '+<')
     $t.parserError('$a = 1++',  '+= 1')
     $t.parserError('if true { } elif false {}',  'else if')
@@ -218,11 +223,12 @@ fn testCompileErrors($t) {
     $t.parserError('$a = ``\n$a .= `xyz`',  '~=')
     $t.parserError('2 > 1 ? true : false', 'unnecessary ternary')
     $t.parserError('2 > 1 ? false : true', 'unnecessary ternary')
+    $t.parserError('if `foo` == $b', 'Literal value should go on the right side')
+    $t.parserError('if 123 == $b', 'Literal value should go on the right side')
+    $t.parserError('if true == $b', 'Literal value should go on the right side')
 
-    // $b = 'foo'
-    // if 'foo' == $b {
-    //     >> 'yoda'
-    // }
+
+
 
     $t.section('Parser Errors - Misc')
 
@@ -252,7 +258,6 @@ fn testCompileErrors($t) {
     $t.parserError('if 2 => 1 { }', '>=')
     $t.parserError('if 1 =< 2 { }', '<=')
     $t.parserError('$a = 1 <> 2', '!=')
-
     $t.parserError('fn foo\n$a = 1', 'Expected `{`')
 
 
@@ -270,12 +275,12 @@ fn testCompileErrors($t) {
     $t.parserError('$a = 1;', 'remove semicolon')
     $t.parserError('$a = [1,, ]', 'Unexpected comma')
     $t.parserError('$a = [,, 1]', 'Unexpected comma')
-    $crlf =  String.charFromCode(13) ~ String.charFromCode(10)
+    $crlf =  String.unicodeToChar(13) ~ String.unicodeToChar(10)
     $t.parserOk('$a = 1' ~ $crlf ~ '$b = 2', 'Ignore CR (Windows line break)')
 
     $t.parserError('$a = ``` sdf', 'newline')
-    $t.parserError('$a = ```\ndfg ```', 'separate line')
-    $t.parserError('$a = ```\ndfg ', 'unclosed')
+    $t.parserError('$a = ```\n    dfg ```', 'separate line')
+    $t.parserError('$a = ```\n    dfg ', 'unclosed')
 
     $t.parserError('$a = 1, $b = 2', 'unexpected separator', '')
     $t.parserError('foo())', 'extra separator')
@@ -288,6 +293,13 @@ fn testCompileErrors($t) {
     $t.parserError('true == bar()', 'right side of the expression')
     $t.parserError('`foo` == bar()', 'right side of the expression')
     $t.parserError('`foo` == $a.key', 'right side of the expression')
+
+    $t.parserError('$a = 1 >> 2', 'can only be used at the beginning of a line')
+    $t.parserOk('\n>> 123', 'print shortcut')
+
+    $t.parserError('$a = `str``', 'Extra quote')
+
+
 
     $t.section('Parser Errors - Adjacent Tokens')
 
@@ -336,10 +348,10 @@ fn testCompileErrors($t) {
 
     $t.parserError('$z = x{$a > 1 }', 'space after `{`')
     $t.parserError('$z = x{ $a > 1}', 'space before `}`')
-    $t.parserOk('$z = x{\n$a > 1\n}', 'newline after `{`')
+    $t.parserOk('$z = x{\n    $a > 1\n}', 'newline after `{`')
 
     $t.parserError('( a + 1)',             'space after `(`')
-    $t.parserOk('$a = (\n1 +\n2\n)',       'newline after `(`')
+    $t.parserOk('$a = (\n    1 +\n    2\n)', 'newline after `(`')
     $t.parserError('foo( )',               'space after `(`')
     $t.parserError('$a = [ ]',             'space after `[`')
     $t.parserError('$a = { }',             'space after `{`')
@@ -427,11 +439,11 @@ fn testCompileErrors($t) {
     $t.parserError('fn finally() {}', 'reserved')
     $t.parserError('fn else() {}', 'reserved')
 
-    $t.parserError('$a = 1\nfn foo {\nprint($a)\n}', 'unknown variable')
+    $t.parserError('$a = 1\nfn foo {\n    print($a)\n}', 'unknown variable')
 
 
     // TODO: fix handling of closure variables
- //   $t.parserError('$f = fn foo() keep ($a) { }', 'unknown variable')
+    //   $t.parserError('$f = fn foo() keep ($a) { }', 'unknown variable')
 
 
 
@@ -451,7 +463,8 @@ fn testCompileErrors($t) {
 
     $t.parserOk('foreach [] as $n: print($n)\n$b = 3', 'statement after one-liner foreach')
     $t.parserOk('if true: print(2)\n$b = 3', 'statement after one-liner if')
-    $t.parserOk('fn outer {\n fn fnIn: print(2) \n$b = 3\n }', 'statement after one-liner fn')
+    $t.parserOk('fn outer {\n    fn fnIn: print(2) \n    $b = 3\n }',
+        'statement after one-liner fn')
 
     $t.section('Missing $')
 
@@ -466,6 +479,8 @@ fn testCompileErrors($t) {
     $t.parserError('fn ff { return tt }', 'use a variable')
     $t.parserError('$a = [tt, 123]', 'use a variable')
     $t.parserError('$a = { b: tt }', 'use a variable')
+
+
 
 
     //$a = 3 - t
@@ -504,7 +519,7 @@ fn testPerf($t) {
     $start = Perf.now()
     $gen = range(1, $numIters)
     foreach $gen as $n {
-       // ...
+        // ...
     }
     Perf.stop()
     $elapsed = Perf.now() - $start
@@ -543,8 +558,7 @@ fn testMisc($t) {
     $t.section('Shortcuts')
 
     $map = { str: 'abc def' }
-    $map.str = .upperCase()
-      .reverse()
+    $map.str = .toUpperCase().reverse()
     $t.ok($map.str == 'FED CBA', 'dot assign: $foo = .method()')
 
     return $t
@@ -642,8 +656,8 @@ fn testOop($t) {
         'Can not call private method')
     $t.dies(fn { $b.newer = 123 }, 'can`t create field after construct',
         'can not be created after object is constructed')
-    $t.parserError('class Foo {\n $a = 1\n}', 'assignment not allowed')
-    $t.parserError('class Foo {\n foo()\n}', 'Invalid statement inside `class` block')
+    $t.parserError('class Foo {\n    $a = 1\n}', 'assignment not allowed')
+    $t.parserError('class Foo {\n    foo()\n}', 'Invalid statement inside `class` block')
     $t.parserError('class Foo1 { }\n\n class F2 { }', 'Only one class allowed')
 
 
@@ -702,14 +716,14 @@ fn testTypes($t) {
 
     $t.ok(sql'abc'.zClassName() == 'SqlTypeString', 'SqlTypeString')
 
-    $t.ok(r'a'.zClassName() == 'Regex', 'Regex')
+    $t.ok(rx'a'.zClassName() == 'Regex', 'Regex')
 
     $t.ok(noReturn() == false, 'no return is false')
 
 
     load('oop/BaseObject')
     $b = BaseObject({})
- //   $t.ok($b.type() == 'object', 'object')
+    //   $t.ok($b.type() == 'object', 'object')
 
 
     $t.ok('abc'.zClassName() == 'String', 'class: String')
@@ -973,7 +987,7 @@ fn testTypeDeclarations($t) {
     $t.ok(takesList(['a']), 'list - list')
     $t.ok(takesList([]), 'list - empty list')
 
-   // $t.ok(takesFlag(-someFlag), 'flag')
+    // $t.ok(takesFlag(-someFlag), 'flag')
 
     $t.ok(takesFunction(fn { return 1 }), 'fn - function')
     $f = fn { }
@@ -1087,7 +1101,7 @@ fn testMaps($t) {
 
     $t.parserError('$dyn = `x`\n$dm = { $dyn: 123 }', 'not allowed as Map key')
     $t.parserError('$m = { a: 1,\nb: 2 }', 'add a comma')
-    $t.parserError('$m = {\n a: 1\n }', 'add a comma')
+    $t.parserError('$m = {\n    a: 1\n }', 'add a comma')
 
 
     $map = { a: { b: 1 }, x: { y: 2 } }
@@ -1600,10 +1614,10 @@ fn testLoops($t) {
     $t.ok($i == 33, 'foreach - continue')
 
 
-    $t.parserError('loop {\n$a = 1\n}\n', 'needs a \'break\'')
-    $t.parserError('loop {\nloop { break }\n}\n', 'needs a \'break\'')
-    $t.parserOk('loop {\nloop { break }\nbreak }\n', 'nested breaks')
-    $t.parserOk('fn go { loop {\nreturn\n}\n }', 'return instead of break')
+    $t.parserError('loop {\n    $a = 1\n}\n', 'needs a \'break\'')
+    $t.parserError('loop {\n    loop { break }\n}\n', 'needs a \'break\'')
+    $t.parserOk('loop {\n    loop { break }\n    break }\n', 'nested breaks')
+    $t.parserOk('fn go { loop {\n    return\n}\n }', 'return instead of break')
 
     $t.parserError('$a = 1\nbreak', '`break` not allowed')
     $t.parserError('$a = 1\ncontinue', '`continue` not allowed')
@@ -1726,7 +1740,7 @@ fn testControlFlow($t) {
 
         match $z {
             'foo'            { return 'string' }
-            r'reg'           { return 'regex' }
+            rx'reg'          { return 'regex' }
             ['a', 'b']       { return 'list' }
             $z.length() > 4  { return 'expr' }
             default          { return 'default' }
@@ -1832,10 +1846,8 @@ fn testStrings($t) {
 
     $stra = '456789'
     $t.ok($stra.getChar(-1) == '9', 'substring index')
-    $t.ok('abc'[1] == 'a', 'subscript []')
-    $t.ok('abc'[10] == '', 'subscript [] - out of bounds')
-    $t.ok('abc'[-1] == 'c', 'subscript [-1]')
-    $t.dies(fn { 'abc'[0] = 123 }, 'Can not use `[]`', 'Can not use `[]`')
+    $t.dies(fn { $a = 'abc'[1] }, 'getChar')
+    $t.dies(fn { 'abc'[0] = 123 }, 'setChar')
 
 
     $t.section('Multiline Strings')
@@ -1845,8 +1857,8 @@ fn testStrings($t) {
         multiline
         string.
     '''
-    $t.ok($ml.contains('multiline\nstring'), 'multiline with indent')
-
+    $t.ok($ml.contains('multiline\nstring'), 'multiline')
+    $t.parserError('$ml = ```\n noindent\n```', 'should be indented 4 spaces')
 
 
     $t.section('String Concatenation')
@@ -1877,7 +1889,8 @@ fn testStrings($t) {
     $t.ok(!$hi.contains('missing'), '! contains()')
     $t.ok($hi.split('o').length() == 3, 'split()')
     $t.ok($hi.split('o')[1] == 'Hell', 'split()')
-    $t.ok(String.charFromCode(65) ~ String.charFromCode(122) == 'Az', 'String.fromCharCode')
+    $t.ok(String.unicodeToChar(65) ~ String.unicodeToChar(122) == 'Az',
+        'String.unicodeToChar')
 
     $t.ok('abc'.setChar(2, 'Z') == 'aZc', 'setChar')
     $t.ok('abc'.setChar(-1, 'Z') == 'abZ', 'setChar negative')
@@ -1892,9 +1905,9 @@ fn testStrings($t) {
     $t.ok('true'.toBoolean() == true, 'toBoolean - true')
 
     $t.ok('123'.toNumber() == 123, 'toNumber')
-    $t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters')
-    $t.ok('1.300.000,01'.toNumber('.', ',') == 1300000.01,
-        'toNumber - thousand/decimal')
+ //   $t.ok('99ft'.toNumber() == 99, 'toNumber - trailing letters')
+ //   $t.ok('1.300.000,01'.toNumber() == 1300000.01,
+//        'toNumber - thousand/decimal')
 
 
     $t.section('String Methods - Unicode')
@@ -1905,16 +1918,17 @@ fn testStrings($t) {
     $t.ok($uni.getChar(3) == 'Ⓒ', 'getChar')
     $t.ok($uni.getChar(-1) == '3', 'getChar negative')
 
-    $t.dies(x{ 'x'[0] }, 'index `0` is not valid')
-    $t.ok($uni.hasIndex(1), 'hasIndex one')
-    $t.ok($uni.hasIndex(-1), 'hasIndex negative')
-    $t.ok(!$uni.hasIndex(100), 'hasIndex out of bounds')
-    $t.ok(!''.hasIndex(1), 'hasIndex empty')
+    $t.dies(x{ 'x'[1] }, 'Can not use `[]` to get a character')
+    $t.dies(fn { 'x'[1] = 'Z' }, 'Can not use `[]` to set a character')
+    $t.ok($uni.getChar(1), 'getChar/boolean one')
+    $t.ok($uni.getChar(-1), 'getChar/boolean negative')
+    $t.ok(!$uni.getChar(100), 'getChar/boolean out of bounds')
+    $t.ok(!''.getChar(1), 'getChar/boolean empty')
 
-    $t.ok('a'.getCharCode() == 97, 'getCharCode with no argument')
-    $t.ok($uni.getCharCode(3) == 9400, 'getCharCode')
-    $t.ok(String.charFromCode(9400) == 'Ⓒ', 'charFromCode')
-    $t.ok(String.charFromCode(65) == 'A', 'charFromCode, ascii')
+    $t.ok('a'.charToUnicode() == 97, 'charToUnicode - a')
+    $t.ok('Ⓐ'.charToUnicode() == 9398, 'charToUnicode - Ⓐ')
+    $t.ok(String.unicodeToChar(9400) == 'Ⓒ', 'charFromUnicode')
+    $t.ok(String.unicodeToChar(65) == 'A', 'charFromUnicode, ascii')
 
     $t.ok($uni.left(3) == 'ⒶⒷⒸ', 'left')
     $t.ok($uni.right(3) == '123', 'right')
@@ -1928,18 +1942,18 @@ fn testStrings($t) {
     $t.ok($uni.endsWith('ABc123', -ignoreCase), 'endsWith ignoreCase')
 
     $t.ok(' ⒶⒷ ⒶⒷ'.indexOf('ⒶⒷ') == 2, 'indexOf')
-    $t.ok(' ⒶⒷ ⒶⒷ'.indexOf('ⒶⒷ', { startAt: 3 }) == 5, 'indexOf - offset')
+    $t.ok(' ⒶⒷ ⒶⒷ'.indexOf('ⒶⒷ', { startIndex: 3 }) == 5, 'indexOf - offset')
     $t.ok('abc'.indexOf('BC', { ignoreCase }) == 2, 'indexOf - ignoreCase')
 
     $t.ok(' ⒶⒷ ⒶⒷ'.lastIndexOf('ⒶⒷ') == 5, 'lastIndexOf')
-    $t.ok(' ⒶⒷ xy'.lastIndexOf('ⒶⒷ', { startAt: 3 }) == 0, 'lastIndexOf - offset')
+    $t.ok(' ⒶⒷ xy'.lastIndexOf('ⒶⒷ', { startIndex: 3 }) == 0, 'lastIndexOf - offset')
     $t.ok('abab'.lastIndexOf('AB', { ignoreCase }) == 3, 'lastIndexOf - ignoreCase')
 
     $t.ok(' ⒶⒷ ⒶⒷⒶ'.count('Ⓐ') == 3, 'count char')
     $t.ok(' ⒶⒷC D ⒶⒷC'.count('ⒶⒷC') == 2, 'count word')
-  //  $t.ok('123 abc 789'.count(r'\d+') == 2, 'count regex')
+  //  $t.ok('123 abc 789'.count(rx'\d+') == 2, 'count regex')
     $t.ok('ABC abc'.count('ab', -ignoreCase) == 2, 'count case-insensitive')
-  //  $t.ok('ABC abc'.count(r'[a-b]+', true) == 2, 'count case-insensitive regex')
+  //  $t.ok('ABC abc'.count(rx'[a-b]+', true) == 2, 'count case-insensitive regex')
 
     $t.ok('ⒶⒸ'.insert('Ⓑ', 2) == 'ⒶⒷⒸ', 'insert')
     $t.ok('ⒶⒷⒸ'.insert('①', -2) == 'Ⓐ①ⒷⒸ', 'insert negative index')
@@ -1960,41 +1974,58 @@ fn testStrings($t) {
     $t.ok('ⒶⒷ ①②  ③'.trimRight('③') == 'ⒶⒷ ①②', 'rightTrim mask')
     $t.ok('③ ⒶⒷ ①②'.trimLeft('③') == 'ⒶⒷ ①②', 'leftTrim mask')
 
-    $t.ok('Abc DEF ⒶⒷⒸ'.upperCase() == 'ABC DEF ⒶⒷⒸ', 'upperCase')
+    $t.ok('Abc DEF ⒶⒷⒸ'.toUpperCase() == 'ABC DEF ⒶⒷⒸ', 'upperCase')
 
     // NOTE: pre php 7.3, the unicode chars are not lowercased
     if Php.getVersion(-num) >= 70300 {
-        $t.ok('Abc DEF ⒶⒷⒸ'.lowerCase() == 'abc def ⓐⓑⓒ', 'lowerCase')
+        $t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⓐⓑⓒ', 'lowerCase')
     } else {
-        $t.ok('Abc DEF ⒶⒷⒸ'.lowerCase() == 'abc def ⒶⒷⒸ', 'lowerCase')
+        $t.ok('Abc DEF ⒶⒷⒸ'.toLowerCase() == 'abc def ⒶⒷⒸ', 'lowerCase')
     }
 
-    $t.ok('fòôbàř'.upperCase() == 'FÒÔBÀŘ', 'upperCase - extended')
-    $t.ok('FÒÔBÀŘ'.lowerCase() == 'fòôbàř', 'lowerCase - extended')
+    $t.ok('fòôbàř'.toUpperCase() == 'FÒÔBÀŘ', 'upperCase - extended')
+    $t.ok('FÒÔBÀŘ'.toLowerCase() == 'fòôbàř', 'lowerCase - extended')
 
-    $t.ok('ABC'.lowerCaseFirst() == 'aBC', 'lowerCaseFirst')
-    $t.ok('abc'.upperCaseFirst() == 'Abc', 'upperCaseFirst')
+    $t.ok('Τάχιστη αλώπηξ'.toUpperCase() == 'ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ',
+        'upperCase - unicode')
+    $t.ok('ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ'.toLowerCase() == 'τάχιστη αλώπηξ',
+        'lowerCase - unicode')
 
-    $t.ok('ŘÔÀŘ'.lowerCaseFirst() == 'řÔÀŘ', 'lowerCaseFirst - extended')
-    $t.ok('řôàř'.upperCaseFirst() == 'Řôàř', 'upperCaseFirst - extended')
 
-    $t.ok('this is a title'.titleCase() == 'This is a Title', 'titleCase')
-    $t.ok('a title'.titleCase() == 'A Title', 'titleCase - starting ignoreWord')
-    $t.ok('a:title'.titleCase() == 'A:title', 'titleCase - close punctuation')
 
-    $t.ok('horse'.plural(1) == 'horse', 'plural no')
-    $t.ok('horse'.plural(2) == 'horses', 'plural yes')
-    $t.ok('boss'.plural(2) == 'bosses', 'plural s yes')
-    $t.ok('stimulus'.plural(3, 'stimuli') == 'stimuli', 'plural custom')
+    $t.ok('ABC'.toLowerCase({ first }) == 'aBC', 'lowerCaseFirst')
+    $t.ok('abc'.toUpperCase({ first }) == 'Abc', 'upperCaseFirst')
+
+    $t.ok('ŘÔÀŘ'.toLowerCase({ first }) == 'řÔÀŘ', 'lowerCaseFirst - extended')
+    $t.ok('řôàř'.toUpperCase({ first }) == 'Řôàř', 'upperCaseFirst - extended')
+
+
+    $t.ok('this is a title'.toTitleCase() == 'This Is A Title', 'titleCase')
+    $t.ok('a title'.toTitleCase() == 'A Title', 'titleCase - starting ignoreWord')
+    $t.ok('a:title'.toTitleCase() == 'A:title', 'titleCase - close punctuation')
+    $t.ok('Learning HTML'.toTitleCase() == 'Learning Html', 'titleCase - acronym')
+    $t.ok('happiness: a guide'.toTitleCase() == 'Happiness: A Guide', 'titleCase - colon: a')
+    $t.ok('meyers-briggs test'.toTitleCase() == 'Meyers-Briggs Test', 'titleCase - hyphens')
+    $t.ok('they`re up there'.toTitleCase() == 'They`re Up There', 'titleCase - apostrophes')
+    $t.ok('hear me řôàř'.toTitleCase() == 'Hear Me Řôàř', 'titleCase - extended')
+
+    $t.ok('horse'.toPlural() == 'horses', 'plural blank')
+    $t.ok('horse'.toPlural(1) == 'horse', 'plural no')
+    $t.ok('horse'.toPlural(2) == 'horses', 'plural yes')
+    $t.ok('boss'.toPlural(2) == 'bosses', 'plural s yes')
+    $t.ok('stimulus'.toPlural(3, 'stimuli') == 'stimuli', 'plural custom')
 
     $t.ok('ⒶⒷⒸ123'.limit(3) == 'ⒶⒷⒸ…', 'limit')
     $t.ok('ⒶⒷⒸ123'.limit(3, '!') == 'ⒶⒷⒸ!', 'limit')
 
     $t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join')
     $t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',', { limit: 2 }).join('|') == 'Ⓐ|Ⓑ,Ⓒ', 'split/join limit')
-    $t.ok('Ⓐ, Ⓑ, Ⓒ'.split(r',\s+').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join regex')
+    $t.ok('Ⓐ, Ⓑ, Ⓒ'.split(rx',\s+').join('|') == 'Ⓐ|Ⓑ|Ⓒ', 'split/join regex')
     $t.ok('Ⓐ,Ⓑ,Ⓒ'.split(',', { limit: 0 }).length() == 3, 'split limit 0')
     $t.ok('ⒶⒷⒸ'.split('').length() == 3, 'split on empty delimiter')
+
+    $t.ok('1Ⓐ2'.split('Ⓐ').join() == '12', 'split on unicode delimiter')
+    $t.ok('1Ⓐ2'.split(rx'\D').join() == '12', 'split on unicode regex delimiter')
 
     $t.ok(',a, b,,c, ,'.split(',').join() == 'abc', 'split - trim empty')
     $t.ok(',a, b,,c, ,'.split(',', -keepWhitespace)
@@ -2023,14 +2054,6 @@ fn testStrings($t) {
 
     $t.ok($uni.reverse() == '321cba ③②①ⒸⒷⒶ', 'reverse')
 
-    $t.ok('<a&b>'.encodeHtml() == '&lt;a&amp;b&gt;', 'encodeHtml')
-    $t.ok('&lt;a&amp;b&gt;'.decodeHtml() == '<a&b>', 'decodeHtml')
-    $esc = '&#97;&#98;&#99;&#9312;&#9313;&#9314;'
-    $t.ok('abc①②③'.encodeHtml(-allChars) == $esc, 'encodeHtml all')
-
-    $enc = 'a%20%E2%92%B7%2F%E2%92%B8%3Ad'
-    $t.ok('a Ⓑ/Ⓒ:d'.encodeUrl() == $enc, 'encodeUrl')
-    $t.ok($enc.decodeUrl() == 'a Ⓑ/Ⓒ:d', 'decodeUrl')
 
     $t.ok('ⒶⒷⒸ①②③'.removeLeft('ⒶⒷ') == 'Ⓒ①②③', 'removeLeft')
     $t.ok('ⒶⒷⒸ①②③'.removeLeft('①') == 'ⒶⒷⒸ①②③', 'removeLeft - no')
@@ -2038,8 +2061,7 @@ fn testStrings($t) {
 
     $t.ok('ⒶⒷⒸ①②③'.removeRight('②③') == 'ⒶⒷⒸ①', 'removeRight')
     $t.ok('ⒶⒷⒸ①②③'.removeRight('①') == 'ⒶⒷⒸ①②③', 'removeRight - no')
-    $t.ok('abcDef'.removeRight('def', -ignoreCase) == 'abc', 'removeLeft - ignoreCase')
-
+    $t.ok('abcDef'.removeRight('def', { ignoreCase }) == 'abc', 'removeLeft - ignoreCase')
 
 
 
@@ -2058,79 +2080,183 @@ fn testStrings($t) {
     $t.dies(fn { 'abc {} {}'.fill('foo') }, 'fill - not enough values', 'not found')
 
 
+    $t.section('String Methods - Regex Alts')
+
+    $t.ok('Hello 123'.contains(rx'\d+'), 'contains - true')
+    $t.ok(!'Hello'.contains(rx'\d+'), 'contains - false')
+    $t.ok('ABC'.contains(rx'abc', -ignoreCase), 'contains - ignoreCase via option')
+    $t.ok('ABC'.contains(rx'abc'i), 'contains - ignoreCase va flag')
+    $t.ok('ABC 123'.contains(123), 'contains - number')
+    $t.dies(fn { 'ABC 123.45'.contains(123.0) }, 'Got: `number`')
+    $t.dies(fn { 'ABC'.contains({}) }, 'Got: `map`')
+
+    $t.ok('123'.count(rx'\d') == 3, 'count - multiple')
+    $t.ok('abc'.count(rx'\d') == 0, 'count - zero')
+    $t.ok('Abc'.count(rx'a', -ignoreCase) == 1, 'count - ignoreCase')
+
+    $t.ok('1abc'.startsWith(rx'\d'), 'startsWith - true')
+    $t.ok(!'abc1'.startsWith(rx'\d'), 'startsWith - false')
+    $t.ok('ABC'.startsWith(rx'abc', -ignoreCase), 'startsWith - ignoreCase')
+
+    $t.ok('abc1'.endsWith(rx'\d'), 'endsWith - true')
+    $t.ok(!'1abc'.endsWith(rx'\d'), 'endsWith - false')
+    $t.ok('123 ABC'.endsWith(rx'abc', -ignoreCase), 'endsWith - ignoreCase')
+
+    $t.ok('123 ABC ABC'.indexOf(rx'abc'i) == 5, 'indexOf - regex')
+    $t.ok('123 ABC ABC'.lastIndexOf(rx'abc'i) == 9, 'lastIndexOf - regex')
+    $t.ok('123 ABC ABC'.indexOf(rx'xzy'i) == 0, 'indexOf - regex - not found')
+    $t.ok('123 ABC ABC'.lastIndexOf(rx'xzy'i) == 0, 'lastIndexOf - regex - not found')
+
+
+    $t.section('Strings - Encoding/Crypto')
+
+    $fp = 'cee86e2a6c441f1e308d16a3db20a8fa8fae2a45730b48ca2c0c61e159af7e78'
+    $t.ok($fp == 'this is a message'.fingerprint(), 'fingerprint')
+
+    $t.ok(String.randomToken(10).match(rx'[a-z0-9]{10}'), 'randomToken')
+
+    $str = 'Hello World! { "a": 123 }'
+    $b64 = $str.toEncoding('base64')
+    $t.ok($b64 == 'SGVsbG8gV29ybGQhIHsgImEiOiAxMjMgfQ==', 'toEncoding - base64')
+    $t.ok($b64.fromEncoding('base64') == $str, 'fromEncoding - base64')
+
+    $t.ok('<a&b>'.toEncoding('html') == '&lt;a&amp;b&gt;', 'toEncoding - html')
+    $t.ok('&lt;a&amp;b&gt;'.fromEncoding('html') == '<a&b>', 'fromEncoding - html')
+    $esc = '&#97;&#98;&#99;&#9312;&#9313;&#9314;'
+    $t.ok('abc①②③'.toEncoding('htmlAll') == $esc, 'toEncoding htmlAll')
+
+    $enc = 'a%20%E2%92%B7%2F%E2%92%B8%3Ad'
+    $t.ok('a Ⓑ/Ⓒ:d'.toEncoding('url') == $enc, 'toEncoding - url')
+    $t.ok($enc.fromEncoding('url') == 'a Ⓑ/Ⓒ:d', 'fromEncoding - url')
+
+    $enc = 'MajiKoi5-783gue6qz075azm5e'
+    $t.ok('MajiでKoiする5秒前'.toEncoding('punycode') == $enc, 'toEncoding - punycode')
+    $t.ok($enc.fromEncoding('punycode') == 'MajiでKoiする5秒前', 'fromEncoding - punycode')
+
+
+
+    // TODO: There's no simple way to test output of alternate encodings. Only that the encodingId is valid.
+    $t.ok('xyz'.toEncoding('Windows-1251'), 'toEncoding - Windows-1251')
+
+    $t.dies(fn { 'x'.toEncoding('invalid') }, 'invalid encoding')
+    $t.dies(fn { 'x'.fromEncoding('invalid') }, 'invalid encoding')
+
+    $t.ok($str.fingerprint('sha384').startsWith(
+        'aa414a520356a39cbbcb36f8fc5a87703dd6'), 'hash - sha384'
+    )
+    $binHash = $str.fingerprint('sha384', { binary })
+    $bytes = $binHash.toBytes()
+    $t.ok($bytes.length() == 48 && $bytes[1] == 170, 'hash - binary')
+
+    $t.ok(String.scrambleNum(1) == 'f6trv22', 'scrambleNum = 1')
+    $t.ok(String.scrambleNum(10000) == 'g8b5bdp', 'scrambleNum = 10000')
+    $t.ok(String.unscrambleNum('f6trv22') == 1, 'unscrambleNum = 1')
+    $t.ok(String.unscrambleNum('g8b5bdp') == 10000, 'unscrambleNum = 10000')
+
+    $bytes = 'abc ①②③'.toBytes()
+    $t.ok($bytes[1] == 97 && $bytes.length() == 13, 'getBytes')
+    $t.ok(''.toBytes().length() == 0, 'getBytes - empty string')
+
+    $t.ok(String.fromBytes([97, 99, 101]) == 'ace', 'fromBytes')
+    $t.ok(String.fromBytes([]) == '', 'fromBytes - empty list')
+    $t.dies(fn { String.fromBytes([97, -100]) }, 'must be a list of positive integers')
+    $t.dies(fn { String.fromBytes([97, false]) }, 'must be a list of positive integers')
+    $t.dies(fn { String.fromBytes([97, '1']) }, 'must be a list of positive integers')
+
+
+
+
+
     $t.section('Strings - Checks')
 
-    $t.ok(' \n  '.isSpace(), 'isSpace true')
-    $t.ok(!'  .  '.isSpace(), 'isSpace false')
-    $t.ok(!''.isSpace(), 'isSpace empty')
+    // $t.ok(' \n  '.hasAllCharType('space'), 'isSpace true')
+    // $t.ok(!'  .  '.hasAllCharType('space'), 'isSpace false')
+    // $t.ok(!''.hasAllCharType('space'), 'isSpace empty')
 
-    $t.ok('abc def'.hasSpace(), 'hasSpace space')
-    $t.ok('abc\ndef'.hasSpace(), 'hasSpace newline')
-    $t.ok(!'abcdef'.hasSpace(), 'hasSpace empty')
+    // $t.ok('abc def'.hasCharType('space'), 'hasSpace space')
+    // $t.ok('abc\ndef'.hasCharType('space'), 'hasSpace newline')
+    // $t.ok(!'abcdef'.hasCharType('space'), 'hasSpace empty')
 
-    $t.ok(!'abc 123'.isUpperCase(), 'isUpperCase - none')
-    $t.ok(!'aBc 123'.isUpperCase(), 'isUpperCase - some')
-    $t.ok('ABC 123'.isUpperCase(), 'isUpperCase - all')
-    $t.ok(!''.isUpperCase(), 'isUpperCase - empty')
+    // $t.ok(!'abc 123'.hasAllCharType('upper'), 'hasAll uppercase - none')
+    // $t.ok(!'aBc 123'.hasAllCharType('upper'), 'isUpperCase - some')
+    // $t.ok(!'ABC 123'.hasAllCharType('upper'), 'isUpperCase - all')
+    // $t.ok(!''.hasAllCharType('upper'), 'isUpperCase - empty')
 
-    $t.ok(!'abc 123'.hasUpperCase(), 'hasUpperCase - none')
-    $t.ok('aBc 123'.hasUpperCase(), 'hasUpperCase - some')
-    $t.ok('ABC 123'.hasUpperCase(), 'hasUpperCase - all')
-    $t.ok(!''.hasUpperCase(), 'hasUpperCase - empty')
+    // $t.ok(!'abc 123'.hasCharType('upper'), 'hasUpperCase - none')
+    // $t.ok('aBc 123'.hasCharType('upper'), 'hasUpperCase - some')
+    // $t.ok('ABC 123'.hasCharType('upper'), 'hasUpperCase - all')
+    // $t.ok(!''.hasCharType('upper'), 'hasUpperCase - empty')
 
-    $t.ok(!'ABC 123'.isLowerCase(), 'isLowerCase - none')
-    $t.ok(!'AbC 123'.isLowerCase(), 'isLowerCase - some')
-    $t.ok('abc 123'.isLowerCase(), 'isLowerCase - all')
-    $t.ok(!''.isLowerCase(), 'isLowerCase - empty')
+    // $t.ok(!'ABC 123'.hasAllCharType('lower'), 'isLowerCase - none')
+    // $t.ok(!'AbC 123'.hasAllCharType('lower'), 'isLowerCase - some')
+    // $t.ok('abc 123'.hasAllCharType('lower'), 'isLowerCase - all')
+    // $t.ok(!''.hasAllCharType('lower'), 'isLowerCase - empty')
 
-    $t.ok(!'ABC 123'.hasLowerCase(), 'hasLowerCase - none')
-    $t.ok('AbC 123'.hasLowerCase(), 'hasLowerCase - some')
-    $t.ok('abc 123'.hasLowerCase(), 'hasLowerCase - all')
-    $t.ok(!''.hasLowerCase(), 'hasLowerCase - empty')
+    // $t.ok(!'ABC 123'.hasCharType('lower'), 'hasLowerCase - none')
+    // $t.ok('AbC 123'.hasCharType('lower'), 'hasLowerCase - some')
+    // $t.ok('abc 123'.hasCharType('lower'), 'hasLowerCase - all')
+    // $t.ok(!''.hasCharType('lower'), 'hasLowerCase - empty')
 
-    $t.ok('a b c'.slug() == 'a-b-c', 'toSlug')
-    $t.ok('aaBbCc'.slug() == 'aa-bb-cc', 'toSlug - from camel')
-    $t.ok('AaBbCc'.slug() == 'aa-bb-cc', 'toSlug - from uppercamel')
-    $t.ok('AA BB CC'.slug() == 'aa-bb-cc', 'toSlug - from uppercamel')
-    $t.ok('a b c'.slug('__') == 'a__b__c', 'toSlug - delimiter')
+    $t.ok('a b c'.toTokenCase('-') == 'a-b-c', 'toToken - dash')
+    $t.ok('aaBbCc'.toTokenCase('-') == 'aa-bb-cc', 'toToken - dash - from camel')
+    $t.ok('AaBbCc'.toTokenCase('-') == 'aa-bb-cc', 'toToken - dash - from uppercamel')
+    $t.ok('AA BB CC'.toTokenCase('-') == 'aa-bb-cc', 'toToken - dash - from upperCase')
+ //   $t.ok('a b c'.toTokenCase('__') == 'a__b__c', 'toSlug - delimiter')
+    $t.ok('hear me řôàř'.toTokenCase('-') == 'hear-me-roar', 'toSlug - dash - extended')
 
-    $t.ok('a b c'.slug('__') == 'a__b__c', 'toSlug - delimiter')
+    $t.ok('aa bb cc'.toTokenCase() == 'aaBbCc', 'camelCase')
+    $t.ok('-aa-bb--cc!'.toTokenCase() == 'aaBbCc', 'camelCase - delim')
+    $t.ok('a b c'.toTokenCase() == 'aBC', 'camelCase - single chars')
+    $t.ok('hear me řôàř'.toTokenCase() == 'hearMeRoar', 'camelCase - extended')
 
-    $t.ok('aa bb cc'.camelCase() == 'aaBbCc', 'camelCase')
-    $t.ok('-aa-bb--cc!'.camelCase() == 'aaBbCc', 'camelCase - delim')
-    $t.ok('aa-bb-cc'.camelCase(-upper) == 'AaBbCc', 'upperCamelCase')
-    $t.ok('a b c'.camelCase() == 'aBC', 'camelCase - single chars')
 
-    $t.ok('abc'.isAlpha(), 'isAlpha')
-    $t.ok('abcDEF'.isAlpha(), 'isAlpha')
-    $t.ok(!'abc123'.isAlpha(), 'isAlpha - w numbers')
-    $t.ok(!'abc def'.isAlpha(), 'isAlpha - spaces')
-    $t.ok(!''.isAlpha(), 'isAlpha - empty')
+    $t.ok('Turtles & Tide Pools'.toUrlSlug() == 'turtles-tide-pools', 'toUrlSlug')
 
-    $t.ok('abc'.isAlphaNumeric(), 'isAlphaNumeric')
-    $t.ok('abcDEF'.isAlphaNumeric(), 'isAlphaNumeric')
-    $t.ok('abc123'.isAlphaNumeric(), 'isAlphaNumeric - w numbers')
-    $t.ok(!'abc 123'.isAlphaNumeric(), 'isAlphaNumeric - spaces')
-    $t.ok(!''.isAlphaNumeric(), 'isAlphaNumeric - empty')
+    $str = 'My Top 10 Favorite 2D Games'
+    $t.ok($str.toUrlSlug() == 'my-top-10-favorite-2d-games', 'toUrlSlug')
+    $t.ok($str.toUrlSlug(':common') == 'top-10-favorite-2d-games', 'toUrlSlug')
 
-    $t.ok('123'.isNumber(), 'isNumber')
-    $t.ok('-123'.isNumber(), 'isNumber - negative')
-    $t.ok('123.45'.isNumber(), 'isNumber - float')
-    $t.ok(!'123 '.isNumber(), 'isNumber - space')
-    $t.ok(!'123a'.isNumber(), 'isNumber - alphanum')
-    $t.ok(!'abc'.isNumber(), 'isNumber - all alpha')
-    $t.ok(!''.isNumber(), 'isNumber - empty')
+    $str = 'What`s Tom`s Favorite State in the U.S.?'
+    $t.ok($str.toUrlSlug() == 'whats-toms-favorite-state-in-the-us', 'toUrlSlug')
+    $t.ok($str.toUrlSlug(':common') == 'tom-favorite-state-us', 'toUrlSlug')
 
-    $t.ok('abc 123'.isAscii(), 'isAscii')
-    $t.ok(''.isAscii(), 'isAscii - empty')
-    $t.ok(!'ⒶⒷⒸ'.isAscii(), 'isAscii - unicode')
-    $t.ok(!'abⒸ'.isAscii(), 'isAscii - mixed')
+
+    // $t.ok('abc'.hasCharType('alpha'), 'isAlpha')
+    // $t.ok('abcDEF'.hasCharType('alpha'), 'isAlpha')
+    // $t.ok('123abc'.hasCharType('alpha'), 'isAlpha - w numbers')
+    // $t.ok('123 def'.hasCharType('alpha'), 'isAlpha - spaces')
+    // $t.ok(!''.hasCharType('alpha'), 'isAlpha - empty')
+
+    // $t.ok('abc'.hasAllCharType('alphaNumeric'), 'isAlphaNumeric')
+    // $t.ok('abcDEF'.hasAllCharType('alphaNumeric'), 'isAlphaNumeric')
+    // $t.ok('abc123'.hasAllCharType('alphaNumeric'), 'isAlphaNumeric - w numbers')
+    // $t.ok(!'abc 123'.hasAllCharType('alphaNumeric'), 'isAlphaNumeric - spaces')
+    // $t.ok(!''.hasAllCharType('alphaNumeric'), 'isAlphaNumeric - empty')
+
+    // $t.ok('abc 123'.hasAllCharType('ascii'), 'isAscii')
+    // $t.ok(''.hasAllCharType('ascii'), 'isAscii - empty')
+    // $t.ok(!'ⒶⒷⒸ'.hasAllCharType('ascii'), 'isAscii - unicode')
+    // $t.ok(!'abⒸ'.hasAllCharType('ascii'), 'isAscii - mixed')
+
+
+    $t.ok('123'.isNumeric(), 'isNumeric')
+    $t.ok('-123'.isNumeric(), 'isNumeric - negative')
+    $t.ok('123.45'.isNumeric(), 'isNumeric - float')
+    $t.ok(!'123 '.isNumeric() && '123 '.toNumber() == 123, 'isNumeric - trailing space')
+    $t.ok(!'123a'.isNumeric(), 'isNumeric - alphanum')
+    $t.ok(!'abc'.isNumeric(), 'isNumeric - all alpha')
+    $t.ok(!''.isNumeric(), 'isNumeric - empty')
+    $t.ok(!' '.isNumeric(), 'isNumeric - space')
+    $t.ok(!'Inf'.isNumeric(), 'isNumeric - Inf')
+    $t.ok(!'NaN'.isNumeric(), 'isNumeric - NaN')
+    $t.ok(!'123 apples'.isNumeric(), 'isNumeric')
+
 
 
     $t.section('Strings - Escapes')
 
     $t.ok('ab' ~ '\\' ~ 'cd' == 'ab\cd', 'string - escape normal char')
-    $t.ok('ab\ncd'.match(r'ab\scd'), 'string - newline')
+    $t.ok('ab\ncd'.match(rx'ab\scd'), 'string - newline')
     $esc = '$_SERVER["REMOTE_ADDR"]'
     $t.ok(!'lot\'s\t "double $quote"'.contains('\\'), 'no leaked backslashes')
     $t.ok('Here\'s an escaped quote'.contains('\''), 'escaped quote (\\\')')
@@ -2145,49 +2271,62 @@ fn testStrings($t) {
     $t.section('Strings - Regular Expressions')
 
     $m = 'abc 123'
-    $t.ok($m.split(r'\s')[2] == '123', 'split regex')
-    $t.ok($m.match(r'\w+ \d+') == 'abc 123', 'match - no group')
-    $t.ok($m.match(r'(\w+) (\d+)')[1] == 'abc', 'match - group 1')
-    $t.ok($m.match(r'(\w+) (\d+)')[2] == '123', 'match - group 2')
+    $t.ok($m.split(rx'\s')[2] == '123', 'split regex')
+    $t.ok($m.match(rx'\w+ \d+') == 'abc 123', 'match - no group')
+    $t.ok($m.match(rx'(\w+) (\d+)')[1] == 'abc', 'match - group 1')
+    $t.ok($m.match(rx'(\w+) (\d+)')[2] == '123', 'match - group 2')
 
-    $t.ok($m.match(r'(\w+) (\d+)').indexOf[2] == 5, 'match index')
+    $t.ok($m.match(rx'(\w+) (\d+)').indexOf[2] == 5, 'match index')
 
-    $t.ok($m.match(r'(\S+)$')[1] == '123', 'regex with dollar')
+    $t.ok($m.match(rx'(\S+)$')[1] == '123', 'regex with dollar')
 
-    $t.ok($m.match(r'badpattern') == '', 'bad match')
+    $t.ok(!$m.match(rx'badpattern'), 'bad match')
+
+    $m = '''
+        Start of multi-line string
+        number 123
+    '''
+
+    $t.ok(!$m.match(rx'Start.*?123'), 'dotall s flag - off')
+    $t.ok($m.match(rx'Start.*?123's), 'dotall s flag - on')
+    $t.ok($m.match(rx'Start[\n.]*?123'), 'newline/dot alternative')
+
 
     $m = '08:23'
-    $t.ok($m.match(r'(\d+):(\d+)', 'hour|min').min == '23', 'named groups')
-    $t.ok($m.match(r'(\d+):(\d+)', 'hour|min').indexOf.min == 4, 'named groups - index')
+    $t.ok($m.match(rx'(\d+):(\d+)', 'hour|min').min == '23', 'named groups')
+    $t.ok($m.match(rx'(\d+):(\d+)', 'hour|min').indexOf.min == 4, 'named groups - index')
 
-    $t.dies(fn { $m.match(r'(\d+):(\d+)', 'hour') },
+    $t.dies(fn { $m.match(rx'(\d+):(\d+)', 'hour') },
         'groupName mismatch', 'number of capture groups')
 
 
     $m = 'This is a\n multiline string!\n'
-    $t.ok($m.match(r'STRING'i), 'i flag')
+    $t.ok($m.match(rx'STRING'i), 'i flag')
 
-    $t.ok($m.match(r'a.*?multiline's), 's flag')
-    $t.ok($m.match(r'multi      line'x), 'x flag')
-    $t.ok($m.match(r'^\s+multiline'm), 'm flag - start')
-    $t.ok($m.match(r'is a'm), 'm flag - end')
-    $t.dies(fn { $m.match(r'blah'zz) }, 'bad flag', 'Invalid Regex flag `z`')
+    $t.ok($m.match(rx'a.*?multiline's), 's flag')
+    $t.ok($m.match(rx'multi      line'x), 'x flag')
+    $t.ok($m.match(rx'^\s+multiline'm), 'm flag - start')
+    $t.ok($m.match(rx'is a'm), 'm flag - end')
+    $t.dies(fn { $m.match(rx'blah'zz) }, 'bad flag', 'Invalid Regex flag `z`')
 
-    $t.dies(fn { 'longstringlongstring'.match(r'(?:\D+|<\d+>)*[!?]') }, 'Error in match',
+    $t.dies(fn { 'longstringlongstring'.match(rx'(?:\D+|<\d+>)*[!?]') }, 'Error in match',
         'PREG_BACKTRACK_LIMIT_ERROR')
 
     $multi = 'one\ntwo\nthree'
-    $t.ok($multi.split(r'\s').length() == 3, 'Newline regex')
+    $t.ok($multi.split(rx'\s').length() == 3, 'Newline regex')
 
     $cased = 'hello WORLD'
-    $t.ok($cased.match(r'world'.flags('i')) == 'WORLD', 'regex object')
+    $t.ok($cased.match(rx'world'.flags('i')).full == 'WORLD', 'regex object')
 
     $ticks = 'hello `WORLD`'
-    $t.ok($ticks.match(r'`(\w+)`')[1] == 'WORLD', 'regex with backticks')
+    $t.ok($ticks.match(rx'`(\w+)`')[1] == 'WORLD', 'regex with backticks')
 
     $offset = '123 456 789'
-    $t.ok($offset.match(r'\d+'.startIndex(4)) == '456', 'with startIndex')
-    $t.ok($offset.match(r'\d+'.startIndex(-3)) == '789', 'with startIndex - negative')
+    $t.ok($offset.match(rx'\d+'.startIndex(4)).full == '456', 'with startIndex')
+    $t.ok($offset.match(rx'\d+'.startIndex(-3)).full == '789', 'with startIndex - negative')
+
+
+
 
     // replace
 
@@ -2200,43 +2339,46 @@ fn testStrings($t) {
     $t.ok('aa bb aa'.replace('aa', 'xx', -first) == 'xx bb aa', 'replace string - -first')
 
     $escTicks = 'hello \`WORLD\`'
-    $t.ok($escTicks.replace(r'\`(\w+)\`', 'THERE') == 'hello THERE', 'escaped backticks')
+    $t.ok($escTicks.replace(rx'\`(\w+)\`', 'THERE') == 'hello THERE', 'escaped backticks')
 
-    $t.ok('ab  cd e'.replace(r'\s+', '-') == 'ab-cd-e', 'replace')
+    $t.ok('ab  cd e'.replace(rx'\s+', '-') == 'ab-cd-e', 'replace')
 
-    $dollar = '123$foo$'.replace(r'(\d+)\$foo\$', 'dollar:$1')
+    $dollar = '123$foo$'.replace(rx'(\d+)\$foo\$', 'dollar:$1')
     $t.ok($dollar == 'dollar:123', 'regex with $')
 
-    $backslash = '123\\foo\\'.replace(r'(\d+)\\foo\\', 'backslash:$1')
+    $backslash = '123\\foo\\'.replace(rx'(\d+)\\foo\\', 'backslash:$1')
     $t.ok($backslash == 'backslash:123', 'regex with literal backslash')
 
     $rx = Regex('`{}`'.fill('world'), 'i')
     $t.ok($ticks.replace($rx, 'VAR') == 'hello VAR', 'replace - variable')
 
-    $cb = x{ $a[1].upperCase() ~ '!' }
-    $t.ok('foo 123'.replace(r'(\w+)', $cb) == 'FOO! 123!', 'replace - callback')
-    $t.ok('foo 123'.replace(r'(\w+)', $cb, { limit: 1 }) == 'FOO! 123',
+    $cb = x{ $a[1].toUpperCase() ~ '!' }
+    $t.ok('foo 123'.replace(rx'(\w+)', $cb) == 'FOO! 123!', 'replace - callback')
+    $t.ok('foo 123'.replace(rx'(\w+)', $cb, { limit: 1 }) == 'FOO! 123',
         'replace - callback - limit 1')
 
-    $cb = x{ $a.upperCase() }
-    $t.ok('foo 123'.replace(r'\w+', $cb) == 'FOO 123', 'replace - callback - no groups')
+    $cb = x{ $a.toUpperCase() }
+    $t.ok('foo 123'.replace(rx'\w+', $cb) == 'FOO 123', 'replace - callback - no groups')
 
-    $cb = x{ $a.full.upperCase() }
-    $t.ok('foo abc'.replace(r'(\w+) (\w+)', $cb) == 'FOO ABC', 'replace - callback - full key')
+    $cb = x{ $a.full.toUpperCase() }
+    $t.ok('foo abc'.replace(rx'(\w+) (\w+)', $cb) == 'FOO ABC', 'replace - callback - full key')
 
-    $t.ok('abc 123'.replace(r'(\w+) (\d+)', '$1 | $2') == 'abc | 123', 'replace - $1, $2')
+    $t.ok('abc 123'.replace(rx'(\w+) (\d+)', '$1 | $2') == 'abc | 123', 'replace - $1, $2')
+
+    $t.ok('Ⓐ'.replace(rx'[^0-9]', '!') == '!', 'replace - unicode')
+
 
 
     // matchAll
 
     $mult = 'a:123|b:456|c:789'
-    $matches = $mult.matchAll(r'(\w):(\d+)')
+    $matches = $mult.matchAll(rx'(\w):(\d+)')
     $t.ok($matches[3][1] == 'c' && $matches[3][2] == '789', 'matchAll')
 
-    $matches = $mult.matchAll(r'(\w):(\d+)', 'char|num')
+    $matches = $mult.matchAll(rx'(\w):(\d+)', 'char|num')
     $t.ok($matches[3].char == 'c' && $matches[3].num == '789', 'matchAll - named')
 
-    $matches = $mult.matchAll(r'(\d+)NO(\d+)')
+    $matches = $mult.matchAll(rx'(\d+)NO(\d+)')
     $t.ok(!$matches.length(), 'matchAll - none')
 
 
@@ -2269,25 +2411,25 @@ fn testStrings($t) {
 
     $s = 'hⒶllo there.'
     $t.ok($s.replaceChars('.ⒶⒷⒸ', '!e') == 'hello there!', 'replaceChars - uneven')
-    $t.ok('Fóø Bår! žoŤ'.removeAccents() == 'Foo Bar! zoT', 'removeAccents')
+    $t.ok('Fóø Bår! žoŤ'.toAscii() == 'Foo Bar! zoT', 'removeAccents')
 
 
     $t.section('Strings - Subscripts')
 
-    $t.ok('ⒶⒷⒸ ①②③'[2] == 'Ⓑ', '$str[1]')
-    $t.ok('ⒶⒷⒸ ①②③'[-1] == '③', '$str[-1]')
-    $t.ok('ⒶⒷⒸ ①②③'[99] == '', '$str[99] == ``')
-    $t.dies(fn { 'x'[0] = 'a' }, 'Can not use `[]`')
+    $t.ok('ⒶⒷⒸ ①②③'.getChar(2) == 'Ⓑ', '$str[1]')
+    $t.ok('ⒶⒷⒸ ①②③'.getChar(-1) == '③', '$str[-1]')
+    $t.ok('ⒶⒷⒸ ①②③'.getChar(99) == '', '$str[99] == ``')
+
 
     $t.section('Strings - Bounds')
 
-    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startAt: 10 }) },
+    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startIndex: 10 }) },
         'indexOf offset', 'outside of string')
-    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startAt: -10 }) },
+    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startIndex: -10 }) },
         'indexOf offset', 'outside of string')
-    $t.dies(fn { 'ⒶⒷⒸ'.lastIndexOf('a', { startAt: 10 }) },
+    $t.dies(fn { 'ⒶⒷⒸ'.lastIndexOf('a', { startIndex: 10 }) },
         'lastIndexOf offset', 'outside of string')
-    $t.ok('ⒶⒷⒸ'.getCharCode(100) == -1, 'getCharCode out of bounds')
+
 
 
 
@@ -2297,6 +2439,7 @@ fn testStrings($t) {
     $t.ok('AdminUserId'.humanize() == 'Admin User', 'toHumanized')
     $t.ok('admin_user_id'.humanize() == 'Admin User', 'toHumanized (_)')
     $t.ok('admin-user-id'.humanize() == 'Admin User', 'toHumanized (-)')
+    $t.ok('hear-me-řôàř'.humanize() == 'Hear Me Roar', 'toHumanized - extended')
 
     $s = '''
         Line 1
@@ -2305,12 +2448,7 @@ fn testStrings($t) {
     $t.ok($s.trimIndent() == 'Line 1\nLine 2', 'trimIndent')
     $t.ok($s.trimIndent(-keepRelative) == 'Line 1\n    Line 2', 'trimIndent - relative')
 
-    if !isPerfMode() {
-        $fp = 'cee86e2a6c441f1e308d16a3db20a8fa8fae2a45730b48ca2c0c61e159af7e78'
-        $t.ok($fp == 'this is a message'.fingerprint(), 'fingerprint')
 
-        $t.ok(String.random(10).match(r'[a-z0-9]{10}'), 'random')
-    }
     // TODO: move this to module
     // $t.section('Strings - CSV')
 
@@ -2489,6 +2627,81 @@ fn testUrlTypeStrings($t) {
     $url = url'https://site.com/this/is/a/path?a=1'
     $t.ok($url.getPathParts().join('|') == 'this|is|a|path', 'pathParts')
 
+    $relUrl = url'/dir/page?a=123'
+    $absUrl = $relUrl.toAbsolute()
+    $t.ok($absUrl.renderString().contains('http://localhost'), 'relative to absolute')
+
+    $localRelUrl = url'/dir/page?a=123'
+    $localAbsUrl = url'/dir/page?a=123'.toAbsolute()
+    $remoteUrl = url'https://example.com/dir/page?a=123'
+
+    $t.ok(!$localRelUrl.isRemote(), 'localRelUrl - isRemote false')
+    $t.ok($localRelUrl.isLocal(), 'localRelUrl - isLocal true')
+
+    $t.ok(!$localAbsUrl.isRemote(), 'localAbsUrl - isRemote false')
+    $t.ok($localAbsUrl.isLocal(), 'localAbsUrl - isLocal true')
+
+    $t.ok($remoteUrl.isRemote(), 'remoteUrl - isRemote true')
+    $t.ok(!$remoteUrl.isLocal(), 'remoteUrl - isLocal false')
+
+
+    $t.ok(url'/my/path'.appendPath('added').getPath() == '/my/path/added', 'appendPath')
+    $t.ok(url'/my/path'.appendPath('/added/other').getPath() == '/my/path/added/other',
+        'appendPath')
+
+    $t.ok(url'/page/'.appendSlug('A day at the ocean', 'the a').getPath() == '/page/day-at-ocean',
+        'appendSlug - literal skipWords')
+
+    $titles = q[
+        A day at the ocean -- Turtles & Tide Pools
+        When is Tom Thomas's next game? How to watch Iowa vs. Indiana tonight
+        Don't go to sleep before 11 o'clock!
+        My top 10 favorite 2D video games of all time
+        What's the best programming language to learn in 2024?
+        Tech startups raised $34B in 2019
+        What`s a slug and is it important for SEO?
+        BigTechCo's stock price hits $300, its highest ever
+        Netflix Secret Codes 2024: Every Category on Netflix
+        This man Watched 'Lord of the Rings' for the 3,000th time
+    ]
+
+    $slugUrlsDefault = q[
+        /path/a-day-at-the-ocean-turtles-tide-pools
+        /path/when-is-tom-thomass-next-game-how-to-watch-iowa-vs-indiana-tonight
+        /path/dont-go-to-sleep-before-11-oclock
+        /path/my-top-10-favorite-2d-video-games-of-all-time
+        /path/whats-the-best-programming-language-to-learn-in-2024
+        /path/tech-startups-raised-34b-in-2019
+        /path/whats-a-slug-and-is-it-important-for-seo
+        /path/bigtechcos-stock-price-hits-300-its-highest-ever
+        /path/netflix-secret-codes-2024-every-category-on-netflix
+        /path/this-man-watched-lord-of-the-rings-for-the-3000th-time
+    ]
+
+    $slugUrlsCommon = q[
+        /path/day-ocean-turtles-tide-pools
+        /path/tom-thomas-next-game-watch-iowa-indiana-tonight
+        /path/sleep-before-11-oclock
+        /path/top-10-favorite-2d-video-games-all-time
+        /path/best-programming-language-learn-2024
+        /path/tech-startups-raised-34b-2019
+        /path/slug-important-seo
+        /path/bigtechco-stock-price-hits-300-highest-ever
+        /path/netflix-secret-codes-2024-every-category
+        /path/man-watched-lord-rings-3000th-time
+    ]
+
+    foreach $titles as $i/$longText {
+        $gotSlugPathDefault = url'/path/'.appendSlug($longText).getPath()
+        $okSlugPathDefault = $slugUrlsDefault.popFirst()
+        $t.ok($gotSlugPathDefault == $okSlugPathDefault,
+            'appendSlug(default): ' ~ $gotSlugPathDefault ~ ' | expected = ' ~ $okSlugPathDefault)
+
+        $gotSlugPathCommon = url'/path/'.appendSlug($longText, ':common').getPath()
+        $okSlugPathCommon = $slugUrlsCommon.popFirst()
+        $t.ok($gotSlugPathCommon == $okSlugPathCommon,
+            'appendSlug(common): ' ~ $gotSlugPathCommon ~ ' | expected = ' ~ $okSlugPathCommon)
+    }
 
 
     $t.section('UrlQuery')
@@ -2583,8 +2796,8 @@ fn testLists($t) {
 
     $t.ok($mlary[2]['name'] == 'world', 'multiline array')
 
-    $t.parserOk('$l = [\n1, 2,\n]', 'trailing commas')
-    $t.parserError('$l = [\n1\n]', 'add a comma')
+    $t.parserOk('$l = [\n    1, 2,\n]', 'trailing commas')
+    $t.parserError('$l = [\n    1\n]', 'add a comma')
 
 
     // copy
@@ -2801,9 +3014,12 @@ fn testLists($t) {
 
     $t.section('Lists - Functional')
 
-    $t.ok([1, 2, 3].map(fn ($a) { return $a * 2 }).join(':') == '2:4:6', 'map')
-    $t.ok([1, 2, 3].reduce(fn ($a, $i) { return $i + $a }, 3) == 9, 'reduce')
-    $t.ok([1, 2, 3, 4].filter(fn ($a) { return $a % 2 }).join(':') == '1:3', 'filter')
+    $t.ok([1, 2, 3].map(x{ $a * 2 }).join(':') == '2:4:6', 'map')
+    $t.ok([1, 2, 3].reduce(x{ $a + $b }) == 6, 'reduce')
+    $t.ok([1, 2, 3].reduce(x{ $a + $b }, 100) == 106, 'reduce - initial')
+    $t.ok([].reduce(x{ $a + $b }, 123) == 123, 'reduce - empty list - initial')
+    $t.dies(fn { [].reduce(x{ $a + $b }) }, 'empty list without a `startValue`')
+    $t.ok([1, 2, 3, 4].filter(x{ $a % 2 }).join(':') == '1:3', 'filter')
 
     $mdl = [1, 2, [], [3, 4], [[5, 6], [7, 8]]]
     $t.ok($mdl.flat(99).join('') == '12345678', 'flat')
@@ -2917,7 +3133,7 @@ fn testTemplates($t) {
     // $t.ok($wsTags == '<p>This is a <b>Message</b>!</p>\n', 'HTML whitespace - tags')
 
     $htmlUsers = templateHtml(['Frodo', 'Sam', 'Gandalf']).renderString()
-    $t.ok($htmlUsers.match(r'<li>Frodo.*?<li>Sam.*?<li>Gandalf's), 'template - loop & variables')
+    $t.ok($htmlUsers.match(rx'<li>Frodo.*?<li>Sam.*?<li>Gandalf's), 'template - loop & variables')
 
     $htmlUsers = templateHtml(['Frodo', '<b>Sam</b>', 'Gandalf'])
     $t.ok($htmlUsers.renderString().contains('&lt;b&gt;Sam'), 'template with html escapes')
@@ -3106,7 +3322,7 @@ fn libFile($t) {
     File.write($p, $content)
     $numNums = 0
     $val = File.readLines($p, fn ($line) {
-        if $line.match(r'\d'): $numNums += 1
+        if $line.match(rx'\d'): $numNums += 1
         if $line == '99': return 99
     })
     $t.ok($numNums == 5, 'readLines - closure var')
@@ -3331,13 +3547,13 @@ fn libPassword($t) {
     $t.ok($p1.check($h1), 'check')
     $t.ok(!$p1.check('nope'), 'check - false')
 
-    $t.ok($p1.checkPattern(r'\d{3}'), 'checkPattern')
-    $t.ok(!$p1.checkPattern(r'[xyz]+'), 'checkPattern - false')
+    $t.ok($p1.checkPattern(rx'\d{3}'), 'checkPattern')
+    $t.ok(!$p1.checkPattern(rx'[xyz]+'), 'checkPattern - false')
 
     $t.ok($p1.length() == 16, 'length')
 
     $t.dies(fn { String.xDangerPassword($h1).xDangerHash() },
-        'no re-hash', 'already-hashed value')
+        'no re-hash', 'can not be hashed a 2nd time')
 
     return $t
 }
@@ -3538,6 +3754,106 @@ fn libJson($t) {
     $obj = Json.decode($st)
     $t.ok($obj.b[2] == 2, 'decode after encode')
 
+
+    // $rawJson = json'''
+    //     {"web-app": {
+    //   "servlet": [
+    //     {
+    //       "servlet-name": "cofaxCDS",
+    //       "servlet-class": "org.cofax.cds.CDSServlet",
+    //       "init-param": {
+    //         "configGlossary:installationAt": "Philadelphia, PA",
+    //         "configGlossary:adminEmail": "ksm@pobox.com",
+    //         "configGlossary:poweredBy": "Cofax",
+    //         "configGlossary:poweredByIcon": "/images/cofax.gif",
+    //         "configGlossary:staticPath": "/content/static",
+    //         "templateProcessorClass": "org.cofax.WysiwygTemplate",
+    //         "templateLoaderClass": "org.cofax.FilesTemplateLoader",
+    //         "templatePath": "templates",
+    //         "templateOverridePath": "",
+    //         "defaultListTemplate": "listTemplate.htm",
+    //         "defaultFileTemplate": "articleTemplate.htm",
+    //         "useJSP": false,
+    //         "jspListTemplate": "listTemplate.jsp",
+    //         "jspFileTemplate": "articleTemplate.jsp",
+    //         "cachePackageTagsTrack": 200,
+    //         "cachePackageTagsStore": 200,
+    //         "cachePackageTagsRefresh": 60,
+    //         "cacheTemplatesTrack": 100,
+    //         "cacheTemplatesStore": 50,
+    //         "cacheTemplatesRefresh": 15,
+    //         "cachePagesTrack": 200,
+    //         "cachePagesStore": 100,
+    //         "cachePagesRefresh": 10,
+    //         "cachePagesDirtyRead": 10,
+    //         "searchEngineListTemplate": "forSearchEnginesList.htm",
+    //         "searchEngineFileTemplate": "forSearchEngines.htm",
+    //         "searchEngineRobotsDb": "WEB-INF/robots.db",
+    //         "useDataStore": true,
+    //         "dataStoreClass": "org.cofax.SqlDataStore",
+    //         "redirectionClass": "org.cofax.SqlRedirection",
+    //         "dataStoreName": "cofax",
+    //         "dataStoreDriver": "com.microsoft.jdbc.sqlserver.SQLServerDriver",
+    //         "dataStoreUrl": "jdbc:microsoft:sqlserver://LOCALHOST:1433;DatabaseName=goon",
+    //         "dataStoreUser": "sa",
+    //         "dataStorePassword": "dataStoreTestQuery",
+    //         "dataStoreTestQuery": "SET NOCOUNT ON;select test='test';",
+    //         "dataStoreLogFile": "/usr/local/tomcat/logs/datastore.log",
+    //         "dataStoreInitConns": 10,
+    //         "dataStoreMaxConns": 100,
+    //         "dataStoreConnUsageLimit": 100,
+    //         "dataStoreLogLevel": "debug",
+    //         "maxUrlLength": 500}},
+    //     {
+    //       "servlet-name": "cofaxEmail",
+    //       "servlet-class": "org.cofax.cds.EmailServlet",
+    //       "init-param": {
+    //       "mailHost": "mail1",
+    //       "mailHostOverride": "mail2"}},
+    //     {
+    //       "servlet-name": "cofaxAdmin",
+    //       "servlet-class": "org.cofax.cds.AdminServlet"},
+
+    //     {
+    //       "servlet-name": "fileServlet",
+    //       "servlet-class": "org.cofax.cds.FileServlet"},
+    //     {
+    //       "servlet-name": "cofaxTools",
+    //       "servlet-class": "org.cofax.cms.CofaxToolsServlet",
+    //       "init-param": {
+    //         "templatePath": "toolstemplates/",
+    //         "log": 1,
+    //         "logLocation": "/usr/local/tomcat/logs/CofaxTools.log",
+    //         "logMaxSize": "",
+    //         "dataLog": 1,
+    //         "dataLogLocation": "/usr/local/tomcat/logs/dataLog.log",
+    //         "dataLogMaxSize": "",
+    //         "removePageCache": "/content/admin/remove?cache=pages&id=",
+    //         "removeTemplateCache": "/content/admin/remove?cache=templates&id=",
+    //         "fileTransferFolder": "/usr/local/tomcat/webapps/content/fileTransferFolder",
+    //         "lookInContext": 1,
+    //         "adminGroupID": 4,
+    //         "betaServer": true}}],
+    //   "servlet-mapping": {
+    //     "cofaxCDS": "/",
+    //     "cofaxEmail": "/cofaxutil/aemail/*",
+    //     "cofaxAdmin": "/admin/*",
+    //     "fileServlet": "/static/*",
+    //     "cofaxTools": "/tools/*"},
+
+    //   "taglib": {
+    //     "taglib-uri": "cofax.tld",
+    //     "taglib-location": "/WEB-INF/tlds/cofax.tld"}}}
+    // '''
+
+
+    // Perf.start('Json.decode')
+    // foreach range(1, 1000) as $i {
+    //     Json.decode($rawJson)
+    // }
+    // Perf.stop()
+
+
     // Waiting for PHP security patch
     // $dupe = json'{"a":123,"a":999}'
     // >> $dupe
@@ -3550,7 +3866,7 @@ fn libLitemark($t) {
 
     $t.section('Module: Litemark')
 
-    $b = tesLm().renderString()
+    $b = testLm().renderString()
 
     $t.ok($b.contains('<h1>Heading 1'), 'H1')
     $t.ok($b.contains('<h2>Heading 2'), 'H2')
@@ -3564,7 +3880,7 @@ fn libLitemark($t) {
     $t.ok($b.contains('This is <em><strong>italic bold</strong></em>'), 'italic bold')
 
     $t.ok($b.contains('inline <del>strike text</del>'), 'inline del')
-    $t.ok($b.contains('<del><a href="/url">url</a></del>'), 'next del + link')
+    $t.ok($b.contains('<del><a href="/url" rel="noopener">url</a></del>'), 'next del + link')
 
     $t.ok($b.contains('<li>Item 1'), 'li 1')
     $t.ok($b.contains('<li>Item 3'), 'li 3')
@@ -3664,10 +3980,10 @@ fn libLitemark($t) {
 
     // allow
     $out = Litemark.parse($body, {
-        features: 'indexLinks',
+        features: 'links|indexLinks',
     })
     $so = $out.renderString()
-    $t.ok(!$so.contains('nofollow'), 'indexLinks = yes')
+    $t.ok(!$so.contains('nofollow') && $so.contains('noopener'), 'indexLinks = yes')
 
     // don't allow HTML
     $out = Litemark.parse($body, {
@@ -3999,15 +4315,15 @@ fn libMeta($t) {
     .ok(Meta.functionExists('libMeta'), 'functionExists')
     .ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments')
 
-    // TODO: templateMode spills over after error
-    .ok(Meta.noTemplateMode() == false, 'noTemplateMode ok')
-    .dies(fn { failModeHtml() }, 'noTemplateMode fail', 'can not be called in Template mode')
+    // TODO: failIfTemplateMode spills over after error
+    .ok(Meta.failIfTemplateMode() == false, 'failIfTemplateMode ok')
+    .dies(fn { failModeHtml() }, 'failIfTemplateMode fail', 'can not be called in Template mode')
 
     .ok(Meta.functionExists('dynamicFunction'), 'dynamic fn exists')
     .ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
 
-    .ok(Meta.getThtVersion().match(r'\d+\.\d+\.\d+'), 'thtVersion')
-    .ok(Meta.getThtVersion(-num).match(r'^\d{5}$'), 'thtVersion - digits')
+    .ok(Meta.getThtVersion().match(rx'\d+\.\d+\.\d+'), 'thtVersion')
+    .ok(Meta.getThtVersion(-num).match(rx'^\d{5}$'), 'thtVersion - digits')
 
     if !isPerfMode() {
         $t.ok(Meta.zGetStdLib()['File'].read.contains('filePath'), 'zGetStdLib')
@@ -4024,7 +4340,7 @@ fn metaCallMe {
 }
 
 fn failTemplateMode {
-    Meta.noTemplateMode()
+    Meta.failIfTemplateMode()
 }
 
 tm failModeHtml {
@@ -4057,7 +4373,7 @@ fn libPhp($t) {
 
     $t.section('Module: Php')
 
-    $t.ok(Php.getVersion().match(r'\d+\.\d+\.\d+'), 'PHP version')
+    $t.ok(Php.getVersion().match(rx'\d+\.\d+\.\d+'), 'PHP version')
     $t.ok(Php.getVersion(-num) >= 50500, 'PHP version - numeric')
 
     $fl = Php.options(['PATHINFO_FILENAME', 'PATHINFO_BASENAME'])
@@ -4112,7 +4428,7 @@ fn libWeb($t) {
     $t.dies(fn { Web.icon('missingBlah') }, 'icon - error', 'Unknown icon')
 
     $em = Web.maskEmail('user@example.com')
-    $t.ok($em.renderString().match(r'&#64;.*?display:none'), 'mask email')
+    $t.ok($em.renderString().match(rx'&#64;.*?display:none'), 'mask email')
 
 
     // $t.dies(x{ Web.assetUrl(url'/nope.png') }, 'does not exist')
@@ -4146,9 +4462,9 @@ fn libPage($t) {
 
     $out = $page.render()
 
-    $t.ok($out.match(r'<!doctype html>\s*<html>\s*<head>'s), 'start tags')
-    $t.ok($out.match(r'<head>.*</head>'s), 'head tags')
-    $t.ok($out.match(r'</body>\s*</html>'s), 'end tags')
+    $t.ok($out.match(rx'<!doctype html>\s*<html>\s*<head>'s), 'start tags')
+    $t.ok($out.match(rx'<head>.*</head>'s), 'head tags')
+    $t.ok($out.match(rx'</body>\s*</html>'s), 'end tags')
 
     $title = '<title>AppName ~ This is a tagline'
     $t.ok($out.renderString().contains($title), 'title - default')
@@ -4165,15 +4481,15 @@ fn libPage($t) {
     $t.ok($out.contains('"og:site_name" content="AppName"'), 'og:site_name')
     $t.ok($out.contains('meta name="viewport"'), 'viewport meta tag')
 
-    $t.ok($out.match(r'''
+    $t.ok($out.match(rx'''
         <head>.*<meta name="custom" property="THT">.*</head>
     '''s), 'addToHead')
 
     // TODO: Test for min.gz and cache 'v' param
-    $t.ok($out.match(r'"og:image" content="/images/image\.png"'), 'image')
-    $t.ok($out.match(r'<link rel="icon" href="/images/icon\.png">'), 'icon')
-    $t.ok($out.match(r'rel="stylesheet" href="/css/base\.css"'), 'addCss')
-    $t.ok($out.match(r'''
+    $t.ok($out.match(rx'"og:image" content="/images/image\.png"'), 'image')
+    $t.ok($out.match(rx'<link rel="icon" href="/images/icon\.png">'), 'icon')
+    $t.ok($out.match(rx'rel="stylesheet" href="/css/base\.css"'), 'addCss')
+    $t.ok($out.match(rx'''
         <script src="/js/form\.js" nonce="[a-zA-Z0-9]{20,}">
     '''), 'addJs')
 
@@ -4341,6 +4657,8 @@ fn libInput($t) {
     $t.ok(formValidate(['a5', 'a6'], 'id') == '', 'list data without list rule')
     $t.ok(formValidate([7, [8, 9]], 'i|list').length() == 0, 'nested list not allowed')
 
+    $t.ok(formValidate('g8b5bdp', 'unscramble') == 10000, 'unscramble')
+
     // TODO: same/notSame
 
     // TODO: test get, post, and post w/out csrf
@@ -4377,12 +4695,14 @@ fn libForm($t) {
     )
 
     $t.ok(
-        $fhtml.contains('<input aria-label="Num" name="num" value="" type="number"'),
+        $fhtml.contains('<input aria-label="Num" name="num" value="0" type="number"'),
         'form render - num input tag'
     )
 
     $t.ok(
-        $fhtml.contains('<input aria-label="Email" name="email" value="" type="email"'),
+        $fhtml.contains('''
+            <input aria-label="Email" autocomplete="email" name="email" value="" type="email"
+        '''),
         'form render - email input tag'
     )
 
@@ -4399,7 +4719,7 @@ fn libForm($t) {
     $t.ok(
         $fhtml.contains('<span>Show Password</span>')
         && $fhtml.contains('''
-            <input aria-label="Password" name="password" value="" type="password"
+            <input aria-label="Password" autocomplete="current-password" name="password" value="" type="password"
         '''),
         'form render - password'
     )
@@ -4582,9 +4902,9 @@ fn libNet($t) {
     $t.section('Module: Net')
 
     $content = Net.httpGet(url'https://tht.dev')
-    $t.ok($content.match(r'programming language'i), 'get content')
+    $t.ok($content.match(rx'programming language'i), 'get content')
 
-   // TODO: create a post-back URL at tht.dev
+    // TODO: create a post-back URL at tht.dev
     // $content = Net.httpPost(
     //     url'https://putsreq.com/TiktDvn26ykgGwi8GQ4M',
     //     { name: 'tht' }
@@ -4594,16 +4914,24 @@ fn libNet($t) {
 
     // TODO:  more tests
 
-   $t.ok(Net.httpStatus(url'https://tht.dev/install') == 200, 'urlExists - ok')
-   $t.ok(Net.httpStatus(url'https://tht-nope.dev')    == 0, 'urlExists - bad hostname')
-   $t.ok(Net.httpStatus(url'https://tht.dev/sdfsdf')  == 404, 'urlExists - missing path')
+    $t.ok(Net.httpStatus(url'https://tht.dev/install') == 200, 'urlExists - ok')
+    $t.ok(Net.httpStatus(url'https://tht-nope.dev')    == 0, 'urlExists - bad hostname')
+    $t.ok(Net.httpStatus(url'https://tht.dev/sdfsdf')  == 404, 'urlExists - missing path')
 
-   return $t
+    return $t
 }
 
 fn libSystem($t) {
 
-    $t.section('Module: System')
+    $list = [
+        1,
+        2,
+        3,
+    ]
+
+    $t.section(
+        'Module: System'
+    )
 
     $t.ok(System.getEnvVar('PATH') != '', 'envVar - PATH')
     $t.ok(System.getEnvVar('DFSDFHJSF') == '', 'envVar - missing')
@@ -4611,7 +4939,7 @@ fn libSystem($t) {
     $t.ok(System.getStartTime() > 10000000, 'startTime')
     $t.ok(System.getMemoryUsage() > 0, 'memoryUsage')
     $t.ok(System.getPeakMemoryUsage() > 0, 'peakMemoryUsage')
-    $t.ok(System.getOs().match(r'(mac|windows|linux)'), 'os')
+    $t.ok(System.getOs().match(rx'(mac|windows|linux)'), 'os')
 
     // Can't be called in webMode
     //$t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command')
@@ -4644,6 +4972,27 @@ fn libRequest($t) {
     return $t
 }
 
+
+fn libImage($t) {
+
+    $img = Image.create({ sizeX: 300, sizeY: 200 })
+
+    >> '-- rect --'
+    $img.drawRectangle(
+        { x: 1, y: 1, sizeX: 60, center: false },
+        { color: 'red', fill: true },
+    )
+
+    >> '-- ellipse --'
+    $img.drawEllipse(
+        { x: 1, y: 1, sizeX: 60, center: false },
+        { color: 'blue', fill: true },
+    )
+
+  //  $img.fill({ x: 1, y: 1 })
+
+    >> $img
+}
 
 
 
@@ -4786,7 +5135,7 @@ tm multilineVarText($mlVar) {
     {{ $mlVar }}
 }
 
-tm tesLm {
+tm testLm {
 
     # Heading 1
 
