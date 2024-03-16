@@ -22,15 +22,15 @@ tm pageHtml {
 
     <ul>
        <li> <a href="/examples/hello"> hello.tht
-       <li> <a href="/examples/hello-html"> helloHtml.tht
-       <li> <a href="/examples/hello-page"> helloPage.tht
-       <li> <a href="/examples/hello-query?name=Your+Name"> helloQuery.tht
-       <li> <a href="/examples/hello-form"> helloForm.tht
-       <li> <a href="/examples/route-colors"> routeColors.tht
-       <li> <a href="/examples/contact-form"> contactForm.tht
-       <li> <a href="/examples/checkbox-form"> checkboxForm.tht
-       <li> <a href="/examples/upload-form"> uploadForm.tht
-       <li> <a href="/examples/ajax-weather"> ajaxWeather.tht
+       <li> <a href="/examples/hello-html"> hello-html.tht
+       <li> <a href="/examples/hello-page"> hello-page.tht
+       <li> <a href="/examples/hello-query?name=Your+Name"> hello-query.tht
+       <li> <a href="/examples/hello-form"> hello-form.tht
+       <li> <a href="/examples/route-colors"> route-colors.tht
+       <li> <a href="/examples/contact-form"> contact-form.tht
+       <li> <a href="/examples/checkbox-form"> checkbox-form.tht
+       <li> <a href="/examples/upload-form"> upload-form.tht
+       <li> <a href="/examples/ajax-weather"> ajax-weather.tht
        <li> <a href="/examples/database"> database.tht
     </>
 }

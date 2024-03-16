@@ -9,7 +9,7 @@
     //---------------------------------------------------
 
     routes: {
-        /examples/colors-route/{color}: examples/routeColors.tht
+        /examples/colors-route/{color}: examples/route-colors.tht
     }
 
 
