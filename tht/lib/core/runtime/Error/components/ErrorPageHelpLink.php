@@ -107,7 +107,7 @@ class ErrorPageHelpLink extends ErrorPageComponent {
         }
 
         $label = $mod . '.' . $fun;
-        $urlStem = v($mod)->u_slug() . '/' . v($fun)->u_slug();
+        $urlStem = v($mod)->u_to_token_case('-') . '/' . v($fun)->u_to_token_case('-');
 
         $this->setLink("/manual/$urlDir/$urlStem", $label);
     }
