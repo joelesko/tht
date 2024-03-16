@@ -127,8 +127,9 @@ class u_Page_Object extends OClass {
             }
         }
         else if ($part == 'image' || $part == 'icon') {
-          //  $this->validateAssetUrl(new UrlTypeString($val));
-           // $val = Tht::module('Web')->u_image_url($val)->u_render_string();
+            // TODO: need this?
+            // $this->validateAssetUrl(new UrlTypeString($val));
+            // $val = Tht::module('Web')->u_image_url($val)->u_render_string();
         }
 
         if (is_array($this->parts[$part])) {
@@ -457,7 +458,7 @@ class u_Page_Object extends OClass {
 
     function cleanOutputVal($val) {
         $val = preg_replace('/\s+/', ' ', trim($val));
-        $val = v($val)->u_encode_html();
+        $val = v($val)->u_to_encoding('html');
 
         return $val;
     }
@@ -499,8 +500,13 @@ class u_Page_Object extends OClass {
 
                 // Inline it in the HTML document
                 $str = $path->u_render_string();
+
                 if ($type == 'js' && !preg_match('#\s*\(function\(\)\{#', $str)) {
                     $str = "(function(){" . $str . "})();";
+                }
+
+                if ($type == 'css') {
+                    $str = Tht::module('Output')->parseIndentCss($str);
                 }
 
                 $vals = OMap::create([
@@ -522,6 +528,12 @@ class u_Page_Object extends OClass {
 
     function validateAssetUrl($url) {
 
+        // Only validate js/css.
+        if (!preg_match('/\.(css|js)/i', $url->u_get_path())) {
+            return;
+        }
+
+        // Don't check remote assets.
         if (!$url->u_is_relative()) {
             return;
         }
