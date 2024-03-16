@@ -69,10 +69,12 @@ class ErrorPageHtml {
                     <div class='tht-error-trace'><?= $c['stackTrace'] ?></div>
                 <?php } ?>
 
-                <?php self::printPrintBuffer() ?>
+
 
             </div>
         </div>
+
+        <?php self::printPrintBuffer() ?>
 
     </body>
     </html>
