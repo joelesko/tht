@@ -112,7 +112,7 @@ class u_Output extends OStdModule {
         }
     }
 
-    function renderChunks($chunks) {
+    function renderChunks($chunks, $type='') {
 
         // Normalize. Could be a single TypeString, OList, or a PHP array
         if (! (is_object($chunks) && v($chunks)->u_type() == 'list')) {
@@ -121,7 +121,16 @@ class u_Output extends OStdModule {
 
         $out = '';
         foreach ($chunks->val as $c) {
-            $out .= OTypeString::getUntyped($c, '');
+            $chunkOut = $c->u_render_string();
+            if ($type == 'css') {
+                $chunkOut = Tht::module('Output')->parseIndentCss($chunkOut);
+                $chunkOut = Tht::module('Output')->minifyCss($chunkOut);
+                $out .= $chunkOut;
+            }
+            else if ($type == 'js') {
+                $chunkOut = Tht::module('Output')->minifyJs($chunkOut);
+                $out .= $chunkOut;
+            }
         }
         return $out;
     }
@@ -170,7 +179,7 @@ class u_Output extends OStdModule {
         $this->u_set_header('Content-Type', 'text/css; charset=utf-8');
         $this->u_set_cache_header($expiryDelta);
 
-        $out = $this->renderChunks($chunks);
+        $out = $this->renderChunks($chunks, 'css');
 
         $out = $this->scanAssetUrls($out);
 
@@ -189,7 +198,7 @@ class u_Output extends OStdModule {
         $this->u_set_cache_header($expiryDelta);
 
         $out = "(function(){\n";
-        $out .= $this->renderChunks($chunks);
+        $out .= $this->renderChunks($chunks, 'js');
         $out .= "\n})();";
 
         $this->output($out, 'js');
@@ -200,6 +209,17 @@ class u_Output extends OStdModule {
     }
 
     function u_send_html ($html) {
+
+        $html = OTypeString::getUntyped($html, 'html');
+
+        $html = $this->scanAssetUrls($html);
+
+        $this->output($html, 'html');
+
+        return EMPTY_RETURN;
+    }
+
+    function u_send_image ($imageObj) {
 
         $html = OTypeString::getUntyped($html, 'html');
 
@@ -334,15 +354,15 @@ class u_Output extends OStdModule {
 
     // Undocumented for now.
     // Indent-style CSS
-    function parseIndentCss($str) {
+    public function parseIndentCss($str) {
 
-        if (!preg_match('/^@outline/', ltrim($str))) {
+        if (!preg_match('/^@indent/', ltrim($str))) {
             return $str;
         }
 
         $lines = explode("\n", $str);
 
-        array_shift($lines); // remove @outline heading
+        array_shift($lines); // remove @indent heading
 
         $out = '';
         $inBlock = false;
@@ -437,8 +457,6 @@ class u_Output extends OStdModule {
         return preg_replace('/[:;\{\}]/', '', $v);
     }
 }
-
-
 
 class AssetOptimizer {
 
@@ -535,9 +553,9 @@ class AssetOptimizer {
 
     function optimizeImage($fullPath) {
 
-        require_once('helpers/Image.php');
+        require_once('helpers/ImageOptimizer.php');
 
-        $im = new u_Image();
+        $im = new u_Image_Optimizer();
 
         $newImage = $im->optimize($fullPath, 1200, 'optimized');
 
@@ -585,6 +603,11 @@ class AssetOptimizer {
         }
 
         $minContent = Tht::module('*File')->u_read($origFullPath, OMap::create(['join' => true]));
+
+        if ($type == 'css') {
+            $minContent = Tht::module('Output')->parseIndentCss($minContent);
+        }
+
 
         // Minify
         if ($doMinify) {
