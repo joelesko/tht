@@ -12,7 +12,28 @@ class ORegex extends OVar {
     private $startIndex = ONE_INDEX;
 
     function __toString() {
-        return $this->getPattern();
+        return $this->toStringToken();
+    }
+
+    public function jsonSerialize():mixed {
+        return $this->toStringToken();
+    }
+
+    public function u_to_string() {
+        return $this->toStringToken();
+    }
+
+    function toStringToken() {
+        $summary = $this->getPattern();
+        return self::getStringToken($this->bareClassName(), $summary);
+    }
+
+
+    public function u_on_print() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->toStringToken();
     }
 
     function __construct ($pat, $flags='') {
@@ -32,8 +53,12 @@ class ORegex extends OVar {
     function getRawPattern() {
 
         $pat = str_replace('/', '\\/', $this->pattern);
-
         return $pat;
+    }
+
+    function setPattern($pat) {
+
+        $this->pattern = $pat;
     }
 
     function u_flags ($f) {
@@ -44,7 +69,7 @@ class ORegex extends OVar {
         return $this;
     }
 
-    function u_start_index ($startIndex = ONE_INDEX) {
+    function u_start_index ($startIndex) {
 
         $this->ARGS('i', func_get_args());
         $this->startIndex = $startIndex;

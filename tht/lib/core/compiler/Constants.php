@@ -45,7 +45,7 @@ abstract class Glyph {
     const TEMPLATE_CODE_LINE = '---';
     const STRING_PREFIXES = 'r';
     const QUOTED_LIST_PREFIX = 'q';
-    const REGEX_PREFIX = 'r';
+    const REGEX_PREFIX = 'rx';
     const LAMBDA_PREFIX = 'x';
     const QUOTE = "'";
     const QUOTE_FENCE = "'''";
