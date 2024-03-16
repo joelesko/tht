@@ -270,9 +270,7 @@ trait FormBuilder {
 
     function fieldNameToLabel($fieldName) {
 
-        $cleanName = preg_replace('/(Id|ID|_id)$/', '', $fieldName);
-
-        return v(v($cleanName)->u_slug(' '))->u_title_case();
+        return v($fieldName)->u_humanize();
     }
 
     // Wrap input with label, optional tag, help text, etc.
