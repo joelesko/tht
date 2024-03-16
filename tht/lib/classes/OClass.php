@@ -104,6 +104,14 @@ trait HookMethods {
     }
 
     // Override.  Returns object summary.
+    public function u_on_print() {
+
+        $this->ARGS('', func_get_args());
+
+        return $this->toStringToken();
+    }
+
+    // Override.  Returns object summary.
     public function u_on_string_token() {
 
         $this->ARGS('', func_get_args());
@@ -232,16 +240,10 @@ class OClass implements \JsonSerializable {
         return $plain;
     }
 
-    function error($msg, $contextMethod='') {
+    function error($msg) {
 
         $context = $this->errorContext ? $this->errorContext : $this->type;
         ErrorHandler::addOrigin($context);
-
-        $addedError = $this->addErrorHelpLink($contextMethod);
-
-        if (!$addedError) {
-            $msg .= ' Object: `' . $this->bareClassName() . '`';
-        }
 
         Tht::error($msg);
     }
@@ -267,7 +269,7 @@ class OClass implements \JsonSerializable {
 
     function argumentError($msg, $method) {
 
-        $methodToken = v(unu_($method))->u_slug();
+        $methodToken = v(unu_($method))->u_to_token_case('-');
         $methodLabel = unu_($method);
 
         $label = $this->bareClassName() . '.' . $methodLabel;
@@ -710,7 +712,7 @@ class OClass implements \JsonSerializable {
 
         foreach ($elements as $e) {
             if (hasu_($e)) {
-                $userElements []= v(unu_($e))->u_camel_case();
+                $userElements []= v(unu_($e))->u_to_token_case();
             }
         }
 
