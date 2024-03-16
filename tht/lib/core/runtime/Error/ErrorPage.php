@@ -115,8 +115,9 @@ class ErrorPage {
             if (preg_match('/^[A-Z]/', $m[1][0])) {
                 $isUpper = true;
             }
-            $upperFlag = $isUpper ? OMap::create(['upper' => true]) : null;
-            return v($m[1])->u_camel_case($upperFlag);
+            $token = v($m[1])->u_to_token_case();
+
+            return $isUpper ? v($token)->u_to_case('upperFirst') : $token;
         };
 
         $v = $raw;
