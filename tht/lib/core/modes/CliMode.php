@@ -247,7 +247,6 @@ class CliMode {
         self::confirmNewApp($appDir);
 
         try {
-
             $appRoot = self::initNewAppBaseDirs($appDir);
             Tht::initAppPaths($appRoot);
 
@@ -256,19 +255,11 @@ class CliMode {
             Tht::module('*File')->u_copy_dir($srcPath, $appDir);
 
             self::copyLocalThtRuntimeToApp();
-
             self::createAppFavicon(basename($appDir));
-
-             self::createAppFavicon('My');
-             self::createAppFavicon('Wp');
-             self::createAppFavicon('Ja');
-             self::createAppFavicon('Tr');
-             self::createAppFavicon('Li');
-             self::createAppFavicon('As');
-
-        } catch (\Exception $e) {
-
-            echo "<!> Sorry, something went wrong.\n\n";
+            self::writeAppName(basename($appDir));
+        }
+        catch (\Exception $e) {
+            echo "\n<!> Sorry, something went wrong.\n\n";
             echo "  " . $e->getMessage() . "\n\n";
             if (file_exists(Tht::path('app'))) {
                 echo "> Move or delete your app directories before trying again:\n\n  " . Tht::path('app');
@@ -344,39 +335,23 @@ class CliMode {
 
     static function createAppFavicon($appName) {
 
+        if (!extension_loaded('gd')) { return false; }
+
         $text = strtoupper(substr($appName, 0, 1));
 
-        $image = imagecreate(128, 128);
-        imagecolorallocate($image, 0,0,0);
-        $textColor = imagecolorallocate($image, 255,255,255);
+        $icon = Tht::module('Image')->u_create(OMap::create([ 'sizeX' => 128, 'sizeY' => 128 ]));
 
-        imagefilledrectangle($image, 0, 128 - 12, 128, 128 - 10, $textColor);
+        $icon->u_fill(OMap::create([ 'x' => 1, 'y' => 1 ]), OMap::create([ 'color' => 'white' ]));
+        $icon->u_draw_text($text, OMap::create([ 'x' => 1, 'y' => 20, 'alignX' => 'center', 'fontSize' => 110, 'sizeX' => 128, 'color' => 'black' ]));
 
-        $size = 80;
-        $angle = 0;
-        $font = Tht::path('localTht', 'lib/modules/helpers/resources/opensans_min.ttf');
+        $icon->u_save('public/images/favicon_128.png');
+    }
 
-        // origin is bottom left of baseline
-        list($blX, $blY, $brX, $brY, $trX, $trY, $tlX, $tlY) = imagettfbbox($size, $angle, $font, $text);
-
-        print("--- $text ---\n");
-        print_r([
-            [$blX, $blY], [$brX, $brY], [$trX, $trY], [$tlX, $tlY]
-        ]);
-
-        $textSizeX = $trX - $tlX;
-        $textSizeY = $blY - $tlY;
-
-     //   print($text . ' = ' . $textSizeY . " sizeY \n");
-
-        $x = 20;
-        $baselineY = 100;
-        imagettftext($image, $size, $angle, $x, $baselineY, $textColor, $font, $text);
-
-        imagerectangle($image, $x + $blX, $baselineY - $textSizeY, $x + $textSizeX, $baselineY, $textColor);
-
-        imagepng($image, Tht::path('images', 'favicon_' . $text . '_128.png'));
-        imagepng($image, Tht::path('images', 'favicon_128.png'));
-        imagedestroy($image);
+    static function writeAppName($appName) {
+        $moduleFilePath = Tht::path('modules', 'App.tht');
+        $content = Tht::module('*File')->u_read($moduleFilePath, OMap::create([ 'join' => true ]));
+        $content = str_replace('MyApp', v($appName)->u_to_token_case('label'), $content);
+        Tht::module('*File')->u_write($moduleFilePath, $content);
     }
 }
+
