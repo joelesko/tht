@@ -21,6 +21,10 @@ class Security {
 
     static private $prevHash = null;
 
+    static private $hashIdAlphabetNormal = "0123456789abcdefghijklmnop";
+    static private $hashIdAlphabetCustom = "256789bcdfghjkmnpqrstvwxyz";
+    static private $hashIdAlphabetBase = 26;
+
     static private $PHP_BLOCKLIST_MATCH = '/pcntl_|posix_|proc_|ini_|mysql|sqlite/i';
 
     static private $PHP_BLOCKLIST = [
@@ -94,6 +98,11 @@ class Security {
 
     // Filter super globals and move them to internal data
     static function initRequestData () {
+
+        if (!Tht::module('Request')->u_is_https() && !Security::isDev()) {
+            ErrorHandler::setHelpLink('https://certbot.eff.org/', 'Convert to HTTPS');
+            self::error("Input data (GET & POST) can only be processed when the app is served as HTTPS.");
+        }
 
         $data = [
             'get'     => $_GET,
@@ -191,21 +200,22 @@ class Security {
         }
     }
 
-    static function hashString($raw) {
+    static function hashString($raw, $algo='sha256', $asBinary=false) {
 
         self::checkPrevHash($raw);
 
-        $hash = hash('sha256', $raw);
+        $hash = hash($algo, $raw, $asBinary);
         self::$prevHash = $hash;
 
         return $hash;
     }
 
-    // Prevent well-meaning attempts to hash a string multiple times for "extra" security.
+    // Prevent attempts to hash a string multiple times
     static function checkPrevHash($raw) {
 
         if (!is_null(self::$prevHash) && $raw == self::$prevHash) {
-            self::error('Hashing an already-hashed value results in a value that is easier to attack.');
+            $shorter = substr($raw, 0, 10) . "...";
+            self::error("The hash string `$shorter` can not be hashed a 2nd time. Doing so would create a less unique hash and would be less secure.");
         }
     }
 
@@ -238,7 +248,7 @@ class Security {
         $token = Tht::module('Session')->u_get('csrfToken', '');
 
         if (!$token) {
-            $token = Tht::module('String')->u_random(self::$CSRF_TOKEN_LENGTH);
+            $token = Tht::module('String')->u_random_token(self::$CSRF_TOKEN_LENGTH);
             Tht::module('Session')->u_set('csrfToken', $token);
         }
 
@@ -284,44 +294,104 @@ class Security {
         return $str;
     }
 
-    // https://bishopfox.com/blog/json-interoperability-vulnerabilities
-    static function jsonDecode($rawJsonString) {
+    // Based on https://github.com/marekweb/opaque-id
+    static function encodeHashId($i) {
 
-        // TODO: unfortunately, the standard json_decode doesn't have a flag to fail on duplicate keys
+        $transcoded = self::hashIdTranscode($i);
+        $baseX = base_convert($transcoded, 10, self::$hashIdAlphabetBase);
+        $hashId = strtr($baseX, self::$hashIdAlphabetNormal, self::$hashIdAlphabetCustom);
+
+        return $hashId;
+    }
+
+    static function decodeHashId($hash) {
+
+        $decoded = strtr($hash, self::$hashIdAlphabetCustom, self::$hashIdAlphabetNormal);
+        $base10 = base_convert($decoded, self::$hashIdAlphabetBase, 10);
+        $intId = self::hashIdTranscode($base10);
+
+        return $intId;
+    }
+
+    static function hashIdTranscode($i) {
+        $r = $i & 0xffff;
+        $l = $i >> 16 & 0xffff ^ self::hashIdTransform($r);
+        return (($r ^ self::hashIdTransform($l)) << 16) + $l;
+    }
+
+    static private function hashIdTransform($i) {
+
+        $secretKeyHex = Tht::getConfig('scrambleNumSecretKey');
+
+        if (!preg_match('/^[0-9a-f]{8}+$/', $secretKeyHex)) {
+            $randomHex = self::randomHex(8);
+            self::error("Config key `scrambleNumSecretKey` must be a 8-digit hex string. Got: `$secretKeyHex` Try: `$randomHex` (randomly generated)");
+        }
+        $secretKeyDec = hexdec($secretKeyHex);
+
+        $i = ($secretKeyDec ^ $i) * 0x9e3b;
+        return $i >> ($i & 0xf) & 0xffff;
+    }
+
+    static function randomHex($numDigits) {
+        $hex = '';
+        for ($i = 0; $i < $numDigits; $i += 1) {
+            $hex .= dechex(rand(0,15));
+        }
+        return $hex;
+    }
+
+    static function createUuid($isRandom=false) {
+
+        // https://stackoverflow.com/questions/2040240/php-function-to-generate-v4-uuid
+        if ($isRandom) {
+            $data = random_bytes(16);
+            $data[6] = chr(ord($data[6]) & 0x0f | 0x40); // set version bit
+            $data[8] = chr(ord($data[8]) & 0x3f | 0x80); // set bits 6-7 to 10
+            return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
+        }
+        else {
+            return uniqid('', true);
+        }
+    }
+
+    // https://bishopfox.com/blog/json-interoperability-vulnerabilities
+    static function jsonDecode($rawJsonString, $useAlt=false) {
+
+        $jsonData = '';
+
+        // TODO: Fail on duplicate keys. Unfortunately, the stdlib json_decode doesn't have a flag to do so.
         $jsonData = json_decode($rawJsonString, false, JSON_INVALID_UTF8_SUBSTITUTE);
 
         if (is_null($jsonData)) {
-            self::error("Unable to decode JSON string: `" . v($rawJsonString)->u_limit(20) . "`");
+            Tht::module('Json')->error("Unable to decode JSON string: `" . v($rawJsonString)->u_limit(20) . "`");
         }
 
-        return self::convertJsonToBags($jsonData);
+        $bagged = self::convertJsonToBags($jsonData);
+
+        return $bagged;
     }
 
     // Recursively convert to THT Lists and Maps
-   static private function convertJsonToBags ($obj, $key='(root)') {
+    static private function convertJsonToBags ($obj, $key='(root)') {
 
         if (is_object($obj)) {
-
             $map = [];
             foreach (get_object_vars($obj) as $key => $val) {
                 $map[$key] = self::convertJsonToBags($val, $key);
             }
-
             return OMap::create($map);
         }
         else if (is_array($obj)){
-
             foreach ($obj as $i => $val) {
                 $obj[$i] = self::convertJsonToBags($obj[$i], $i);
             }
-
             return OList::create($obj);
         }
         else {
-            if ($obj === INF) {
+            if (is_float($obj) && (is_infinite($obj) || is_nan($obj))) {
                 self::error("Invalid large number for JSON key `$key`.");
             }
-
             return $obj;
         }
     }
@@ -538,7 +608,6 @@ class Security {
     static function isCrossSiteRequest() {
 
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Sec-Fetch-Site
-        // Note: Safari currently does not support this.
         $site = Tht::getPhpGlobal('headers', 'sec-fetch-site');
 
         // Only allow requests from same-site and browser action (address-bar/bookmarks, etc)
@@ -705,7 +774,11 @@ class Security {
         // Set response headers
         header_remove('Server');
         header_remove("X-Powered-By");
+
+        // This overlaps with frame-ancestors 'none' in the CSP
+        // https://infosec.mozilla.org/guidelines/web_security.html#x-frame-options
         header('X-Frame-Options: deny');
+
         header('X-Content-Type-Options: nosniff');
 
         // HSTS - 1 year duration
@@ -717,6 +790,12 @@ class Security {
         if ($csp != 'xDangerNone') {
             header("Content-Security-Policy: $csp");
         }
+
+        header('Cross-Origin-Resource-Policy: same-site');
+
+        header('Cross-Origin-Embedder-Policy: require-corp');
+        header('Cross-Origin-Opener-Policy: same-origin');
+
     }
 
     // Content Security Policy (CSP)
@@ -732,7 +811,7 @@ class Security {
             // TODO: make this a config param for whitelist
             $frame = "*";
 
-            $csp = "default-src 'self'; script-src 'strict-dynamic' $eval $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src data: *; font-src *; frame-src $frame";
+            $csp = "default-src 'self'; script-src 'strict-dynamic' $eval $nonce; style-src 'unsafe-inline' *; img-src data: *; media-src data: *; font-src *; frame-src $frame; frame-ancestors 'none'";
         }
 
         return $csp;
@@ -826,27 +905,38 @@ class Security {
         return $in;
     }
 
-    static function escapeHtml($in, $options = '') {
+    static function escapeHtml($str, $options = '') {
 
-        if (OTypeString::isa($in)) {
-            $type = $in->u_string_type();
-            $in = $in->u_render_string();
+        if (OTypeString::isa($str)) {
+            $type = $str->u_string_type();
+            $str = $str->u_render_string();
             if ($type == 'html') {
-                return $in;
+                return $str;
             }
         }
 
         if ($options == 'removeTags') {
-            $in = self::removeHtmlTags($in);
+            $str = self::removeHtmlTags($str);
         }
 
-        return htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+        return htmlspecialchars($str, ENT_QUOTES|ENT_HTML5, 'UTF-8');
+    }
+
+    static function escapeHtmlAllChars($str) {
+        $str = mb_convert_encoding($str, 'UTF-32', 'UTF-8');
+        $nums = unpack("N*", $str);
+        $out = '';
+        while (count($nums)) {
+            $n = array_shift($nums);
+            $out .= "&#$n;";
+        }
+        return $out;
     }
 
     // Only remove complete tags.  Assume standalone `<` and `>` will be escaped.
     static function removeHtmlTags($in) {
 
-         return preg_replace('/<.*?>/', '', $in);
+         return preg_replace('/<.*?>/s', '', $in);
     }
 
     static function unescapeHtml($in) {
