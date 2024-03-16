@@ -164,7 +164,7 @@ class ErrorPageStackTrace extends ErrorPageComponent {
             }
             $a = str_replace('\"', '"', $a);  // strip extra escaping for json strings
             $num = $i + 1;
-            $out .= $this->out("<div class='tht-error-args-line'>$num. " . v($a)->u_encode_html() . "</div>", "    $num. $a");
+            $out .= $this->out("<div class='tht-error-args-line'>$num. " . v($a)->u_to_encoding('html') . "</div>", "    $num. $a");
             $out .= "\n";
         }
         $out .= $this->out("</div>", "");
