@@ -20,10 +20,9 @@ class OStdModule extends OClass implements \JsonSerializable {
         return $c == 'SystemX' ? 'System' : $c;
     }
 
-    function error($msg, $contextMethod='') {
+    function error($msg) {
 
         ErrorHandler::addOrigin('stdModule.' . strtolower($this->getClass()));
-        $this->addErrorHelpLink($contextMethod);
 
         Tht::error($msg);
     }
@@ -35,7 +34,7 @@ class OStdModule extends OClass implements \JsonSerializable {
     // TODO: duplicated with OClass
     function argumentError($msg, $method) {
 
-        $methodToken = v($method)->u_slug();
+        $methodToken = v($method)->u_to_token_case('-');
         $methodLabel = $method;
 
         $label = $this->getClass() . '.' . $methodLabel;
