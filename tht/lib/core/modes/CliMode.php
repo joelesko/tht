@@ -12,7 +12,6 @@ class CliMode {
         'server' => 'server',
         'info'   => 'info',
         'fix'    => 'fix',
-        'images' => 'images',
      // 'run'    => 'run',
     ];
 
@@ -45,10 +44,6 @@ class CliMode {
             else if ($firstOption === self::$CLI_OPTIONS['fix']) {
                 self::fix();
             }
-            // else if ($firstOption === self::$CLI_OPTIONS['images']) {
-            //     $actionOrDir = isset(self::$options[1]) ? self::$options[1] : 0;
-            //     Tht::module('Image')->optimizeImages($actionOrDir);
-            // }
             // else if ($firstOption === self::$CLI_OPTIONS['run']) {
             //     // Tht::init();
             //     // Compiler::process(self::$options[1]);
@@ -70,7 +65,6 @@ class CliMode {
         echo "  · info            get detailed config and install info\n";
         echo "  · server          start the local test server (port: 3333)\n";
         echo "  · server <port>   start the local test server on a custom port\n";
-     //   echo "  images          compress images in your document root by up to 70%\n";
      // echo "tht run <filename>   (run script in scripts directory)\n";
 
         echo "\n> Usage: tht [command]\n";
@@ -88,13 +82,6 @@ class CliMode {
         echo "-$line" . "-\n";
         echo "     $title     \n";
         echo "-$line" . "-\n\n";
-
-        // $title = trim($title);
-        // $line = str_repeat('-', strlen($title) + 8);
-
-        // echo "\n";
-        // echo '|' . $title . "\n";
-        // echo $line . "\n\n";
 
         flush();
     }
@@ -257,6 +244,7 @@ class CliMode {
             self::copyLocalThtRuntimeToApp();
             self::createAppFavicon(basename($appDir));
             self::writeAppName(basename($appDir));
+            self::writeScrambleKey();
         }
         catch (\Exception $e) {
             echo "\n<!> Sorry, something went wrong.\n\n";
@@ -348,10 +336,20 @@ class CliMode {
     }
 
     static function writeAppName($appName) {
-        $moduleFilePath = Tht::path('modules', 'App.tht');
-        $content = Tht::module('*File')->u_read($moduleFilePath, OMap::create([ 'join' => true ]));
-        $content = str_replace('MyApp', v($appName)->u_to_token_case('label'), $content);
-        Tht::module('*File')->u_write($moduleFilePath, $content);
+        $filePath = Tht::path('modules', 'App.tht');
+        self::replaceText($filePath, 'MyApp', v($appName)->u_to_token_case('label'));
+    }
+
+    static function writeScrambleKey() {
+        $filePath = Tht::path('config', 'app.local.jcon');
+        $key = Security::getRandomScrambleKey();
+        self::replaceText($filePath, '__scrambleNumSecretKey__', $key);
+    }
+
+    static function replaceText($filePath, $search, $replace) {
+        $content = Tht::module('*File')->u_read($filePath, OMap::create([ 'join' => true ]));
+        $content = str_replace($search, $replace, $content);
+        Tht::module('*File')->u_write($filePath, $content);
     }
 }
 
