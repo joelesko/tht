@@ -355,7 +355,7 @@ class OClass implements \JsonSerializable {
                     $origType = v($this->$uk)->u_type();
                     $newType = v($v)->u_type();
                     if ($origType != $newType) {
-                        $this->oopError("Field `$k` must be of type `$origType`.  Got: `$newType`");
+                        $this->oopError("Field `$k` must be of type: `$origType`   Got: `$newType`");
                     }
                     $this->$uk = $v;
                 }
@@ -467,7 +467,7 @@ class OClass implements \JsonSerializable {
 
         // Field exists but is not public
         if (property_exists($this, $ufield)) {
-            $this->oopError("Can not read private field `$plainField`.");
+            $this->oopError("Can not read private field: `$plainField`");
         }
 
         // If there is a method of the same name, suggest that
@@ -486,11 +486,11 @@ class OClass implements \JsonSerializable {
 
         if (property_exists($this, $ufield)) {
             $setter = 'set' . ucfirst($plainField);
-            $this->oopError("Can not write directly to field `$plainField`. Try: Using a setter function, ex: `$setter`");
+            $this->oopError("Can not write directly to field: `$plainField`  Try: Using a setter function, ex: `$setter`");
         }
 
         if ($this->fieldsLocked) {
-            $this->oopError("New field `$plainField` can not be created after object is constructed.");
+            $this->oopError("Can not create field after object is constructed: `$plainField`");
         }
 
         $this->$ufield = $value;
@@ -502,7 +502,7 @@ class OClass implements \JsonSerializable {
         $method = unu_($aMethod);
 
         if (method_exists($this, $aMethod)) {
-            $this->oopError("Can not call private method `$method`.");
+            $this->oopError("Can not call private method: `$method`");
         }
 
         // Look up method in embeddedObjects
@@ -525,7 +525,7 @@ class OClass implements \JsonSerializable {
 
         $c = $this->bareClassName();
 
-        $this->error("Unknown method `$method` for object `$c`. $suggest");
+        $this->error("Unknown method `$method` for object: `$c`  $suggest");
     }
 
     function getSuggestedMethod($method) {

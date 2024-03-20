@@ -37,7 +37,7 @@ class u_Db extends OStdModule {
 
             $dbFilePath = Tht::path('db', $dbConfig['file']);
             if (!file_exists($dbFilePath)) {
-                $this->error("Can not find database file `$dbFilePath`.");
+                $this->error("Can not find database file: `$dbFilePath`");
             }
 
             // Don't add charset or other params. It just gets appended to filename.
@@ -90,7 +90,7 @@ class u_Db extends OStdModule {
         foreach ($fields as $f) {
             // Password can be empty, but everything else should be defined.
             if (!isset($conf[$f]) || ($f != 'password' && !$conf[$f])) {
-                $this->error("Missing field `$f` in config for database `" . $this->dbId . "`. Try: Update `config/app.local.jcon`");
+                $this->error("Missing field in config for database `" . $this->dbId . "`: `$f`  Try: Update `config/app.local.jcon`");
             }
         }
     }
@@ -142,7 +142,7 @@ class u_Db extends OStdModule {
         $allowed = implode(', ', array_keys($libs));
 
         if (!isset($libs[$driver])) {
-            $this->error("Unknown Db driver `$rawDriver`. Allowed drivers: $allowed");
+            $this->error("Unknown Db driver: `$rawDriver`  Try: $allowed");
         }
 
         // TODO: support ODBC params in connect()
@@ -216,7 +216,7 @@ class u_Db extends OStdModule {
     function validateNum($n, $label) {
 
         if (!preg_match('/^\d+$/', $n)) {
-            $this->error("Invalid number `$n` for `$label`.");
+            $this->error("Invalid number for $label: `$n`");
         }
 
         return $n;
@@ -895,7 +895,7 @@ class u_Db extends OStdModule {
         foreach ($match[1] as $ph) {
 
             if (!isset($params[$ph])) {
-                $this->error("Missing placeholder value for `$ph`.");
+                $this->error("Missing placeholder value for key: `$ph`");
             }
 
             $filteredParams[$ph] = $params[$ph];

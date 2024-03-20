@@ -23,7 +23,7 @@ class Compiler {
 
         // Require .tht extension
         if (substr($sourceFile, -4, 4) !== '.' . Tht::getThtExt()) {
-            Tht::error("Source path `$sourceFile` must have `." . Tht::getThtExt() . "` extension.");
+            Tht::error("Source path `$sourceFile` must have extension: `." . Tht::getThtExt() . "`");
         }
 
         if (!file_exists($sourceFile)) {
@@ -100,7 +100,7 @@ class Compiler {
                 Tht::module('Output')->u_send_error(404);
             }
             else {
-                Tht::error("File name mismatch: `$base`.  Try: `$baseBad` (exact case)");
+                Tht::error("File name mismatch: `$base`  Try: `$baseBad` (exact case)");
             }
         }
 

@@ -113,7 +113,7 @@ class u_Math extends OStdModule {
     //     if ($sign == 1) {  return INF;  }
     //     if ($sign == -1) {  return -1 * INF;  }
 
-    //     $this->argumentError('Argument `$sign` must be `1` or `-1`.');
+    //     $this->argumentError('Argument `$sign` must be: `1` or `-1`');
     // }
 
     function u_z_int_max() {

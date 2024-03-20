@@ -30,7 +30,7 @@ class u_Config extends OClass {
             if ($wantType == 'string' && $gotType == 'number') {
                 return;
             }
-            $this->error("Config key `$key` expected a `$wantType` but got a `$gotType`.");
+            $this->error("Config key `$key` expected type: `$wantType`  Got: `$gotType`");
         }
     }
 

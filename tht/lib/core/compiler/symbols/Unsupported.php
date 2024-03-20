@@ -23,7 +23,7 @@ class S_Unsupported extends Symbol {
             'static' => ['Module-level variable or function',  'Modules', '/language-tour/modules'],
 
             'private/class'  => ['Remove keyword. Methods are private is default.', 'Classes & Objects', '/language-tour/classes-and-objects'],
-            'private/module' => ['Make other functions `public`.', 'Modules', '/language-tour/modules'],
+            'private/module' => ['Add `public` to other functions.', 'Modules', '/language-tour/modules'],
 
         ][$token];
     }

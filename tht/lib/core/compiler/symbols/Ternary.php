@@ -14,7 +14,7 @@ class S_Ternary extends Symbol {
         $p->next();
 
         if ($p->inTernary) {
-            $p->error("Nested ternary operator `\$a ? \$b : \$c`. Try an `if/else` instead.");
+            $p->error("Nested ternary operator not allowed: `\$a ? \$b : \$c` Try: `if/else`");
         }
         $p->inTernary = true;
 
@@ -32,10 +32,10 @@ class S_Ternary extends Symbol {
         $p->inTernary = false;
 
         if ($result1 == 'true' && $result2 == 'false') {
-            $p->error('Unnecessary ternary. You can just use a standalone boolean expression. Try: (example) `$a == $b` instead of `$a == $b ? true : false`', $sQuestion->token);
+            $p->error('Unnecessary ternary. You can just use a standalone boolean expression.  Try: (example) `$a == $b` instead of `$a == $b ? true : false`', $sQuestion->token);
         }
         else if ($result1 == 'false' && $result2 == 'true') {
-            $p->error('Unnecessary ternary. You can just use a standalone boolean expression. Try: (example) `$a != $b` instead of `$a == $b ? false : true`', $sQuestion->token);
+            $p->error('Unnecessary ternary. You can just use a standalone boolean expression.  Try: (example) `$a != $b` instead of `$a == $b ? false : true`', $sQuestion->token);
         }
 
         return $this;

@@ -52,7 +52,7 @@ class Form extends OClass {
             }
             $derivedRule = $validator->getRuleForInputTag($tag);
             if (!$derivedRule) {
-                $this->error("Input field `$fieldName` needs a `rule`.");
+                $this->error("Need `rule` key for Input field: `$fieldName`");
             }
             $fieldConfig['rule'] = $derivedRule;
         }
@@ -71,7 +71,7 @@ class Form extends OClass {
         if (!isset($fieldConfig['options'])) {
             if ($derivedFieldType && $tagType !== 'hidden') {
                 if ($tagType !== $derivedFieldType) {
-                    $this->error("Input field `$fieldName` needs a `tag` of `$derivedFieldType` or `hidden`. Got: `$tagType`");
+                    $this->error("Input field `$fieldName` needs a `tag` of: `$derivedFieldType` or `hidden`  Got: `$tagType`");
                 }
             }
         }
@@ -87,7 +87,7 @@ class Form extends OClass {
         if (isset($fieldConfig['options'])) {
             if (!in_array($tagType, ['select', 'checkbox', 'radio'])) {
                 $this->error(
-                    "Input field `$fieldName` has an `options` Map, so it needs a `type` of `select`, `checkbox`, or `radio`."
+                    "Input field `$fieldName` has an `options` Map, so it needs a `type` of: `select`, `checkbox`, or `radio`"
                 );
             }
         }

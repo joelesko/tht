@@ -76,7 +76,7 @@ class u_Cookie extends OStdModule {
 
         $sessionKey = Tht::module('Session')->sessionIdName;
         if ($key == $sessionKey) {
-            $this->error("May not read/write Session cookie `$sessionKey`.");
+            $this->error("Read/write to Session cookie `$sessionKey` is restricted.");
         }
     }
 

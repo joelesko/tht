@@ -272,7 +272,7 @@ class Validator {
             $this->error("Word with only 1 character must be lower-case.", $token);
         }
         else if (strrpos($name, '$') > -1) {
-            $this->error("Non-variable word can not contain a `$`.", $token);
+            $this->error("Non-variable word can not contain sigil: `$`", $token);
         }
         else if (strlen($name) > CompilerConstants::$MAX_WORD_LENGTH) {
             $this->error("Words must be " . CompilerConstants::$MAX_WORD_LENGTH . " characters or less.", $token);

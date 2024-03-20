@@ -228,7 +228,7 @@ class OList extends OBag {
         $vlen = count($this->val);
         if ($pos + abs($len) > $vlen) {
             $alen = abs($len);
-            $this->error("Arguments `index = $apos` & `length = $alen` are greater than List length `$vlen`.");
+            $this->error("Arguments `index = $apos` + `length = $alen` are greater than List length: `$vlen`");
         }
 
         // Take all remaining elements
@@ -644,7 +644,7 @@ class OList extends OBag {
 
         $list = $this->val;
         if (is_null($startVal)) {
-            if (!count($list)) { $this->error("Can not call `reduce` on an empty List without a `startValue`."); }
+            if (!count($list)) { $this->error("Can not call `reduce` on an empty List without argument: `startValue`"); }
             $startVal = array_shift($list);
             return array_reduce($list, $fn, $startVal);
         }

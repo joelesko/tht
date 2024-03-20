@@ -124,7 +124,7 @@ trait ThtInit {
         if ($isTop) {
             foreach (['tht', 'routes'] as $key) {
                 if (!isset($config[$key])) {
-                    self::configError("Missing top-level key `$key` in `" . $file . "`.");
+                    self::configError("Missing top-level key `$key` in file: `" . $file . "`");
                 }
             }
         }
@@ -137,7 +137,7 @@ trait ThtInit {
                 if (!isset($defConfig[$mainKey][$k])) {
                     ErrorHandler::setHelpLink('/reference/app-config', 'App Config');
                     ErrorHandler::setFile($file);
-                    self::configError("Unknown config key `$mainKey.$k`.");
+                    self::configError("Unknown config key: `$mainKey.$k`");
                 }
             }
         }

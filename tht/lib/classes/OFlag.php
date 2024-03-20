@@ -109,7 +109,7 @@ class OFlag extends OVar {
         else {
             if (!$this->isAllowed($checkFlag)) {
                 $sFlag = $checkFlag->u_to_string();
-                $msg = "Unknown flag: `$sFlag`. To support more than one possible value, call the `allow` method. Try: `\$flag->allow([-flag1, -flag2])`";
+                $msg = "Unknown flag: `$sFlag`  To support more than one possible value, call the `allow` method. Try: `\$flag->allow([-flag1, -flag2])`";
                 ErrorHandler::setHelpLink('/manual/module/class/flag/allow', 'Flag.allow');
                 Tht::error($msg);
             }

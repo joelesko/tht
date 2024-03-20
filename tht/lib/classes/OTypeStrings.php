@@ -16,7 +16,7 @@ class HtmlTypeString extends OTypeString {
     }
     // TODO: Security - review how this compares to security in HtmlTemplateTransformer (inTag context)
     // function u_fill($params) {
-    //     $this->error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template function, or `Web.link`.');
+    //     $this->error('(Security) HtmlTypeString with placeholders not supported.  Try: `-Html` template or `Web.link`');
     // }
 }
 

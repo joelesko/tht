@@ -97,6 +97,6 @@ class OStdModule extends OClass implements \JsonSerializable {
         $suggest = $suggestion ? " Try: " . $suggestion : '';
 
         ErrorHandler::setHelpLink('/manual/module/' . strtolower($c), $c);
-        $this->error("Unknown method `$method` for module `$c`. $suggest");
+        $this->error("Unknown method `$method` for module: `$c`  $suggest");
     }
 }

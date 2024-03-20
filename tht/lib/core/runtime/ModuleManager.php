@@ -203,7 +203,7 @@ class ModuleManager {
 
         $relPath = Tht::getRelativePath('app', $fullPath);
         if (!isset(self::$moduleRegistry[$relPath])) {
-            Tht::error("Module file name mismatch `$relPath`. Try: Check exact spelling/case");
+            Tht::error("Module file name mismatch: `$relPath`  Try: Check exact spelling/case");
         }
 
         // Create local alias
@@ -220,7 +220,7 @@ class ModuleManager {
             Tht::error("Please remove `.tht` file extension from load path.");
         }
         // else if (strpos($relPath, './') !== false || strpos($relPath, '..') !== false) {
-        //     Tht::error("Dot shortcuts (`.` or `..`) are not support in `import`.");
+        //     Tht::error("Dot shortcuts (`.` or `..`) are not supported in command: `import`");
         // }
         else if (strpos($relPath, '\\') !== false) {
             Tht::error("Please use forward slashes `/` in file paths.");

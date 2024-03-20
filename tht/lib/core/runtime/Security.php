@@ -394,7 +394,7 @@ class Security {
         }
         else {
             if (is_float($obj) && (is_infinite($obj) || is_nan($obj))) {
-                self::error("Invalid large number for JSON key `$key`.");
+                self::error("Invalid large number for JSON key: `$key`");
             }
             return $obj;
         }
@@ -478,7 +478,7 @@ class Security {
             Tht::module('File')->error("Dot directory `.` not allowed in path: `$path`");
         }
         // else if (preg_match('/^[a-zA-Z]:/', $path)) {
-        //     Tht::module('File')->error("Drive letter not allowed in path: `$path`. Try: Use Unix filepaths (forward slashes)");
+        //     Tht::module('File')->error("Drive letter not allowed in path: `$path`  Try: Use Unix filepaths (forward slashes)");
         // }
 
         if (!$allowOutsideSandbox) {
@@ -558,7 +558,7 @@ class Security {
 
         $ok = self::validateUploadedMimeType($actualMime, $extMime);
         if (!$ok) {
-            u_Input::setUploadError("File type `$actualMime` does not match file extension `$uploadedExt`.");
+            u_Input::setUploadError("File type `$actualMime` does not match file extension: `$uploadedExt`");
             return false;
         }
         else {

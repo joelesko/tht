@@ -250,7 +250,7 @@ class u_Input extends OStdModule {
         ]);
 
         if (!preg_match('#\d+x\d+#', $size)) {
-            $this->error("Size argument must be in the format of `HxY`.  Ex: `500x500` Got: `$size`.");
+            $this->error("Size argument must be in the format of: `width x height`  Ex: `500x500` Got: `$size`");
         }
         list($sizeX, $sizeY) = explode('x', $size);
 
@@ -350,7 +350,7 @@ class u_Input extends OStdModule {
 
         $type = $this->getImageType($origPath);
         if (!$type) {
-            self::$uploadError = 'Unsupported image type.  Only `.jpg`, `.png`, `.gif` are allowed.';
+            self::$uploadError = 'Unsupported image type.  Try: `.jpg`, `.png`, `.gif`';
             return '';
         }
 

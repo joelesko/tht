@@ -192,7 +192,7 @@ class JconParser {
         if ($c0 === '}' || $c0 === ']') {
             // must be on its own line
             if ($c1 !== '') {
-                $this->error("Missing newline after closing brace `" . $c0 . "`.");
+                $this->error("Missing newline after closing brace: `" . $c0 . "`");
             }
             $this->closeChild();
         }
@@ -207,10 +207,10 @@ class JconParser {
                 $this->openChild('list', 0);
             }
             else {
-                $this->error("Missing top-level open brace `{` or `[`.");
+                $this->error("Missing top-level open brace: `{` or `[`");
             }
             if ($c1 !== '') {
-                $this->error("Missing newline after open brace `" . $c0 . "`.");
+                $this->error("Missing newline after open brace: `" . $c0 . "`");
             }
         }
         else {
@@ -251,7 +251,7 @@ class JconParser {
             else {
                 // literal value
                 if (mb_substr($val, -1) == ',' && mb_strlen($val) > 1) {
-                    $this->error("Please remove trailing comma `,`.");
+                    $this->error("Please remove trailing comma: `,`");
                 }
                 $this->assignVal($key, $val);
             }

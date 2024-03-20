@@ -146,7 +146,7 @@ class u_Output extends OStdModule {
             $jsonTypeString = $jsonOrMap;
         }
         else {
-            $this->argumentError('Argument #1 must be of type `JsonTypeString` or `Map`.');
+            $this->argumentError('Argument #1 must be of type: `JsonTypeString` or `Map`');
         }
 
         $rawJson = $jsonTypeString->u_render_string();
@@ -406,7 +406,7 @@ class u_Output extends OStdModule {
         ];
 
         if (!isset($fonts[$fontId])) {
-            $this->error("Unknown fontId `$fontId`.  Try: `serif`, `sansSerif`, `monospace`");
+            $this->error("Unknown fontId: `$fontId`  Try: `serif`, `sansSerif`, `monospace`");
         }
 
         return $fonts[$fontId];

@@ -71,7 +71,7 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
             return $this;
         }
         else {
-            $this->error("Unknown field `$plainField`. Try: Check spelling, or add field with e.g. `\$map['fieldName']`");
+            $this->error("Unknown field: `$plainField`  Try: Check spelling, or add field with e.g. `\$map['fieldName']`");
         }
     }
 
@@ -116,14 +116,14 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
                 return $k; // 'push' shortcut  `#=`
             }
             else if (!is_int($k)) {
-                $this->error("List index must be numeric.  Saw `$k` instead.");
+                $this->error("List index must be numeric.  Got: `$k`");
             }
             else if ($k < 0) {
                 // Count negative indexes from the end.
                 return count($this->val) + $k;
             }
             else if ($k == 0) {
-                $this->error('Index `0` is not valid.  The first item has an index of `1`.');
+                $this->error('Invalid index: `0`  Try: index = `1` (first item)');
             }
             else {
                 return $k - ONE_INDEX;

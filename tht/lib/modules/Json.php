@@ -105,7 +105,7 @@ class u_Json extends OStdModule {
             $jsonTypeString = $jsonOrMap;
         }
         else {
-            $this->argumentError('Argument #1 must be of type `JsonTypeString` or `Map`.');
+            $this->argumentError('Argument #1 must be of type: `JsonTypeString` or `Map`');
         }
 
         $rawJson = $jsonTypeString->u_render_string();

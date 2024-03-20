@@ -217,7 +217,7 @@ class u_InputValidator {
             $this->error('Rule `image` requires a `dim` field to specify the image dimensions. Ex: dim:300x300');
         }
         if (!preg_match('/^\d+x\d+$/', $rules['dim'])) {
-            $this->error('Field `dim` should be in the format of `width x height`. Ex: dim:300x300');
+            $this->error('Field `dim` should be in the format of: `width x height`  Ex: dim:300x300');
         }
 
         $relPath = Tht::module('Input')->u_get_uploaded_image(

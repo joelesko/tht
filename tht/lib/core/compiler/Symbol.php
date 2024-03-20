@@ -209,7 +209,7 @@ class Symbol {
                 $posDelta = $pos === 'L' ? -1 : strlen($t[TOKEN_VALUE]);
             }
 
-            $fullMsg = 'Please ' . $verb . ' ' . $what . ' ' . $sPos . " `" . $t[TOKEN_VALUE] . "`.";
+            $fullMsg = 'Please ' . $verb . ' ' . $what . ' ' . $sPos . ": `" . $t[TOKEN_VALUE] . "`";
 
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 

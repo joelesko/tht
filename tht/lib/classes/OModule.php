@@ -42,10 +42,10 @@ class OModule extends OClass implements \JsonSerializable {
 
         if (!in_array($uf, $this->exportedFunctions)) {
             if (!function_exists($qf)) {
-                $this->error("Unknown function `$f` for module `$m`.");
+                $this->error("Unknown function `$f` for module: `$m`");
             }
             else if (!$this->isLocalReference()) {
-                $this->error("Can not call non-public function `$f` in module `$m`.");
+                $this->error("Can not call non-public function `$f` in module: `$m`");
             }
         }
 
@@ -58,12 +58,12 @@ class OModule extends OClass implements \JsonSerializable {
 
         if (!$this->isLocalReference()) {
             $n = $this->baseName;
-            $this->error("Can not set field `$k` from outside of module `$n`.");
+            $this->error("Can not set field `$k` from outside of module: `$n`");
         }
 
         if ($this->isConstant($k)) {
             if (isset($this->fields[$uk])) {
-                $this->error("Can not re-assign to constant field `$k`.");
+                $this->error("Can not re-assign to constant field: `$k`");
             }
             else {
                 if (OBag::isa($v)) {

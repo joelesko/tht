@@ -70,7 +70,7 @@ class u_String extends OStdModule {
         }
 
         if (!$s) {
-            $this->error('Unknown charList `' . $listId . '`.');
+            $this->error('Unknown charList: `' . $listId . '`');
         }
 
         return OList::create(str_split($s));

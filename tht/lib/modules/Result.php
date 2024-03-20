@@ -45,7 +45,7 @@ class OResult extends OVar {
             if ($default !== null) {
                 return $default;
             }
-            Tht::error("Result object is in a failure state. Check `.failCode()` method first.");
+            Tht::error("Result object is in a failure state. Check `failCode()` method first.");
         }
 
         return $this->rvalue;

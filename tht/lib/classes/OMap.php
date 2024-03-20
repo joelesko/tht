@@ -245,7 +245,7 @@ class OMap extends OBag {
             if (!isset($config[$k])) {
                 $okKeys = implode(', ', array_keys(unv($config)));
                 $okKeys = preg_replace('/([a-zA-Z0-9]+)/', '`$1`', $okKeys);
-                $this->error("Invalid option map key `$k`. Try: $okKeys");
+                $this->error("Invalid option map key: `$k`  Try: $okKeys");
             }
         }
 
@@ -280,14 +280,14 @@ class OMap extends OBag {
                     $this->val[$k] = $this->val[$k];
                 }
                 else {
-                    $this->error("Option value `$k` must be of type `$okType`. Got: `$gotType`");
+                    $this->error("Option value `$k` must be of type: `$okType`  Got: `$gotType`");
                 }
 
                 $v = $this->val[$k];
 
                 if ($enums && !in_array($v, $enums)) {
                     $tryEnums = array_map(function($a){ return "`" . $a . "`"; }, $enums);
-                    $this->error("Invalid option map value for `$k`" . ' Got: `' . $v . "`  Try: " . implode(', ', $tryEnums));
+                    $this->error("Invalid option map value for key: `$k`  Got: `" . $v . "`  Try: " . implode(', ', $tryEnums));
                 }
             }
         }

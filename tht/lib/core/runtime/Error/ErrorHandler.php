@@ -276,7 +276,7 @@ class ErrorHandler {
 
             // Type Error for function arguments
             $error['origin'] .= '.arguments.type';
-            $error['message'] = "Argument $m[1] passed to `$m[2]` must be of type `$m[3]`. Got `$m[4]` instead.";
+            $error['message'] = "Argument $m[1] passed to `$m[2]` must be of type: `$m[3]`  Got: `$m[4]`";
 
             // In PHP, the error frame is the location of the function signature, NOT the caller.
             //
@@ -415,14 +415,14 @@ class ErrorHandler {
         preg_match('/Allowed memory size of (\d+)/i', $error['message'], $m);
         if ($m) {
             $max = Tht::getConfig('memoryLimitMb');
-            print "<b>Page Error: Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `app.jcon`.</b>";
+            print "<b>Page Error: Max memory limit exceeded ($max MB).  See `memoryLimitMb` in `config/app.jcon`.</b>";
             Tht::exitScript(1);
         }
 
         preg_match('/Maximum execution time of (\d+)/i', $error['message'], $m);
         if ($m) {
             $max = Tht::getConfig('maxExecutionTimeSecs');
-            print "<b>Page Error: Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `app.jcon`.</b>";
+            print "<b>Page Error: Max execution time exceeded ($max seconds).  See `maxExecutionTimeSecs` in `config/app.jcon`.</b>";
             Tht::exitScript(1);
         }
     }

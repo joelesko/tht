@@ -96,7 +96,7 @@ class ORegex extends OVar {
 
         foreach (str_split($flags) as $f) {
             if (strpos(self::$ALLOWED_FLAGS, $f) === false) {
-                $this->error("Invalid Regex flag `$f`.  Allowed flags: `m s i x`");
+                $this->error("Invalid Regex flag: `$f`  Try: `m s i x`");
             }
         }
 

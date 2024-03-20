@@ -501,7 +501,7 @@ class u_File extends OStdModule {
         $this->ARGS('s', func_get_args());
 
         if (is_dir($filePath)) {
-            $this->error("Argument 1 for `delete` must not be a directory: `$filePath`.  Try: `File.deleteDir()`");
+            $this->error("Argument 1 for `delete` must not be a directory: `$filePath`  Try: `File.deleteDir()`");
         }
 
         if (!$this->u_exists($filePath)) {
@@ -560,7 +560,7 @@ class u_File extends OStdModule {
         $this->ARGS('ss', func_get_args());
 
         if (is_dir($source)) {
-            $this->error("Argument 1 for `copy` must not be a directory: `$source`.  Suggestion: `File.copyDir()`");
+            $this->error("Argument 1 for `copy` must not be a directory: `$source`  Suggestion: `File.copyDir()`");
         }
 
         return $this->_call('copy', [$source, $dest], 'file,exists|path');

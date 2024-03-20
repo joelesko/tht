@@ -166,8 +166,8 @@ class u_Image_Object extends OClass {
             }
         }
 
-        if (!isset($pos['x'])) { $error = 'Missing position `x`.'; }
-        if (!isset($pos['y'])) { $error = 'Missing position `y`.'; }
+        if (!isset($pos['x'])) { $error = 'Missing position key: `x`'; }
+        if (!isset($pos['y'])) { $error = 'Missing position key: `y`'; }
 
         if (in_array('toRelX', $allowed)) {
             // calculate toX/toY from relX/relY
@@ -200,8 +200,8 @@ class u_Image_Object extends OClass {
             if (isset($pos['sizeY']) && !isset($pos['sizeX'])) { $pos['sizeX'] = $pos['sizeY']; }
 
             // Must have either toX/toY or sizeX/sizeY
-            if (!isset($pos['sizeX']) && !isset($pos['toX'])) {  $this->error('Missing position key `sizeX` or `toX`.'); }
-            if (!isset($pos['sizeY']) && !isset($pos['toY'])) {  $this->error('Missing position key `sizeY` or `toY`.'); }
+            if (!isset($pos['sizeX']) && !isset($pos['toX'])) {  $this->error('Missing position key: `sizeX` or `toX`'); }
+            if (!isset($pos['sizeY']) && !isset($pos['toY'])) {  $this->error('Missing position key: `sizeY` or `toY`'); }
 
             // Calculate size based on toX/toY
             if (!isset($pos['sizeX']) && isset($pos['toX'])) {  $pos['sizeX'] = $pos['toX'] - $pos['x']; }
@@ -386,7 +386,7 @@ class u_Image_Object extends OClass {
 
         $fnName = strtolower($fnName);
         if (substr($fnName, 0, 5) !== 'image') {
-            $this->error("Function name must begin with `image`.");
+            $this->error("Function name must begin with: `image`  Got: `$fnName`");
         }
 
         if (!function_exists($fnName)) {

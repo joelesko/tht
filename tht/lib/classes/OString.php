@@ -57,10 +57,10 @@ class OString extends OVar implements \ArrayAccess {
     function offsetSet($ak, $v):void {
 
         if (is_null($ak)) {
-            $this->error('Left side of `#=` must be a list. Got: `string`');
+            $this->error('Left side of `#=` must be a list.  Got: `string`');
         }
 
-        $this->error('Can not use `[]` to set a character in a string. Try: `$string.setChar($index, $newChar)`');
+        $this->error('Can not use `[]` to set a character in a string.  Try: `$string.setChar($index, $newChar)`');
     }
 
     function offsetExists($k):bool {
@@ -77,10 +77,10 @@ class OString extends OVar implements \ArrayAccess {
         $k = $ak;
 
         if (!is_int($k)) {
-            $this->error("String index must be numeric.  Saw `$k` instead.");
+            $this->error("String index must be numeric.  Got: `$k`");
         }
         else if (ONE_INDEX && $k == 0) {
-            $this->error('Index `0` is not valid.  The first character has an index of `1`.');
+            $this->error('Invalid index: `0`  Try: index = `1` (first character)');
         }
         else if ($k < 0) {
             // Count negative indexes from the end.
@@ -244,7 +244,7 @@ class OString extends OVar implements \ArrayAccess {
             return 'string';
         }
         else {
-            $this->argumentError("Argument #1 of `$methodName` must be a `string` or `regex`. Got: `" . v($strOrRx)->u_type() . '`', $methodName);
+            $this->argumentError("Argument #1 of `$methodName` must be: `string` or `regex`  Got: `" . v($strOrRx)->u_type() . '`', $methodName);
         }
     }
 
@@ -324,7 +324,7 @@ class OString extends OVar implements \ArrayAccess {
             return $this->_strpos($strOrRx, $flags['ignoreCase']) > -1 + ONE_INDEX;
         }
         else {
-            $this->argumentError("Argument #1 of `contains` must be a `string` or `regex`. Got: `" . v($strOrRx)->u_type() . '`', 'contains');
+            $this->argumentError("Argument #1 of `contains` must be: `string` or `regex`  Got: `" . v($strOrRx)->u_type() . '`', 'contains');
         }
     }
 
@@ -863,7 +863,7 @@ class OString extends OVar implements \ArrayAccess {
             return v($titleCased)->u_to_case('upperFirst');
         }
         else {
-            $this->error("Unknown case `$case`.");
+            $this->error("Unknown case: `$case`");
         }
 
     }
@@ -1456,7 +1456,7 @@ class OString extends OVar implements \ArrayAccess {
             return true;
         }
         else {
-            $this->error('Invalid `numType` argument: `$numType`. Try: `int`, `float`, `any`');
+            $this->error('Invalid `numType` argument: `$numType`  Try: `int`, `float`, `any`');
         }
     }
 
@@ -1533,7 +1533,7 @@ class OString extends OVar implements \ArrayAccess {
         }
         $out = mb_convert_encoding($this->val, $toFrom == 'to' ? $encodingId : 'UTF-8');
         if ($out === false) {
-            $this->error("Unable to convert string $toFrom `$encodingId`.");
+            $this->error("Unable to convert string $toFrom encoding: `$encodingId`");
         }
         return $out;
     }
@@ -1547,7 +1547,7 @@ class OString extends OVar implements \ArrayAccess {
         $this->ARGS('s*', func_get_args());
 
         if (!in_array($algo, hash_algos())) {
-            $this->error("Unknown hash algorithm `$algo`.");
+            $this->error("Unknown hash algorithm: `$algo`");
         }
 
         $hash = Security::hashString($this->val, $algo, $flags['binary']);
@@ -1590,7 +1590,7 @@ class OString extends OVar implements \ArrayAccess {
             return $f == $i ? $i : $f;
         }
         else {
-            $this->error('Invalid `numType` argument: `$numType`. Try: `int`, `float`, `any`');
+            $this->error('Invalid `numType` argument: `$numType`  Try: `int`, `float`, `any`');
         }
     }
 

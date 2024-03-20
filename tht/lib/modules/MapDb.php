@@ -37,10 +37,10 @@ class u_MapDb extends OStdModule {
     public function u_add($bucket, $map) {
 
         if (isset($map['id'])) {
-            Tht::error("MapDb: Key `id` not allowed for `$bucket`.  This is a reserved key.");
+            Tht::error("MapDb: Key `id` not allowed for bucket: `$bucket`   This is a reserved key.");
         }
         if (isset($map['createDate'])) {
-            Tht::error("MapDb: Key `createDate` not allowed for `$bucket`.  This is a reserved key.");
+            Tht::error("MapDb: Key `createDate` not allowed for bucket: `$bucket`   This is a reserved key.");
         }
 
         $self = $this;

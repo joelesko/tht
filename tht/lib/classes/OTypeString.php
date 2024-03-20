@@ -76,7 +76,7 @@ abstract class OTypeString extends OClass implements \JsonSerializable {
     private static function _getUntyped ($s, $type, $getRaw) {
 
         if ($type && $s->stringType !== $type) {
-            self::staticError("TypeString must be of type `$type`. Got: `$s->stringType`");
+            self::staticError("TypeString must be of type: `$type`  Got: `$s->stringType`");
         }
 
         return $getRaw ? $s->u_raw_string(true) : $s->u_render_string();
@@ -108,7 +108,7 @@ abstract class OTypeString extends OClass implements \JsonSerializable {
             }
             else if ($this->overrideParams) {
                 if (isset($this->overrideParams[$k])) {
-                    $this->error("Must provide an update value for key `$k`.");
+                    $this->error("Must provide an update value for key: `$k`");
                 }
                 $escParams[$k] = $this->overrideParams[$k];
             }
