@@ -8,7 +8,8 @@ class S_ShortPrint extends S_Command {
     function asStatement ($p) {
 
         if (!$this->hasNewlineBefore()) {
-            $p->error('Print shortcut `>>` can only be used at the beginning of a line. Try: `+>` (bit shift right)');
+            ErrorHandler::setHelpLink('/language-tour/intermediate/shortcuts#print', 'Print Shortcut');
+            $p->error('Print shortcut `>>` can only be used at the beginning of a line.  Try: `+>` (bit-shift right)');
         }
 
         $p->next();
