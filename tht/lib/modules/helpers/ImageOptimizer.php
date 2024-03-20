@@ -141,8 +141,8 @@ class u_Image_Optimizer {
     // About 0.1ms per file.
     function isAlreadyOptimized() {
 
-        // Comment this out to regenerate images during debugging.
-        return false;
+        // Un-comment this to force regeneration of images during debugging.
+        // return false;
 
         // Trap error if file doesn't exist.
         ErrorHandler::startTrapErrors();
