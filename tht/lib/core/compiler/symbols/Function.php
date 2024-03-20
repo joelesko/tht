@@ -163,15 +163,6 @@ class S_Function extends S_Statement {
                 $sArg = $p->symbol;
                 $sArg->updateType($isSplat ? SymbolType::FUN_ARG_SPLAT : SymbolType::FUN_ARG);
 
-                // Prevent duplicate arguments
-                // technically this is caught earlier
-                // $argName = $sArg->token[TOKEN_VALUE];
-                // $lowerArgName = strtolower($argName);
-                // if (isset($seenName[$lowerArgName])) {
-                //     $p->error("Duplicate argument `$" . $argName . "`", $sArg->token);
-                // }
-                // $seenName[$lowerArgName] = true;
-
                 if (count($argSymbols) > 0 && !$isSplat) {
                     $p->space('Sarg*');
                 }
@@ -190,7 +181,7 @@ class S_Function extends S_Statement {
                     $type = $sArgType->token[TOKEN_VALUE];
                     if (!in_array($type, CompilerConstants::$TYPE_DECLARATIONS)) {
                         $types = implode(' ', CompilerConstants::$TYPE_DECLARATIONS);
-                        $p->error("Unknown type: `$type`. Supported types: `$types`");
+                        $p->error("Unknown type: `$type`  Try: `$types`");
                     }
                     $sArgType->updateType(SymbolType::FUN_ARG_TYPE);
 
@@ -237,7 +228,7 @@ class S_Function extends S_Statement {
             $p->now(')', 'function.args.close')->space('x) ');
 
             if (!count($argSymbols)) {
-                $p->error('Please remove the empty parens `()`.', $sOpenParen->token);
+                $p->error('Please remove the empty parens: `()`', $sOpenParen->token);
             }
 
             $p->next();
@@ -269,42 +260,5 @@ class S_Function extends S_Statement {
         }
 
         return $closureVars;
-
-        // Used to have `keep` syntax for explicit import.
-        // Make this optional?
-
-        // $closureVars = [];
-        // if ($p->symbol->isValue('keep')) {
-
-        //     $p->space(' keepx');
-
-        //     if (!$this->isExpression) {
-        //         ErrorHandler::setHelpLink('/language-tour/intermediate-features#anonymous-functions', 'Anonymous Functions');
-        //         $p->error("Keyword `keep` can only be used with anonymous functions.");
-        //     }
-
-        //     $p->next();
-        //     $p->now('(', 'keep')->next();
-        //     while (true) {
-        //         if ($p->symbol->token[TOKEN_TYPE] !== TokenType::VAR) {
-        //             $p->error("Expected an outer variable inside `keep`.  Ex: `fn () keep (\$name) { ... }`");
-        //         }
-
-        //         $p->validator->defineVar($p->symbol, true);
-
-        //         $sArg = $p->symbol;
-        //         $sArg->updateType(SymbolType::USER_VAR);
-        //         $closureVars []= $sArg;
-
-        //         $s = $p->next();
-        //         if (!$s->isValue(',')) {
-        //             break;
-        //         }
-        //         $p->now(',', 'function.keep.comma')->next();
-        //     }
-        //     $p->now(')', 'function.keep.close')->space('x) ')->next();
-        // }
-
-        // return $closureVars;
     }
 }
