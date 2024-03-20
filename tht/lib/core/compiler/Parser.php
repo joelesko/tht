@@ -73,7 +73,7 @@ class Parser {
         $this->validator->newScope();
         $sMain = $this->makeAstList(AstList::BLOCK, []);
         $this->next();
-        $hasFunction = false;
+        $fileHasFunction = false;
 
         while (true) {
 
@@ -98,10 +98,10 @@ class Parser {
                 $type = $sStatement->type;
 
                 if ($type === SymbolType::NEW_FUN || $type === SymbolType::NEW_TEMPLATE || $type === SymbolType::NEW_CLASS) {
-                    $hasFunction = true;
+                    $fileHasFunction = true;
                 }
-                else if ($hasFunction && $type !== SymbolType::PRE_KEYWORD) {
-                    $this->error("Top-level statements can only be declared before functions.", $sStatement->token);
+                else if ($fileHasFunction && $type !== SymbolType::PRE_KEYWORD) {
+                    $this->error("Top-level statements must be declared before functions.", $sStatement->token, true);
                 }
             }
         }
@@ -158,7 +158,7 @@ class Parser {
                 break;
             }
             if ($s->type === SymbolType::END) {
-                $this->error("Reached end of file without a closing block brace `}`.", $sOpenBrace->token, true);
+                $this->error("Reached end of file without a closing block brace: `}`", $sOpenBrace->token, true);
             }
 
             $sStatement = $this->parseStatement();
@@ -250,7 +250,7 @@ class Parser {
                         // Very common typo: Extra `)` or `]` or `}`
                         $desc = 'Extra';
                     }
-                    $this->error("$desc separator token `$tokenVal`.", $this->prevToken);
+                    $this->error("$desc separator token: `$tokenVal`", $this->prevToken);
                 }
             }
         }
@@ -358,7 +358,7 @@ class Parser {
     function outerParenError($sOuterParen) {
 
         ErrorHandler::addSubOrigin('formatChecker');
-        $this->error('Please remove the outer parens `(...)`.', $sOuterParen->token);
+        $this->error('Please remove the outer parens: `(...)`', $sOuterParen->token);
     }
 
 
@@ -395,7 +395,7 @@ class Parser {
         $this->symbol = $this->tokenToSymbol($token);
 
         if ($token[TOKEN_TYPE] === TokenType::GLYPH) {
-            if ($token[TOKEN_VALUE] === ',' || $token[TOKEN_VALUE] === ';') {
+            if ($token[TOKEN_VALUE] === ',') {
                 $this->space('x, ');
             }
         }
@@ -505,6 +505,7 @@ class Parser {
             $symbol = new S_Name ($token, $this, $type);
         }
         else {
+            // Not Found
             $this->checkAltToken($tokenValue, $token);
             if ($tokenValue == ';') {
                 $this->error("Please remove semicolon `;`", $token);
