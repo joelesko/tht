@@ -126,13 +126,13 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         else if ($c === '=' && !$this->inQuote) {
             $nc = $r->nextChar();
             if ($nc == ' ') {
-                $this->error('Please remove the space after `=`.');
+                $this->error('Please remove the space after: `=`');
             }
             else if ($r->prevChar() == ' ') {
-                $this->error('Please remove the space before `=`.');
+                $this->error('Please remove the space before: `=`');
             }
             else if ($nc != '"' && $nc != "'") {
-                $this->error('Missing quote `"` after `=`.');
+                $this->error('Missing double-quote `"` after: `=`');
             }
             $this->currentTag['html'] .= $c;
             $str .= $c;
@@ -392,13 +392,13 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
         else if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
             $sigil = substr($name, 0, 1);
-            $this->error("Tag `<$name ... $sigil>` should be replaced with `{{ ... }}` or `::`.", $tag['pos']);
+            $this->error("Tag `<$name ... $sigil>` should be replaced with: `{{ ... }}` or `::`", $tag['pos']);
         }
         else if (preg_match('/[^a-zA-Z0-9\-]/', $name)) {
             $this->error("Tag `$name` can only contain letters (a-z), numbers (0-9), and dashes (-).", $tag['pos']);
         }
         else if ($this->inQuote) {
-            $this->error("Tag `$name` is missing a closing quote `\"`.", $tag['pos']);
+            $this->error("Tag `$name` is missing a closing double-quote: `\"`", $tag['pos']);
         }
     }
 
