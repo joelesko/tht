@@ -224,7 +224,7 @@ function validateFunctionArgs($sig, $arguments) {
 
                 $argNum = "`" . v($i + 1)->u_humanize_count() . '` argument';
                 $err = [
-                    'msg' => "expects $argNum to be a `$typeLabel`.  Got: `" . $actualType . "`" . $try,
+                    'msg' => "expects $argNum to be type: `$typeLabel`   Got: `" . $actualType . "`" . $try,
                     'argName' => $i,
                     'needType' => $typeLabel,
                     'gotType' => $actualType,
