@@ -238,6 +238,10 @@ class StringReader {
         return $c === " " || $c === "\n" || $c === "\t";
     }
 
+    function isFirstCharOfLine($c) {
+        return $this->atStartOfLine() && !$this->isWhitespace($c);
+    }
+
     function slurpNumber() {
 
         $str = $this->slurpDigits();
