@@ -1,14 +1,13 @@
 
-fn onCreateObject($args) {
+fun onCreateObject($args) {
     return FactoryObject({
-        var: 789,
+        var: 789
     })
 }
 
 class FactoryObject {
 
     public fields {
-        var: 123,
+        var: 123
     }
-
 }

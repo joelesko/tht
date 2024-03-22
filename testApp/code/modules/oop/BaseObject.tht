@@ -4,44 +4,44 @@
 class BaseObject {
 
     fields {
-        privateVar: 'private',
-        privateNoInit: 'noInit',
+        privateVar: 'private'
+        privateNoInit: 'noInit'
     }
 
     public fields {
-        publicVar: 'public',
-        overrideNew: 222,
-        overrideInit: 111,
-        getterVal: 'getter',
+        publicVar: 'public'
+        overrideNew: 222
+        overrideInit: 111
+        getterVal: 'getter'
 
-        num: 123,
-        flag: true,
-        string: 'xyz',
-        map: { a: 123 },
-        list: [1, 2, 3],
+        num: 123
+        flag: true
+        string: 'xyz'
+        map: { a: 123 }
+        list: [1, 2, 3]
     }
 
-    public fn onCreate {
+    public fun onCreate {
         @.overrideNew = 444
     }
 
-    public fn getGetterVal {
+    public fun getGetterVal {
         return @.getterVal ~ '!'
     }
 
-    public fn publicCallPrivate {
+    public fun publicCallPrivate {
         return @.privateFn()
     }
 
-    public fn readNoInit {
+    public fun readNoInit {
         return @.privateNoInit
     }
 
-    public fn publicFn {
+    public fun publicFn {
         return 'public'
     }
 
-    fn privateFn {
+    fun privateFn {
         return 'private'
     }
 }

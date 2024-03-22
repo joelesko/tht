@@ -1,11 +1,11 @@
 
 load('../TestModule')
 
-public fn callMe {
+public fun callMe {
     return 'adjacent'
 }
 
-public fn callUpperModule {
+public fun callUpperModule {
     return TestModule.bareFun('adj')
 }
 

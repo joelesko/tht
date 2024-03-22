@@ -3,11 +3,11 @@ load('./AdjacentModule')
 
 @@.OtherModuleConstant = 'constant'
 
-public fn ok($check) {
+public fun ok($check) {
     return 'ok:' ~ $check
 }
 
-public fn useAdjacent {
+public fun useAdjacent {
     return AdjacentModule.callMe()
 }
 

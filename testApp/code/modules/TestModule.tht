@@ -5,19 +5,19 @@
 
 @@.ConstantMap = { Red, Green, Blue }
 
-public fn changeConstantAndDie {
+public fun changeConstantAndDie {
     @@.ModuleConstant = 'another'
 }
 
-public fn bareFun($name) {
+public fun bareFun($name) {
     return 'bareFunction:' ~ $name
 }
 
-public fn testModuleVar {
+public fun testModuleVar {
     return 'moduleVar:' ~ @@.moduleVar
 }
 
-fn nonExportedFn {
+fun nonExportedFn {
     return 'non-exported'
 }
 
