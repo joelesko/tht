@@ -1,10 +1,11 @@
 ### THT
 
 # THT app
-**/data/temp/cache/**
-**/data/temp/sessions/**
+**/data/temp/**
 **/data/counter/**
+**/data/db/**
 
+*.min.gz
 
 ### Common
 *.bak
