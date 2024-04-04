@@ -71,11 +71,15 @@ class Validator {
 
             if ($this->skipLambdaVar($undefVarName)) { return; }
 
-            if ($this->seenVars[$undefVarName]) {
-                ErrorHandler::setHelpLink('/language-tour/functions#scope', 'Variable Scope');
-            }
+            // TODO: This happens no matter what. Need another way to check if var is in a different scope.
+            // if (isset($this->seenVars[$undefVarName])) {
+            //     ErrorHandler::setHelpLink('/language-tour/functions#scope', 'Variable Scope');
+            // }
 
-            $this->error("Unknown variable: `". $undefVarName . "`", $undefVar->token);
+            $varsInScope = array_keys($this->scopes[$this->scopeDepth]['exact']);
+            $suggest = ErrorHandler::getFuzzySuggest($undefVarName, $varsInScope);
+
+            $this->error("Unknown variable: `". $undefVarName . "`  $suggest", $undefVar->token);
         }
 
         $this->scopeDepth -= 1;
@@ -187,7 +191,11 @@ class Validator {
             else {
                 $l = $calledName[0];
                 if (!preg_match('/^[A-Z]/', $l)) {
-                    $this->error("Unknown function: `$calledName`", $calledToken);
+
+                    $definedFuns = array_values($defined);
+                    $suggest = ErrorHandler::getFuzzySuggest($calledName, $definedFuns, 'isMethod');
+
+                    $this->error("Unknown function: `$calledName`  $suggest", $calledToken);
                 }
             }
         }
