@@ -136,20 +136,21 @@ class Symbol {
     // ' | ' = whitespace required before & after
     // 'x| ' = space not allowed before, whitespace required after
     // '*| ' = anything before, whitespace required after
+    // '+| ' = anything but newline before, whitespace required after
     // '*|N' = anything before, newline or non-space after
     // '*|B' = anything before, newline required (hard break) after
     // '*|S' = anything before, space (not newline) required after
-    function space ($pattern) {
+    function space ($pattern, $formatCheckerRule='') {
 
-        $this->validateSpacePos('L', $pattern[0]);
-        $this->validateSpacePos('R', $pattern[strlen($pattern) - 1]);
+        $this->validateSpacePos($formatCheckerRule, 'L', $pattern[0]);
+        $this->validateSpacePos($formatCheckerRule, 'R', $pattern[strlen($pattern) - 1]);
 
         return $this;
     }
 
     // Validate whitespace rules for this token.
     // E.g. space required before or after the token.
-    function validateSpacePos ($pos, $require) {
+    function validateSpacePos ($formatCheckerRule, $pos, $require) {
 
         if ($require == '*') { return; }
 
@@ -177,13 +178,15 @@ class Symbol {
 
         $verb = '';
         $what = 'space';
-        if ($require === 'S' && $hasNewline) {
+        if (($require === 'S' || $require == '+') && $hasNewline) {
             $verb = 'remove the';
             $what = 'newline';
-        } else if ($require === 'B' && !$hasNewline) {
+        }
+        else if ($require === 'B' && !$hasNewline) {
             $verb = 'add a';
             $what = 'newline';
-        } else if ($hasSpace && !$isRequired) {
+        }
+        else if ($hasSpace && !$isRequired) {
             $verb = 'remove the';
         }
         else if (!$hasSpace && $isRequired) {
@@ -191,10 +194,10 @@ class Symbol {
             if ($pos === 'R') {
                 $nextToken = $p->next()->token;
                 if ($nextToken[TOKEN_VALUE] === ';') {
-                    $p->error('Unexpected semicolon `;`', $nextToken);
+                    $p->error('Unexpected semicolon: `;`', $nextToken);
                 }
                 else if ($nextToken[TOKEN_VALUE] === ',') {
-                    $p->error('Unexpected comma `,`', $nextToken);
+                    $p->error('Unexpected comma: `,`', $nextToken);
                 }
             }
         }
@@ -209,11 +212,15 @@ class Symbol {
                 $posDelta = $pos === 'L' ? -1 : strlen($t[TOKEN_VALUE]);
             }
 
+            // e.g. "Please remove the space before: `:`"
             $fullMsg = 'Please ' . $verb . ' ' . $what . ' ' . $sPos . ": `" . $t[TOKEN_VALUE] . "`";
 
             $t[TOKEN_POS] = $aPos[0] . ',' . ($aPos[1] + $posDelta);
 
-            ErrorHandler::addSubOrigin('formatChecker');
+            $subOrigin = 'formatChecker';
+            if ($formatCheckerRule) { $subOrigin .= '.' . $formatCheckerRule; }
+            ErrorHandler::addSubOrigin($subOrigin);
+
             $p->error($fullMsg, $t);
         }
 
