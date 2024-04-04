@@ -60,8 +60,8 @@ class u_Perf extends OStdModule {
     function start ($taskId, $value='') {
 
         $value = Tht::stripAppRoot($value);
-        $value = substr($value, 0, 40);
         $value = preg_replace("/\s+/", ' ', $value);
+        $value = v($value)->u_limit(40);
 
         $this->tasks []= [
             'task' => $taskId,
@@ -407,9 +407,9 @@ class u_Perf extends OStdModule {
                     var totalTime = stats.client + <?= $scriptTime ?> + stats.network;
 
                     var grade = { label: 'VERY SLOW', color: '#d80000' };
-                    if (totalTime <= 500) { grade = { label: 'FAST', color: '#3a3' }; }
-                    else if (totalTime <= 1000) { grade = { label: 'OK', color: '#528ad2' }; }
-                    else if (totalTime <= 2000) { grade = { label: 'SLOW', color: '#e6544a' }; }
+                    if (totalTime < 500) { grade = { label: 'FAST', color: '#3a3' }; }
+                    else if (totalTime < 1000) { grade = { label: 'OK', color: '#528ad2' }; }
+                    else if (totalTime < 2000) { grade = { label: 'SLOW', color: '#e6544a' }; }
 
                     var getId = document.getElementById.bind(document);
 
