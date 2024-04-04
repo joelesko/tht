@@ -39,8 +39,6 @@ class PrintBuffer {
             return;
         }
 
-        $zIndex = 100000;
-
         $numLines = count(self::$buffer);
         foreach (self::$buffer as $b) {
             $numLines += substr_count($b, "\n");
@@ -52,27 +50,32 @@ class PrintBuffer {
             $fontSize = 16;
             $height = 'height: 400px';
         }
+    ?>
+    <div id="tht-print-panel">
 
-        echo "<div id='tht-print-panel'>\n";
+        <style scoped>
+            #tht-print-panel { box-sizing: border-box; position: fixed; bottom: 0; left: 0; z-index: 10000; width: 100vw; max-height: calc(100% - 64px); min-height: 150px; font-size: <?php echo $fontSize ?>px; background-color: #fff; -webkit-font-smoothing: antialiased; color: #222; border-top: solid 1px #60adff; box-shadow: 0 0px 8px rgba(0,0,0,0.15); $height;  }
+            #tht-print-lines { box-sizing: border-box; position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding-top: 24px; overflow-y: scroll; overflow-x: auto;  }
+            .tht-print { white-space: pre; border: 0; border-left: solid 3px #60adff; padding: 4px 32px; margin: 4px 0 0 24px;  font-family: <?php echo Tht::module('Output')->font('monospace') ?>; }
+            .tht-print:last-child { margin-bottom: 24px; }
+            #tht-print-close { user-select: none; background-color: #fff; position: absolute; top: 5px; right: 28px; color: #aaa; font-size: 30px; z-index: 1; cursor: pointer; }
+            #tht-print-resize { user-select: none; background-color: transparent; position: absolute; top: -5px; left: 0; width: 100%; height: 10px; z-index: 1; cursor: row-resize;  }
+        </style>
 
-        echo "<style scoped>\n";
-        echo ".tht-print { white-space: pre; border: 0; border-left: solid 3px #60adff; padding: 4px 32px; margin: 4px 0 0;  font-family: " . Tht::module('Output')->font('monospace') . "; }\n";
-        echo "#tht-print-panel { position: fixed; bottom: 0; left: 0; z-index: $zIndex; width: 100%; max-height: calc(100% - 64px); padding: 24px 32px 24px; font-size: ${fontSize}px; background-color: rgba(255,255,255,0.98);  -webkit-font-smoothing: antialiased; color: #222; box-shadow: 0 0px 8px rgba(0,0,0,0.15); $height; overflow-y: scroll; overflow-x: auto;  }\n";
-        echo "#tht-print-close { user-select: none; background-color: #fff; position: absolute; top: 5px; right: 16px; color: #aaa; font-size: 30px; z-index: 1; cursor: pointer; }";
-        echo "#tht-print-resize { user-select: none; background-color: #fff; position: absolute; top: 0; left: 0; width: 100%; height: 8px; cursor: row-resize;  }";
-        echo "</style>\n";
+        <div id="tht-print-close" aria-label="Close"><b>&times;</b></div>
+        <div id="tht-print-resize"></div>
 
-        echo '<div id="tht-print-close" aria-label="Close"><b>&times;</b></div>';
-        echo '<div id="tht-print-resize"></div>';
+        <div id="tht-print-lines">
+        <?php
+            foreach (self::$buffer as $b) {
+                echo "<div class='tht-print'>" . $b . "</div>\n";
+            }
+        ?>
+        </div>
+        </div>
 
-        foreach (self::$buffer as $b) {
-            echo "<div class='tht-print'>" . $b . "</div>\n";
-        }
-        echo "</div>";
+        <script nonce="<?php echo Tht::module('Web')->u_nonce() ?>">
 
-        echo "<script nonce=" . Tht::module('Web')->u_nonce() . ">document.getElementById('tht-print-close').addEventListener('click', () => { document.getElementById('tht-print-panel').remove(); });";
-
-        echo '
             var tprPos;
             var $tpr = document.getElementById("tht-print-resize");
             function resizePrintPanel(e){
@@ -90,10 +93,17 @@ class PrintBuffer {
             document.addEventListener("mouseup", function(){
                 document.removeEventListener("mousemove", resizePrintPanel, false);
             }, false);
-        ';
-        echo "</script>";
 
+            $tpr.addEventListener("dblclick", function(e){
+                console.log(window.innerHeight);
+                document.getElementById("tht-print-panel").style.height = (window.innerHeight - 64) + "px";
+            }, false);
+
+            document.getElementById('tht-print-close').addEventListener('click', () => {
+                document.getElementById('tht-print-panel').remove();
+            });
+
+        </script>
+        <?php
     }
-
-
 }
