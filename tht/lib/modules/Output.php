@@ -6,6 +6,7 @@ class u_Output extends OStdModule {
 
     private $gzipBufferOpen = false;
     public $sentResponseType = '';
+    private $didSendPage = false;
 
     function u_run_route($path) {
 
@@ -226,6 +227,26 @@ class u_Output extends OStdModule {
         $html = $this->scanAssetUrls($html);
 
         $this->output($html, 'html');
+
+        return EMPTY_RETURN;
+    }
+
+    function u_send_page ($page) {
+
+        $this->ARGS('*', func_get_args());
+
+        if (!u_Page_Object::isa($page)) {
+            $this->error("First argument must be a Page object. Got: " . get_class($page));
+        }
+
+        if ($this->didSendPage) {
+            $this->error('Page object was already sent.');
+        }
+        $this->didSendPage = true;
+
+        $out = new HtmlTypeString ($page->u_to_html());
+
+        $this->u_send_html($out);
 
         return EMPTY_RETURN;
     }

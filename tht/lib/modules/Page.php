@@ -252,25 +252,8 @@ class u_Page_Object extends OClass {
     // Output
     //-----------------------------------------------
 
-
-    function u_send () {
-
-        $this->ARGS('', func_get_args());
-
-        if (self::$didSendPage) {
-            $this->error('Page object was already sent.');
-        }
-        self::$didSendPage = true;
-
-        $out = new HtmlTypeString ($this->u_render());
-
-        Tht::module('Output')->u_send_html($out);
-
-        return EMPTY_RETURN;
-    }
-
     // Undocumented.
-    function u_render() {
+    function u_to_html() {
 
         $this->ARGS('m', func_get_args());
 
