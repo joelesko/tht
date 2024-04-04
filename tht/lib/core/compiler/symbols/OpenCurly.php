@@ -10,6 +10,7 @@ class S_OpenCurly extends Symbol {
     // Map Literal { ... }
     function asLeft($p) {
 
+        $sOpenBrace = $p->symbol;
         $p->next();
 
         $pairs = [];
@@ -23,14 +24,16 @@ class S_OpenCurly extends Symbol {
         }
 
         // Collect "key: value" pairs
-        $hasNewline = false;
+        $isMultiline = -1;
+        $pos = 0;
         while (true) {
 
-            $hasNewline = $hasNewline | $p->skipNewline();
+            $isMultiline = $p->parseElementSeparator($pos, $isMultiline, $sOpenBrace);
+            $pos += 1;
+
             if ($p->symbol->isValue("}")) {
                 break;
             }
-            $hasNewline = $hasNewline | $p->skipNewline();
 
             // key
             $key = $p->symbol;
@@ -50,40 +53,29 @@ class S_OpenCurly extends Symbol {
 
             if ($p->symbol->isValue(':')) {
                 // explicit value
-                $p->now(':', 'map.colon')->space('x: ', true)->next();
+                $p->now(':', 'map.colon')->space('x:S', true)->next();
                 $sVal = $p->parseExpression(0);
             }
             else {
-                // value is same as key (set/enum)
+                // implicit value: same as key (for set/enum)
                 $sVal = $p->makeSymbol(SymbolType::STRING, $key->getValue(), SymbolType::STRING);
             }
 
             $pair = $p->makeSymbol(SymbolType::PAIR, $key->getValue(), SymbolType::PAIR);
             $pair->addKid($sVal);
             $pairs []= $pair;
-
-            //  $p->parseElementSeparator();
-
-            // comma
-            if (!$p->symbol->isValue(',')) {
-                if ($hasNewline && count($pairs) > 0) {
-                    ErrorHandler::addSubOrigin('formatChecker');
-                    $p->error('Please add a comma `,` after the multi-line map value.', $pair->token);
-                }
-                break;
-            }
-            $p->space('x, ');
-            $p->next();
-
-            if (!$hasNewline && $p->symbol->isValue('}')) {
-                ErrorHandler::addSubOrigin('formatChecker');
-                $p->error('Please remove the trailing comma `,`.', $p->prevToken);
-            }
         }
-        $p->skipNewline();
 
-        if (count($pairs) > 0) {  $p->space(' }*');  }
-        $p->now('}', 'map.close')->next();
+        if (count($pairs) == 0) {
+            // Single line should have no inner padding: {}
+            $p->space($isMultiline ? 'B}*' : 'x}*');
+        }
+        else {
+            $sOpenBrace->space($isMultiline ? '*{B' : '*{S');
+            $p->space($isMultiline ? 'B}*' : 'S}*');
+        }
+
+        $p->next();
 
         $this->setKids($pairs);
         $this->value = AstList::MAP;

@@ -145,7 +145,7 @@ class Parser {
 
         // Brace goes on same line
         if ($sOpenBrace->hasNewlineBefore()) {
-            ErrorHandler::addSubOrigin('formatChecker');
+            ErrorHandler::addSubOrigin('formatChecker.openBraces');
             $this->error('Please move open brace `{` to the end of the previous line.');
         }
 
@@ -290,22 +290,35 @@ class Parser {
     }
 
     // Handle comma/newline as an inner separator for Lists, Maps, etc.
-    // TODO: don't allow comma after opening delimiter
-    function parseElementSeparator() {
+    // Returns true if newline.
+    function parseElementSeparator($pos, $isMultiline, $openBrace) {
 
         if ($this->symbol->isNewline()) {
-             $this->next();
+
+            $this->next();
+            return true;
         }
         else if ($this->symbol->isSeparator(',')) {
 
-            $this->now(',')->space('x, ');
             $this->next();
 
-            if ($this->symbol->isNewline()) {
-                $this->next();
-                ErrorHandler::addSubOrigin('formatChecker');
-                $this->error('Comma `,` is not needed before a line break.', $this->prevToken);
+            if ($pos == 0) {
+                $this->error('Unexpected comma: `,`', $this->prevToken);
             }
+            else if ($this->symbol->isNewline()) {
+                ErrorHandler::addSubOrigin('formatChecker.trailingCommas');
+                $this->error('Comma `,` is not needed at end of line.', $this->prevToken);
+            }
+            else if ($this->symbol->isValue('}') || $this->symbol->isValue(']')) {
+                ErrorHandler::addSubOrigin('formatChecker.trailingCommas');
+                $this->error('Please remove the trailing comma: `,`', $this->prevToken);
+            }
+            else if ($this->symbol->isValue(',')) {
+                ErrorHandler::addSubOrigin('formatChecker.trailingCommas');
+                $this->error('Please remove the extra comma: `,`', $this->prevToken);
+            }
+
+            return false;
         }
     }
 
@@ -349,7 +362,6 @@ class Parser {
 
         if ($this->sOuterParen) {
             if ($this->prevToken[TOKEN_VALUE] == ')') {
-                ErrorHandler::addSubOrigin('formatChecker');
                 $this->outerParenError($this->sOuterParen);
             }
         }
@@ -357,7 +369,7 @@ class Parser {
 
     function outerParenError($sOuterParen) {
 
-        ErrorHandler::addSubOrigin('formatChecker');
+        ErrorHandler::addSubOrigin('formatChecker.outerParens');
         $this->error('Please remove the outer parens: `(...)`', $sOuterParen->token);
     }
 

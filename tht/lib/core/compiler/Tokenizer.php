@@ -3,11 +3,11 @@
 namespace o;
 
 abstract class TemplateMode {
-    const NONE      = 0;
-    const PRE       = 1;
-    const BODY      = 2;
-    const EXPR      = 3;
-    const CODE_LINE = 4;
+    const NONE       = 0;
+    const DECLARE    = 1;
+    const BODY       = 2;
+    const EXPRESSION = 3;
+    const CODE_LINE  = 4;
 }
 
 class TokenStream {
@@ -48,9 +48,11 @@ class TokenStream {
 class Tokenizer extends StringReader {
 
     private $ADJ_TOKEN_TYPES = ['V', 'N', 'S', 'TS', 'RS', 'W'];
-    private $TEMPLATE_INDENT_SPACES = 4;
+    private $INDENT_SPACES = 4;
+    private $CONTINUE_GLYPHS = '+-*/%.';
 
     private $prevToken = [];
+    private $prevAdjToken = [];
     private $tokens = [];
     private $tokenStream = null;
 
@@ -59,11 +61,20 @@ class Tokenizer extends StringReader {
     private $inQuickList = false;
     private $inComment = false;
 
-    private $indentBlocks = [];
-    private $currIndentBlock = [ 'indent' => 0, 'glyph' => '' ];
+    private $currentBraces = [];
+    private $currentBrace = [
+        'token' => null,
+        'indent' => 0,
+        'isMultiline' => false,
+        'closeBrace' => '',
+    ];
 
     private $prevSpace = false;
     private $prevNewline = false;
+
+    private $inOneLineBlock = false;
+    private $expectingBlock = false;
+    private $prevBlockIsOneLine = false;
 
     private $templateMode = TemplateMode::NONE;
     private $currentTemplateTransformer = null;
@@ -78,7 +89,7 @@ class Tokenizer extends StringReader {
         'numCodeLines' => 0,
     ];
 
-    function error ($msg, $tokenPos=null, $isTemplate=false) {
+    function error ($msg, $tokenPos=null, $_isTemplate=false) {
 
         if ($tokenPos !== false) {
             $this->updateTokenPos();
@@ -91,7 +102,7 @@ class Tokenizer extends StringReader {
         $pos = $tokenPos ?: $this->tokenPos;
 
         ErrorHandler::addOrigin('tokenizer');
-        if ($isTemplate) { ErrorHandler::addOrigin('template'); }
+        if ($_isTemplate) { ErrorHandler::addOrigin('template'); }
 
         ErrorHandler::handleThtCompilerError($msg, ['', implode(',', $pos)], Compiler::getCurrentFile());
     }
@@ -99,7 +110,7 @@ class Tokenizer extends StringReader {
     function templateError($msg, $token=null) {
 
         if (!$token) {
-            $token = $this->prevToken;
+            $token = $this->prevAdjToken;
         }
 
         $pos = !is_null($token) ? $token[TOKEN_POS] : $this->lineNum . ',' . $this->colNum;
@@ -119,6 +130,8 @@ class Tokenizer extends StringReader {
 
         $this->processText();
 
+        //Tht::dump($this->tokenStream);
+
         return $this->tokenStream->done();
     }
 
@@ -134,6 +147,10 @@ class Tokenizer extends StringReader {
                 return $nc === "\n";
             }
         }
+    }
+
+    function isContinueGlyph($c) {
+        return str_contains($this->CONTINUE_GLYPHS, $c[0]);
     }
 
     function makeToken ($type, $value, $forceSpace = '') {
@@ -165,9 +182,12 @@ class Tokenizer extends StringReader {
         $pos = $this->tokenPos[0] . ',' . $this->tokenPos[1];
         $token = [$type, $pos, $spaceMask, $value];
 
-        $this->prevToken = $token;
+        $this->prevAdjToken = $token;
         if ($nextChar === "\n") {
-            $this->prevToken = null;
+            $this->prevAdjToken = null;
+        }
+        if ($value != '(nl)') {
+            $this->prevToken = $token;
         }
 
         $this->prevSpace = false;
@@ -178,9 +198,9 @@ class Tokenizer extends StringReader {
         return $token;
     }
 
-    function insertToken ($type, $value) {
+    function insertToken ($type, $value, $forceSpace = '') {
         $this->updateTokenPos();
-        $this->makeToken($type, $value);
+        $this->makeToken($type, $value, $forceSpace);
     }
 
     function onNewline() {
@@ -190,7 +210,7 @@ class Tokenizer extends StringReader {
             $try = '';
             if (preg_match("/'(.*?)'/", $this->line, $m)) {
                 if (mb_strlen($m[1]) >= 60) {
-                    $try = " Try: A multi-line string `''' ... '''` (can be any length)";
+                    $try = " Try: A multi-line string `'''` (it can be any length)";
                 }
             }
 
@@ -215,40 +235,42 @@ class Tokenizer extends StringReader {
             }
             else {
 
-                // Ignore comment lines, multiline strings, etc.
-                // if ($this->atStartOfLine() && $this->indent % 4 > 0) {
-                //     $this->error('Please set indent to an exact 4-space interval.');
-                // }
-
-
-                if ($c == '$') {
-                    $this->handleVarName();
-                }
-                else if (isset($this->isAlpha[$c])) {
-                    $this->handleWord($c);
-                }
-                else if (isset($this->isDigit[$c])) {
-                    $this->handleNumber($c);
-                }
-                else if ($c === Glyph::QUOTE) {
-                    $this->handleString($c);
-                }
-                else if ($this->isGlyph(Glyph::LINE_COMMENT)) {
+                if ($this->isGlyph(Glyph::LINE_COMMENT)) {
                     $this->handleLineComment();
                 }
-                else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
-                    $this->handleBlockComment($c);
-                }
-                else if ($c == '-') {
-                    $this->handleFlag($c);
-                }
                 else {
-                    $this->handleGlyph($c);
+
+                    if ($this->isCloseBrace($c)) {
+                        $this->handleCloseBrace($c);
+                    }
+
+                    if ($this->isFirstCharOfLine($c)) {
+                       $this->checkIndent($c);
+                    }
+
+                    if ($c == '$') {
+                        $this->handleVarName();
+                    }
+                    else if (isset($this->isAlpha[$c])) {
+                        $this->handleWord($c);
+                    }
+                    else if (isset($this->isDigit[$c])) {
+                        $this->handleNumber($c);
+                    }
+                    else if ($c === Glyph::QUOTE) {
+                        $this->handleString($c);
+                    }
+                    else if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
+                        $this->handleBlockComment($c);
+                    }
+                    else if ($c == '-') {
+                        $this->handleFlag($c);
+                    }
+                    else {
+                        $this->handleGlyph($c);
+                    }
                 }
             }
-
-
-
 
             if ($this->templateMode === TemplateMode::BODY) {
                 $this->templateMode = $this->handleTemplate();
@@ -258,7 +280,40 @@ class Tokenizer extends StringReader {
         $this->postProcess();
     }
 
+    function checkIndent($c) {
+
+        if ($this->indent < $this->currentBrace['indent']) {
+            $pc = $this->prevToken[TOKEN_VALUE];
+            if ($this->isCloseBrace($pc)) {
+                ErrorHandler::addSubOrigin('formatChecker.closingBraces');
+                $this->error("Please move delimiter to the next line: `$pc`", $this->prevToken[TOKEN_POS]);
+            }
+            else {
+                $this->updateTokenPos();
+                $numSpaces = $this->currentBrace['indent'] - $this->indent;
+                $spaces = $numSpaces == 1 ? 'space' : 'spaces';
+                ErrorHandler::addSubOrigin('formatChecker.indentation');
+                $this->error("Please move indentation: ↦ " . $numSpaces . " $spaces right");
+            }
+        }
+        else if ($this->indent > $this->currentBrace['indent']) {
+            // Lines can be indented at further steps of 4. Allows commented-out outer blocks.
+            if ($this->indent % $this->INDENT_SPACES != 0) {
+                $this->updateTokenPos();
+                $numSpaces = $this->indent - $this->currentBrace['indent'];
+                $spaces = $numSpaces == 1 ? 'space' : 'spaces';
+                ErrorHandler::addSubOrigin('formatChecker.indentation');
+                $this->error("Please move indentation: ↤ $numSpaces $spaces left");
+            }
+        }
+    }
+
     function postProcess() {
+
+        if ($this->currentBrace['closeBrace']) {
+            $this->error("Reached end of file without closing delimiter: `" . $this->currentBrace['closeBrace'] . "`", $this->currentBrace['tokenPos']);
+        }
+
         if ($this->templateMode) {
             $this->templateEndError();
         }
@@ -327,31 +382,66 @@ class Tokenizer extends StringReader {
         return $string;
     }
 
-    // Make sure certain tokens are not adjacent (e.g. 'foo bar' is not ok.  'function myFun' is ok.)
+    // Make sure certain tokens are not adjacent
+    // (e.g. 'foo bar' is not ok.  'function myFun' is ok.)
     function validateAdjToken ($type, $current) {
 
-        if (!$this->prevToken) {  return;  }
-        $prev = $this->prevToken[TOKEN_VALUE];
+        if (!$this->prevAdjToken) {  return;  }
+        $prev = $this->prevAdjToken[TOKEN_VALUE];
 
-        if (in_array($this->prevToken[TOKEN_TYPE], $this->ADJ_TOKEN_TYPES)) {
+        if (in_array($this->prevAdjToken[TOKEN_TYPE], $this->ADJ_TOKEN_TYPES)) {
             if (!in_array(strtolower($prev), CompilerConstants::$OK_PREV_ADJ_TOKENS) &&
                 !in_array(strtolower($current), CompilerConstants::$OK_NEXT_ADJ_TOKENS)) {
 
-                $prevPos = $this->prevToken[TOKEN_POS];
-                // if (in_array($prev, CompilerConstants::$UNSUPPORTED_PREV_TOKENS)) {
-                //     $this->error("Unknown keyword `$prev`.", $prevPos);
-                // }
-                if ($this->prevToken[TOKEN_TYPE] == 'W') {
+                $prevPos = $this->prevAdjToken[TOKEN_POS];
+
+                if ($this->prevAdjToken[TOKEN_TYPE] == 'W') {
                     $this->error("Unknown keyword: `$prev`", $prevPos);
                 }
                 else if ($type == 'W') {
-                    $this->error("Unexpected $type.", false);
+                    $currentToken = $this->makeToken(TokenType::WORD, $current);
+                    $this->error("Unexpected $type.", $currentToken[TOKEN_POS]);
                 }
                 else {
-                    $this->error("Unexpected $type. Try: Look for missing separator. e.g. `,`", false);
+                    $currentToken = $this->makeToken(TokenType::WORD, $current);
+                    $this->error("Unexpected $type. Try: Look for missing separator. e.g. `,`", $currentToken[TOKEN_POS]);
                 }
             }
         }
+    }
+
+    // Have to do this before indentation is checked
+    function handleCloseBrace($c) {
+
+        if ($this->currentBrace['closeBrace'] && $c != $this->currentBrace['closeBrace']) {
+            $this->error("Unmatched closing delimiter: `$c`  Expected: `" . $this->currentBrace['closeBrace'] . "`");
+        }
+        else if (count($this->currentBraces)) {
+            $this->currentBrace = array_pop($this->currentBraces);
+        }
+        else {
+            $this->currentBrace = [
+                'token' => null,
+                'indent' => 0,
+                'isMultiline' => false,
+                'closeBrace' => '',
+            ];
+        }
+    }
+
+    function handleOpenBrace($c) {
+        if ($this->currentBrace) {
+            $this->currentBraces []= $this->currentBrace;
+        }
+
+        $addIndent = $this->nextChar() == "\n" ? $this->INDENT_SPACES : 0;
+
+        $this->currentBrace = [
+            'tokenPos' => $this->tokenPos[0] . ',' . $this->tokenPos[1],
+            'indent' => $this->indent + $addIndent,
+            'isMultiline' => $addIndent > 0,
+            'closeBrace' => $this->getCloseBrace($c),
+        ];
     }
 
     function handleWhitespace ($c) {
@@ -362,9 +452,13 @@ class Tokenizer extends StringReader {
             if ($this->templateMode === TemplateMode::CODE_LINE) {
                 $this->templateMode = TemplateMode::BODY;
             }
-            else if ($this->templateMode === TemplateMode::EXPR) {
+            else if ($this->templateMode === TemplateMode::EXPRESSION) {
                 //$this->updateTokenPos();
-                $this->templateError("Unexpected newline inside of template expression `{{ ... }}`.");
+                $this->templateError("Unexpected newline inside of template expression: `{{ ... }}`");
+            }
+
+            if ($this->currentBrace['closeBrace'] && !$this->currentBrace['isMultiline']) {
+                $this->error("Expected closing delimiter on same line: `" . $this->currentBrace['closeBrace'] . "`", $this->currentBrace['tokenPos']);
             }
 
             // Crunch consecutive newlines
@@ -476,10 +570,13 @@ class Tokenizer extends StringReader {
                 $this->templateNameToken = $token;
             }
             else if ($str === CompilerConstants::$TEMPLATE_TOKEN) {
-                $this->templateMode = TemplateMode::PRE;
-                $this->templateName = '(pending)';
-                $this->templateIndent = $this->indent;
-                $this->templateLineNum = $this->lineNum;
+                // Allow 'tem' as a map key
+                if ($this->char() !== ':') {
+                    $this->templateMode = TemplateMode::DECLARE;
+                    $this->templateName = '(pending)';
+                    $this->templateIndent = $this->indent;
+                    $this->templateLineNum = $this->lineNum;
+                }
             }
         }
     }
@@ -505,7 +602,7 @@ class Tokenizer extends StringReader {
             $this->validateAdjToken('number', $str);
             $this->makeToken(TokenType::NUMBER, $str);
         } else {
-            $this->error("Bad number `$str`. It can not be converted to a number.");
+            $this->error("Unable to convert to number: `$str` ");
         }
     }
 
@@ -517,8 +614,10 @@ class Tokenizer extends StringReader {
         $this->updateTokenPos();
         $startPos = $this->getTokenPos();
 
+        $multilineIndent = -1;
         $this->inMultiLineString = false;
         if ($this->nextChar(2) == "''") {
+            $multilineIndent = $this->indent;
             $this->next(2);
             $this->inMultiLineString = true;
             if ($this->nextChar() !== "\n") {
@@ -562,7 +661,15 @@ class Tokenizer extends StringReader {
                     break;
                 }
             }
-
+            if ($this->isFirstCharOfLine($c) && $this->indent < $multilineIndent + $this->INDENT_SPACES) {
+                if (!$this->isGlyph("'")) {
+                    $this->updateTokenPos();
+                    $numSpaces = ($multilineIndent + $this->INDENT_SPACES) - $this->indent;
+                    $spaces = $numSpaces == 1 ? 'space' : 'spaces';
+                    ErrorHandler::addSubOrigin('formatChecker.indentation');
+                    $this->error("Please indent line in multi-line string: ↦ " . $numSpaces . " $spaces");
+                }
+            }
             $str .= $this->escape($c, $type);
         }
 
@@ -585,7 +692,7 @@ class Tokenizer extends StringReader {
         }
     }
 
-    // // e.g. -myFlag|-otherFlag
+    // // e.g. -myFlag
     function handleFlag ($c) {
 
         $nc = $this->nextChar();
@@ -599,7 +706,7 @@ class Tokenizer extends StringReader {
         while (true) {
             $this->next();
             $c = $this->char();
-            if (isset($this->isAlpha[$c]) || isset($this->isDigit[$c])) {  //  || $c == '|' || $c == '-'
+            if (isset($this->isAlpha[$c]) || isset($this->isDigit[$c])) {
                 $str .= $c;
             }
             else {
@@ -619,6 +726,8 @@ class Tokenizer extends StringReader {
         $commentDepth = 0;
 
         $this->inComment = true;
+        $blockCommentStartPos = $this->tokenPos;
+
         while (true) {
             if ($this->isGlyph(Glyph::BLOCK_COMMENT_START)) {
                 if (!$this->atStartOfLine()) {
@@ -631,9 +740,10 @@ class Tokenizer extends StringReader {
             else if ($this->isGlyph(Glyph::BLOCK_COMMENT_END)) {
                 $this->nextFor(Glyph::BLOCK_COMMENT_END);
                 $this->updateTokenPos();
+                $blockCommentLineNum = 0;
 
                 if ($this->char() !== "\n") {
-                    $this->error("Missing newline after block comment `" . Glyph::BLOCK_COMMENT_END . "`.");
+                    $this->error("Missing newline after block comment: `" . Glyph::BLOCK_COMMENT_END . "`");
                 }
                 $commentDepth -= 1;
                 if (!$commentDepth) {
@@ -642,7 +752,7 @@ class Tokenizer extends StringReader {
 
             } else {
                 if ($this->atEndOfFile()) {
-                    $this->error("Unclosed comment block.  You missed a `" . Glyph::BLOCK_COMMENT_END . "` somewhere.");
+                    $this->error("Block comment is missing a closing token: `" . Glyph::BLOCK_COMMENT_END . "`", $blockCommentStartPos);
                 }
             }
             $this->next();
@@ -672,29 +782,46 @@ class Tokenizer extends StringReader {
 
         $this->updateTokenPos();
 
-        // Catch mistake of using 'fn' in place of 'tm'
-        if (($this->prevToken && $this->prevToken[TOKEN_VALUE] === '{') || $this->prevToken === null) {
-            if (strpos('<#', $c) !== false) {
-                $this->error("Unexpected `$c`.  Did you mean to use a `tm` template instead?");
+        if ($this->templateMode == TemplateMode::NONE) {
+
+            if ($this->isOpenBrace($c)) {
+                $this->handleOpenBrace($c);
             }
-            if ($this->isGlyph('{{') || $this->isGlyph('===')) {
-                $this->error("Unexpected `$c`.  Did you mean to use a `tm` template instead?");
+            else if ($this->atStartOfLine() && $this->isContinueGlyph($c) && $this->currentBrace['closeBrace'] !== ')') {
+                $numSpaces = ($this->currentBrace['indent'] + $this->INDENT_SPACES) - $this->indent;
+                if ($numSpaces > 0) {
+                    $this->updateTokenPos();
+                    $spaces = $numSpaces == 1 ? 'space' : 'spaces';
+                    ErrorHandler::addSubOrigin('formatChecker.indentation');
+                    $this->error("Please indent line in continued statement: ↦ " . $numSpaces . " $spaces right");
+                }
+            }
+
+            // Catch mistake of using 'fun' in place of 'tem'
+            if (($this->prevAdjToken && $this->prevAdjToken[TOKEN_VALUE] === '{') || $this->prevAdjToken === null) {
+                if (strpos('<#', $c) !== false) {
+                    $this->error("Unexpected token: `$c`  Did you mean to use a `tem` template instead?");
+                }
+                if ($this->isGlyph('{{') || $this->isGlyph('===')) {
+                    $this->error("Unexpected token: `$c`  Did you mean to use a `tem` template instead?");
+                }
             }
         }
-
-        if ($this->isGlyph('{') && $this->templateMode == TemplateMode::PRE) {
+        else if ($this->templateMode == TemplateMode::DECLARE && $this->isGlyph('{')) {
 
             // start of template body
 
             if ($this->templateName == '(pending)') {
-                $this->templateError("Template function must have a name.");
+                $this->templateError("Template must have a name.");
             }
 
             $foundType = preg_match('/(' . CompilerConstants::$TEMPLATE_TYPES . ')$/i', $this->templateName, $m);
             if (!$foundType) {
                 $rec = lcfirst($this->templateName) . "Html";
-                $this->templateError("Missing type at end of template function name.  e.g. `tm $rec`", $this->templateNameToken);
+                $this->templateError("Missing type at end of template name.  e.g. `tem $rec`", $this->templateNameToken);
             }
+
+            // TODO: require newline after ':'
 
             $this->templateMode = TemplateMode::BODY;
             $this->templateType = strtolower($m[1]);
@@ -709,7 +836,7 @@ class Tokenizer extends StringReader {
 
             return;
         }
-        else if ($this->templateMode === TemplateMode::EXPR && $this->isGlyph(Glyph::TEMPLATE_EXPR_END)) {
+        else if ($this->templateMode === TemplateMode::EXPRESSION && $this->isGlyph(Glyph::TEMPLATE_EXPR_END)) {
             // end of template var '}}'
             $this->makeToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_END);
             $this->templateMode = TemplateMode::BODY;
@@ -755,30 +882,30 @@ class Tokenizer extends StringReader {
         $t = $this->makeToken(TokenType::GLYPH, $str);
 
         if ($str[0] == '@' && $c !== '.') {
-            $this->error("Missing `.` after `$str`.", $t[TOKEN_POS]);
+            $this->error("Missing `.` after: `$str`", $t[TOKEN_POS]);
         }
     }
 
-    // Dynamically insert expressions into a template
-    function insertTmExpression($rawSource) {
+    // Dynamically insert expressions into a template -- NOT USED?
+    // function insertTmExpression($rawSource) {
 
-        $this->addTemplateString();
+    //     $this->addTemplateString();
 
-        $innerTok = new Tokenizer($rawSource);
-        $tokens = $innerTok->tokenize();
+    //     $innerTok = new Tokenizer($rawSource);
+    //     $tokens = $innerTok->tokenize();
 
-        $this->insertToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_START);
-        $this->insertToken(TokenType::STRING,
-            $this->currentTemplateTransformer->currentContext() . ':' . $this->indent);
+    //     $this->insertToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_START);
+    //     $this->insertToken(TokenType::STRING,
+    //         $this->currentTemplateTransformer->currentContext() . ':' . $this->indent);
 
-        $this->insertToken(TokenType::GLYPH, '+'); // just to satistfy the tokenizer rules
+    //     $this->insertToken(TokenType::GLYPH, '+'); // just to satistfy the tokenizer rules
 
-        foreach ($tokens as $t) {
-            $this->insertToken($t[TOKEN_TYPE], $t[TOKEN_VALUE]);
-        }
+    //     foreach ($tokens as $t) {
+    //         $this->insertToken($t[TOKEN_TYPE], $t[TOKEN_VALUE]);
+    //     }
 
-        $this->makeToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_END);
-    }
+    //     $this->makeToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_END);
+    // }
 
     // Handle template function body as a special string, dipping back out into THT parsing
     // mode when it encounters expressions and code lines.
@@ -794,7 +921,6 @@ class Tokenizer extends StringReader {
             $c = $this->char();
 
             if ($this->atEndOfFile()) {
-
                 $this->templateEndError();
             }
             else if ($this->isGlyph(Glyph::TEMPLATE_EXPR_START)) {
@@ -806,20 +932,19 @@ class Tokenizer extends StringReader {
                 $this->addTemplateString();
 
                 $this->insertToken(TokenType::GLYPH, Glyph::TEMPLATE_EXPR_START);
-                $this->insertToken(TokenType::STRING,
-                    $this->currentTemplateTransformer->currentContext() . ':' . $this->indent);
+                $this->insertToken(TokenType::STRING, $this->currentTemplateTransformer->currentContext() . ':' . $this->indent);
                 $this->insertToken(TokenType::GLYPH, '+'); // just to satistfy the tokenizer rules
 
-                return TemplateMode::EXPR;
+                return TemplateMode::EXPRESSION;
             }
-            else if ($this->atStartOfLine() && !$this->isWhitespace($c)
-                && $this->indent < $this->templateIndent + $this->TEMPLATE_INDENT_SPACES) {
+            else if ($this->isFirstCharOfLine($c) && $this->indent < $this->templateIndent + $this->INDENT_SPACES) {
 
-                // End of template body '}'
-
+                // End of template body
                 if (!$this->isGlyph('}')) {
-                    $this->templateError("Line should be indented at least " . $this->TEMPLATE_INDENT_SPACES . " spaces inside template `"
-                        . $this->templateName . "` starting at Line " . $this->templateLineNum . ".");
+                    ErrorHandler::addSubOrigin('formatChecker.indentation');
+                    $numSpaces = ($this->templateIndent + $this->INDENT_SPACES) - $this->indent;
+                    $spaces = $numSpaces == 1 ? 'space' : 'spaces';
+                    $this->templateError("Please indent line inside template: ↦ " . $numSpaces . " $spaces");
                 }
 
                 $this->currentTemplateTransformer->onEndBody();
@@ -837,16 +962,13 @@ class Tokenizer extends StringReader {
 
                 return TemplateMode::NONE;
             }
-            // else if ($this->atStartOfLine() && $this->isGlyph(Glyph::TEMPLATE_LINE_COMMENT)) {
-            //     $this->handleLineComment();
-            // }
             else if ($this->atStartOfLine() && $this->isGlyph(Glyph::TEMPLATE_CODE_LINE)) {
 
                 // One line of THT code e.g. '--- $a = 1'
                 $this->addTemplateString();
                 $this->nextFor(Glyph::TEMPLATE_CODE_LINE);
                 if ($this->char() !== " ") {
-                    $this->templateError("Missing space after `" . Glyph::TEMPLATE_CODE_LINE . "`.");
+                    $this->templateError("Missing space after: `" . Glyph::TEMPLATE_CODE_LINE . "`");
                 }
 
                 return TemplateMode::CODE_LINE;

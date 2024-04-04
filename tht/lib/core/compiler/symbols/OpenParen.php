@@ -28,6 +28,8 @@ class S_OpenParen extends Symbol {
 
         $this->space('x(N', true);
 
+        $sOpenParen = $p->symbol;
+
         $p->next();
         $this->updateType(SymbolType::CALL);
 
@@ -43,24 +45,36 @@ class S_OpenParen extends Symbol {
 
         // Argument list
         $args = [];
+        $isMultiline = -1;
+        $pos = 0;
         while (true) {
-            $p->skipNewline();
-            if ($p->symbol->isValue(')')) { break; }
+
+            $isMultiline = $p->parseElementSeparator($pos, $isMultiline, $sOpenParen);
+            $pos += 1;
+
+            if ($p->symbol->isValue(')')) {
+                break;
+            }
+
             $arg = $p->parseExpression(0);
+            if ($arg === null) {
+                $p->error('Reached end of file without closing paren: `)`');
+            }
             if ($arg->type == SymbolType::BOOLEAN) {
                 ErrorHandler::setHelpLink('/language-tour/option-maps', 'Option Maps');
                 $p->error('Can not use a Boolean as a function argument.  Try: Use an option map instead. Ex: `{ flag: true }`', $arg->token);
             }
             $args[]= $arg;
-            if (!$p->symbol->isValue(",")) { break; }
-            $p->space('x, ')->next();
         }
-        $p->skipNewline();
 
         if (!$p->symbol->isValue(')')) {
             $p->error('Expected closing paren `)`');
         }
-        $p->space('N)*')->next();
+
+        $sOpenParen->space($isMultiline ? 'x(B' : 'x(x');
+        $p->space($isMultiline ? 'B)*' : 'x)*');
+
+        $p->next();
 
         $sArgs = $p->makeAstList(AstList::FLAT, $args);
         $this->addKid($sArgs);
