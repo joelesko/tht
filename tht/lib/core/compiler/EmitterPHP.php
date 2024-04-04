@@ -77,8 +77,9 @@ class EmitterPHP extends Emitter {
         'OPERATOR|match'    => 'pMatch',
         'OPERATOR|lambda'   => 'pLambda',
 
-        'CONSTANT|@'      => 'pThis',
-        'CONSTANT|@@'     => 'pThisModule',
+        'CONSTANT|@'       => 'pThis',
+        'CONSTANT|@@'      => 'pThisModule',
+        'CONSTANT|default' => 'pMatchDefault',
 
         'MEMBER|['        => 'pMemberBracket',
         'MEMBER|.'        => 'pMemberDot',
@@ -91,7 +92,7 @@ class EmitterPHP extends Emitter {
         'AST_LIST'        => 'pAstList',
         'AST_LIST|{'      => 'pMap',
         'AST_LIST|['      => 'pList',
-        'MATCH_PATTERN'   => 'pMatchPattern',
+        'MATCH_PAIR'      => 'pMatchPair',
     ];
 
     private $bitwiseToPhp = [
@@ -109,7 +110,7 @@ class EmitterPHP extends Emitter {
         'n'   => 'float',
         's'   => 'string',
         'f'   => '\o\OFlag',
-        'fn'  => 'callable',
+        'fun' => 'callable',
         'o'   => 'object',
         'any' => '',
     ];
@@ -229,10 +230,6 @@ class EmitterPHP extends Emitter {
         else {
             return "\o\OMap::create([$sMap])";
         }
-
-
-
-
 
         // $flags = explode('|', $value);
         // $quoted = [];
@@ -523,35 +520,28 @@ class EmitterPHP extends Emitter {
     function pMatch ($value, $k) {
 
         $subject = array_shift($k);
-        $out = $this->format('$_match = ###;', $subject);
-        $this->numMatchPatterns = 0;
+        $out = $this->format('match (###) {', $subject);
 
         $topLm = $this->lineMarker(-1);
 
         foreach ($k as $kid) {
-            $this->numMatchPatterns += 1;
             $out .= $this->format('###', $kid);
         }
 
-        $out .= 'else { \o\Runtime::matchDie($_match); }';
+        $out .= '};';
         $out .= $topLm;
 
         return $out;
     }
 
-    function pMatchPattern ($value, $k) {
+    function pMatchPair ($value, $k) {
+      //  if (!count($k)) { return ''; }
+        return $this->format('### => ###,', $k[0], $k[1]);
+    }
 
-        $else = $this->numMatchPatterns > 1 ? 'else ' : '';
-
-        if ($k[0]['value'] == 'true' || $k[0]['value'] == 'false') {
-            return $this->format($else . 'if (###) { ###; }', $k[0], $k[1]);
-        }
-
-        return $this->format(
-            $else . 'if (\o\Runtime::match($_match, ###)) { ###; }',
-            $k[0],
-            $k[1]
-        );
+    function pMatchDefault ($value, $k) {
+      //  if (!count($k)) { return ''; }
+        return 'default';
     }
 
 
@@ -702,8 +692,6 @@ class EmitterPHP extends Emitter {
         // Clone objects coming in for pass-by-copy
         $cloneWrappers = $this->getPassByCopy();
         $out = preg_replace('/%!CLONE%/', $cloneWrappers, $out, 1);
-
-
 
         // Create implicit $a, $b, $c for anon functions
         $implicitArgs = '';

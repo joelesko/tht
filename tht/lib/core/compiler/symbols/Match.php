@@ -5,6 +5,15 @@ namespace o;
 class S_Match extends S_Statement {
     var $type = SymbolType::OPERATOR;
 
+    function asLeft($p) {
+
+     //   $p->matchDepth += 1;
+        $s = $this->asStatement($p);
+    //    $p->matchDepth -= 1;
+
+        return $s;
+    }
+
     // match { ... }
     function asStatement ($p) {
 
@@ -19,41 +28,50 @@ class S_Match extends S_Statement {
             $this->addKid($sMatchSubject);
         }
         else {
-            // experimental -- no subject turns it into a more concise if/else
+            // implicit true if no subject
             $sTrue = $p->makeSymbol(TokenType::WORD, 'true', SymbolType::BOOLEAN);
             $this->addKid($sTrue);
         }
 
-        $p->now('{', 'match.open')->space(' { ', true)->next();
+        $p->now('{', 'match.open')->space(' {B')->next();
 
-        // Collect patterns.  "pattern { ... }"
+        // Collect patterns.  "pattern: ..."
+        $pos = 0;
         while (true) {
+
+            $p->parseElementSeparator($pos, true, $this);
+            $pos += 1;
+
+            if ($p->symbol->isValue("}")) { break; }
+
+            // Match Pattern
+            if ($p->symbol->isValue('default')) {
+                $sMatchPattern = $p->makeSymbol(TokenType::WORD, 'default', SymbolType::CONSTANT);
+                $p->next();
+            }
+            else {
+                $sMatchPattern = $p->parseExpression(0);
+            }
+
+            // Colon ':'
+            $p->now(':', 'match.colon')->space('x:S')->next();
+
+            // Match Value
+            $sMatchValue = $p->parseExpression(0);
+
+            $sMatchPair = $p->makeSymbol(SymbolType::MATCH_PAIR, '(pair)', SymbolType::MATCH_PAIR);
+            $sMatchPair->addKid($sMatchPattern);
+            $sMatchPair->addKid($sMatchValue);
+
+            $this->addKid($sMatchPair);
 
             // newline separator
             if ($p->symbol->isNewline()) {
                 $p->next();
             }
-
-            if ($p->symbol->isValue("}")) { break; }
-
-            if ($p->symbol->isValue('default')) {
-                $sPattern = $p->makeSymbol(TokenType::WORD, 'true', SymbolType::BOOLEAN);
-                $p->next();
-            }
-            else {
-                $sPattern = $p->parseExpression(0);
-            }
-
-            $sBlock = $p->parseBlock();
-
-            $sPatternPair = $p->makeSymbol(SymbolType::MATCH_PATTERN, 'pattern', SymbolType::MATCH_PATTERN);
-            $sPatternPair->addKid($sPattern);
-            $sPatternPair->addKid($sBlock);
-
-            $this->addKid($sPatternPair);
         }
 
-        $p->now('}', 'match.close')->space(' } ', true)->next();
+        $p->now('}', 'match.close')->space(' } ')->next();
 
         return $this;
     }
