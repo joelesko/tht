@@ -3,7 +3,7 @@
 
 $test = Test()
 
-fn main {
+fun main {
 
     $test = Test()
 
@@ -14,11 +14,11 @@ fn main {
     Output.sendHtml(html($test.resultsHtml()))
 }
 
-fn isPerfMode {
+fun isPerfMode {
     return Input.get('perf', 'b')
 }
 
-tm html($results) {
+tem html($results) {
 
     <!DOCTYPE html>
     <!-- this is a comment -->
@@ -54,7 +54,7 @@ tm html($results) {
     </>
 }
 
-fn run($t:o) {
+fun run($t:o) {
 
     $startTime = Perf.now()
 
@@ -82,14 +82,14 @@ fn run($t:o) {
     $t = testTypeDeclarations($t)
     $t = testTemplates($t)
 
-    $t = testCustomModules($t)
     $t = testOop($t)
+    $t = testCustomModules($t)
 
     $t = testPerf($t)
     $t = testMisc($t)
 
 
-    // Modules
+    // // Modules
     $t = libFile($t)
     $t = libDate($t)
     $t = libPassword($t)
@@ -122,34 +122,51 @@ fn run($t:o) {
     return $t
 }
 
-fn testRuntimeErrors($t) {
+fun testRuntimeErrors($t) {
 
     $t.section('Runtime Errors')
 
     $t.dies(x{ 'abc'.sdf() }, 'non-existent method', 'Unknown method')
-
     $t.dies(x{ { a: 1 }.sdfsdf() }, 'invalid method', 'Unknown method')
 
-    $t.dies(x{ 'sdf'.reverse }, 'missing parens in method call',
-        'Try: Call method `u_reverse()`')
 
-    $funFor = fn {
+    $funFor = fun {
         foreach 2 as $foo {
         }
     }
     $t.dies($funFor, 'bad foreach var', 'argument')
 
-    $t.dies(x{ 'abc'.length }, 'length()', 'Call method `u_length()`')
+    $t.dies(x{ 'sdf'.reverse }, 'Try: Call method `reverse()`')
 
-    $t.dies(x{ 'x'.splitwords() }, 'bad case', 'Try: `splitWords` (exact case)')
+    // Test fuzzy matching for suggestions
+    $t.dies(x{ 'x'.splitwords() }, 'Try: `splitWords`')
+    $t.dies(x{ (1).leftZeroPad() }, 'Try: `zeroPadLeft`')
+    $t.dies(x{ (1).even() }, 'Try: `isEven`')
+    $t.dies(x{ 'x'.leftPad() }, 'Try: `padLeft`')
+    $t.dies(x{ 'x'.pad() }, 'Try: `padRight` `padLeft` `padBoth`')
+    $t.dies(x{ 'x'.spilt() }, 'Try: `split`')
+    $t.dies(x{ 'x'.starts() }, 'Try: `startsWith`')
+    $t.dies(x{ 'x'.toType() }, 'Try: `type` `xDangerToType`')
+    $t.dies(x{ { test: 1 }.tast }, 'Try: `test`')
+    $t.dies(x{ { test: 1 }.keys }, 'Try: Call method `keys()`')
 
-    $t.dies(x{ (1).leftZeroPad() }, 'word order', 'Try: `zeroPadLeft` (exact case)')
-    $t.dies(x{ (1).even() }, 'is-', 'Try: `isEven` (exact case)')
+    load('subDir/OtherModule')
+    $t.dies(x{ OtherModule.useAdjacant() }, 'Try: `useAdjacent`')
+    $t.dies(x{ OtherModule.useAdjacent }, 'Try: Call method `useAdjacent()`')
+
+    $t.dies(x{ Math.random }, 'Try: Call method `random()`')
+    $t.dies(x{ Math.radnom() }, 'Try: `random`')
+    $t.dies(x{ Page.random() }, 'Try: `Math.random`')
+
+    $sum = Math.sqrt(
+        1 + 2
+    )
+    >> $sum
 
     return $t
 }
 
-fn testCompileErrors($t) {
+fun testCompileErrors($t) {
 
     $t.section('Parser')
 
@@ -175,310 +192,323 @@ fn testCompileErrors($t) {
     '''
     $t.parserError($longLine, 'try: a multi-line string')
 
-    $longFn = 'fn tooManyArgs($a1, $a2, $a3, $a4, $a5) { }'
+    $longFn = 'fun tooManyArgs($a1, $a2, $a3, $a4, $a5) { }'
     $t.parserError($longFn, 'Can not have more than 4 arguments')
 
+
     $t.section('Parser Errors - Names')
+        .parserError('$FOO = 3',        'camelCase')
+        .parserError('$fOO = 3',        'camelCase')
+        .parserError('$XMLreader = {}', 'camelCase')
+        .parserError('$a_b = 3',        'camelCase')
+        .parserError('$$a = 1',         'only one `$`')
+        .parserError('$a$b = 1',        'only one `$`')
+        .parserError('class Foo {\n    fun aaa { $ = 1\n}\n}', 'missing a name')
+        .parserError('if true {\n} Else {\n}',  'all lowercase')
+        .parserError('fun fo$o {}', '$')
+        .parserError('fun FOO {}',   'camelCase')
+        .parserError('fun a {}',    'longer than 1')
 
-    $t.parserError('$FOO = 3',        'camelCase')
-    $t.parserError('$fOO = 3',        'camelCase')
-    $t.parserError('$XMLreader = {}', 'camelCase')
-    $t.parserError('$a_b = 3',        'camelCase')
+        $longName = 'a'.repeat(41)
+        $t.parserError('$' ~ $longName ~ ' = 1', '40 characters or less')
+        $t.parserError('fun ' ~ $longName ~ ' () {}', '40 characters or less')
 
-    $t.parserError('$$a = 1',         'only one `$`')
-    $t.parserError('$a$b = 1',        'only one `$`')
-    $t.parserError('class Foo {\n    fn aaa { $ = 1\n }\n}', 'missing a name')
+        $t.parserError('$test = 123\n$a = $tast + 1', 'Try: `$test`')
+        $t.parserError('tast()\nfun test { return 1 }\n', 'Try: `test`')
 
-    $t.parserError('if true {\n} Else {\n}',  'all lowercase')
 
-    $t.parserError('fn fo$o {}', '$')
-    $t.parserError('fn FOO {}',   'camelCase')
-    $t.parserError('fn a {}',    'longer than 1')
-
-    $longName = 'a'.repeat(41)
-    $t.parserError('$' ~ $longName ~ ' = 1', '40 characters or less')
-    $t.parserError('fn ' ~ $longName ~ ' () {}', '40 characters or less')
+   // >> $tast + 1
 
     $t.section('Parser Errors - Aliases')
 
-    $t.parserError('for ($ary as $a) { }', 'try: \`foreach')
-    $t.parserError('$ary = []\nforeach $a in $ary { }', 'expected `as`')
-    $t.parserError('$m = { a: 3 }\nforeach $m as $k => $v {', 'expected `/`')
+        .parserError('for ($ary as $a) { }', 'try: \`foreach')
+        .parserError('$ary = []\nforeach $a in $ary { }', 'expected `as`')
+        .parserError('$m = { a: 3 }\nforeach $m as $k => $v {}', 'expected `/`')
 
-    $t.parserError('$a = 1 ^ 2',  '+^')
-    $t.parserError('$a = 1 & 2',  '+&')
-    $t.parserError('$a = 1 | 2',  '+|')
-    $t.parserError('$a = 1 >> 2',  '+>')
-    $t.parserError('$a = 1 << 2',  '+<')
-    $t.parserError('$a = 1++',  '+= 1')
-    $t.parserError('if true { } elif false {}',  'else if')
-    $t.parserError('if true { } elsif false {}',  'else if')
-    $t.parserError('if true { } elseif false {}',  'else if')
-    $t.parserError('switch() {}',  'try: `match')
-    $t.parserError('require()',  'try: `load`')
-    $t.parserError('while () {}',  'try: `loop { ... }`')
-    $t.parserError('while true {}',  'try: `loop { ... }`')
-    $t.parserError('$a = 1 ?: 0',  '||:')
-    $t.parserError('$a = 1 ?? 0',  '||:')
-    $t.parserError('$a = ``\n$a .= `xyz`',  '~=')
-    $t.parserError('2 > 1 ? true : false', 'unnecessary ternary')
-    $t.parserError('2 > 1 ? false : true', 'unnecessary ternary')
-    $t.parserError('if `foo` == $b', 'Literal value should go on the right side')
-    $t.parserError('if 123 == $b', 'Literal value should go on the right side')
-    $t.parserError('if true == $b', 'Literal value should go on the right side')
+        .parserError('$a = 1 ^ 2',  '+^')
+        .parserError('$a = 1 & 2',  '+&')
+        .parserError('$a = 1 | 2',  '+|')
+        .parserError('$a = 1 >> 2',  '+>')
+        .parserError('$a = 1 << 2',  '+<')
+        .parserError('$a = 1++',  '+= 1')
+        .parserError('if true { } elif false {}',  'else if')
+        .parserError('if true { } elsif false {}',  'else if')
+        .parserError('if true { } elseif false {}',  'else if')
+        .parserError('switch() {}',  'try: `match')
+        .parserError('require()',  'try: `load`')
+        .parserError('while () {}',  'try: `loop { ... }`')
+        .parserError('while true {}',  'try: `loop { ... }`')
+        .parserError('$a = 1 ?: 0',  '||:')
+        .parserError('$a = 1 ?? 0',  '||:')
+        .parserError('$a = ``\n$a .= `xyz`',  '~=')
+        .parserError('2 > 1 ? true : false', 'unnecessary ternary')
+        .parserError('2 > 1 ? false : true', 'unnecessary ternary')
+        .parserError('if `foo` == $b', 'Literal value should go on the right side')
+        .parserError('if 123 == $b', 'Literal value should go on the right side')
+        .parserError('if true == $b', 'Literal value should go on the right side')
 
 
 
 
     $t.section('Parser Errors - Misc')
 
-    $t.parserError('$a', 'standalone value')
-    $t.parserError('true', 'standalone value')
-    $t.parserError('{}', 'standalone expression')
-    $t.parserError('$a || 123', 'standalone expression')
-    $t.parserError('$a == 123', '`=` (assignment)')
-    $t.parserError('if $a = 3 { }', 'assignment', 'if, missing paren')
-    $t.parserError('break', 'outside of a loop')
-    $t.parserError('return', 'outside of a function')
-    $t.parserOk('if true { $a = 1 }', 'newline not needed for one-line if')
-    $t.parserOk('fn foo { return 1 }', 'newline not needed for one-line fun')
+        .parserError('$a', 'standalone value')
+        .parserError('true', 'standalone value')
+        .parserError('{}', 'standalone expression')
+        .parserError('$a || 123', 'standalone expression')
+        .parserError('$a == 123', '`=` (assignment)')
+        .parserError('$a =\n123', 'remove the newline')
+        .parserError('if $a = 3 { }', 'assignment', 'if, missing paren')
+        .parserError('break', 'outside of a loop')
+        .parserError('return', 'outside of a function')
+        .parserOk('if true { $a = 1 }', 'newline not needed for one-line if')
+        .parserOk('fun foo { return 1 }', 'newline not needed for one-line fun')
 
-    // TODO: small bug: outer parens aren't caught if there is no following statement
-    $t.parserError('if (1 == 1) { }\n$a = 1', 'outer parens')
-    $t.parserError('if (false && (1 == 1)) { }\n$a = 1', 'outer parens')
-    $t.parserError('if true { }\n else if (1 == 1) { }\n$a = 1', 'outer parens')
-    $t.parserError('foreach ([`a`] as $bbb) { }', 'outer parens')
-    $t.parserOk('if (1 == 1) && false { }', 'outer parens')
-    $t.parserOk('if false && (1 == 1) { }', 'outer parens')
-    $t.parserError('$a = `hello', 'unexpected newline')
-    $t.parserError('foreach $a {}', 'expected `as`')
-    $t.parserError('for ($i = 0; i < 10; i += 1) {}', 'Try: \`foreach')
-    $t.parserError('1 ? 2 ? 3 : 4 : 5', 'nested ternary')
-    $t.parserError('$a = e`foo`', 'string modifier')
-    $t.parserError('if 2 => 1 { }', '>=')
-    $t.parserError('if 1 =< 2 { }', '<=')
-    $t.parserError('$a = 1 <> 2', '!=')
-    $t.parserError('fn foo\n$a = 1', 'Expected `{`')
+        // TODO: small bug: outer parens aren't caught if there is no following statement
+        .parserError('if (1 == 1) { }\n$a = 1', 'outer parens')
+        .parserError('if (false && (1 == 1)) { }\n$a = 1', 'outer parens')
+        .parserError('if true { }\nelse if (1 == 1) { }\n$a = 1', 'outer parens')
+        .parserError('foreach ([`a`] as $bbb) { }', 'outer parens')
+        .parserOk('if (1 == 1) && false { }', 'outer parens')
+        .parserOk('if false && (1 == 1) { }', 'outer parens')
+        .parserError('$a = `hello', 'unexpected newline')
+        .parserError('foreach $a {}', 'expected `as`')
+        .parserError('for ($i = 0; i < 10; i += 1) {}', 'Try: \`foreach')
+        .parserError('1 ? 2 ? 3 : 4 : 5', 'nested ternary')
+        .parserError('$a = e`foo`', 'string modifier')
+        .parserError('if 2 => 1 { }', '>=')
+        .parserError('if 1 =< 2 { }', '<=')
+        .parserError('$a = 1 <> 2', '!=')
+        .parserError('fun foo\n$a = 1', 'Expected `{`')
 
 
-    $t.parserError('if false && ($a == 3) return', 'Expected `{`')
-    $t.parserError('$a = { FOO: `bar` }', 'camelCase')
-    $t.parserError('$a = { foo: `bar`, foo: 1 }', 'duplicate key')
-    $t.parserError('$a = (1 + )', 'missing right operand')
-    $t.parserError('$a = 2 + (1 * ) + 1', 'missing right operand')
-    $t.parserError('<?', 'Unknown token: `<?`')
-    $t.parserError('?>', 'Unknown token: `?>`')
-    $t.parserError('<?=', 'Unknown token: `<?=`')
-    $t.parserError('`hello`[] = `a`', 'Assignment can not')
-    $t.parserError('fn test($tma1,\n$tma2) {\n}', 'Newline')
-    $t.parserError('fn test($tma1, \n$tma2) {\n}', 'Newline')
-    $t.parserError('$a = 1;', 'remove semicolon')
-    $t.parserError('$a = [1,, ]', 'Unexpected comma')
-    $t.parserError('$a = [,, 1]', 'Unexpected comma')
-    $crlf =  String.unicodeToChar(13) ~ String.unicodeToChar(10)
-    $t.parserOk('$a = 1' ~ $crlf ~ '$b = 2', 'Ignore CR (Windows line break)')
+        .parserError('if false && ($a == 3) return', 'Expected `{`')
+        .parserError('$a = { FOO: `bar` }', 'camelCase')
+        .parserError('$a = { foo: `bar`, foo: 1 }', 'duplicate key')
+        .parserError('$a = (1 + )', 'missing right operand')
+        .parserError('$a = 2 + (1 * ) + 1', 'missing right operand')
+        .parserError('<?', 'Unknown token: `<?`')
+        .parserError('?>', 'Unknown token: `?>`')
+        .parserError('<?=', 'Unknown token: `<?=`')
+        .parserError('`hello`[] = `a`', 'Assignment can not')
+        .parserError('fun test(\n    ma1\n    ma2\n) {\n}', 'Newline')
+        .parserError('fun test(\n    ma1 \n    ma2\n) {\n}', 'Newline')
+        .parserError('$a = 1;', 'remove semicolon')
+        .parserError('$a = [1,, ]', 'Unexpected comma')
+        .parserError('$a = [,, 1]', 'Unexpected comma')
 
-    $t.parserError('$a = ``` sdf', 'newline')
-    $t.parserError('$a = ```\n    dfg ```', 'separate line')
-    $t.parserError('$a = ```\n    dfg ', 'unclosed')
+        $crlf =  String.unicodeToChar(13) ~ String.unicodeToChar(10)
+        $t.parserOk('$a = 1' ~ $crlf ~ '$b = 2', 'Ignore CR (Windows line break)')
 
-    $t.parserError('$a = 1, $b = 2', 'unexpected separator', '')
-    $t.parserError('foo())', 'extra separator')
-    $t.parserError('foo()]', 'extra separator')
-    $t.parserError('foo()}', 'extra separator')
+        .parserError('$a = ``` sdf', 'newline')
+        .parserError('$a = ```\n    dfg ```', 'separate line')
+        .parserError('$a = ```\n    dfg ', 'unclosed')
 
-    $t.parserError('`foo` == $a', 'right side of the expression')
-    $t.parserError('1 == $a', 'right side of the expression')
-    $t.parserError('true == $a', 'right side of the expression')
-    $t.parserError('true == bar()', 'right side of the expression')
-    $t.parserError('`foo` == bar()', 'right side of the expression')
-    $t.parserError('`foo` == $a.key', 'right side of the expression')
+        .parserError('$a = 1, $b = 2', 'unexpected separator', '')
+        .parserError('foo())', 'extra separator')
+        .parserError('foo()]', 'extra separator')
+        .parserError('foo()}', 'extra separator')
 
-    $t.parserError('$a = 1 >> 2', 'can only be used at the beginning of a line')
-    $t.parserOk('\n>> 123', 'print shortcut')
+        .parserError('`foo` == $a', 'right side of the expression')
+        .parserError('1 == $a', 'right side of the expression')
+        .parserError('true == $a', 'right side of the expression')
+        .parserError('true == bar()', 'right side of the expression')
+        .parserError('`foo` == bar()', 'right side of the expression')
+        .parserError('`foo` == $a.key', 'right side of the expression')
 
-    $t.parserError('$a = `str``', 'Extra quote')
+        .parserError('$a = 1 >> 2', 'can only be used at the beginning of a line')
+        .parserOk('\n>> 123', 'print shortcut')
+
+        .parserError('$a = `str``', 'Extra quote')
 
 
 
     $t.section('Parser Errors - Adjacent Tokens')
-
-    $t.parserError('$a = $foo $foo',   'unexpected variable')
-    $t.parserError('$a = `foo` $foo', 'unexpected variable')
-    $t.parserError('$a = 123 $foo',   'unexpected variable')
-    $t.parserError('$a = $foo foo',   'unexpected word')
-    $t.parserError('$a = foo `foo`', 'unknown keyword')
-    $t.parserError('$a = 123 `foo`', 'unexpected string')
-    $t.parserError('$a = foo 123',   'unknown keyword')
-    $t.parserError('$a = `foo` 123', 'unexpected number')
-    $t.parserError('$a = [1, 2 3]',   'unexpected number')
-    $t.parserError('$a = { k: a, b c }', 'unknown keyword')
-    $t.parserError('let $a = 123', 'unknown keyword')
-    $t.parserError('function foo() {}', 'unknown keyword')
+        .parserError('$a = $foo $foo',   'unexpected variable')
+        .parserError('$a = `foo` $foo', 'unexpected variable')
+        .parserError('$a = 123 $foo',   'unexpected variable')
+        .parserError('$a = $foo foo',   'unexpected word')
+        .parserError('$a = foo `foo`', 'unknown keyword')
+        .parserError('$a = 123 `foo`', 'unexpected string')
+        .parserError('$a = foo 123',   'unknown keyword')
+        .parserError('$a = `foo` 123', 'unexpected number')
+        .parserError('$a = [1, 2 3]',   'unexpected number')
+        .parserError('$a = { k: a, b c }', 'unknown keyword')
+        .parserError('let $a = 123', 'unknown keyword')
+        .parserError('function foo() {}', 'unknown keyword')
 
 
     $t.section('Parser Errors - Newlines')
+        .parserError('$a = 1 /*\n', 'separate line')
+        .parserError('/*\nsdf\n*/ d', 'missing newline')
+        .parserError('/*\nsdf', 'missing a closing token: `*/`')
+        .parserError('tem fooText() {\n} $a = 1', 'Missing newline after closing brace')
+        .parserError('if\n(true)\n{ } ', 'newline after: `if`')
+        .parserError('foreach\n(el in list)', 'newline after: `foreach`')
+        .parserError('fun\nfoo()', 'newline after: `fun`')
+        .parserError('class\nFoo {}', 'newline after: `class`')
+        .parserError('$a = new\nFoo()', 'remove `new`')
+        .parserOk('$a = fun { $c = 1 }', 'Statement in anon function')
+        .parserOk('if true { $a = 1 }', 'Statement in conditional block')
 
-    $t.parserError('$a = 1 /*\n', 'separate line')
-    $t.parserError('/*\nsdf\n*/ d', 'missing newline')
-    $t.parserError('/*\nsdf', 'unclosed comment')
-    $t.parserError('tm fooText() {\n} $a = 1', 'Missing newline after closing brace')
-    $t.parserError('if\n(true)\n{ } ', 'newline after `if`')
-    $t.parserError('foreach\n(el in list)', 'newline after `foreach`')
-    $t.parserError('fn\nfoo()', 'newline after `fn`')
-    $t.parserError('class\nFoo {}', 'newline after `class`')
-    $t.parserError('$a = new\nFoo()', 'remove `new`')
-    $t.parserOk('$a = fn { $c = 1 }', 'Statement in anon function')
-    $t.parserOk('if true { $a = 1 }', 'Statement in conditional block')
+        // Don't allow dangling open braces
+        .parserError('if true\n{ }',             'Please move open brace')
+        .parserError('if true {\n}\nelse\n{ }',  'Please move open brace')
+        .parserError('foreach [`a`] as $a\n{ }', 'Please move open brace')
+        .parserError('fun fnn\n{ }',              'Please move open brace')
+        .parserError('$a = [\n    1, 2]\n$b = 1', 'Please move delimiter')
 
-    // Don't allow dangling open braces
-    $t.parserError('if true\n{ }',             'Please move open brace')
-    $t.parserError('if true {\n}\nelse\n{ }',  'Please move open brace')
-    $t.parserError('foreach [`a`] as $a\n{ }', 'Please move open brace')
-    $t.parserError('fn fnn\n{ }',              'Please move open brace')
-
+    $t.section('Parser Errors - Indent')
+        .parserError('$foo = 1\n+ 22',  '4 spaces right')
+        .parserOk('$foo = 1\n    + 22', 'indent before operator')
+        .parserError('$map = {\n  a: 123\n}',  '2 spaces right')
+        .parserOk('$map = {\n    a: 123\n}', 'indent inside map')
+        .parserError('$list = [\n  111\n]',  '2 spaces right')
+        .parserOk('$list = [\n    111\n]', 'indent inside list')
+        .parserError('$list = [\n      111\n]',  '2 spaces left')
+        .parserError('$foo = (\n  1 + 2\n)',  '2 spaces right')
+        .parserOk('$foo = (\n    1 + 2\n)', 'indent inside parens')
+        .parserError('fun foo {\n  $a = 1\n}',  '2 spaces right')
+        .parserOk('fun foo {\n    $a = 1\n}', 'indent inside function')
+        .parserError('if true {\n  $a = 1\n}',  '2 spaces right')
+        .parserOk('if true {\n    $a = 1\n}', 'indent inside block')
 
     $t.section('Parser Errors - Spaces')
 
-    $t.parserError('fn(){}',         'space after `fn`')
-    $t.parserError('fn foo () {}',   'space before `(`')
-    $t.parserError('fn foo{}',       'space before `{`')
-    $t.parserError('$a = fn() {}',   'space after `fn`')
-    $t.parserError('fn foo {a = 1 }',     'space after `{`')
+        .parserError('fun(){}',         'space after: `fun`')
+        .parserError('fun foo () {}',   'space before: `(`')
+        .parserError('fun foo{}',       'space before: `{`')
+        .parserError('$a = fun() {}',   'space after: `fun`')
+        .parserError('fun foo {a = 1 }',     'space after: `{`')
 
-    $t.parserError('$z = x{$a > 1 }', 'space after `{`')
-    $t.parserError('$z = x{ $a > 1}', 'space before `}`')
-    $t.parserOk('$z = x{\n    $a > 1\n}', 'newline after `{`')
+        .parserError('$z = x{$a > 1 }', 'space after: `{`')
+        .parserError('$z = x{ $a > 1}', 'space before: `}`')
+        .parserOk('$z = x{\n    $a > 1\n}', 'newline after: `{`')
 
-    $t.parserError('( a + 1)',             'space after `(`')
-    $t.parserOk('$a = (\n    1 +\n    2\n)', 'newline after `(`')
-    $t.parserError('foo( )',               'space after `(`')
-    $t.parserError('$a = [ ]',             'space after `[`')
-    $t.parserError('$a = { }',             'space after `{`')
-    $t.parserOk('$a = [\n]',               'space after `[`')
-    $t.parserOk('$a = {\n}',               'space after `{`')
-    $t.parserError('$a = $b[ 0]',           'space after `[`')
-    $t.parserError('$a = $b[0 ]',           'space before `]`')
-    $t.parserError('$a= 1+2',              'space before `=`')
-    $t.parserError('$a =1+2',              'space after `=`')
-    $t.parserError('$a = 1+ 2',            'space before `+`')
-    $t.parserError('$a = 1 +2',            'space after `+`')
-    $t.parserError('$a = 1 + - 2',         'space after `-`')
-    $t.parserError('$a = {a:`b`}',         'space after `{`')
-    $t.parserError('$a = { a:`b`}',        'space after `:`')
-    $t.parserError('$a = { a : `b`}',      'space before `:`')
-    $t.parserError('$a = [1,2,3]',         'space after `,`')
-    $t.parserError('if(true) {}',          'space after `if`')
-    $t.parserError('if ( true) {}',        'space after `(`')
-    $t.parserError('if true{}',          'space before `{`')
-    $t.parserError('fn foo { return(a) }', 'space after `return`')
-    $t.parserError('$a,$b,$c',             'space after `,`')
-    $t.parserError('$a? 1 : 2',            'space before `?`')
-    $t.parserError('$a ?1 : 2',            'space after `?`')
-    $t.parserError('$a ? 1: 2',            'space before `:`')
-    $t.parserError('$a ? 1 :2',            'space after `:`')
-    $t.parserError('if true :$a = 1',   'space before `:`')
-    $t.parserError('if true:\n$a = 1',  'newline after `:`')
-    $t.parserOk('$a = [1, 2, 3]',       'no padding inside `[...]`')
-    $t.parserError('$a = [ 1, 2]',  'space after `[`')
-    $t.parserError('$a = [1, 2 ]',      'space before `]`')
+        .parserError('( a + 1)',             'space after: `(`')
+        .parserOk('$a = (\n    1 +\n    2\n)', 'newline after: `(`')
+        .parserError('foo( )',               'space after: `(`')
+        .parserError('$a = [ ]',             'space after: `[`')
+        .parserError('$a = { }',             'space after: `{`')
+        .parserOk('$a = [\n]',               'space after: `[`')
+        .parserOk('$a = {\n}',               'space after: `{`')
+        .parserError('$a = $b[ 0]',           'space after: `[`')
+        .parserError('$a = $b[0 ]',           'space before: `]`')
+        .parserError('$a= 1+2',              'space before: `=`')
+        .parserError('$a =1+2',              'space after: `=`')
+        .parserError('$a = 1+ 2',            'space before: `+`')
+        .parserError('$a = 1 +2',            'space after: `+`')
+        .parserError('$a = 1 + - 2',         'space after: `-`')
+        .parserError('$a = {a:`b`}',         'space after: `{`')
+        .parserError('$a = { a:`b`}',        'space after: `:`')
+        .parserError('$a = { a : `b`}',      'space before: `:`')
+        .parserError('$a = [1,2,3]',         'space after: `,`')
+        .parserError('if(true) {}',          'space after: `if`')
+        .parserError('if ( true) {}',        'space after: `(`')
+        .parserError('if true{}',          'space before: `{`')
+        .parserError('fun foo { return(a) }', 'space after: `return`')
+        .parserError('$a,$b,$c',             'space after: `,`')
+        .parserError('$a? 1 : 2',            'space before: `?`')
+        .parserError('$a ?1 : 2',            'space after: `?`')
+        .parserError('$a ? 1: 2',            'space before: `:`')
+        .parserError('$a ? 1 :2',            'space after: `:`')
+        .parserError('if true :$a = 1',   'space before: `:`')
+        .parserError('if true:\n$a = 1',  'newline after: `:`')
+        .parserOk('$a = [1, 2, 3]',       'no padding inside `[...]`')
+        .parserError('$a = [ 1, 2]',  'space after: `[`')
+        .parserError('$a = [1, 2 ]',      'space before: `]`')
 
-    $t.parserError('String .random(4)', 'space before `.`')
-    $t.parserError('String. random(4)', 'space after `.`')
-    $t.parserError('String.\n    random(4)', 'space after `.`')
-    $t.parserOk('String\n    .random(4)', 'newline before `.`')
+        .parserError('String .random(4)', 'space before: `.`')
+        .parserError('String. random(4)', 'space after: `.`')
+        .parserError('String.\n    random(4)', 'space after: `.`')
+        .parserOk('String\n    .random(4)', 'newline before: `.`')
 
-    $t.parserError('\tfoo()', 'tab character not supported')
-    $t.parserError('$foo = \t123', 'tab character not supported')
-    $t.parserError('\ntm fHtml {\n\t    Test\n}', 'tab character not supported')
+        .parserError('\tfoo()', 'tab character not supported')
+        .parserError('$foo = \t123', 'tab character not supported')
+        .parserError('\ntem fHtml {\n\t    Test\n}', 'tab character not supported')
 
 
     $t.section('Parser Errors - Templates')
 
-    // TODO: there is a bug if a tm is the first line of source code
-    $t.parserError('\ntm fHtml {<',                'newline')
-    $t.parserError('\ntm fHtml {\n    ---$a = 1',        'space after `---`')
-    $t.parserError('\ntm fHtml {\n    --- $a = \n}\n',       'Unexpected newline')
-    $t.parserOk('\ntm fHtml {\n    {{5 }}\n}\n',     'space after `{{`')
-    $t.parserOk('\ntm fHtml {\n    {{ 5}}\n}\n',     'space before `}}`')
-    $t.parserError('\ntm fHtml {\n    {{ \n5 }}',    'unexpected newline')
-    $t.parserError('\ntm fHtml {\n    <p class="foo>\n }',     'missing a closing quote')
-    $t.parserError('\ntm fHtml {\n    <b>Hi</div>',    'expected `</b>`')
-    $t.parserOk('\ntm fffHtml {\n    </>\n}\n',  'extra closing tag')
-    $t.parserError('\ntm fHtml {\n    <p>\n    </>\n    </>}\n',  'extra closing tag')
-    $t.parserOk('\ntm fHtml {\n    </b>\n}\n',  'named closing tag')
-    $t.parserError('fn fHtml {\n    <',              'unexpected `<`', '')
-    $t.parserError('\ntm fHtml {\n    <b>\n}', 'missing closing tag')
-    $t.parserOk('\ntm fHtml {\n    <b>\n    </...>\n}', 'continue tag')
-    $t.parserError('\ntm foo {\n',                   'missing type')
-    $t.parserError('\ntm fHtml {\nTest\n}', 'should be indented')
-    $t.parserError('\ntm {\nTest\n}', 'must have a name')
+        // TODO: there is a bug if a tem is the first line of source code
+        .parserError('\ntem fHtml {<',                'newline')
+        .parserError('\ntem fHtml {\n    ===$a = 1',        'space after: `===`')
+        .parserError('\ntem fHtml {\n    === $a = 1 + \n}\n',       'Unexpected newline')
+        .parserOk('\ntem fHtml {\n    {{5 }}\n}\n',     'space after: `{{`')
+        .parserOk('\ntem fHtml {\n    {{ 5}}\n}\n',     'space before: `}}`')
+        .parserError('\ntem fHtml {\n    {{ \n5 }}',    'unexpected newline')
+        .parserError('\ntem fHtml {\n    <p class="foo>\n }',     'missing a closing double-quote')
+        .parserError('\ntem fHtml {\n    <b>Hi</div>',    'expected `</b>`')
+        .parserOk('\ntem fffHtml {\n    </>\n}\n',  'extra closing tag')
+        .parserError('\ntem fHtml {\n    <p>\n    </>\n    </>}\n',  'extra closing tag')
+        .parserOk('\ntem fHtml {\n    </b>\n}\n',  'named closing tag')
+        .parserError('fun fHtml {\n    <',              'unexpected token: `<`', '')
+        .parserError('\ntem fHtml {\n    <b>\n}', 'missing closing tag')
+        .parserOk('\ntem fHtml {\n    <b>\n    </...>\n}', 'continue tag')
+        .parserError('\ntem foo {\n',                   'missing type')
+        .parserError('\ntem fHtml {\nTest\n}', 'please indent line')
+        .parserError('\ntem {\nTest\n}', 'must have a name')
 
 
     $t.section('Parser Errors - Assignment as Expression')
 
-    $t.parserError('$b = 1\n$a = $b = 3',        'assignment can not')
-    $t.parserError('$b = 1\n$a = $b += 3',       'assignment can not')
-    $t.parserError('$a = { b: $c = 1 }',           'assignment can not')
-    $t.parserError('foo($a = 3)',               'assignment can not')
-    $t.parserError('$a[$b = 3]',                   'assignment can not')
-    $t.parserError('foreach $a = 3 as $b {}',      'assignment can not')
-    $t.parserError('if $a = 3 {}',                 'assignment can not')
-    $t.parserError('fn foo { return $a = 3\n }', 'assignment can not')
+        .parserError('$b = 1\n$a = $b = 3',        'assignment can not')
+        .parserError('$b = 1\n$a = $b += 3',       'assignment can not')
+        .parserError('$a = { b: $c = 1 }',           'assignment can not')
+        .parserError('foo($a = 3)',               'assignment can not')
+        .parserError('$a[$b = 3]',                   'assignment can not')
+        .parserError('foreach $a = 3 as $b {}',      'assignment can not')
+        .parserError('if $a = 3 {}',                 'assignment can not')
+        .parserError('fun foo { return $a = 3 }', 'assignment can not')
 
 
     $t.section('Parser Errors - Scope')
 
-    $t.parserError('$a = $b + 1', 'unknown variable')
-    $t.parserError('fn foo { }\nfn foo() { }', 'already defined')
-    $t.parserError('fn foo { }\nfn fOo() { }', 'defined as `foo`')
-    $t.parserError('fn foo($aa, $aa) { }', 'already defined')
-    $t.parserError('fn foo($aa, $aA) { }', 'typo')
+        .parserError('$a = $b + 1', 'unknown variable')
+        .parserError('fun foo { }\nfun foo() { }', 'already defined')
+        .parserError('fun foo { }\nfun fOo() { }', 'defined as `foo`')
+        .parserError('fun foo($aa, $aa) { }', 'already defined')
+        .parserError('fun foo($aa, $aA) { }', 'typo')
 
-    $t.parserError('fn print() {}', 'core function')
-    $t.parserError('fn finally() {}', 'reserved')
-    $t.parserError('fn else() {}', 'reserved')
+        .parserError('fun print() {}', 'core function')
+        .parserError('fun finally() {}', 'reserved')
+        .parserError('fun else() {}', 'reserved')
 
-    $t.parserError('$a = 1\nfn foo {\n    print($a)\n}', 'unknown variable')
+        .parserError('$a = 1\nfun foo {\n    print($a)\n}', 'unknown variable')
 
+        .parserError('$a = $b[4]', 'unknown variable')
+        .parserError('$fOo = 1\n$foO = 2', 'typo')
+        .parserError('$a = $b + 1', 'unknown variable')
+        .parserError('$a = $a + 1', 'unknown variable')
+        .parserError('fOo()\nfun foo { }', 'typo', '')
+        .parserError('fun main { }\n$a = 1', 'declared before functions')
+        .parserError('@.a = 123', 'outside of an object')
+        .parserError('$a = 1\nforeach [0] as $a {\n}', 'already defined')
+        .parserError('foreach [0] as $a {\n}\nprint($a)', 'unknown variable')
+        .parserError('try {\n}\ncatch $ex {\n}\nprint($ex)', 'unknown variable')
+        .parserError('$a = 1\nforeach [0] as $a { }', 'already defined')
+        .parserError('foreach [0] as $a/$a { }', 'already defined')
+        .parserError('public foo() { }', 'Missing `fn` or `tm` keyword')
 
-    // TODO: fix handling of closure variables
-    //   $t.parserError('$f = fn foo() keep ($a) { }', 'unknown variable')
-
-
-
-    $t.parserError('$a = $b[4]', 'unknown variable')
-    $t.parserError('$fOo = 1\n$foO = 2', 'typo')
-    $t.parserError('$a = $b + 1', 'unknown variable')
-    $t.parserError('$a = $a + 1', 'unknown variable')
-    $t.parserError('fOo()\nfn foo { }', 'typo', '')
-    $t.parserError('fn main { }\n$a = 1', 'declared before functions')
-    $t.parserError('@.a = 123', 'outside of an object')
-    $t.parserError('$a = 1\n foreach [0] as $a {\n}', 'already defined')
-    $t.parserError('foreach [0] as $a {\n}\nprint($a)', 'unknown variable')
-    $t.parserError('try {\n}\ncatch $ex {\n}\nprint($ex)', 'unknown variable')
-    $t.parserError('$a = 1\nforeach [0] as $a { }', 'already defined')
-    $t.parserError('foreach [0] as $a/$a { }', 'already defined')
-    $t.parserError('public foo() { }', 'Missing `fn` or `tm` keyword')
-
-    $t.parserOk('foreach [] as $n: print($n)\n$b = 3', 'statement after one-liner foreach')
-    $t.parserOk('if true: print(2)\n$b = 3', 'statement after one-liner if')
-    $t.parserOk('fn outer {\n    fn fnIn: print(2) \n    $b = 3\n }',
-        'statement after one-liner fn')
+        .parserOk('foreach [] as $n: print($n)\n$b = 3', 'statement after one-liner foreach')
+        .parserOk('if true: print(2)\n$b = 3', 'statement after one-liner if')
+        .parserOk(
+            'fun outer {\n    fun fnIn: print(2)\n    $b = 3\n}'
+            'statement after one-liner fn'
+        )
 
     $t.section('Missing $')
-
-    $t.parserError('tt = 123', 'use a variable')
-    $t.parserError('$a = tt', 'use a variable')
-    $t.parserError('tt #= 123', 'use a variable')
-    $t.parserError('tt += 123', 'use a variable')
-    $t.parserError('$a = tt - 3', 'use a variable')
-    $t.parserError('$a = tt ~ `!`', 'use a variable')
-    $t.parserError('$a = 3 - tt', 'use a variable')
-    $t.parserError('$a = tt[3]', 'use a variable')
-    $t.parserError('fn ff { return tt }', 'use a variable')
-    $t.parserError('$a = [tt, 123]', 'use a variable')
-    $t.parserError('$a = { b: tt }', 'use a variable')
+        .parserError('tt = 123', 'use a variable')
+        .parserError('$a = tt', 'use a variable')
+        .parserError('tt #= 123', 'use a variable')
+        .parserError('tt += 123', 'use a variable')
+        .parserError('$a = tt - 3', 'use a variable')
+        .parserError('$a = tt ~ `!`', 'use a variable')
+        .parserError('$a = 3 - tt', 'use a variable')
+        .parserError('$a = tt[3]', 'use a variable')
+        .parserError('fun ff { return tt }', 'use a variable')
+        .parserError('$a = [tt, 123]', 'use a variable')
+        .parserError('$a = { b: tt }', 'use a variable')
 
 
 
@@ -487,14 +517,14 @@ fn testCompileErrors($t) {
     //return t
 
      // TODO: this is a runtime error.  capture this at compileTime
-    //$code = '$outer = 1\nfn()\fn fn() {\nprint($outer)\n}'
+    //$code = '$outer = 1\nfn()\fun fn() {\nprint($outer)\n}'
     //$t.parserError($code, 'unknown variable', '')
 
     return $t
 }
 
 
-fn testPerf($t) {
+fun testPerf($t) {
 
     if isPerfMode(): return $t
 
@@ -525,23 +555,11 @@ fn testPerf($t) {
     $elapsed = Perf.now() - $start
     $t.ok($elapsed <= 1, 'rangeGenerator loop ({} iters) took <= 1 ms'.fill($numIters))
 
-    // 1 million = 8ms
-    // Perf.start('test.perf.optimizedLoop')
-    // $start = Date.unixTime(true)
-
-    // foreach range(1, $numIters) as $n {
-    //   // ...
-    // }
-
-    // Perf.stop()
-    // $elapsed = Date.unixTime(true) - $start
-    // $t.ok($elapsed <= 1, 'optimized loop ({0} iters) took <= 1 ms'.fill($numIters))
-
     return $t
 }
 
 
-fn testMisc($t) {
+fun testMisc($t) {
 
     $t.section('Result Objects')
 
@@ -552,7 +570,7 @@ fn testMisc($t) {
     $failResult = Result.fail('testFail')
     $t.ok($failResult.getFailCode() == 'testFail', 'failCode')
 
-    $t.dies(fn { $failResult.get() }, 'get failed result', 'in a failure state')
+    $t.dies(fun { $failResult.get() }, 'get failed result', 'in a failure state')
 
 
     $t.section('Shortcuts')
@@ -565,7 +583,7 @@ fn testMisc($t) {
 }
 
 
-fn testCustomModules($t) {
+fun testCustomModules($t) {
 
     $t.section('Modules')
 
@@ -574,42 +592,51 @@ fn testCustomModules($t) {
     $t.ok(TestModule.testModuleVar() == 'moduleVar:mod', 'module var - inside access')
     $t.ok(TestModule.ModuleConstant == 'constant', 'module constant - outside access')
 
-    $t.dies(fn {
+    $t.dies(fun {
         $a = TestModule.moduleVar
     }, 'Can`t read from outside', 'Can not read private')
 
-    $t.dies(fn { TestModule.ModuleConstant = 'outsideChange' },
-        'Can`t write from outside', 'Can not set field')
-    $t.dies(fn { TestModule.changeConstantAndDie() }, 'Can`t change constant',
-        'Can not re-assign to constant field')
+    $t.dies(
+        fun { TestModule.ModuleConstant = 'outsideChange' }
+        'Can`t write from outside', 'Can not set field'
+    )
+    $t.dies(
+        fun { TestModule.changeConstantAndDie() }, 'Can`t change constant'
+        'Can not re-assign to constant field'
+    )
 
-    $t.dies(fn { TestModule.nonExportedFn() }, 'Can`t call non-exported',
-        'Can not call non-public function')
+    $t.dies(
+        fun { TestModule.nonExportedFn() }, 'Can`t call non-exported'
+        'Can not call non-public function'
+    )
 
     load('subDir/OtherModule')
     $t.ok(OtherModule.ok('Foo') == 'ok:Foo', 'import from subfolder')
 
-    $t.dies(fn { load('http://tht-lang.org') }, 'import remote url',
-        'Invalid character in `load` path')
-    .dies(fn { load('../Foo') }, 'import with dots', 'Path for `load` can only be relative')
-    .dies(fn { load('Foo%') }, 'import with illegal char', 'Invalid character in `load` path')
-    .dies(fn { load('Foo.tht') }, 'import with tht extension', 'Please remove `.tht`')
+    $t
+        .dies(fun { load('http://tht.dev') }, 'import url', 'Invalid character in `load` path')
+        .dies(fun { load('../Foo') }, 'import with dots', 'Path for `load` can only be relative')
+        .dies(fun { load('Foo%') }, 'import with illegal char', 'Invalid character in `load` path')
+        .dies(fun { load('Foo.tht') }, 'import with tht extension', 'Please remove `.tht`')
 
     $t.ok(BaseObject.BaseModuleConstant == 'constant', 'constant from subfolder module')
-    $t.dies(fn { TestModule.ConstantMap.Purple = 'xxx' }, 'can`t modify constant',
-        'Can not modify read-only')
+    $t.dies(
+        fun { TestModule.ConstantMap.Purple = 'xxx' }
+        'can`t modify constant'
+        'Can not modify read-only'
+    )
 
     // load modules with relative paths
     $t.ok(OtherModule.useAdjacent() == 'adjacent', 'call rel adjacent module')
     load('subDir/AdjacentModule')
     $t.ok(AdjacentModule.callUpperModule() == 'bareFunction:adj', 'call rel parent module')
 
-    $t.dies(fn { load('subDir/Adjacentmodule') }, 'file name mismatch', 'Check exact spelling')
+    $t.dies(fun { load('subDir/Adjacentmodule') }, 'file name mismatch', 'Check exact spelling')
 
     return $t
 }
 
-fn testOop($t) {
+fun testOop($t) {
 
     $t.section('Classes (OOP)')
 
@@ -626,18 +653,18 @@ fn testOop($t) {
 
 
     // public/private
-    $t.dies(fn {
+    $t.dies(fun {
         $ba = BaseObject()
         $ba.privateVar = 999
     }, 'can not write to private field', 'Can not write directly to field')
 
-    $t.dies(fn {
+    $t.dies(fun {
         $ba = BaseObject()
         $z = $ba.privateVar
     }, 'can not read private field', 'Can not read private field')
 
     $t.ok($b.publicVar == 'public', 'read public var')
-    $t.dies(fn {
+    $t.dies(fun {
         $ba = BaseObject()
         $ba.publicVar = 'changed'
     }, 'can not write to field', 'Try: Using a setter function')
@@ -646,19 +673,26 @@ fn testOop($t) {
     $t.ok($b.readNoInit() == 'noInit', 'don`t initialize private field')
 
     // general errors
-    $t.dies(fn { BaseObject({}, 'extra') }, 'expects only one argument',
-        'Constructor expects only one argument')
-    $t.dies(fn { BaseObject('non-map') }, 'first argument must be map',
-        'First argument must be a Map')
-    $t.dies(fn { BaseObject({ flag: 'true' }) }, 'init types must match',
-        'Field `flag` must be of type `boolean`')
-    $t.dies(fn { $b.privateFn() }, 'private function',
-        'Can not call private method')
-    $t.dies(fn { $b.newer = 123 }, 'can`t create field after construct',
-        'can not be created after object is constructed')
+    $t.dies(
+        fun { BaseObject({}, 'extra') }, 'expects only one argument'
+        'Constructor expects only one argument'
+    )
+    $t.dies(
+        fun { BaseObject('non-map') }, 'first argument must be map'
+        'First argument must be a Map'
+    )
+    $t.dies(
+        fun { BaseObject({ flag: 'true' }) }, 'init types must match'
+        'Field `flag` must be of type: `boolean`'
+    )
+    $t.dies(
+        fun { $b.privateFn() }, 'private function'
+        'Can not call private method'
+    )
+    $t.dies(fun { $b.newer = 123 }, 'can not create field after object is constructed')
     $t.parserError('class Foo {\n    $a = 1\n}', 'assignment not allowed')
     $t.parserError('class Foo {\n    foo()\n}', 'Invalid statement inside `class` block')
-    $t.parserError('class Foo1 { }\n\n class F2 { }', 'Only one class allowed')
+    $t.parserError('class Foo1 { }\n\nclass F2 { }', 'Only one class allowed')
 
 
     load('oop/FactoryObject')
@@ -694,13 +728,13 @@ fn testOop($t) {
     // $t.ok($o.embeddedField == 'embedded', 'embedded field')
     // $t.ok($o.val == 123, 'embedded field from init map')
     // $t.ok($o.useEmbedded() == 'embedded:123', 'embedded reference in base')
-    // $t.dies(fn () keep($o) { $o.addConflict() }, 'conflicting method')
+    // $t.dies(fun () keep($o) { $o.addConflict() }, 'conflicting method')
 
     return $t
 }
 
 
-fn testTypes($t) {
+fun testTypes($t) {
 
     $t.section('Types')
 
@@ -711,7 +745,7 @@ fn testTypes($t) {
     $t.ok($n.zClassName() == 'Number', 'Number')
     $f = true
     $t.ok($f.zClassName() == 'Boolean', 'Boolean')
-    $fnn = fn { }
+    $fnn = fun { }
     $t.ok($fnn.zClassName() == 'Function', 'Function')
 
     $t.ok(sql'abc'.zClassName() == 'SqlTypeString', 'SqlTypeString')
@@ -724,8 +758,6 @@ fn testTypes($t) {
     load('oop/BaseObject')
     $b = BaseObject({})
     //   $t.ok($b.type() == 'object', 'object')
-
-
     $t.ok('abc'.zClassName() == 'String', 'class: String')
     $t.ok([1, 2, 3].zClassName() == 'List', 'class: List')
     $t.ok(html'abc'.zClassName() == 'HtmlTypeString', 'class: HtmlTypeString')
@@ -734,19 +766,19 @@ fn testTypes($t) {
 
     $t.section('Types - .equals')
 
-    $t.ok('a'.equals('a'), 'string - true')
-    $t.ok(!'a'.equals('b'), 'string - false')
-    $t.ok(!'1'.equals(1), 'string to num - false')
-    $t.ok(!'1'.equals(1 == 1), 'string to bool - false')
-    $t.ok((false).equals(1 == 0), 'bool - true')
+        .ok('a'.equals('a'), 'string - true')
+        .ok(!'a'.equals('b'), 'string - false')
+        .ok(!'1'.equals(1), 'string to num - false')
+        .ok(!'1'.equals(1 == 1), 'string to bool - false')
+        .ok((false).equals(1 == 0), 'bool - true')
 
-    $t.ok({}.equals({}), 'map to map - true')
-    $t.ok({ a: 1 }.equals({ a: 1 }), 'map to map - true')
-    $t.ok(!{ a: 1 }.equals({ a: 2 }), 'map to map - false')
+        .ok({}.equals({}), 'map to map - true')
+        .ok({ a: 1 }.equals({ a: 1 }), 'map to map - true')
+        .ok(!{ a: 1 }.equals({ a: 2 }), 'map to map - false')
 
-    $t.ok({ a: 1, b: 2 }.equals({ b: 2, a: 1 }), 'map key order - true')
+        .ok({ a: 1, b: 2 }.equals({ b: 2, a: 1 }), 'map key order - true')
 
-    $t.ok(![].equals({}), 'list to map - false')
+        .ok(![].equals({}), 'list to map - false')
 
 
     // Nope
@@ -761,26 +793,26 @@ fn testTypes($t) {
 }
 
 
-fn testFunctions($t) {
+fun testFunctions($t) {
 
     $t.section('Functions')
 
-    fn testFn {
+    fun testfun {
         return 'yay'
     }
-    $t.ok(testFn() == 'yay', 'no args')
+    $t.ok(testfun() == 'yay', 'no args')
 
-    fn testA($arg) {
+    fun testA($arg) {
         return $arg ~ '!'
     }
     $t.ok(testA('hey') == 'hey!', 'with arg')
 
-    fn testB($arg = 'default') {
+    fun testB($arg = 'default') {
         return $arg ~ '!'
     }
     $t.ok(testB() == 'default!', 'default')
 
-    fn testSum {
+    fun testSum {
         $asum = 0
         foreach Meta.getArgs() as $arg {
             $asum += $arg
@@ -791,7 +823,7 @@ fn testFunctions($t) {
     $t.ok($sum == 10, 'variable args')
 
 
-    fn withOp($foo, $bar = 'default') {
+    fun withOp($foo, $bar = 'default') {
         return $bar
     }
     $r = withOp('hello', 'world')
@@ -801,48 +833,51 @@ fn testFunctions($t) {
     $t.ok($r == 'default', 'default, fallback')
 
     $outer = 'OUT'
-    $funClosure = fn ($a) {
+    $funClosure = fun ($a) {
         return $a ~ '/' ~ $outer
     }
     $t.ok($funClosure('IN') == 'IN/OUT', 'closure')
 
 
     $outer = 'OUT'
-    $funClosure2 = fn ($a) {
+    $funClosure2 = fun ($a) {
         $outer ~= '-append'
     }
     $funClosure2(1)
     $t.ok($outer == 'OUT-append', 'closure - modify outer')
 
     $outer = 'OUT'
-    $fnNamed = fn someFun {
+    $fnNamed = fun someFun {
         return 123 ~ $outer
     }
     $t.ok($fnNamed() == '123OUT', 'named closure')
 
 
+    $total = multilineFunCall(
+        11
+        22
+        33
+        44
+    )
 
-
-
-
-    fn addToList($list) {
+    fun addToList($list) {
         $list #= 4
     }
     $refList = [1, 2, 3]
     addToList($refList)
     $t.ok($refList.join() == '123', 'pass-by-copy - list')
 
-    fn modNested($n) {
+    fun modNested($n) {
         $n.map.list[2] = 22222
     }
     $nested = {
-        num: 111,
-        map: { list: [1, 2, 3] },
+        num: 111
+        map: { list: [1, 2, 3] }
     }
     modNested($nested)
     $t.ok($nested.map.list[2] == 2, 'pass-by-copy - nested')
 
-    fn modTypeStr($ats) {
+    fun modTypeStr($ats) {
         return $ats.fill('FILLED')
     }
     $ts = html'<b>String {}</b>'
@@ -850,6 +885,8 @@ fn testFunctions($t) {
     $t.ok(!$ts.renderString().contains('FILLED'), 'pass-by-copy - typestring')
     $t.ok($tsOk.renderString().contains('FILLED'), 'pass-by-copy - typestring returned')
 
+    $u = url'/some/page'
+    >> $u
 
 
     $refList.reverse()
@@ -857,7 +894,7 @@ fn testFunctions($t) {
 
 
 
-    fn addToString($s) {
+    fun addToString($s) {
         $s ~= '4'
     }
     $refStr = '123'
@@ -865,20 +902,20 @@ fn testFunctions($t) {
     $t.ok($refStr.length() == 3, 'string - pass by ref - unchanged')
 
 
-    $tm = tm fooHtml {
+    $tem = tem fooHtml {
         <h1> Hello world!
     }
-    $t.ok($tm().renderString().contains('</h1>'), 'anon template')
+    $t.ok($tem().renderString().contains('</h1>'), 'anon template')
 
     $outer = 'OUTER'
-    $tm = tm fooHtml {
+    $tem = tem fooHtml {
         <h1> Hello {{ $outer }}!
     }
-    $t.ok($tm().renderString().contains('OUTER!<'), 'anon template with closure vars')
+    $t.ok($tem().renderString().contains('OUTER!<'), 'anon template with closure vars')
 
 
 
-    fn missingArgs($arg1, $arg2) {
+    fun missingArgs($arg1, $arg2) {
     }
     $t.dies(x{ missingArgs(1) }, 'Missing argument - user function', 'Too few arguments')
     $t.dies(x{ File.read() }, 'Missing argument - module', 'Too few arguments')
@@ -893,47 +930,45 @@ fn testFunctions($t) {
     $t.ok(testDefaultMaps().a == 'aa', 'multiple default args as maps')
     $t.ok(testDefaultMaps().m2.b == 'bb', 'multiple default args as maps')
 
-    $t.parserError('fn foo { }\n $a = 1', 'top-level')
-    $t.parserError('fn { }', 'must have a name')
-
-    // argument checking
+    $t.parserError('fun foo { }\n$a = 1', 'top-level')
+    $t.parserError('fun { }', 'must have a name')
 
     $t.section('Function - Argument Checking')
 
-    $t.ok($t.checkArgs('s', 'x'), 'string')
-    $t.ok($t.checkArgs('S', ''), ' empty string')
-    $t.ok($t.checkArgs('n', 123), 'number')
-    $t.ok($t.checkArgs('l', []), 'list')
-    $t.ok($t.checkArgs('b', 1 == 0), 'boolean')
-    $t.ok($t.checkArgs('m', {}), 'map')
-    $t.ok($t.checkArgs('snl', '0', 0, []), 'multi: string, number, list')
+        .ok($t.checkArgs('s', 'x'), 'string')
+        .ok($t.checkArgs('S', ''), ' empty string')
+        .ok($t.checkArgs('n', 123), 'number')
+        .ok($t.checkArgs('l', []), 'list')
+        .ok($t.checkArgs('b', 1 == 0), 'boolean')
+        .ok($t.checkArgs('m', {}), 'map')
+        .ok($t.checkArgs('snl', '0', 0, []), 'multi: string, number, list')
 
 
-    $t.dies(fn { $t.checkArgs('i', 1, 2) }, 'Too many args', 'expects 1 argument')
+        .dies(fun { $t.checkArgs('i', 1, 2) }, 'Too many args', 'expects 1 argument')
 
-    $t.dies(fn { $t.checkArgs('m', []) }, 'Expect map.  Got List.', 'to be a `map`')
-    $t.dies(fn { $t.checkArgs('m', 'x') }, 'Expect map. Got String', 'to be a `map`')
-    $t.dies(fn { $t.checkArgs('m', 123) }, 'Expect map. Got Number', 'to be a `map`')
-    $t.dies(fn { $t.checkArgs('m', 1 == 1) }, 'Expect map. Got Boolean', 'to be a `map`')
+        .dies(fun { $t.checkArgs('m', []) }, 'type: `map`  Got: `list`')
+        .dies(fun { $t.checkArgs('m', 'x') }, 'type: `map`  Got: `string`')
+        .dies(fun { $t.checkArgs('m', 123) }, 'type: `map`  Got: `integer`')
+        .dies(fun { $t.checkArgs('m', 1 == 1) }, 'type: `map` Got: `boolean`')
 
-    $t.ok($t.checkArgs('s', 123), 'Number as string')
-    $t.dies(fn { $t.checkArgs('n', '123') }, 'String as number', 'to be a `number`')
+        .ok($t.checkArgs('s', 123), 'Number as string')
+        .dies(fun { $t.checkArgs('n', '123') }, 'type: `number` Got: `string`')
 
-    $t.dies(fn { $t.checkArgs('snl', [], 123, []) }, 'Multi (snl): bad #1', 'be a `string`')
-    $t.dies(fn { $t.checkArgs('snl', 'x', '123', []) }, 'Multi (snl): bad #2', 'be a `number`')
-    $t.dies(fn { $t.checkArgs('snl', 'x', 123, 'x') }, 'Multi (snl): bad #3', 'be a `list`')
+        .dies(fun { $t.checkArgs('snl', [], 123, []) }, 'type: `string` Got: `list`')
+        .dies(fun { $t.checkArgs('snl', 'x', '123', []) }, 'type: `number` Got: `string`')
+        .dies(fun { $t.checkArgs('snl', 'x', 123, 'x') }, 'type: `list` Got: `string`')
 
-    $t.dies(fn { $t.checkArgs('s', '') }, 'Empty string')
+        .dies(fun { $t.checkArgs('s', '') }, 'Empty string')
 
-    $t.dies(fn { $t.checkArgs('i', 3.0) }, 'No float for int', 'toInt')
-    $t.dies(fn { $t.checkArgs('I', -3) }, 'Positive int: -3', 'negative')
-    $t.ok($t.checkArgs('I',  3), 'Positive int: 3 (ok)')
-    $t.ok($t.checkArgs('I',  0), 'Positive int: 0 (ok)')
+        .dies(fun { $t.checkArgs('i', 3.0) }, 'No float for int', 'toInt')
+        .dies(fun { $t.checkArgs('I', -3) }, 'Positive int: -3', 'negative')
+        .ok($t.checkArgs('I',  3), 'Positive int: 3 (ok)')
+        .ok($t.checkArgs('I',  0), 'Positive int: 0 (ok)')
 
-    // $t.ok($t.checkArgs('f', -someFlag), 'Flag ok')
-    // $t.dies(fn { $t.checkArgs('f', '-notflag') }, 'Expect flag. Got String', 'to be a `-flag`')
-    // $t.dies(fn { $t.checkArgs('f', 1 == 1) }, 'Expect flag. Got Boolean', 'to be a `-flag`')
-    $t.parserError('foo(true)', 'Can not use a Boolean')
+        // $t.ok($t.checkArgs('f', -someFlag), 'Flag ok')
+        // $t.dies(fun { $t.checkArgs('f', '-notflag') }, 'Expect flag. Got String', 'to be a `-flag`')
+        // $t.dies(fun { $t.checkArgs('f', 1 == 1) }, 'Expect flag. Got Boolean', 'to be a `-flag`')
+        .parserError('foo(true)', 'Can not use a Boolean')
 
     $a = [1, 2, 3]
     $t.ok(spread(...$a) == '1:2:3', 'spread operator (...)')
@@ -944,8 +979,8 @@ fn testFunctions($t) {
     $fx = x{ $a + 1 }
     $t.ok($fx(2) == 3, 'basic syntax')
     $fxs = [
-        x{ $a + 10 },
-        x{ $a + 100 },
+        x{ $a + 10 }
+        x{ $a + 100 }
     ]
     $t.ok($fxs[1](3) == 13, 'expressions in list')
     $t.ok($fxs[2](3) == 103, 'expressions in list')
@@ -963,13 +998,13 @@ fn testFunctions($t) {
 }
 
 
-fn testTypeDeclarations($t) {
+fun testTypeDeclarations($t) {
 
     $t.section('Functions - Type Declarations')
 
     $t.ok(takesString('a'), 'string')
     $t.ok(takesString(''), 'string - ``')
-    $t.dies(fn { takesString() }, 'string - none', 'Too few arguments')
+    $t.dies(fun { takesString() }, 'string - none', 'Too few arguments')
 
     $t.ok(takesInt(1), 'int - 1')
     $t.ok(takesInt(0), 'int - 0')
@@ -989,9 +1024,9 @@ fn testTypeDeclarations($t) {
 
     // $t.ok(takesFlag(-someFlag), 'flag')
 
-    $t.ok(takesFunction(fn { return 1 }), 'fn - function')
-    $f = fn { }
-    $t.ok(takesFunction($f) == false, 'fn - empty block')
+    $t.ok(takesFunction(fun { return 1 }), 'fun - function')
+    $f = fun { }
+    $t.ok(takesFunction($f) == false, 'fun - empty block')
 
     $t.ok(takesObject($t), 'object')
     $t.ok(takesObject({ a: 1 }), 'object - map')
@@ -1006,74 +1041,83 @@ fn testTypeDeclarations($t) {
 
     // Built-in type checking
     // Error messages differ in PHP 8, where they are a bit more consistent
-    $t.dies(fn { takesString(123) }, 'string - num', 'type string')
-    $t.dies(fn { takesString(1 == 1) }, 'string - bool', 'type string')
-    $t.dies(fn { takesString([]) }, 'string - list', 'type string')
-    $t.dies(fn { takesFloat('1.1') }, 'float - string', 'type float')
-    $t.dies(fn { takesBool(1) }, 'boolean - 1', 'type bool')
-    $t.dies(fn { takesBool(0) }, 'boolean - 0 ', 'type bool')
-    $t.dies(fn { takesBool('') }, 'boolean - ``', 'type bool')
-    $t.dies(fn { takesMap(['a']) }, 'map - list', 'o\OMap')
-    $t.dies(fn { takesList({ a: 1 }) }, 'list - map', 'o\OList')
-    $t.dies(fn { takesObject(1) }, 'object - number', 'object')
+    $t.dies(fun { takesString(123) }, 'string - num', 'type string')
+    $t.dies(fun { takesString(1 == 1) }, 'string - bool', 'type string')
+    $t.dies(fun { takesString([]) }, 'string - list', 'type string')
+    $t.dies(fun { takesFloat('1.1') }, 'float - string', 'type float')
+    $t.dies(fun { takesBool(1) }, 'boolean - 1', 'type bool')
+    $t.dies(fun { takesBool(0) }, 'boolean - 0 ', 'type bool')
+    $t.dies(fun { takesBool('') }, 'boolean - ``', 'type bool')
+    $t.dies(fun { takesMap(['a']) }, 'map - list', 'o\OMap')
+    $t.dies(fun { takesList({ a: 1 }) }, 'list - map', 'o\OList')
+    $t.dies(fun { takesObject(1) }, 'object - number', 'object')
 
-    $t.dies(fn { 'abc'.getChar(1.5) }, 'stdlib args: integer', 'be a `integer`')
-    $t.dies(fn { 'abc'.limit(-3) }, 'stdlib args: positive integer', 'be a `positive integer`')
+    $t.dies(fun { 'abc'.getChar(1.5) }, 'be type: `integer`')
+    $t.dies(fun { 'abc'.limit(-3) }, 'be type: `positive integer`')
 
     return $t
 }
 
-fn takesString($val:s) {
+fun takesString($val:s) {
     return true
 }
 
-fn takesBool($val:b) {
+fun takesBool($val:b) {
     return true
 }
 
-fn takesInt($val:n) {
+fun takesInt($val:n) {
     return true
 }
 
-fn takesFloat($val:n) {
+fun takesFloat($val:n) {
     return true
 }
 
-fn takesList($val:l) {
+fun takesList($val:l) {
     return true
 }
 
-fn takesMap($val:m) {
+fun takesMap($val:m) {
     return true
 }
 
-// fn takesFlag($val:f) {
+// fun takesFlag($val:f) {
 //     return true
 // }
 
-fn takesFunction($fnCallback:fn) {
+fun takesFunction($fnCallback:fun) {
     return $fnCallback()
 }
 
-fn takesAny($val:any) {
+fun takesAny($val:any) {
     return true
 }
 
-fn takesObject($val:o) {
+fun takesObject($val:o) {
     return true
 }
 
-fn takesStringDefault($val:s = 'default') {
+fun takesStringDefault($val:s = 'default') {
     return $val
 }
 
-fn takesMultipleDefault($num:n, $str:s = 'default') {
+fun takesMultipleDefault($num:n, $str:s = 'default') {
     return $num ~ ',' ~ $str
 }
 
-fn testMaps($t) {
+fun testMaps($t) {
 
     $t.section('Maps')
+
+    $m = {
+        a: 1
+    }
+    $t.parserError('$m = { a:\n    1\n}', 'remove the newline after: `:`')
+    $t.parserError('$m = { a: 1, }', 'trailing comma')
+    $t.parserError('$m = { a: 1,\n}', 'Comma `,` is not needed')
+    $t.parserError('$m = { a: 1\n    b: 2\n}', 'add a newline after: `{`')
+
 
     $user = { name: 'Drac', age: 500, friends: [{ name: 'Igor' }] }
 
@@ -1090,8 +1134,8 @@ fn testMaps($t) {
     $mapNum = { name: 'Frank', age: 8 }
     $t.ok($mapNum.get('age') == 8, 'numeric val')
     $mlmap = {
-        name: 'Joe',
-        id: 12345,
+        name: 'Joe'
+        id: 12345
     }
     $t.ok($mlmap.id == 12345, 'multiline map')
     $t.parserError('{ a: 1, b: 2, }', 'trailing comma')
@@ -1099,9 +1143,8 @@ fn testMaps($t) {
     $mlmap['foo'] ||= 33
     $t.ok($mlmap.foo == 33, 'default assign')
 
-    $t.parserError('$dyn = `x`\n$dm = { $dyn: 123 }', 'not allowed as Map key')
-    $t.parserError('$m = { a: 1,\nb: 2 }', 'add a comma')
-    $t.parserError('$m = {\n    a: 1\n }', 'add a comma')
+    $t.parserError('$dyn = `x`\n$dm = { $dyn: 123 }', 'variable not allowed as Map key')
+    $t.parserError('$m = { a: 1,\nb: 2 }', 'not needed at end of line.')
 
 
     $map = { a: { b: 1 }, x: { y: 2 } }
@@ -1112,7 +1155,7 @@ fn testMaps($t) {
     $t.section('Maps - dot access')
 
     $t.ok($user.name == 'Drac', 'dot access')
-    $t.dies(fn { $n = $user.nameX }, 'dot access - missing field dies', 'Field does not exist')
+    $t.dies(fun { $n = $user.nameX }, 'dot access - missing field dies', 'Field does not exist')
 
 
     $t.section('Maps - Missing values')
@@ -1126,7 +1169,7 @@ fn testMaps($t) {
 
 
     // suggest key(case)
-    $t.dies(fn {
+    $t.dies(fun {
         $m = { name: 'foo' }
         $n = $m.Name
     }, 'Try: `name`', 'Try: \`name\`')
@@ -1194,18 +1237,18 @@ fn testMaps($t) {
 
     $m1 = {
         outer1: {
-            inner1: 111,
-            changeMe: 333,
-        },
+            inner1: 111
+            changeMe: 333
+        }
     }
     $addIn = {
         outer1: {
-            inner1b: [1],
-            changeMe: 999,
-        },
+            inner1b: [1]
+            changeMe: 999
+        }
         outer2: {
-            inner2: 222,
-        },
+            inner2: 222
+        }
     }
     $m2 = $m1.merge($addIn, -deep)
     $t.ok($m2.outer1.changeMe == 999, 'merge deep')
@@ -1256,7 +1299,7 @@ fn testMaps($t) {
 
     $t.section('Maps - Misc Errors')
 
-    $t.dies(fn { {}.merge(['a']) }, 'Map.merge(<list>)', 'to be a \`map\`')
+    $t.dies(fun { {}.merge(['a']) }, 'Map.merge(<list>)', 'be type: \`map\`')
 
     $t.parserError('$a = {}\n$b = $a.$a', 'square brackets')
 
@@ -1334,9 +1377,9 @@ fn testMaps($t) {
     $t.ok(!{ 0: 'a', 1: 'b' }.equals(['a', 'b']), 'equals similar list - false')
 
     $m = {
-        a: 123,
-        doSomething: fn { return 'fn:' ~ @.a },
-        short: x{ @.a + 1 },
+        a: 123
+        doSomething: fun { return 'fn:' ~ @.a }
+        short: x{ @.a + 1 }
     }
     $t.ok($m.doSomething() == 'fn:123', 'added closure to map')
     $t.ok($m.short() == 124, 'added x-function to map')
@@ -1349,15 +1392,15 @@ fn testMaps($t) {
     $t.ok($ops.bool == true && $ops.str == 'hello', 'option map')
 
     $ops = { num: 123 }
-    $t.dies(fn { $ops.check({ numX: 0 }) }, 'invalid option map key')
+    $t.dies(fun { $ops.check({ numX: 0 }) }, 'invalid option map key')
 
     $ops = { num: 123 }
-    $t.dies(fn { $ops.check({ num: 'foo' }) }, 'must be of type `string`')
+    $t.dies(fun { $ops.check({ num: 'foo' }) }, 'must be of type: `string`')
 
     return $t
 }
 
-fn testMathAndLogic($t) {
+fun testMathAndLogic($t) {
 
     $t.section('Math operators')
 
@@ -1402,12 +1445,12 @@ fn testMathAndLogic($t) {
     $t.dies(x{ 'a' % 2 }, 'Modulo string', 'must be a number')
     $t.dies(x{ true + 2 }, 'Add boolean to number', 'must be a number')
     $t.dies(x{ {} + 2 }, 'Add Map to number', 'must be a number')
-    $t.dies(fn {
+    $t.dies(fun {
         $aa = 1
         $aa += 'v'
     }, '+= string', 'must be a number')
     $t.dies(x{ 2 ** 'a' }, 'number ** string', 'must be a number')
-   // $t.dies(fn { return 2 / 0 }, 'divide by zero', 'division by zero')
+   // $t.dies(fun { return 2 / 0 }, 'divide by zero', 'division by zero')
 
 
     $t.section('Hex & Binary Numbers')
@@ -1513,7 +1556,7 @@ fn testMathAndLogic($t) {
 
 
 
-fn testLoops($t) {
+fun testLoops($t) {
 
     $t.section('Loops')
 
@@ -1616,8 +1659,8 @@ fn testLoops($t) {
 
     $t.parserError('loop {\n    $a = 1\n}\n', 'needs a \'break\'')
     $t.parserError('loop {\n    loop { break }\n}\n', 'needs a \'break\'')
-    $t.parserOk('loop {\n    loop { break }\n    break }\n', 'nested breaks')
-    $t.parserOk('fn go { loop {\n    return\n}\n }', 'return instead of break')
+    $t.parserOk('loop {\n    loop { break }\n    break\n}\n', 'nested breaks')
+    $t.parserOk('fun go { loop {\n    return\n}\n}', 'return instead of break')
 
     $t.parserError('$a = 1\nbreak', '`break` not allowed')
     $t.parserError('$a = 1\ncontinue', '`continue` not allowed')
@@ -1627,14 +1670,14 @@ fn testLoops($t) {
 
 
 
-fn testControlFlow($t) {
+fun testControlFlow($t) {
 
 
     $t.section('Short Circuiting')
 
     $fn1 = x{ 1 }
     $fn0 = x{ 0 }
-    $fnDie = fn { die('Do not reach here!') }
+    $fnDie = fun { die('Do not reach here!') }
 
     $b = $fn1() || $fnDie()
     $t.ok($b == true, 'or')
@@ -1721,7 +1764,7 @@ fn testControlFlow($t) {
     $t.ok($a == 6, 'if, else if, else')
 
 
-    $fnOneLine = fn ($x) {
+    $fnOneLine = fun ($x) {
         if $x == 1:      return 10
         else if $x == 2: return 20
         else if $x == 3: return 30
@@ -1736,42 +1779,43 @@ fn testControlFlow($t) {
 
     $t.section('Match')
 
-    $fnMatch  = fn ($z) {
+    $fnMatch  = fun ($z) {
 
-        match $z {
-            'foo'            { return 'string' }
-            rx'reg'          { return 'regex' }
-            ['a', 'b']       { return 'list' }
-            $z.length() > 4  { return 'expr' }
-            default          { return 'default' }
+        $m = match $z {
+            'foo':           'string'
+   //         rx'reg':         'regex'
+  //          ['a', 'b']:      'list'
+  //          $z.length() > 4: 'expr'
+  //          default:         'default'
         }
+        return $m
     }
 
-    $t.ok($fnMatch('foobar') == 'expr', 'expr')
-    $t.ok($fnMatch('foo') == 'string', 'string')
-    $t.ok($fnMatch('regex') == 'regex', 'regex')
-    $t.ok($fnMatch('none') == 'default', 'default')
-    $t.ok($fnMatch('b') == 'list', 'list')
+    // $t.ok($fnMatch('foobar') == 'expr', 'expr')
+    // $t.ok($fnMatch('foo') == 'string', 'string')
+    // $t.ok($fnMatch('regex') == 'regex', 'regex')
+    // $t.ok($fnMatch('none') == 'default', 'default')
+    // $t.ok($fnMatch('b') == 'list', 'list')
 
-    $fnMatchOneLine  = fn ($y) {
-        match {
-            $y == 1: return 10
-            $y == 2: return 20
-            default: return 30
-        }
-    }
+    // $fnMatchOneLine  = fun ($y) {
+    //     match {
+    //         $y == 1: return 10
+    //         $y == 2: return 20
+    //         default: return 30
+    //     }
+    // }
 
-    $t.ok($fnMatchOneLine(1) == 10, 'match - no subject - one-line')
-    $t.ok($fnMatchOneLine(2) == 20, 'match - no subject -  one-line')
-    $t.ok($fnMatchOneLine(3) == 30, 'match - no subject -  one-line')
+    // $t.ok($fnMatchOneLine(1) == 10, 'match - no subject - one-line')
+    // $t.ok($fnMatchOneLine(2) == 20, 'match - no subject -  one-line')
+    // $t.ok($fnMatchOneLine(3) == 30, 'match - no subject -  one-line')
 
 
-    $fnMatchMissing = fn ($z) {
-        match $z {
-            'foo' { return 'string' }
-        }
-    }
-    $t.dies(fn { $fnMatchMissing(1) }, 'did not match any of the conditions')
+    // $fnMatchMissing = fun ($z) {
+    //     match $z {
+    //         'foo' { return 'string' }
+    //     }
+    // }
+    // $t.dies(fun { $fnMatchMissing(1) }, 'did not match any of the conditions')
 
 
     $t.section('Misc')
@@ -1811,12 +1855,12 @@ fn testControlFlow($t) {
     return $t
 }
 
-fn testValidator($t) {
+fun testValidator($t) {
 
     $t.section('Validate - Vars')
 
     $t.parserOk('$if = 1', 'keyword as var: $if')
-    $t.parserOk('$fn = fn { return 1 }', 'keyword as var: $if')
+    $t.parserOk('$fun = fun { return 1 }', 'keyword as var: $if')
 
     $t.parserError('$UpperCase = 123', 'lower camelCase')
     $t.parserError('$ = 123', 'missing a name')
@@ -1830,24 +1874,24 @@ fn testValidator($t) {
 
     $t.parserError('$foo.foo_bar = 1', 'underscore')
     $t.parserError('$foo.A = 1', '1 character')
-    $t.parserError('$foo.a$a = 1', 'can not contain a `$`')
+    $t.parserError('$foo.a$a = 1', 'can not contain sigil: `$`')
     $t.parserError('$a.goHTML', 'pure lowerCamelCase')
     $t.parserError('$a.UPPER', 'camelCase')
-    $t.parserError('fn DoSomething {}', 'pure lowerCamelCase')
+    $t.parserError('fun DoSomething {}', 'pure lowerCamelCase')
     $t.parserError('$a.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 1', 'or less')
 
     return $t
 }
 
 
-fn testStrings($t) {
+fun testStrings($t) {
 
     $t.section('Strings')
 
     $stra = '456789'
     $t.ok($stra.getChar(-1) == '9', 'substring index')
-    $t.dies(fn { $a = 'abc'[1] }, 'getChar')
-    $t.dies(fn { 'abc'[0] = 123 }, 'setChar')
+    $t.dies(fun { $a = 'abc'[1] }, 'getChar')
+    $t.dies(fun { 'abc'[0] = 123 }, 'setChar')
 
 
     $t.section('Multiline Strings')
@@ -1858,7 +1902,7 @@ fn testStrings($t) {
         string.
     '''
     $t.ok($ml.contains('multiline\nstring'), 'multiline')
-    $t.parserError('$ml = ```\n noindent\n```', 'should be indented 4 spaces')
+    $t.parserError('$ml = ```\n noindent\n```', 'please indent line 4 spaces')
 
 
     $t.section('String Concatenation')
@@ -1889,15 +1933,21 @@ fn testStrings($t) {
     $t.ok(!$hi.contains('missing'), '! contains()')
     $t.ok($hi.split('o').length() == 3, 'split()')
     $t.ok($hi.split('o')[1] == 'Hell', 'split()')
-    $t.ok(String.unicodeToChar(65) ~ String.unicodeToChar(122) == 'Az',
-        'String.unicodeToChar')
+    $t.ok(
+        String.unicodeToChar(65) ~ String.unicodeToChar(122) == 'Az'
+        'String.unicodeToChar'
+    )
 
     $t.ok('abc'.setChar(2, 'Z') == 'aZc', 'setChar')
     $t.ok('abc'.setChar(-1, 'Z') == 'abZ', 'setChar negative')
-    $t.dies(x{ 'abc'.setChar(5, 'xx') }, 'setChar - out of bounds',
-        'outside of string length')
-    $t.dies(x{ 'abc'.setChar(1, 'xx') }, 'setChar - 1 character',
-        'must be exactly 1 character')
+    $t.dies(
+        x{ 'abc'.setChar(5, 'xx') }, 'setChar - out of bounds'
+        'outside of string length'
+    )
+    $t.dies(
+        x{ 'abc'.setChar(1, 'xx') }, 'setChar - 1 character'
+        'must be exactly 1 character'
+    )
 
     $t.ok(''.toBoolean() == false, 'toBoolean - empty string')
     $t.ok('0'.toBoolean() == true, 'toBoolean - 0')
@@ -1919,7 +1969,7 @@ fn testStrings($t) {
     $t.ok($uni.getChar(-1) == '3', 'getChar negative')
 
     $t.dies(x{ 'x'[1] }, 'Can not use `[]` to get a character')
-    $t.dies(fn { 'x'[1] = 'Z' }, 'Can not use `[]` to set a character')
+    $t.dies(fun { 'x'[1] = 'Z' }, 'Can not use `[]` to set a character')
     $t.ok($uni.getChar(1), 'getChar/boolean one')
     $t.ok($uni.getChar(-1), 'getChar/boolean negative')
     $t.ok(!$uni.getChar(100), 'getChar/boolean out of bounds')
@@ -1933,11 +1983,21 @@ fn testStrings($t) {
     $t.ok($uni.left(3) == 'ⒶⒷⒸ', 'left')
     $t.ok($uni.right(3) == '123', 'right')
 
-    $t.ok($uni.substring(5, 5) == '②③ ab', 'substring')
+    $t.ok($uni.substring(5, { numChars: 5 }) == '②③ ab', 'substring - numChars')
     $t.ok($uni.substring(4) == '①②③ abc123', 'substring - remainder')
+
+    $t.ok($uni.substring(4, { toIndex: 10 }) == '①②③ abc', 'substring - toIndex')
+    $t.ok($uni.substring(4, { toIndex: 4 }) == '①', 'substring - toIndex - one char')
+    $t.ok(
+        $uni.substring(4, { toIndex: -8 }) == '①②③'
+        'substring - toIndex - negative index'
+    )
+    $t.dies(fun { $uni.substring(10, { toIndex: 5 }) }, 'greater than')
 
     $t.ok($uni.startsWith('ⒶⒷⒸ'), 'startsWith')
     $t.ok('ab ⒶⒷ'.endsWith('ⒶⒷ'), 'endsWith')
+    $t.ok('ⒶⒷ'.endsWith('ⒶⒷ'), 'endsWith - same')
+    $t.ok('ⒷⒶ'.endsWith('ⒶⒷ'), 'endsWith - same length')
     $t.ok('abc ⒶⒷ'.startsWith('AbC', -ignoreCase), 'startsWith ignoreCase')
     $t.ok($uni.endsWith('ABc123', -ignoreCase), 'endsWith ignoreCase')
 
@@ -1986,10 +2046,14 @@ fn testStrings($t) {
     $t.ok('fòôbàř'.toUpperCase() == 'FÒÔBÀŘ', 'upperCase - extended')
     $t.ok('FÒÔBÀŘ'.toLowerCase() == 'fòôbàř', 'lowerCase - extended')
 
-    $t.ok('Τάχιστη αλώπηξ'.toUpperCase() == 'ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ',
-        'upperCase - unicode')
-    $t.ok('ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ'.toLowerCase() == 'τάχιστη αλώπηξ',
-        'lowerCase - unicode')
+    $t.ok(
+        'Τάχιστη αλώπηξ'.toUpperCase() == 'ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ'
+        'upperCase - unicode'
+    )
+    $t.ok(
+        'ΤΆΧΙΣΤΗ ΑΛΏΠΗΞ'.toLowerCase() == 'τάχιστη αλώπηξ'
+        'lowerCase - unicode'
+    )
 
 
 
@@ -2028,9 +2092,10 @@ fn testStrings($t) {
     $t.ok('1Ⓐ2'.split(rx'\D').join() == '12', 'split on unicode regex delimiter')
 
     $t.ok(',a, b,,c, ,'.split(',').join() == 'abc', 'split - trim empty')
-    $t.ok(',a, b,,c, ,'.split(',', -keepWhitespace)
-        .join('|') == '|a| b||c| |', 'split - keep empty')
-
+    $t.ok(
+        ',a, b,,c, ,'.split(',', -keepWhitespace).join('|') == '|a| b||c| |'
+        'split - keep empty'
+    )
 
     $t.ok($uni.splitChars()[3] == 'Ⓒ', 'chars')
 
@@ -2063,6 +2128,16 @@ fn testStrings($t) {
     $t.ok('ⒶⒷⒸ①②③'.removeRight('①') == 'ⒶⒷⒸ①②③', 'removeRight - no')
     $t.ok('abcDef'.removeRight('def', { ignoreCase }) == 'abc', 'removeLeft - ignoreCase')
 
+    $t.ok('ⒶⒷⒸ'.removeWrap('Ⓐ', 'Ⓒ') == 'Ⓑ', 'removeWrap - exists')
+    $t.ok('ⒶⒷ'.removeWrap('Ⓐ', 'Ⓒ') == 'ⒶⒷ', 'removeWrap - partial exists')
+
+    $t.ok('ⒶⒷⒸ'.ensureLeft('Ⓐ') == 'ⒶⒷⒸ', 'ensureLeft - exists')
+    $t.ok('ⒷⒸ'.ensureLeft('Ⓐ') == 'ⒶⒷⒸ', 'ensureLeft - not exists')
+    $t.ok('ⒶⒷⒸ'.ensureRight('Ⓒ') == 'ⒶⒷⒸ', 'ensureRight - exists')
+    $t.ok('ⒶⒷ'.ensureRight('Ⓒ') == 'ⒶⒷⒸ', 'ensureRight - exists')
+
+    $t.ok('Ⓑ'.ensureWrap('Ⓐ', 'Ⓒ') == 'ⒶⒷⒸ', 'ensureWrap - not exists')
+    $t.ok('ⒶⒷ'.ensureWrap('Ⓐ', 'Ⓒ') == 'ⒶⒶⒷⒸ', 'ensureWrap - partial exists')
 
 
     //--------
@@ -2075,9 +2150,11 @@ fn testStrings($t) {
     $t.ok('abc {1} {2}'.fill('123', '456') == 'abc 123 456', 'fill 2 arg')
     $t.ok('abc {} {}'.fill(['123', '456']) == 'abc 123 456', 'fill blanks & list')
 
-    $t.dies(fn { 'abc {nope}'.fill('foo') },
-        'fill - string key - no map', 'Can`t look up `fill` value')
-    $t.dies(fn { 'abc {} {}'.fill('foo') }, 'fill - not enough values', 'not found')
+    $t.dies(
+        fun { 'abc {nope}'.fill('foo') }
+        'fill - string key - no map', 'Can`t look up `fill` value'
+    )
+    $t.dies(fun { 'abc {} {}'.fill('foo') }, 'fill - not enough values', 'not found')
 
 
     $t.section('String Methods - Regex Alts')
@@ -2087,8 +2164,8 @@ fn testStrings($t) {
     $t.ok('ABC'.contains(rx'abc', -ignoreCase), 'contains - ignoreCase via option')
     $t.ok('ABC'.contains(rx'abc'i), 'contains - ignoreCase va flag')
     $t.ok('ABC 123'.contains(123), 'contains - number')
-    $t.dies(fn { 'ABC 123.45'.contains(123.0) }, 'Got: `number`')
-    $t.dies(fn { 'ABC'.contains({}) }, 'Got: `map`')
+    $t.dies(fun { 'ABC 123.45'.contains(123.0) }, 'Got: `number`')
+    $t.dies(fun { 'ABC'.contains({}) }, 'Got: `map`')
 
     $t.ok('123'.count(rx'\d') == 3, 'count - multiple')
     $t.ok('abc'.count(rx'\d') == 0, 'count - zero')
@@ -2138,11 +2215,12 @@ fn testStrings($t) {
     // TODO: There's no simple way to test output of alternate encodings. Only that the encodingId is valid.
     $t.ok('xyz'.toEncoding('Windows-1251'), 'toEncoding - Windows-1251')
 
-    $t.dies(fn { 'x'.toEncoding('invalid') }, 'invalid encoding')
-    $t.dies(fn { 'x'.fromEncoding('invalid') }, 'invalid encoding')
+    $t.dies(fun { 'x'.toEncoding('invalid') }, 'invalid encoding')
+    $t.dies(fun { 'x'.fromEncoding('invalid') }, 'invalid encoding')
 
-    $t.ok($str.fingerprint('sha384').startsWith(
-        'aa414a520356a39cbbcb36f8fc5a87703dd6'), 'hash - sha384'
+    $t.ok(
+        $str.fingerprint('sha384').startsWith('aa414a520356a39cbbcb36f8fc5a87703dd6')
+        'hash - sha384'
     )
     $binHash = $str.fingerprint('sha384', { binary })
     $bytes = $binHash.toBytes()
@@ -2159,9 +2237,9 @@ fn testStrings($t) {
 
     $t.ok(String.fromBytes([97, 99, 101]) == 'ace', 'fromBytes')
     $t.ok(String.fromBytes([]) == '', 'fromBytes - empty list')
-    $t.dies(fn { String.fromBytes([97, -100]) }, 'must be a list of positive integers')
-    $t.dies(fn { String.fromBytes([97, false]) }, 'must be a list of positive integers')
-    $t.dies(fn { String.fromBytes([97, '1']) }, 'must be a list of positive integers')
+    $t.dies(fun { String.fromBytes([97, -100]) }, 'must be a list of positive integers')
+    $t.dies(fun { String.fromBytes([97, false]) }, 'must be a list of positive integers')
+    $t.dies(fun { String.fromBytes([97, '1']) }, 'must be a list of positive integers')
 
 
 
@@ -2187,10 +2265,17 @@ fn testStrings($t) {
     // $t.ok('ABC 123'.hasCharType('upper'), 'hasUpperCase - all')
     // $t.ok(!''.hasCharType('upper'), 'hasUpperCase - empty')
 
-    // $t.ok(!'ABC 123'.hasAllCharType('lower'), 'isLowerCase - none')
-    // $t.ok(!'AbC 123'.hasAllCharType('lower'), 'isLowerCase - some')
-    // $t.ok('abc 123'.hasAllCharType('lower'), 'isLowerCase - all')
-    // $t.ok(!''.hasAllCharType('lower'), 'isLowerCase - empty')
+    $t.ok('ABC'.isUpperCase(), 'isUpperCase - true')
+    $t.ok(!'ABC123'.isUpperCase(), 'isUpperCase - with digits')
+    $t.ok(!'AbC 123'.isUpperCase(), 'isUpperCase - mixed')
+    $t.ok(!'abc 123'.isUpperCase(), 'isUpperCase - none')
+    $t.ok(!''.isUpperCase(), 'isUpperCase - empty')
+
+    $t.ok('abc'.isLowerCase(), 'isLowerCase - true')
+    $t.ok(!'abc123'.isLowerCase(), 'isLowerCase - with digits')
+    $t.ok(!'AbC 123'.isLowerCase(), 'isLowerCase - mixed')
+    $t.ok(!'ABC 123'.isLowerCase(), 'isLowerCase - none')
+    $t.ok(!''.isLowerCase(), 'isLowerCase - empty')
 
     // $t.ok(!'ABC 123'.hasCharType('lower'), 'hasLowerCase - none')
     // $t.ok('AbC 123'.hasCharType('lower'), 'hasLowerCase - some')
@@ -2296,8 +2381,10 @@ fn testStrings($t) {
     $t.ok($m.match(rx'(\d+):(\d+)', 'hour|min').min == '23', 'named groups')
     $t.ok($m.match(rx'(\d+):(\d+)', 'hour|min').indexOf.min == 4, 'named groups - index')
 
-    $t.dies(fn { $m.match(rx'(\d+):(\d+)', 'hour') },
-        'groupName mismatch', 'number of capture groups')
+    $t.dies(
+        fun { $m.match(rx'(\d+):(\d+)', 'hour') }
+        'groupName mismatch', 'number of capture groups'
+    )
 
 
     $m = 'This is a\n multiline string!\n'
@@ -2307,16 +2394,18 @@ fn testStrings($t) {
     $t.ok($m.match(rx'multi      line'x), 'x flag')
     $t.ok($m.match(rx'^\s+multiline'm), 'm flag - start')
     $t.ok($m.match(rx'is a'm), 'm flag - end')
-    $t.dies(fn { $m.match(rx'blah'zz) }, 'bad flag', 'Invalid Regex flag `z`')
+    $t.dies(fun { $m.match(rx'blah'zz) }, 'bad flag', 'Invalid Regex flag: `z`')
 
-    $t.dies(fn { 'longstringlongstring'.match(rx'(?:\D+|<\d+>)*[!?]') }, 'Error in match',
-        'PREG_BACKTRACK_LIMIT_ERROR')
+    $t.dies(
+        fun { 'longstringlongstring'.match(rx'(?:\D+|<\d+>)*[!?]') }, 'Error in match'
+        'PREG_BACKTRACK_LIMIT_ERROR'
+    )
 
     $multi = 'one\ntwo\nthree'
     $t.ok($multi.split(rx'\s').length() == 3, 'Newline regex')
 
     $cased = 'hello WORLD'
-    $t.ok($cased.match(rx'world'.flags('i')).full == 'WORLD', 'regex object')
+    $t.ok($cased.match(rx'world'.flags('i')) == 'WORLD', 'regex object - .flags')
 
     $ticks = 'hello `WORLD`'
     $t.ok($ticks.match(rx'`(\w+)`')[1] == 'WORLD', 'regex with backticks')
@@ -2354,8 +2443,10 @@ fn testStrings($t) {
 
     $cb = x{ $a[1].toUpperCase() ~ '!' }
     $t.ok('foo 123'.replace(rx'(\w+)', $cb) == 'FOO! 123!', 'replace - callback')
-    $t.ok('foo 123'.replace(rx'(\w+)', $cb, { limit: 1 }) == 'FOO! 123',
-        'replace - callback - limit 1')
+    $t.ok(
+        'foo 123'.replace(rx'(\w+)', $cb, { limit: 1 }) == 'FOO! 123'
+        'replace - callback - limit 1'
+    )
 
     $cb = x{ $a.toUpperCase() }
     $t.ok('foo 123'.replace(rx'\w+', $cb) == 'FOO 123', 'replace - callback - no groups')
@@ -2411,7 +2502,9 @@ fn testStrings($t) {
 
     $s = 'hⒶllo there.'
     $t.ok($s.replaceChars('.ⒶⒷⒸ', '!e') == 'hello there!', 'replaceChars - uneven')
-    $t.ok('Fóø Bår! žoŤ'.toAscii() == 'Foo Bar! zoT', 'removeAccents')
+    $t.ok('Fóø Bår! žoŤ'.toAscii() == 'Foo Bar! zoT', 'toAscii')
+    $t.ok('Fóø ①②③'.toAscii() == 'Foo ', 'toAscii - remove non-ascii')
+    $t.ok('‘’“”–—…'.toAscii() == '\'\'""--...', 'toAscii - smart quotes/dashes')
 
 
     $t.section('Strings - Subscripts')
@@ -2423,12 +2516,18 @@ fn testStrings($t) {
 
     $t.section('Strings - Bounds')
 
-    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startIndex: 10 }) },
-        'indexOf offset', 'outside of string')
-    $t.dies(fn { 'ⒶⒷⒸ'.indexOf('a', { startIndex: -10 }) },
-        'indexOf offset', 'outside of string')
-    $t.dies(fn { 'ⒶⒷⒸ'.lastIndexOf('a', { startIndex: 10 }) },
-        'lastIndexOf offset', 'outside of string')
+    $t.dies(
+        fun { 'ⒶⒷⒸ'.indexOf('a', { startIndex: 10 }) }
+        'indexOf offset', 'outside of string'
+    )
+    $t.dies(
+        fun { 'ⒶⒷⒸ'.indexOf('a', { startIndex: -10 }) }
+        'indexOf offset', 'outside of string'
+    )
+    $t.dies(
+        fun { 'ⒶⒷⒸ'.lastIndexOf('a', { startIndex: 10 }) }
+        'lastIndexOf offset', 'outside of string'
+    )
 
 
 
@@ -2463,7 +2562,7 @@ fn testStrings($t) {
 }
 
 
-fn testFlags($t) {
+fun testFlags($t) {
 
     $t.section('Flags')
 
@@ -2491,15 +2590,15 @@ fn testFlags($t) {
     // $t.ok($removedFlag.is(-flagY) && $removedFlag.is(-flagZ), 'remove')
 
     // $errFlag = -nope
-    // $t.dies(fn { $errFlag.allow([-flag1, -flag2]) }, 'allow - fail')
+    // $t.dies(fun { $errFlag.allow([-flag1, -flag2]) }, 'allow - fail')
 
     // $errFlag2 = -yep
-    // $t.dies(fn { $errFlag2.is(-nope) }, 'auto validate via `is`')
+    // $t.dies(fun { $errFlag2.is(-nope) }, 'auto validate via `is`')
 
     // $t.ok(-f1.equals(-f1), 'equal')
     // $t.ok(!(-f1.equals(-f2)), 'not equal')
 
-    // $checkFlag = fn ($flArg = -myDefault) { return $flArg }
+    // $checkFlag = fun ($flArg = -myDefault) { return $flArg }
     // $t.ok($checkFlag(-arg1|-arg2).is(-arg1|-arg2), 'flag arg')
     // $t.ok($checkFlag().is(-myDefault), 'flag arg - default')
 
@@ -2529,13 +2628,13 @@ fn testFlags($t) {
     return $t
 }
 
-fn testTypeStrings($t) {
+fun testTypeStrings($t) {
 
     $t.section('TypeStrings')
 
-    $t.dies(fn { return plain'a' ~ 'b' }, 'Can not combine', 'Can not combine')
-    $t.dies(fn { return 'a' ~ plain'b' }, 'Can not combine', 'Can not combine')
-    $t.dies(fn { return url'a' ~ cmd'b' }, 'Can not combine', 'of the same type')
+    $t.dies(fun { return plain'a' ~ 'b' }, 'Can not combine', 'Can not combine')
+    $t.dies(fun { return 'a' ~ plain'b' }, 'Can not combine', 'Can not combine')
+    $t.dies(fun { return url'a' ~ cmd'b' }, 'Can not combine', 'of the same type')
 
     $lock1 = plain'1={},'.fill('a')
     $lock2 = plain'2={}'.fill('b')
@@ -2549,8 +2648,10 @@ fn testTypeStrings($t) {
     $t.ok(tagHtml('a').stringType() == 'html', 'stringType')
     $t.ok(sql'x'.stringType() == 'sql', 'stringType')
 
-    $t.dies(fn { return url'page?foo={}' },
-        'dynamic query hardcoded in url string', 'dynamic queries')
+    $t.dies(
+        fun { return url'page?foo={}' }
+        'dynamic query hardcoded in url string', 'dynamic queries'
+    )
 
     $lUrl = url'http://test.com/'.setQuery({ foo: 'val`s' })
     $lCmd = cmd'xget {} > file.txt'.fill($lUrl)
@@ -2566,7 +2667,7 @@ fn testTypeStrings($t) {
     return $t
 }
 
-fn testUrlTypeStrings($t) {
+fun testUrlTypeStrings($t) {
 
     $t.section('Url TypeStrings')
 
@@ -2646,11 +2747,15 @@ fn testUrlTypeStrings($t) {
 
 
     $t.ok(url'/my/path'.appendPath('added').getPath() == '/my/path/added', 'appendPath')
-    $t.ok(url'/my/path'.appendPath('/added/other').getPath() == '/my/path/added/other',
-        'appendPath')
+    $t.ok(
+        url'/my/path'.appendPath('/added/other').getPath() == '/my/path/added/other'
+        'appendPath'
+    )
 
-    $t.ok(url'/page/'.appendSlug('A day at the ocean', 'the a').getPath() == '/page/day-at-ocean',
-        'appendSlug - literal skipWords')
+    $t.ok(
+        url'/page/'.appendSlug('A day at the ocean', 'the a').getPath() == '/page/day-at-ocean'
+        'appendSlug - literal skipWords'
+    )
 
     $titles = q[
         A day at the ocean -- Turtles & Tide Pools
@@ -2694,13 +2799,17 @@ fn testUrlTypeStrings($t) {
     foreach $titles as $i/$longText {
         $gotSlugPathDefault = url'/path/'.appendSlug($longText).getPath()
         $okSlugPathDefault = $slugUrlsDefault.popFirst()
-        $t.ok($gotSlugPathDefault == $okSlugPathDefault,
-            'appendSlug(default): ' ~ $gotSlugPathDefault ~ ' | expected = ' ~ $okSlugPathDefault)
+        $t.ok(
+            $gotSlugPathDefault == $okSlugPathDefault
+            'appendSlug(default): ' ~ $gotSlugPathDefault ~ ' | expected = ' ~ $okSlugPathDefault
+        )
 
         $gotSlugPathCommon = url'/path/'.appendSlug($longText, ':common').getPath()
         $okSlugPathCommon = $slugUrlsCommon.popFirst()
-        $t.ok($gotSlugPathCommon == $okSlugPathCommon,
-            'appendSlug(common): ' ~ $gotSlugPathCommon ~ ' | expected = ' ~ $okSlugPathCommon)
+        $t.ok(
+            $gotSlugPathCommon == $okSlugPathCommon
+            'appendSlug(common): ' ~ $gotSlugPathCommon ~ ' | expected = ' ~ $okSlugPathCommon
+        )
     }
 
 
@@ -2753,11 +2862,11 @@ fn testUrlTypeStrings($t) {
     return $t
 }
 
-tm deepEscHtml($val) {
+tem deepEscHtml($val) {
     <b>{{ $val }}</>
 }
 
-fn testLists($t) {
+fun testLists($t) {
 
     $t.section('Lists')
 
@@ -2775,12 +2884,12 @@ fn testLists($t) {
     $ary[1][1] = 99
     $t.ok($ary[1][1] == 99, 'deep assignment')
 
-
-    $aryExtraComma = [
-        6, 7, 8, 9,
-    ]
-    $t.ok($aryExtraComma.join(':') == '6:7:8:9', 'trailing comma')
+    $t.parserError('$a = [, 1, 2, 3, ]', 'unexpected comma')
     $t.parserError('$a = [1, 2, 3, ]', 'trailing comma')
+    $t.parserError('$a = [\n    1,\n]', 'Comma `,` is not needed')
+    $t.parserError('$a = [1\n    2]', 'add a newline after: `[`')
+    $t.parserError('$a = [\n    1,\n    { a: 123 }\n]', 'Comma `,` is not needed')
+
 
     $ary = [1, 2, 3, 4, 5]
     $t.ok($ary[-2] == 4, 'negative index')
@@ -2789,15 +2898,14 @@ fn testLists($t) {
     $t.ok($ary[1] == 99, 'direct set')
 
     $mlary = [
-        'hello',
-        { name: 'world' },
-        'yay',
+        'hello'
+        { name: 'world' }
+        'yay'
     ]
 
     $t.ok($mlary[2]['name'] == 'world', 'multiline array')
 
-    $t.parserOk('$l = [\n    1, 2,\n]', 'trailing commas')
-    $t.parserError('$l = [\n    1\n]', 'add a comma')
+
 
 
     // copy
@@ -2984,7 +3092,7 @@ fn testLists($t) {
 
     $t.section('Lists - Out of Bounds')
 
-    $t.dies(fn { [1].slice(2) }, 'slice', 'outside of List length')
+    $t.dies(fun { [1].slice(2) }, 'slice', 'outside of List length')
 
     $t.ok([1, 2, 3].first(5).join() == '123', 'first larger than len')
     $t.ok([1, 2, 3].last(5).join() == '123', 'last larger than len')
@@ -3018,7 +3126,7 @@ fn testLists($t) {
     $t.ok([1, 2, 3].reduce(x{ $a + $b }) == 6, 'reduce')
     $t.ok([1, 2, 3].reduce(x{ $a + $b }, 100) == 106, 'reduce - initial')
     $t.ok([].reduce(x{ $a + $b }, 123) == 123, 'reduce - empty list - initial')
-    $t.dies(fn { [].reduce(x{ $a + $b }) }, 'empty list without a `startValue`')
+    $t.dies(fun { [].reduce(x{ $a + $b }) }, 'empty list without argument: `startValue`')
     $t.ok([1, 2, 3, 4].filter(x{ $a % 2 }).join(':') == '1:3', 'filter')
 
     $mdl = [1, 2, [], [3, 4], [[5, 6], [7, 8]]]
@@ -3036,9 +3144,9 @@ fn testLists($t) {
     $t.ok($tableVals == '50,10,-30', 'tableSort by index (DESC)')
 
     $rows = [
-        { a: 20,  b: 'x' },
-        { a: 70,  b: 'y' },
-        { a: -30, b: 'z' },
+        { a: 20,  b: 'x' }
+        { a: 70,  b: 'y' }
+        { a: -30, b: 'z' }
     ]
     $vals = $rows.getColumn('a').join(',')
     $t.ok($vals == '20,70,-30', 'getColumn')
@@ -3049,11 +3157,16 @@ fn testLists($t) {
 
     $t.ok(['a', 'b', 'c'].contains('c'), 'contains')
     $t.ok(!['a', 'b', 'c'].contains('D'), 'contains - no')
+
     $t.ok(['a', 'b', 'c'].containsAll(['a', 'c']), 'containsAll')
     $t.ok(['a', 'b', 'b', 'c'].containsAll(['a', 'c']), 'containsAll - 2 negatives')
     $t.ok(['a', 'b', 'c', 'c'].containsAll(['a', 'c']), 'containsAll - 2 positives')
     $t.ok(['a', 'b', 'c'].containsAll(['a', 'c', 'c']), 'containsAll - 2 positives - right')
     $t.ok(!['a', 'b', 'c'].containsAll(['c', 'D']), 'containsAll - no')
+
+    $t.ok(['a', 'b', 'c'].containsAny(['c', 'D']), 'containsAny - yes')
+    $t.ok(!['a', 'b', 'c'].containsAny(['x', 'y']), 'containsAny - no')
+
 
     $t.section('Lists - Equals')
 
@@ -3102,10 +3215,10 @@ fn testLists($t) {
     $t.section('Lists - Querying')
 
     $rows = [
-        { id: 0, color: 'red' },
-        { id: 1, color: 'green' },
-        { id: 2, color: 'green' },
-        { id: 3, color: 'blue' },
+        { id: 0, color: 'red' }
+        { id: 1, color: 'green' }
+        { id: 2, color: 'green' }
+        { id: 3, color: 'blue' }
     ]
     $counts = $rows.countBy(x{ $a.color })
     $t.ok($counts.green == 2, 'countBy')
@@ -3116,12 +3229,12 @@ fn testLists($t) {
     $groups = $rows.groupBy(x{ $a.color })
     $t.ok($groups.green.length() == 2, 'groupBy')
 
-    $t.dies(fn { $a = [1].groupBy(x{ false }) }, 'string key')
+    $t.dies(fun { $a = [1].groupBy(x{ false }) }, 'string key')
 
     return $t
 }
 
-fn testTemplates($t) {
+fun testTemplates($t) {
 
     $t.section('Templates')
 
@@ -3140,14 +3253,14 @@ fn testTemplates($t) {
 
     $t.section('HTML Templates')
 
-    $t.parserError('tm html {\n    <b class=foo> hi\n }', 'missing quote')
-    $t.parserError('tm html {\n    <b class= "foo"> hi\n }', 'space after `=`')
-    $t.parserError('tm html {\n    <b class ="foo"> hi\n }', 'space before `=`')
-    $t.parserError('tm html {\n    <b class="foo> hi\n }', 'closing quote')
-    $t.parserError('tm html {\n    <p>\n    sdfsdf\n}', 'closing tag')
+    $t.parserError('tem html {\n    <b class=foo> hi\n }', 'missing double-quote')
+    $t.parserError('tem html {\n    <b class= "foo"> hi\n }', 'space after: `=`')
+    $t.parserError('tem html {\n    <b class ="foo"> hi\n }', 'space before: `=`')
+    $t.parserError('tem html {\n    <b class="foo> hi\n }', 'closing double-quote')
+    $t.parserError('tem html {\n    <p>\n    sdfsdf\n}', 'closing tag')
 
 
-    .section('Template Escaping')
+    $t.section('Template Escaping')
 
     $t.ok(entHtml().renderString().contains('&gt;'), 'html - entity')
     $plain = formatBlockHtml().renderString()
@@ -3155,7 +3268,7 @@ fn testTemplates($t) {
   //  $t.ok(bsHtml().unlock().contains('a\nb\nc'), 'html - newlines')
     $h = expHtml('"\'', 'a&b"').renderString()
     $t.ok($h.contains('<p "&quot;&apos;">'), 'html - tag attribute')
-    .ok($h.contains('a&amp;b'), 'html - outer')
+    $t.ok($h.contains('a&amp;b'), 'html - outer')
 
     $t.ok(tagsHtml(inCss()).renderString().contains('<style'), 'html - css style block')
     $t.ok(tagsHtml(inJs()).renderString().contains('<script'), 'html - js block')
@@ -3164,13 +3277,13 @@ fn testTemplates($t) {
     $ls = html'<p>a &gt; c</p>'
     $t.ok(tagsHtml($ls).renderString().contains('<p>a &gt; c</p>'), 'html - TypeString')
 
-    .ok(dataJs('string').renderString().contains('"string"'), 'js - string')
-    .ok(dataJs('a\nb').renderString().contains('"a\\nb"'), 'js - string newline')
-    .ok(dataJs('a"b').renderString().contains('"a\\"b"'), 'js - string quote')
+        .ok(dataJs('string').renderString().contains('"string"'), 'js - string')
+        .ok(dataJs('a\nb').renderString().contains('"a\\nb"'), 'js - string newline')
+        .ok(dataJs('a"b').renderString().contains('"a\\"b"'), 'js - string quote')
 
-    .ok(dataJs(1234).renderString().contains('1234'), 'js - num')
-    .ok(dataJs(1 == 1).renderString().contains('true'), 'js - bool')
-    .ok(dataJs({ a: 1 }).renderString().contains('{"a":1}'), 'js - object')
+        .ok(dataJs(1234).renderString().contains('1234'), 'js - num')
+        .ok(dataJs(1 == 1).renderString().contains('true'), 'js - bool')
+        .ok(dataJs({ a: 1 }).renderString().contains('{"a":1}'), 'js - object')
 
     $t.ok(regexJs().renderString().contains('/\\/[\\w]+\\n/g'), 'js - regex with backslashes')
 
@@ -3195,42 +3308,48 @@ fn testTemplates($t) {
     return $t
 }
 
-fn testBitwise($t) {
+fun testBitwise($t) {
 
     $t.section('Bitwise Operators')
 
-    .ok(1 +| 2 == 3, 'bitwise or (+|)')
-    .ok(2 +& 3 == 2, 'bitwise AND (+&)')
-    .ok(1 +^ 2 == 3, 'bitwise XOR (+^)')
+        .ok(1 +| 2 == 3, 'bitwise or (+|)')
+        .ok(2 +& 3 == 2, 'bitwise AND (+&)')
+        .ok(1 +^ 2 == 3, 'bitwise XOR (+^)')
 
-    .ok(+~5 == -6, 'bitwise NOT (+~)')
+        .ok(+~5 == -6, 'bitwise NOT (+~)')
 
-    .ok(3 +< 2 == 12, 'bitwise shift LEFT (+<)')
-    .ok(13 +> 2 == 3, 'bitwise shift RIGHT (+>)')
+        .ok(3 +< 2 == 12, 'bitwise shift LEFT (+<)')
+        .ok(13 +> 2 == 3, 'bitwise shift RIGHT (+>)')
 
-    .ok(0b100 +| 0b010 == 0b110, 'OR (+|) with binary number')
-    .ok(0b100 +& 0b110 == 0b100, 'AND (+&) with binary number')
-    .ok(0b100 +^ 0b110 == 0b010, 'XOR (+^) with binary number')
-    .ok(+~0b110 == -7, 'NOT (+~) with binary number')
+        .ok(0b100 +| 0b010 == 0b110, 'OR (+|) with binary number')
+        .ok(0b100 +& 0b110 == 0b100, 'AND (+&) with binary number')
+        .ok(0b100 +^ 0b110 == 0b010, 'XOR (+^) with binary number')
+        .ok(+~0b110 == -7, 'NOT (+~) with binary number')
 
     return $t
 }
 
 
-fn libFile($t) {
+fun libFile($t) {
 
     if isPerfMode(): return $t
 
     $t.section('Module: File')
 
-    $t.dies(fn { File.exists('../bad.txt') }, 'parent shortcut (..)',
-        'Parent shortcut `..` not allowed')
-    $t.dies(fn { File.read('http://yahoo.com') }, 'stop remote file read',
-        'Remote URL not allowed')
-    $t.dies(fn { File.exists('') }, 'empty path', 'empty string')
-    $t.dies(fn { File.exists('./path') }, 'dotted relative path', 'Dot directory `.` not allowed')
-    $t.dies(fn { File.exists('/passwd') }, 'outside of sandbox',
-        'Path must be relative to `data/files`')
+    $t.dies(
+        fun { File.exists('../bad.txt') }, 'parent shortcut (..)'
+        'Parent shortcut `..` not allowed'
+    )
+    $t.dies(
+        fun { File.read('http://yahoo.com') }, 'stop remote file read'
+        'Remote URL not allowed'
+    )
+    $t.dies(fun { File.exists('') }, 'empty path', 'empty string')
+    $t.dies(fun { File.exists('./path') }, 'dotted relative path', 'Dot directory `.` not allowed')
+    $t.dies(
+        fun { File.exists('/passwd') }, 'outside of sandbox'
+        'Path must be relative to `data/files`'
+    )
 
     $t.ok(!File.exists('sdf/sdf'), 'Missing file does not exist')
     $t.ok(!File.isFile('sdf/sdf'), 'Missing path is not a file')
@@ -3321,7 +3440,7 @@ fn libFile($t) {
     $content = '11\n\n22\n33\n44\n99\n100'
     File.write($p, $content)
     $numNums = 0
-    $val = File.readLines($p, fn ($line) {
+    $val = File.readLines($p, fun ($line) {
         if $line.match(rx'\d'): $numNums += 1
         if $line == '99': return 99
     })
@@ -3346,7 +3465,7 @@ fn libFile($t) {
     $t.section('File.loopDir')
 
     $combined = []
-    $fnLoop = fn ($lpath) {
+    $fnLoop = fun ($lpath) {
         $combined #= $lpath['fileName']
     }
 
@@ -3380,24 +3499,34 @@ fn libFile($t) {
     $t.section('File.readDir')
 
     $files = File.readDir('loopMe')
-    $t.ok($files.length() == 2 && $files.sort()[2] == 'loopMe/file2.txt',
-        'readDir')
+    $t.ok(
+        $files.length() == 2 && $files.sort()[2] == 'loopMe/file2.txt'
+        'readDir'
+    )
 
     $files = File.readDir('loopMe', { filter: 'all' })
-    $t.ok($files.length() == 4 && $files.sort()[2] == 'loopMe/dir2',
-        'readDir - filter: all')
+    $t.ok(
+        $files.length() == 4 && $files.sort()[2] == 'loopMe/dir2'
+        'readDir - filter: all'
+    )
 
     $files = File.readDir('loopMe', { filter: 'dirs' })
-    $t.ok($files.length() == 2 && $files.sort()[2] == 'loopMe/dir2',
-        'readDir - filter: dirs')
+    $t.ok(
+        $files.length() == 2 && $files.sort()[2] == 'loopMe/dir2'
+        'readDir - filter: dirs'
+    )
 
     $files = File.readDir('loopMe', { deep, filter: 'files' })
-    $t.ok($files.length() == 4 && $files.sort()[2] == 'loopMe/dir2/subfile1.txt',
-        'readDir - deep, filter: files')
+    $t.ok(
+        $files.length() == 4 && $files.sort()[2] == 'loopMe/dir2/subfile1.txt'
+        'readDir - deep, filter: files'
+    )
 
     $files = File.readDir('loopMe', { deep, filter: 'all' })
-    $t.ok($files.length() == 7 && $files.sort()[2] == 'loopMe/dir1/subdir1',
-        'readDir - deep, filter: all')
+    $t.ok(
+        $files.length() == 7 && $files.sort()[2] == 'loopMe/dir1/subdir1'
+        'readDir - deep, filter: all'
+    )
 
 
     $tfile = 'touchMe.txt'
@@ -3419,7 +3548,7 @@ fn libFile($t) {
 }
 
 
-fn libDate($t) {
+fun libDate($t) {
 
     $t.section('Module: Date')
 
@@ -3533,7 +3662,7 @@ fn libDate($t) {
     return $t
 }
 
-fn libPassword($t) {
+fun libPassword($t) {
 
     $t.section('Module: Password')
 
@@ -3552,13 +3681,15 @@ fn libPassword($t) {
 
     $t.ok($p1.length() == 16, 'length')
 
-    $t.dies(fn { String.xDangerPassword($h1).xDangerHash() },
-        'no re-hash', 'can not be hashed a 2nd time')
+    $t.dies(
+        fun { String.xDangerPassword($h1).xDangerHash() }
+        'no re-hash', 'can not be hashed a 2nd time'
+    )
 
     return $t
 }
 
-fn libDb($t) {
+fun libDb($t) {
 
 
     $t.section('Module: Db')
@@ -3602,7 +3733,7 @@ fn libDb($t) {
     $row = Db.selectRow(sql'select * from test where key = {}'.fill($key))
     $t.ok($row['value'] == 'new!', 'updateRow')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.updateRow('test', { value: 'new!' }, sql'key != ""')
     }, 'updateRow - too many', 'more than one row')
 
@@ -3647,27 +3778,27 @@ fn libDb($t) {
     $t.ok($rows.getColumn('value').join(',') == '11,33,55', 'where in - via whereMap')
 
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.deleteRow('test', sql'key != ""')
     }, 'deleteRow - too many', 'more than one row')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.updateRow('"bad', { key: $key }, sql' key = {}'.fill($key))
     }, 'invalid table name - updateRow', 'Invalid table name')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.deleteRow('"bad', sql' key = {}'.fill($key))
     }, 'invalid table name - deleteRows', 'Invalid table name')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.runQuery('delete from test')
     }, 'reject renderString query - query', 'must be passed a `sql`')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.selectRows('select * from test')
     }, 'reject renderString query - selectRows', 'must be passed a `sql`')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Db.useDatabase('badDb')
     }, 'bad driver name', 'unknown')
 
@@ -3680,7 +3811,7 @@ fn libDb($t) {
     return $t
 }
 
-fn libJconTest($t) {
+fun libJconTest($t) {
 
     $t.section('Module: Jcon')
 
@@ -3712,48 +3843,52 @@ fn libJconTest($t) {
     $d = Jcon.parse('{\nkeLm: \'\'\'\n## Heading!\n\'\'\'\n}\n')
     $t.ok($d.keLm.renderString().contains('<h2>'), 'Litemark value')
 
-    $t.ok(Jcon.fileExists('app.jcon'), 'fileExists')
-    $t.ok(!Jcon.fileExists('missing.jcon'), 'fileExists - not')
+    $t
+        .ok(Jcon.fileExists('app.jcon'), 'fileExists')
+        .ok(!Jcon.fileExists('missing.jcon'), 'fileExists - not')
 
-    $t.dies(fn { Jcon.parse('sdfsdf') }, 'missing top-level')
-    $t.dies(fn { Jcon.parse('{ foo: 123 }') }, 'Missing newline after open brace')
-    $t.dies(fn { Jcon.parse('{\n foo: 123, \n}') }, 'remove trailing comma')
-    $t.dies(fn { Jcon.parse('{\n foo: 1\n foo: 2\n }') }, 'duplicate key')
-    $t.dies(fn { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
-    $t.dies(fn { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
-    $t.dies(fn { Jcon.parse('') }, 'empty string')
+        .dies(fun { Jcon.parse('sdfsdf') }, 'missing top-level')
+        .dies(fun { Jcon.parse('{ foo: 123 }') }, 'Missing newline after open brace')
+        .dies(fun { Jcon.parse('{\n foo: 123, \n}') }, 'remove trailing comma')
+        .dies(fun { Jcon.parse('{\n foo: 1\n foo: 2\n }') }, 'duplicate key')
+        .dies(fun { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
+        .dies(fun { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
+        .dies(fun { Jcon.parse('') }, 'empty string')
 
     return $t
 }
 
 
-fn libJson($t) {
+fun libJson($t) {
 
     $t.section('Module: Json')
 
-    .ok(Json.decode(json'{"k1":[123,"hello"]}')['k1'][2] == 'hello', 'decode sub-list')
-    .ok(Json.decode(json'{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map')
-    .ok(Json.decode(json'[1,2,3]')[2] == 2, 'decode list')
-    .ok(Json.decode(json'true') == true, 'decode boolean')
-    .ok(Json.decode(json'123.45') == 123.45, 'decode number')
+        .ok(Json.decode(json'{"k1":[123,"hello"]}')['k1'][2] == 'hello', 'decode sub-list')
+        .ok(Json.decode(json'{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map')
+        .ok(Json.decode(json'[1,2,3]')[2] == 2, 'decode list')
+        .ok(Json.decode(json'true') == true, 'decode boolean')
+        .ok(Json.decode(json'123.45') == 123.45, 'decode number')
 
     $st = Json.encode({ a: 'hi', b: [1, 2, 3] })
 
     $t
-    .ok($st.renderString().contains('"hi"'), 'encode string')
-    .ok($st.renderString().contains('[1,2,3]'), 'encode list')
-    .ok($st.renderString().contains('"b":'), 'encode key')
-    .dies(fn { Json.decode(json'{"a":123,/*"b":"comment"*/}') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"test\ud800":123}') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"te\st":123}') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"a":123}=') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"a":NaN}') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"a":Inf}') }, 'unable to decode')
-    .dies(fn { Json.decode(json'{"a":1.0e4096}') }, 'invalid large number')
+        .ok($st.renderString().contains('"hi"'), 'encode string')
+        .ok($st.renderString().contains('[1,2,3]'), 'encode list')
+        .ok($st.renderString().contains('"b":'), 'encode key')
+        .dies(fun { Json.decode(json'{"a":123,/*"b":"comment"*/}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"test\ud800":123}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"te\st":123}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":123}=') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":NaN}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":Inf}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":1.0e4096}') }, 'invalid large number')
 
     $obj = Json.decode($st)
     $t.ok($obj.b[2] == 2, 'decode after encode')
 
+
+    $t.ok(Json.validate(json'{"a":[1,2,3]}'), 'validate - true')
+    $t.dies(fun { Json.validate(json'{"a:[1,2,3]}') }, 'validate - false')
 
     // $rawJson = json'''
     //     {"web-app": {
@@ -3862,7 +3997,7 @@ fn libJson($t) {
     return $t
 }
 
-fn libLitemark($t) {
+fun libLitemark($t) {
 
     $t.section('Module: Litemark')
 
@@ -3910,14 +4045,14 @@ fn libLitemark($t) {
     '''
 
     $customOut = Litemark.parse($body, {
-        features: 'lists',
+        features: 'lists'
         customTags: {
-            custom1: '<span class="custom">{1}</span>',
-            cb1: x{ '<b class="cb">{}!</b>'.fill($a) },
-            cberror0: fn {
+            custom1: '<span class="custom">{1}</span>'
+            cb1: x{ '<b class="cb">{}!</b>'.fill($a) }
+            cberror0: fun {
                 die('oops')
-            },
-        },
+            }
+        }
     })
     $co = $customOut.renderString()
 
@@ -3935,18 +4070,18 @@ fn libLitemark($t) {
     '''
 
     $urlOut = Litemark.parse($body, {
-        urlHandler: fn ($url) {
+        urlHandler: fun ($url) {
             return html'<a href="{}">link</a>'.fill($url)
-        },
+        }
     })
     $uo = $urlOut.renderString()
     $t.ok($uo.contains('https://link.com/to/somewhere?param=1'), 'urlHandler')
 
-    $parse = fn {
+    $parse = fun {
         Litemark.parse($body, {
-            urlHandler: fn ($url) {
+            urlHandler: fun ($url) {
                 return '<a href="{}">link</a>'.fill($url)
-            },
+            }
         })
     }
     $t.dies($parse, 'urlHandler error', 'must return an html TypeString')
@@ -3960,14 +4095,14 @@ fn libLitemark($t) {
 
     // allow
     $htmlOut = Litemark.parse($body, {
-        features: 'xDangerHtml',
+        features: 'xDangerHtml'
     })
     $ho = $htmlOut.renderString()
     $t.ok($ho.contains('<b>'), 'allowHtml = yes')
 
     // don't allow HTML
     $htmlOut = Litemark.parse($body, {
-        features: ':forum',
+        features: ':forum'
     })
     $ho = $htmlOut.renderString()
     $t.ok($ho.contains('&lt;b&gt;'), 'allowHtml = no')
@@ -3980,14 +4115,14 @@ fn libLitemark($t) {
 
     // allow
     $out = Litemark.parse($body, {
-        features: 'links|indexLinks',
+        features: 'links|indexLinks'
     })
     $so = $out.renderString()
     $t.ok(!$so.contains('nofollow') && $so.contains('noopener'), 'indexLinks = yes')
 
     // don't allow HTML
     $out = Litemark.parse($body, {
-        features: ':forum',
+        features: ':forum'
     })
     $so = $out.renderString()
     $t.ok($so.contains('nofollow'), 'indexLinks = no')
@@ -4005,7 +4140,7 @@ fn libLitemark($t) {
 
     // allow
     $out = Litemark.parse($body, {
-        features: ':blog',
+        features: ':blog'
     })
     $so = $out.renderString()
     $t.ok($so.contains('<h1>'), 'featureSet, heading = yes')
@@ -4016,7 +4151,7 @@ fn libLitemark($t) {
 
     // allow
     $out = Litemark.parse($body, {
-        features: 'headings|lists|images',
+        features: 'headings|lists|images'
     })
     $so = $out.renderString()
     $t.ok($so.contains('<h1>'), 'ind feature, heading = yes')
@@ -4026,7 +4161,7 @@ fn libLitemark($t) {
 
 
     $out = Litemark.parse($body, {
-        features: ':comment',
+        features: ':comment'
     })
     $so = $out.renderString()
     $t.ok($so.contains('# Heading'), ':comment, heading = no')
@@ -4049,7 +4184,7 @@ fn libLitemark($t) {
     '''.xDangerToType('lm')
 
     $out = Litemark.parse($body, {
-        features: ':comment',
+        features: ':comment'
     })
     $so = $out.renderString()
 
@@ -4057,7 +4192,7 @@ fn libLitemark($t) {
     $t.ok($so.contains('> line 2'), ':comment, blockquote = no')
 
     $out = Litemark.parse($body, {
-        features: ':forum',
+        features: ':forum'
     })
     $so = $out.renderString()
     $t.ok($so.contains('<pre'), ':forum, code fence = yes')
@@ -4078,38 +4213,38 @@ fn libLitemark($t) {
 
 
     // bad featureSet
-    $lm = fn {
+    $lm = fun {
         Litemark.parse($body, {
-            features: ':blah',
+            features: ':blah'
         })
     }
     $t.dies($lm, 'unknown featureSet', 'Unknown feature set')
 
     // bad feature
-    $lm = fn {
+    $lm = fun {
         Litemark.parse($body, {
-            features: 'blah',
+            features: 'blah'
         })
     }
     $t.dies($lm, 'unknown feature', 'Unknown feature')
 
 
     // bad tag name
-    $lm = fn {
+    $lm = fun {
         Litemark.parse($body, {
             customTags: {
-                badTag1: html'...',
-            },
+                badTag1: html'...'
+            }
         })
     }
     $t.dies($lm, 'all lowercase', 'must be all lowercase')
 
     // bad tag name - no number
-    $lm = fn {
+    $lm = fun {
         Litemark.parse($body, {
             customTags: {
-                nonum: html'...',
-            },
+                nonum: html'...'
+            }
         })
     }
     $t.dies($lm, 'end in number', 'end with number')
@@ -4117,105 +4252,105 @@ fn libLitemark($t) {
     return $t
 }
 
-fn testNumber($t) {
+fun testNumber($t) {
 
     $t.section('Number')
 
-    .ok(Math.pi().round(2) == 3.14, 'rounded pi to precision 2')
-    .ok((2.6).round() == 3, 'round - up')
-    .ok((2.4).round() == 2, 'round - down')
-    .ok((1025.1).round(-1) == 1030, 'round - place: -1')
-    .ok((2.5).round(0, { half: 'down' }) == 2, 'round - half down')
-    .ok((2.5).round(0, { half: 'odd' }) == 3, 'round - half odd')
-    .ok((2.5).round(0, { half: 'even' }) == 2, 'round - half even')
+        .ok(Math.pi().round(2) == 3.14, 'rounded pi to precision 2')
+        .ok((2.6).round() == 3, 'round - up')
+        .ok((2.4).round() == 2, 'round - down')
+        .ok((1025.1).round(-1) == 1030, 'round - place: -1')
+        .ok((2.5).round(0, { half: 'down' }) == 2, 'round - half down')
+        .ok((2.5).round(0, { half: 'odd' }) == 3, 'round - half odd')
+        .ok((2.5).round(0, { half: 'even' }) == 2, 'round - half even')
 
-    .ok((2.4).ceiling() == 3, 'ceiling')
-    .ok((-2.4).ceiling() == -2, 'ceiling negative')
+        .ok((2.4).ceiling() == 3, 'ceiling')
+        .ok((-2.4).ceiling() == -2, 'ceiling negative')
 
-    .ok((2.6).floor() == 2, 'floor')
-    .ok((-2.6).floor() == -3, 'floor negative')
+        .ok((2.6).floor() == 2, 'floor')
+        .ok((-2.6).floor() == -3, 'floor negative')
 
 
-    .ok((5).clamp(1, 10) == 5, 'clamp in boundary')
-    .ok((20).clamp(1, 10) == 10, 'clamp max')
-    .ok((-20).clamp(1, 10) == 1, 'clamp min')
+        .ok((5).clamp(1, 10) == 5, 'clamp in boundary')
+        .ok((20).clamp(1, 10) == 10, 'clamp max')
+        .ok((-20).clamp(1, 10) == 1, 'clamp min')
 
-    .ok((1).sign() == 1, 'sign positive')
-    .ok((0).sign() == 0, 'sign zero')
-    .ok((-1).sign() == -1, 'sign negative')
+        .ok((1).sign() == 1, 'sign positive')
+        .ok((0).sign() == 0, 'sign zero')
+        .ok((-1).sign() == -1, 'sign negative')
 
-    .ok((-5).absolute() == 5, 'absolute - negative')
-    .ok((0).absolute() == 0, 'absolute - zero')
-    .ok((1.1).absolute() == 1.1, 'absolute - positive float')
-    .ok((-3.1).absolute() == 3.1, 'absolute - negative float')
+        .ok((-5).absolute() == 5, 'absolute - negative')
+        .ok((0).absolute() == 0, 'absolute - zero')
+        .ok((1.1).absolute() == 1.1, 'absolute - positive float')
+        .ok((-3.1).absolute() == 3.1, 'absolute - negative float')
 
-    .ok((100).clampMax(10) == 10, 'clampMax - clamped')
-    .ok((100).clampMax(200) == 100, 'clampMax - not clamped')
+        .ok((100).clampMax(10) == 10, 'clampMax - clamped')
+        .ok((100).clampMax(200) == 100, 'clampMax - not clamped')
 
-    .ok((-10).clampMin(0) == 0, 'clampMin - clamped')
-    .ok((100).clampMin(10) == 100, 'clampMin - not clamped')
+        .ok((-10).clampMin(0) == 0, 'clampMin - clamped')
+        .ok((100).clampMin(10) == 100, 'clampMin - not clamped')
 
-    .ok((123).roundToStep(100) == 100, 'roundToStep(123, 100) == 100')
-    .ok((123).roundToStep(-100) == 100, 'roundToStep(123, -100) == 100')
-    .ok((123).roundToStep(0) == 123, 'roundToStep(123, 0) == 123')
-    .ok((200).roundToStep(200) == 200, 'roundToStep(200, 200) == 200')
-    .ok((-23).roundToStep(10) == -30, 'roundToStep(-23, 10) == -30')
-    .ok((3.8).roundToStep(0.5) == 3.5, 'roundToStep(3.8, 0.5) == 3.5')
+        .ok((123).roundToStep(100) == 100, 'roundToStep(123, 100) == 100')
+        .ok((123).roundToStep(-100) == 100, 'roundToStep(123, -100) == 100')
+        .ok((123).roundToStep(0) == 123, 'roundToStep(123, 0) == 123')
+        .ok((200).roundToStep(200) == 200, 'roundToStep(200, 200) == 200')
+        .ok((-23).roundToStep(10) == -30, 'roundToStep(-23, 10) == -30')
+        .ok((3.8).roundToStep(0.5) == 3.5, 'roundToStep(3.8, 0.5) == 3.5')
 
-    .ok(Math.range(0, 3).join(',') == '0,1,2,3', 'range')
-    .ok(Math.range(3, 0).join(',') == '3,2,1,0', 'range - desc')
-    .ok(Math.range(-2, 2).join(',') == '-2,-1,0,1,2', 'range - neg to pos')
-    .ok(Math.range(0, 8, 2).join(',') == '0,2,4,6,8', 'range - step')
-    .ok(Math.range(0.1, 0.5, 0.1).join(',') == '0.1,0.2,0.3,0.4,0.5', 'range - floats')
-    .dies(fn { Math.range(1, 10, 100) }, 'less than total range',
-        'can not be greater than the total range')
+        .ok(Math.range(0, 3).join(',') == '0,1,2,3', 'range')
+        .ok(Math.range(3, 0).join(',') == '3,2,1,0', 'range - desc')
+        .ok(Math.range(-2, 2).join(',') == '-2,-1,0,1,2', 'range - neg to pos')
+        .ok(Math.range(0, 8, 2).join(',') == '0,2,4,6,8', 'range - step')
+        .ok(Math.range(0.1, 0.5, 0.1).join(',') == '0.1,0.2,0.3,0.4,0.5', 'range - floats')
+        .dies(
+            fun { Math.range(1, 10, 100) }, 'less than total range'
+            'can not be greater than the total range'
+        )
 
 
 
     $t.section('Lists')
 
-    $t.ok(Math.min([5, 0, -33, 10]) == -33, 'min')
-    $t.ok(Math.max([5, 0, -33, 10]) == 10, 'max')
-    $t.ok(Math.min([]) == 0, 'empty min')
+        .ok(Math.min([5, 0, -33, 10]) == -33, 'min')
+        .ok(Math.max([5, 0, -33, 10]) == 10, 'max')
+        .ok(Math.min([]) == 0, 'empty min')
 
-    $t.ok(Math.sum([-5, 10.5, 0, 33]) == 38.5, 'sum')
-    $t.ok(Math.sum([]) == 0, 'empty sum')
+        .ok(Math.sum([-5, 10.5, 0, 33]) == 38.5, 'sum')
+        .ok(Math.sum([]) == 0, 'empty sum')
 
-    $t.ok(Math.product([-1, 32, 0.5]) == -16, 'product')
-    $t.ok(Math.product([]) == 1, 'empty product')
+        .ok(Math.product([-1, 32, 0.5]) == -16, 'product')
+        .ok(Math.product([]) == 1, 'empty product')
 
-    $t.dies(fn { Math.sum([123, 0, '55']) }, 'must be a number')
+        .dies(fun { Math.sum([123, 0, '55']) }, 'must be a number')
 
+        .ok((123).zeroPadLeft(2) == '123', 'zeroPadLeft - less')
+        .ok((123).zeroPadLeft(6) == '000123', 'zeroPadLeft - more')
+        .ok((123.4).zeroPadLeft(6) == '000123', 'zeroPadLeft - float is removed')
 
+        .ok((123).zeroPadRight(2) == '123.00', 'zeroPadRight - int ')
+        .ok((123.4).zeroPadRight(3) == '123.400', 'zeroPadRight - float 3')
+        .ok((123.4567).zeroPadRight(2) == '123.46', 'zeroPadRight - float - less')
 
-    .ok((123).zeroPadLeft(2) == '123', 'zeroPadLeft - less')
-    .ok((123).zeroPadLeft(6) == '000123', 'zeroPadLeft - more')
-    .ok((123.4).zeroPadLeft(6) == '000123', 'zeroPadLeft - float is removed')
+        .ok((1).isOdd(), 'isOdd: 1')
+        .ok((-1).isOdd(), 'isOdd: -1')
+        .ok(!(2).isOdd(), '!isOdd: 2')
+        .ok(!(-2).isOdd(), '!isOdd: -2')
+        .ok(!(0).isOdd(), '!isOdd: 0')
+        .ok((1.5).isOdd(), 'isOdd: 1.5')
+        .ok(!(2.5).isOdd(), '!isOdd: 2.5')
 
-    .ok((123).zeroPadRight(2) == '123.00', 'zeroPadRight - int ')
-    .ok((123.4).zeroPadRight(3) == '123.400', 'zeroPadRight - float 3')
-    .ok((123.4567).zeroPadRight(2) == '123.46', 'zeroPadRight - float - less')
+        .ok((0).isEven(), 'isEven: 0')
+        .ok((2).isEven(), 'isEven: 2')
+        .ok((-2).isEven(), 'isEven: -2')
+        .ok(!(1).isEven(), '!isEven: 1')
+        .ok(!(-1).isEven(), '!isEven: -1')
+        .ok(!(1.5).isEven(), '!isEven: 1.5')
+        .ok((2.5).isEven(), 'isEven: 2.5')
 
-    .ok((1).isOdd(), 'isOdd: 1')
-    .ok((-1).isOdd(), 'isOdd: -1')
-    .ok(!(2).isOdd(), '!isOdd: 2')
-    .ok(!(-2).isOdd(), '!isOdd: -2')
-    .ok(!(0).isOdd(), '!isOdd: 0')
-    .ok((1.5).isOdd(), 'isOdd: 1.5')
-    .ok(!(2.5).isOdd(), '!isOdd: 2.5')
-
-    .ok((0).isEven(), 'isEven: 0')
-    .ok((2).isEven(), 'isEven: 2')
-    .ok((-2).isEven(), 'isEven: -2')
-    .ok(!(1).isEven(), '!isEven: 1')
-    .ok(!(-1).isEven(), '!isEven: -1')
-    .ok(!(1.5).isEven(), '!isEven: 1.5')
-    .ok((2.5).isEven(), 'isEven: 2.5')
-
-    .ok((16).isMultipleOf(2), 'isMultipleOf')
-    .ok((-16).isMultipleOf(2), 'isMultipleOf - negative')
-    .ok(!(16).isMultipleOf(5), '!isMultipleOf')
-    .ok((0).isMultipleOf(2), 'isMultipleOf zero')
+        .ok((16).isMultipleOf(2), 'isMultipleOf')
+        .ok((-16).isMultipleOf(2), 'isMultipleOf - negative')
+        .ok(!(16).isMultipleOf(5), '!isMultipleOf')
+        .ok((0).isMultipleOf(2), 'isMultipleOf zero')
 
 
     $num = 1234.56
@@ -4224,106 +4359,116 @@ fn testNumber($t) {
     $t.ok($num.format({ numDecimals: 2, thousandSep: '' }) == '1234.56', 'format - blank sep')
     $flags = { numDecimals: 2, thousandSep: ' ', decimalSep: ',' }
     $t.ok($num.format($flags) == '1 234,56', 'format - sep & dec')
-    $t.ok($num.format({ sign: true, numDecimals: 1 }) == '+1,234.6',
-        'format - sign positive')
-    $t.ok($num.format({ parens: true }) == '1,235',
-        'format - negative parens / positive')
+    $t.ok(
+        $num.format({ sign: true, numDecimals: 1 }) == '+1,234.6'
+        'format - sign positive'
+    )
+    $t.ok(
+        $num.format({ parens: true }) == '1,235'
+        'format - negative parens / positive'
+    )
 
     $num = -1234.56
     $t.ok($num.format() == '-1,235', 'format - negative')
     $t.ok($num.format({ numDecimals: 1 }) == '-1,234.6', 'format - negative - numDecimals')
-    $t.ok($num.format({ parens: true }) == '(1,235)',
-        'format - negative parens / negative')
+    $t.ok(
+        $num.format({ parens: true }) == '(1,235)'
+        'format - negative parens / negative'
+    )
 
 
     $num = 0
-    $t.ok($num.format() == '0', 'format - negative')
-    $t.ok($num.format({ numDecimals: 3 }) == '0.000', 'format - zero - numDecimals')
-    $t.ok($num.format({ sign: true, zeroSign: '-' }) == '-0', 'format - zero - negative')
-    $t.ok($num.format({ sign: true, zeroSign: '+' }) == '+0', 'format - zero - positive')
-    $t.ok(
-        $num.format({ parens: true, zeroSign: '-' }) == '(0)',
-        'format - zero - negative parens'
-    )
-    $t.ok(
-        $num.format({ parens: true, zeroSign: '-', numDecimals: 3 }) == '(0.000)',
-        'format - zero - negative parens - numDecimals'
-    )
+    $t
+        .ok($num.format() == '0', 'format - negative')
+        .ok($num.format({ numDecimals: 3 }) == '0.000', 'format - zero - numDecimals')
+        .ok($num.format({ sign: true, zeroSign: '-' }) == '-0', 'format - zero - negative')
+        .ok($num.format({ sign: true, zeroSign: '+' }) == '+0', 'format - zero - positive')
+        .ok(
+            $num.format({ parens: true, zeroSign: '-' }) == '(0)'
+            'format - zero - negative parens'
+        )
+        .ok(
+            $num.format({ parens: true, zeroSign: '-', numDecimals: 3 }) == '(0.000)'
+            'format - zero - negative parens - numDecimals'
+        )
 
     $num = 1234.56
-    $t.dies(fn { $num.format({ thousandSep: '*&*' }) }, 'Invalid option map value')
+    $t.dies(fun { $num.format({ thousandSep: '*&*' }) }, 'Invalid option map value')
 
 
     $num = 1234.56
-    $t.ok($num.toString() == '1234.56', 'toString')
-    $t.ok($num.toBoolean() == true, 'toBoolean')
-    $t.ok((0).toBoolean() == false, 'toBoolean - false')
-    $t.ok((-1).toBoolean() == true, 'toBoolean - negative')
-    $t.ok((0.1).toBoolean() == true, 'toBoolean - float')
+    $t
+        .ok($num.toString() == '1234.56', 'toString')
+        .ok($num.toBoolean() == true, 'toBoolean')
+        .ok((0).toBoolean() == false, 'toBoolean - false')
+        .ok((-1).toBoolean() == true, 'toBoolean - negative')
+        .ok((0.1).toBoolean() == true, 'toBoolean - float')
 
-    $t.ok((1.0).isInt() == true, 'isInt true')
-    $t.ok((1.2).isInt() == false, 'isInt false')
-    $t.ok((1.2).isFloat() == true, 'isFloat true')
-    $t.ok((1).isFloat() == false, 'isFloat false')
-    $t.ok((1.2).toInt() == 1, 'toInt')
-    $t.ok((1).toFloat() == 1.0, 'toFloat')
+        .ok((1.0).isInt() == true, 'isInt true')
+        .ok((1.2).isInt() == false, 'isInt false')
+        .ok((1.2).isFloat() == true, 'isFloat true')
+        .ok((1).isFloat() == false, 'isFloat false')
+        .ok((1.2).toInt() == 1, 'toInt')
+        .ok((1).toFloat() == 1.0, 'toFloat')
 
-    $t.ok((0).humanizeCount() == '0th', 'humanizeCount - 0th')
-    $t.ok((1).humanizeCount() == '1st', 'humanizeCount - 1st')
-    $t.ok((2).humanizeCount() == '2nd', 'humanizeCount - 2nd')
-    $t.ok((3).humanizeCount() == '3rd', 'humanizeCount - 3rd')
-    $t.ok((4).humanizeCount() == '4th', 'humanizeCount - 4th')
-    $t.ok((9).humanizeCount() == '9th', 'humanizeCount - 9th')
-    $t.ok((30).humanizeCount() == '30th', 'humanizeCount - 30th')
-    $t.ok((31).humanizeCount() == '31st', 'humanizeCount - 31st')
-    $t.ok((32).humanizeCount() == '32nd', 'humanizeCount - 32nd')
-    $t.ok((33).humanizeCount() == '33rd', 'humanizeCount - 33rd')
+        .ok((0).humanizeCount() == '0th', 'humanizeCount - 0th')
+        .ok((1).humanizeCount() == '1st', 'humanizeCount - 1st')
+        .ok((2).humanizeCount() == '2nd', 'humanizeCount - 2nd')
+        .ok((3).humanizeCount() == '3rd', 'humanizeCount - 3rd')
+        .ok((4).humanizeCount() == '4th', 'humanizeCount - 4th')
+        .ok((9).humanizeCount() == '9th', 'humanizeCount - 9th')
+        .ok((30).humanizeCount() == '30th', 'humanizeCount - 30th')
+        .ok((31).humanizeCount() == '31st', 'humanizeCount - 31st')
+        .ok((32).humanizeCount() == '32nd', 'humanizeCount - 32nd')
+        .ok((33).humanizeCount() == '33rd', 'humanizeCount - 33rd')
 
     return $t
 }
 
-fn libMath($t) {
+fun libMath($t) {
 
     $t.section('Module: Math')
 
     $rand = Math.random(6, 8)
     $rnd = Math.random()
 
-
     $t
-    .ok($rand >= 6 && $rand <= 8, 'random')
-    .ok($rand.floor() == $rand, 'random is int')
-    .ok($rnd >= 0.0 && $rnd < 1.0, 'random float')
+        .ok($rand >= 6 && $rand <= 8, 'random')
+        .ok($rand.floor() == $rand, 'random is int')
+        .ok($rnd >= 0.0 && $rnd < 1.0, 'random float')
 
-    $t.ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin')
-    .ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec')
+        .ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin')
+        .ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec')
 
-    $t.ok(Math.hexToDec('F1') == 241, 'hexToDex')
-    $t.ok(Math.hexToDec('FF0000') == 16711680, 'hexToDex - color')
-    $t.ok(Math.hexToDec('#FF0000') == 16711680, 'hexToDex - CSS color')
-    $t.ok(Math.hexToDec('0xFF0000') == 16711680, 'hexToDex - 0x prefix')
-    $t.ok(Math.decToHex(241) == 'F1', 'decToHex')
-    $t.ok(Math.decToHex(16) == '10', 'decToHex')
+        .ok(Math.hexToDec('F1') == 241, 'hexToDex')
+        .ok(Math.hexToDec('FF0000') == 16711680, 'hexToDex - color')
+        .ok(Math.hexToDec('#FF0000') == 16711680, 'hexToDex - CSS color')
+        .ok(Math.hexToDec('0xFF0000') == 16711680, 'hexToDex - 0x prefix')
+        .ok(Math.decToHex(241) == 'F1', 'decToHex')
+        .ok(Math.decToHex(16) == '10', 'decToHex')
 
     return $t
 }
 
-fn libMeta($t) {
+fun libMeta($t) {
 
     $t.section('Module: Meta')
 
-    .ok(Meta.functionExists('libMeta'), 'functionExists')
-    .ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments')
+        .ok(Meta.functionExists('libMeta'), 'functionExists')
+        .ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments')
 
-    // TODO: failIfTemplateMode spills over after error
-    .ok(Meta.failIfTemplateMode() == false, 'failIfTemplateMode ok')
-    .dies(fn { failModeHtml() }, 'failIfTemplateMode fail', 'can not be called in Template mode')
+        // TODO: failIfTemplateMode spills over after error
+        .ok(Meta.failIfTemplateMode() == false, 'failIfTemplateMode ok')
+        .dies(
+            fun { failModeHtml() }
+            'failIfTemplateMode fail', 'can not be called in Template mode'
+        )
 
-    .ok(Meta.functionExists('dynamicFunction'), 'dynamic fn exists')
-    .ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
+        .ok(Meta.functionExists('dynamicFunction'), 'dynamic fun exists')
+        .ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
 
-    .ok(Meta.getThtVersion().match(rx'\d+\.\d+\.\d+'), 'thtVersion')
-    .ok(Meta.getThtVersion(-num).match(rx'^\d{5}$'), 'thtVersion - digits')
+        .ok(Meta.getThtVersion().match(rx'\d+\.\d+\.\d+'), 'thtVersion')
+        .ok(Meta.getThtVersion(-num).match(rx'^\d{5}$'), 'thtVersion - digits')
 
     if !isPerfMode() {
         $t.ok(Meta.zGetStdLib()['File'].read.contains('filePath'), 'zGetStdLib')
@@ -4332,23 +4477,23 @@ fn libMeta($t) {
     return $t
 }
 
-fn metaCallMe {
+fun metaCallMe {
 
     $args = Meta.getArgs()
 
     return $args.join('|')
 }
 
-fn failTemplateMode {
+fun failTemplateMode {
     Meta.failIfTemplateMode()
 }
 
-tm failModeHtml {
-    --- failTemplateMode()
+tem failModeHtml {
+    === failTemplateMode()
 }
 
 
-// fn libPerf($t) {
+// fun libPerf($t) {
 //       $t.section('Module: Perf')
 
 //       Perf.forceActive(true)
@@ -4369,7 +4514,7 @@ tm failModeHtml {
 //       Perf.forceActive(false)
 // }
 
-fn libPhp($t) {
+fun libPhp($t) {
 
     $t.section('Module: Php')
 
@@ -4382,12 +4527,18 @@ fn libPhp($t) {
     $t.ok(Php.getConstant('E_CORE_ERROR') == 16, 'getConstant')
 
     $t.ok(Php.call('strrev', 'abcdef') == 'fedcba', 'call')
-    $t.dies(fn { Php.call('nonexistent', 1, 2) }, 'Non-existent PHP call',
-        'PHP function does not exist')
-    $t.dies(fn { Php.call('eval', 'echo("hi");') }, 'stop blocklisted fn - by name',
-        'PHP function is blocklisted')
-    $t.dies(fn { Php.call('ini_set', 'x', 'y') }, 'stop blocklisted fn - by match',
-        'PHP function is blocklisted')
+    $t.dies(
+        fun { Php.call('nonexistent', 1, 2) }, 'Non-existent PHP call'
+        'PHP function does not exist'
+    )
+    $t.dies(
+        fun { Php.call('eval', 'echo("hi");') }, 'stop blocklisted fun - by name'
+        'PHP function is blocklisted'
+    )
+    $t.dies(
+        fun { Php.call('ini_set', 'x', 'y') }, 'stop blocklisted fun - by match'
+        'PHP function is blocklisted'
+    )
 
 
     Php.require('vendor/testVendorClass.php')
@@ -4402,10 +4553,10 @@ fn libPhp($t) {
     $t.ok($vc.zGet('ALL_CAP_FIELD') == 789, 'Vendor class - ALL_CAP_FIELD')
     $t.ok($vc.zCall('ALL_CAP_METHOD') == 'FOO', 'Vendor class - ALL_CAP_METHOD')
 
-    $t.dies(fn { $v = Php.version }, 'version()', 'Did you mean to call method `version()`')
+    $t.dies(fun { $v = Php.version }, 'version()', 'Try: call method `version()`')
 
-    $t.ok(Php.functionExists('strpos'), 'fn exists')
-    $t.ok(!Php.functionExists('strposxx'), 'fn exists (not)')
+    $t.ok(Php.functionExists('strpos'), 'fun exists')
+    $t.ok(!Php.functionExists('strposxx'), 'fun exists (not)')
     $t.ok(Php.classExists('DateTime'), 'class exists')
     $t.ok(!Php.classExists('FooBar'), 'class exists (not)')
     $t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)')
@@ -4415,7 +4566,7 @@ fn libPhp($t) {
     return $t
 }
 
-fn libWeb($t) {
+fun libWeb($t) {
 
     $t.section('Module: Web')
 
@@ -4425,7 +4576,7 @@ fn libWeb($t) {
     $t.ok(Web.skipHitCounter() == true, 'skipHitCounter - true')
 
     $t.ok(Web.icon('arrowRight').renderString().contains('ticon'), 'icon')
-    $t.dies(fn { Web.icon('missingBlah') }, 'icon - error', 'Unknown icon')
+    $t.dies(fun { Web.icon('missingBlah') }, 'icon - error', 'Unknown icon')
 
     $em = Web.maskEmail('user@example.com')
     $t.ok($em.renderString().match(rx'&#64;.*?display:none'), 'mask email')
@@ -4439,14 +4590,14 @@ fn libWeb($t) {
     return $t
 }
 
-fn libPage($t) {
+fun libPage($t) {
 
     $t.section('Module: Page')
 
     $page = Page.create({
-        appName: 'AppName',
-        joiner: '~',
-        tagline: 'This is a tagline',
+        appName: 'AppName'
+        joiner: '~'
+        tagline: 'This is a tagline'
     })
 
     $page.addBodyClass('class1')
@@ -4460,7 +4611,7 @@ fn libPage($t) {
     $page.addCss(url'/css/base.css')
     $page.addJs(url'/js/form.js')
 
-    $out = $page.render()
+    $out = $page.toHtml()
 
     $t.ok($out.match(rx'<!doctype html>\s*<html>\s*<head>'s), 'start tags')
     $t.ok($out.match(rx'<head>.*</head>'s), 'head tags')
@@ -4472,7 +4623,7 @@ fn libPage($t) {
 
     $page.setTitle('Page Title')
 
-    $out = $page.render().renderString()
+    $out = $page.toHtml().renderString()
 
     $title = '<title>Page Title ~ AppName'
     $t.ok($out.contains($title), 'title - after setTitle')
@@ -4493,23 +4644,25 @@ fn libPage($t) {
         <script src="/js/form\.js" nonce="[a-zA-Z0-9]{20,}">
     '''), 'addJs')
 
-    $t.dies(fn { Page.create({ foo: 123 }) }, 'invalid page field')
+    $t.dies(fun { Page.create({ foo: 123 }) }, 'invalid page field')
 
     return $t
 }
 
 
-fn libOutput($t) {
+fun libOutput($t) {
 
     $t.section('Module: Output')
 
-    $t.dies(fn {  Output.redirect('http://google.com') }, 'redirect - normal',
-        'must be passed a `url`')
+    $t.dies(
+        fun {  Output.redirect('http://google.com') }, 'redirect - normal'
+        'must be passed a `url`'
+    )
 
     return $t
 }
 
-fn libInput($t) {
+fun libInput($t) {
 
     $t.section('Module: Input')
 
@@ -4520,8 +4673,8 @@ fn libInput($t) {
     $t.ok($badQueryVal == 0, 'get - bad int')
 
     $data = Input.getAll({
-        email: 'email',
-        comment: 'ms',
+        email: 'email'
+        comment: 'ms'
     })
 
     $badFields = $data.errors
@@ -4529,7 +4682,7 @@ fn libInput($t) {
     $badField = $badFields[2]['field']
     $t.ok($badFields.length() ==  2 && $badField == 'comment', 'getAll - errors')
 
-    $t.dies(fn { formValidate('abc', 'badRule') }, 'bad rule', 'missing `type`')
+    $t.dies(fun { formValidate('abc', 'badRule') }, 'bad rule', 'missing `type`')
 
     $t.ok(formValidate('', 'id|optional') == '', 'optional ok')
     $t.ok(formValidate('123', 'id|optional') == '123', 'optional ok')
@@ -4600,8 +4753,10 @@ fn libInput($t) {
     $sb = 'abc   123   \n\n  xyz!  \n  '
     $t.ok(formValidate($sb, 'ms') == 'abc   123\n\n  xyz!', 'multiline spaces')
     $t.ok(formValidate('abc<b>tag', 'ms') == 'abctag', 'multiline no tag')
-    $t.ok(formValidate('abc\n\n\n\nline2', 'ms') == 'abc\n\n\nline2',
-        'multiline newline')
+    $t.ok(
+        formValidate('abc\n\n\n\nline2', 'ms') == 'abc\n\n\nline2'
+        'multiline newline'
+    )
     $t.ok(formValidate('short', 'ms|min:8') == '', 'multiline min')
 
     $t.ok(formValidate('???', 's|civilize') == '?', 'civilized ?')
@@ -4666,61 +4821,60 @@ fn libInput($t) {
     return $t
 }
 
-fn libForm($t) {
+fun libForm($t) {
 
     $t.section('Module: Form')
 
     $form = Form.create('testForm', {
         num: {
-            tag: 'number',
-            rule: { type: 'i', max: 100 },
-        },
+            tag: 'number'
+            rule: { type: 'i', max: 100 }
+        }
         comment: {
-            tag: 'textarea',
-        },
+            tag: 'textarea'
+        }
         email: {
-            tag: 'email',
-        },
+            tag: 'email'
+        }
         password: {
-            tag: 'password',
-        },
+            tag: 'password'
+        }
     })
 
-    $fhtml = $form.render('Submit').renderString()
+    $fhtml = $form.toHtml('Submit').renderString()
 
     $currUrl = Request.getUrl().getPath()
     $t.ok(
-        $fhtml.contains('<form method="post" action="' ~ $currUrl ~ '" id="testForm"'),
+        $fhtml.contains('<form method="post" action="' ~ $currUrl ~ '" id="testForm"')
         'form render - form tag'
     )
 
     $t.ok(
-        $fhtml.contains('<input aria-label="Num" name="num" value="0" type="number"'),
+        $fhtml.contains('<input aria-label="Num" name="num" value="0" type="number"')
         'form render - num input tag'
     )
 
     $t.ok(
         $fhtml.contains('''
             <input aria-label="Email" autocomplete="email" name="email" value="" type="email"
-        '''),
+        ''')
         'form render - email input tag'
     )
 
     $t.ok(
-        $fhtml.contains('"csrfToken":'),
+        $fhtml.contains('"csrfToken":')
         'form render - csrfToken'
     )
 
     $t.ok(
-        $fhtml.contains('type="submit">Submit</button>'),
+        $fhtml.contains('type="submit">Submit</button>')
         'form render - submit button'
     )
 
     $t.ok(
-        $fhtml.contains('<span>Show Password</span>')
-        && $fhtml.contains('''
+        $fhtml.contains('<span>Show Password</span>') && $fhtml.contains('''
             <input aria-label="Password" autocomplete="current-password" name="password" value="" type="password"
-        '''),
+        ''')
         'form render - password'
     )
 
@@ -4732,12 +4886,12 @@ fn libForm($t) {
 }
 
 
-fn formValidate($v, $type) {
+fun formValidate($v, $type) {
 
     return formValidateResult($v, $type)['value']
 }
 
-fn formValidateResult($v, $type) {
+fun formValidateResult($v, $type) {
 
     $val = Input.validateValue('test', $v, $type)
 
@@ -4745,7 +4899,7 @@ fn formValidateResult($v, $type) {
 }
 
 
-fn libConfig($t) {
+fun libConfig($t) {
 
     $t.section('Module: Config')
 
@@ -4755,8 +4909,10 @@ fn libConfig($t) {
     $t.ok(Config.get('string') == 'value with spaces, etc.', 'get string')
     $t.ok(Config.get('map').key == 'value', 'get map')
     $t.ok(Config.get('list')[2] == 'value 2', 'get list')
-    $t.dies(fn { Config.get('MISSING') }, 'missing key',
-        'No `app` config value for key')
+    $t.dies(
+        fun { Config.get('MISSING') }, 'missing key'
+        'No `app` config value for key'
+    )
     $t.ok(Config.get('local').localVar == 789, 'local config')
 
     $t.ok(Config.get('aUrl').rawString() == 'https://asite.com', 'url typestring')
@@ -4764,7 +4920,7 @@ fn libConfig($t) {
     return $t
 }
 
-fn libCookie($t) {
+fun libCookie($t) {
 
     $t.section('Module: Cookie')
 
@@ -4775,14 +4931,14 @@ fn libCookie($t) {
     Cookie.delete('deleteMe')
     $t.ok(Cookie.get('deleteMe') == '', 'Cookie - delete')
 
-    $t.dies(fn {
+    $t.dies(fun {
         Cookie.set('test', '{"a":123}')
     }, 'alphanumeric')
 
     return $t
 }
 
-fn libSession($t) {
+fun libSession($t) {
 
     $t.section('Module: Session')
 
@@ -4820,12 +4976,12 @@ fn libSession($t) {
     Session.addToList('list', 456)
     $t.ok(Session.get('list')[2] == 456, 'addToList 2')
 
-    $t.dies(fn { Session.get('missing') }, 'get bad key', 'Unknown session key')
+    $t.dies(fun { Session.get('missing') }, 'get bad key', 'Unknown session key')
 
     return $t
 }
 
-fn libCache($t) {
+fun libCache($t) {
 
     if isPerfMode(): return $t
 
@@ -4847,7 +5003,7 @@ fn libCache($t) {
     $t.ok(!Cache.has('not1'), 'has not')
     $t.ok(Cache.get('not1', 'missing') == 'missing', 'get default')
 
-    $v = Cache.get('not2', fn {
+    $v = Cache.get('not2', fun {
         return 'fromSetter'
     })
     $t.ok($v == 'fromSetter', 'get with default function')
@@ -4855,8 +5011,10 @@ fn libCache($t) {
     Cache.set('not3', 'fromSetter', 0)
     $t.ok(Cache.get('not3') == 'fromSetter', 'get with default function')
 
-    $t.dies(fn { Cache.get('not4', fn { }) }, 'must return a non-false value',
-        'must return a non-false value')
+    $t.dies(
+        fun { Cache.get('not4', fun { }) }
+        'must return a non-false value'
+    )
 
 
 
@@ -4895,7 +5053,7 @@ fn libCache($t) {
     return $t
 }
 
-fn libNet($t) {
+fun libNet($t) {
 
     if isPerfMode(): return $t
 
@@ -4921,13 +5079,7 @@ fn libNet($t) {
     return $t
 }
 
-fn libSystem($t) {
-
-    $list = [
-        1,
-        2,
-        3,
-    ]
+fun libSystem($t) {
 
     $t.section(
         'Module: System'
@@ -4948,7 +5100,7 @@ fn libSystem($t) {
 }
 
 // TODO: This is all hardcoded to my local setup
-fn libRequest($t) {
+fun libRequest($t) {
 
     $t.section('Module: Request')
 
@@ -4973,20 +5125,20 @@ fn libRequest($t) {
 }
 
 
-fn libImage($t) {
+fun libImage($t) {
 
     $img = Image.create({ sizeX: 300, sizeY: 200 })
 
     >> '-- rect --'
     $img.drawRectangle(
-        { x: 1, y: 1, sizeX: 60, center: false },
-        { color: 'red', fill: true },
+        { x: 1, y: 1, sizeX: 60, center: false }
+        { color: 'red', fill: true }
     )
 
     >> '-- ellipse --'
     $img.drawEllipse(
-        { x: 1, y: 1, sizeX: 60, center: false },
-        { color: 'blue', fill: true },
+        { x: 1, y: 1, sizeX: 60, center: false }
+        { color: 'blue', fill: true }
     )
 
   //  $img.fill({ x: 1, y: 1 })
@@ -5002,33 +5154,35 @@ fn libImage($t) {
 //-----------------------------------------
 
 
-fn dynamicFunction($a) {
+fun dynamicFunction($a) {
     return $a ~ '!!!'
 }
 
-fn noReturn {
+fun noReturn {
 
 }
 
-fn testDefaultMap($xmap = { a: 123 }) {
+fun testDefaultMap($xmap = { a: 123 }) {
     return $xmap
 }
 
-fn testDefaultList($xlist = ['a', 'b', 'c']) {
+fun testDefaultList($xlist = ['a', 'b', 'c']) {
 
     return $xlist
 }
 
-fn testDefaultMaps($m1 = { a: 'aa' }, $m2 = { b: 'bb' }) {
+fun testDefaultMaps($m1 = { a: 'aa' }, $m2 = { b: 'bb' }) {
     $m1['m2'] = $m2
     return $m1
 }
 
-fn spread(...$args) {
+fun spread(...$args) {
     return $args.join(':')
 }
 
-
+fun multilineFunCall($a, $b, $c, $d) {
+    return $a + $b + $c + $d
+}
 
 
 
@@ -5036,81 +5190,81 @@ fn spread(...$args) {
 //-----------------------------------------
 
 
-tm whitespaceLineHtml {
+tem whitespaceLineHtml {
     <div>
        <b>a 1</b>
        <b>a 2</b>
     </div>
 }
 
-tm whitespaceTagHtml {
+tem whitespaceTagHtml {
     <p> This is a <b>Message </b>! </p>
 }
 
-tm templateHtml($users) {
+tem templateHtml($users) {
 
     <b> Hello
-    --- foreach $users as $u {
+    === foreach $users as $u {
         <li> {{ $u }}
-    --- }
+    === }
 
 }
 
-tm dataJs($d) {
+tem dataJs($d) {
     $d =  {{ $d }}
 }
 
-tm regexJs {
+tem regexJs {
     'foo'.match(/\/[\w]+\n/g);
 }
 
-tm entHtml {
+tem entHtml {
     <p> 2 &gt; 1
 }
 
-tm formatBlockHtml {
+tem formatBlockHtml {
     <p>>>
         <foo>
             indented
     </>
 }
 
-tm bsHtml {
+tem bsHtml {
     a\nb\nc
 }
 
-tm jsHtml {
+tem jsHtml {
     <script nonce="{{ Web.nonce() }}">
     var a = '&lt;a\nb\nc'
     </>
 }
 
-tm expHtml($inner, $outer) {
+tem expHtml($inner, $outer) {
     <p "{{ $inner }}"> {{ $outer }}
 }
 
-tm tagsHtml($exp) {
+tem tagsHtml($exp) {
     {{ $exp }}
 }
 
-tm inCss {
+tem inCss {
     font-weight: bold
 }
 
-tm inJs {
+tem inJs {
     var a = 1
 }
 
-tm tagHtml($val) {
+tem tagHtml($val) {
     <p> {{ $val }}
 }
 
-tm expCss($inp) {
+tem expCss($inp) {
     font-weight: {{ $inp }}
 }
 
 // TODO: TEST ME
-tm spaceHtml {
+tem spaceHtml {
 
     <b>FOO</b> <a href="/"> BAR </>
 
@@ -5128,14 +5282,14 @@ tm spaceHtml {
     </>
 }
 
-tm multilineVarText($mlVar) {
+tem multilineVarText($mlVar) {
 
     Message:
 
     {{ $mlVar }}
 }
 
-tm testLm {
+tem testLm {
 
     # Heading 1
 
@@ -5189,11 +5343,11 @@ tm testLm {
 
 }
 
-tm chunkHtml($num) {
+tem chunkHtml($num) {
     C{{ $num }}
 }
 
-tm listOfChunksHtml($chunks) {
+tem listOfChunksHtml($chunks) {
     {{ $chunks }}
 }
 
