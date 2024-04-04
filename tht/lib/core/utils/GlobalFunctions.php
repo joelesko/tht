@@ -222,7 +222,7 @@ function validateFunctionArgs($sig, $arguments) {
                     $try = 'Try: `$floatNum.toInt()`';
                 }
 
-                $argNum = "`" . v($i + 1)->u_humanize_count() . '` argument';
+                $argNum = "argument #" . ($i + 1);
                 $err = [
                     'msg' => "expects $argNum to be type: `$typeLabel`   Got: `" . $actualType . "`" . $try,
                     'argName' => $i,
