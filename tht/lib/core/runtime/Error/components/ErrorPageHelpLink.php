@@ -119,8 +119,17 @@ class ErrorPageHelpLink extends ErrorPageComponent {
                 'Stackoverflow Solution'
             );
         }
-        else if ($this->error['origin'] == 'tht.compiler.parser.formatChecker') {
-            $this->setLink('/reference/format-checker', 'Format Checker');
+        else if (v($this->error['origin'])->u_contains('.formatChecker')) {
+
+            $url = '/reference/format-checker';
+            $label = 'Format Checker';
+            if (preg_match('/formatChecker\.(\w+)$/', $this->error['origin'], $m)) {
+                $token = v($m[1])->u_to_token_case(' ');
+                $url .= '#' . v($token)->u_to_url_slug();
+                $label .= ' - ' . v($token)->u_to_title_case();
+            }
+
+            $this->setLink($url, $label);
         }
     }
 
