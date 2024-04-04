@@ -25,6 +25,10 @@ class S_Match extends S_Statement {
 
         if (!$p->symbol->isValue('{')) {
             $sMatchSubject = $p->parseExpression(0, 'noOuterParen');
+            if ($sMatchSubject->type == SymbolType::BOOLEAN) {
+                $bool = $sMatchSubject->token[TOKEN_VALUE];
+                $p->error("Please remove literal boolean: `$bool` Try: `match { ... }`", $sMatchSubject->token);
+            }
             $this->addKid($sMatchSubject);
         }
         else {
