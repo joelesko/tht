@@ -5,6 +5,9 @@ namespace o;
 
 StringReader::initChars();
 
+
+// Performance Note: This uses non-MB functions (substr vs mb_substr).
+// Unfortunately, mb_substr is about 5x slower.
 class StringReader {
 
     public $fullText = '';
@@ -131,7 +134,7 @@ class StringReader {
 
         if ($c === "\t" && $this->tabStrategy == 'error') {
             ErrorHandler::setHelpLink('/reference/format-checker#indent-with-spaces', 'Format Checker - Indent With Spaces');
-            $this->error("Tab character not supported. Please set your TAB key to insert 4 spaces.SR");
+            $this->error("Tab character not supported. Please set your TAB key to insert 4 spaces.");
         }
 
         $this->line .= $c;
@@ -236,6 +239,20 @@ class StringReader {
 
     function isWhitespace($c) {
         return $c === " " || $c === "\n" || $c === "\t";
+    }
+
+    function isOpenBrace($c) {
+        return $c == '{' || $c == '[' || $c == '(';
+    }
+
+    function isCloseBrace($c) {
+        return $c == '}' || $c == ']' || $c == ')';
+    }
+
+    function getCloseBrace($c) {
+        if ($c == '{') { return '}'; }
+        if ($c == '[') { return ']'; }
+        if ($c == '(') { return ')'; }
     }
 
     function isFirstCharOfLine($c) {
