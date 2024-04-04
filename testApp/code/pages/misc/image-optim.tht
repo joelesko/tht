@@ -18,7 +18,7 @@ else {
     Output.sendHtml(pageHtml($files))
 }
 
-tm pageHtml($files) {
+tem pageHtml($files) {
     
     <html>
     <head>
@@ -34,27 +34,27 @@ tm pageHtml($files) {
     <p> Optimization code is in `helpers/ImageOptim.php`.
 
     <h2> Optimized
-    --- foreach $files as $f {
+    === foreach $files as $f {
     <div> <img src="{{ '/images/optimize/' ~ $f }}">
-    --- }
+    === }
 
     <h2> Thumbs
-    --- foreach $files as $f {
-        ---  $f = $f.replace('.', '_thumb200.')
+    === foreach $files as $f {
+        ===  $f = .replace('.', '_thumb200.')
     <div> <img src="{{ '/images/optimize/' ~ $f }}">
-    --- }
+    === }
 
     <h2> As Is
-    --- foreach $files as $f {
-        ---  $f = $f.replace('.', '_asis.')
+    === foreach $files as $f {
+        === $f = .replace('.', '_asis.')
     <div> <img src="{{ '/images/optimize/' ~ $f }}">
-    --- }
+    === }
 
     </body>
     </html>
 }
 
-tm css {
+tem css {
 
     body {
         background: url(/images/optimize/bg_texture.png);
