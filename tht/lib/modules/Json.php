@@ -10,7 +10,16 @@ class u_Json extends OStdModule {
         'parse'     => 'decode()',
     ];
 
-    // Convert to JSON TypeString
+    function u_validate ($jsonTypeString) {
+
+        $this->ARGS('*', func_get_args());
+
+        $rawJsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
+
+        return Security::jsonValidate($rawJsonString);
+    }
+
+    // Convert data to JSON TypeString
     function u_encode ($v, $flags=null) {
 
         $this->ARGS('*m', func_get_args());
@@ -28,14 +37,14 @@ class u_Json extends OStdModule {
         return new JsonTypeString ($json);
     }
 
-    // Convert JSON string to data
-    function u_decode ($jsonTypeString, $useAlt='') {
+    // Convert JSON TypeString to data
+    function u_decode ($jsonTypeString) {
 
-        $this->ARGS('*s', func_get_args());
+        $this->ARGS('*', func_get_args());
 
         $rawJsonString = OTypeString::getUntyped($jsonTypeString, 'json', true);
 
-        return Security::jsonDecode($rawJsonString, $useAlt);
+        return Security::jsonDecode($rawJsonString);
     }
 
     function deepSortKeys ($obj) {
@@ -59,7 +68,6 @@ class u_Json extends OStdModule {
         if (OMap::isa($obj)) {
             $json = preg_replace('/"([^"]+?)":/', "$1: ", $json);
             $json = preg_replace('/,(\w)/', ", $1", $json);
-            $json = preg_replace('/"/', "'", $json);
         }
 
         $json = OClass::tokensToBareStrings($json);
@@ -69,6 +77,13 @@ class u_Json extends OStdModule {
         $json = preg_replace('/\s*}/', ' }', $json);
         $json = preg_replace('/\s*\n+\s*/', '', $json);
         $json = preg_replace('/\s+/', ' ', $json);
+
+        $json = preg_replace('/"(\w+?)":/', "$1: ", $json);
+        $json = preg_replace('/"/', "'", $json);
+
+        $json = str_replace("'{EMPTY_MAP}'", '{}', $json);
+        $json = str_replace("'[EMPTY_LIST]'", '[]', $json);
+
 
         // TODO: would prefer not to need this, but Windows paths are still escaped?
         $json = preg_replace('!\\\/!', '/', $json);
@@ -166,6 +181,7 @@ class u_Json extends OStdModule {
 
         $out = preg_replace('/\{\s+\}/', '{}', $out);
         $out = preg_replace('/\[\s+\]/', '[]', $out);
+        $out = preg_replace('/,\n/', "\n", $out);
 
         $out = preg_replace('!\\\\/!', '/', $out);
         $out = str_replace("'{EMPTY_MAP}'", '{}', $out);
