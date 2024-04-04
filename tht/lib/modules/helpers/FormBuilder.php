@@ -34,7 +34,7 @@ trait FormBuilder {
         return $atts;
     }
 
-    function u_render($submitLabel, $atts=null) {
+    function u_to_html($submitLabel, $atts=null) {
 
         $this->ARGS('*m', func_get_args());
 
