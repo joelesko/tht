@@ -7,10 +7,10 @@ const TOKEN_POS   = 1;
 const TOKEN_SPACE = 2;
 const TOKEN_VALUE = 3;
 
-const SPACE_BEFORE_BIT = 1;
-const SPACE_AFTER_BIT = 2;
+const SPACE_BEFORE_BIT   = 1;
+const SPACE_AFTER_BIT    = 2;
 const NEWLINE_BEFORE_BIT = 4;
-const NEWLINE_AFTER_BIT = 8;
+const NEWLINE_AFTER_BIT  = 8;
 
 const TOKEN_SEP = '┃';  // unicode vertical line
 
@@ -18,17 +18,19 @@ const TOKEN_SEP = '┃';  // unicode vertical line
 // Very short values to minimize memory overhead
 abstract class TokenType {
 
-    const NUMBER    = 'N';    // 123
-    const STRING    = 'S';    // 'hello'
-    const TSTRING   = 'TS';   // sql'hello'
-    const TMSTRING  = 'TMS';  // (template)
-    const RSTRING   = 'RS';   // r'\w+'
-    const FLAG      = 'F';    // -myFlag
-    const GLYPH     = 'G';    // +=
-    const WORD      = 'W';    // myVar
-    const END       = 'END';  // (end of stream)
-    const VAR       = 'V';    // $fooBar
-    const NEWLINE   = 'NL';   // \n
+    const NUMBER      = 'N';    // 123
+    const STRING      = 'S';    // 'hello'
+    const TSTRING     = 'TS';   // sql'hello'
+    const TMSTRING    = 'TMS';  // (template)
+    const RSTRING     = 'RS';   // r'\w+'
+    const FLAG        = 'F';    // -myFlag
+    const GLYPH       = 'G';    // +=
+    const WORD        = 'W';    // myVar
+    const END         = 'END';  // (end of stream)
+    const VAR         = 'V';    // $fooBar
+    const NEWLINE     = 'NL';   // \n
+    // const BLOCK_START = 'BS';   // Block Start
+    // const BLOCK_END   = 'BE';   // Block End
 }
 
 abstract class Glyph {
@@ -37,18 +39,19 @@ abstract class Glyph {
     const MULTI_GLYPH_SUFFIX = '=<>&|+-*:^~.?';
     const COMMENT = '/';
     const LINE_COMMENT = '//';
-    // const TEMPLATE_LINE_COMMENT = '///';
     const BLOCK_COMMENT_START = '/*';
     const BLOCK_COMMENT_END = '*/';
     const TEMPLATE_EXPR_START = '{{';
     const TEMPLATE_EXPR_END = '}}';
-    const TEMPLATE_CODE_LINE = '---';
+    const TEMPLATE_CODE_LINE = '===';
     const STRING_PREFIXES = 'r';
     const QUOTED_LIST_PREFIX = 'q';
     const REGEX_PREFIX = 'rx';
     const LAMBDA_PREFIX = 'x';
     const QUOTE = "'";
     const QUOTE_FENCE = "'''";
+    // const BLOCK_START = 'b[';
+    // const BLOCK_END = 'b]';
 }
 
 // Note: Truncating these values only trims about 1% of transpile-time memory,
@@ -99,8 +102,8 @@ abstract class SymbolType {
     const BARE_WORD     =  'BARE_WORD';      // myVar (illegal)
     const PRE_KEYWORD   =  'PRE_KEYWORD';    // private $myVar = 123;
 
-    const MATCH          =  'MATCH';          // match $foo { ... }
-    const MATCH_PATTERN  =  'MATCH_PATTERN';  // range(0, 10) { ... }
+    const MATCH         =  'MATCH';          // match $foo { ... }
+    const MATCH_PAIR    =  'MATCH_PAIR';     // pattern: value
 
     const MEMBER        =  'MEMBER';         // $foo[...]
     const MEMBER_VAR    =  'MEMBER_VAR';     // $foo.bar
@@ -109,8 +112,8 @@ abstract class SymbolType {
 
     const PACKAGE       = 'PACKAGE';           // MyClass
     const FULL_PACKAGE  = 'FULL_PACKAGE';      // namespace\MyClass
-  //  const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
-  //  const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private $myVar = 123;
+    // const PACKAGE_QUALIFIER = 'PACKAGE_QUALIFIER'; // abstract final
+    // const NEW_OBJECT_VAR    = 'NEW_OBJECT_VAR';    // private $myVar = 123;
 }
 
 abstract class AstList {
@@ -139,7 +142,7 @@ class CompilerConstants {
 
     static public $CLOSING_SEPERATORS = ')]}';
 
-    static public $TEMPLATE_TOKEN = 'tm';
+    static public $TEMPLATE_TOKEN = 'tem';
 
     static public $SYMBOL_CLASS = [
 
@@ -156,6 +159,9 @@ class CompilerConstants {
         '}'  => 'S_Separator',
         '}}' => 'S_Separator',
         'as' => 'S_Separator',
+
+        // 'b[' => 'S_Separator',
+        // 'b]' => 'S_Separator',
 
         // constants
         'true'  => 'S_Boolean',
@@ -219,8 +225,8 @@ class CompilerConstants {
         '{{'  => 'S_TemplateExpr',
 
         // keywords
-        'fn'        => 'S_Function',
-        'tm'        => 'S_Template',
+        'fun'        => 'S_Function',
+        'tem'        => 'S_Template',
         'if'        => 'S_If',
         'foreach'   => 'S_ForEach',
         'loop'      => 'S_Loop',
@@ -257,15 +263,21 @@ class CompilerConstants {
     ];
 
     static public $KEYWORDS = [
-        'if', 'else', 'try', 'catch', 'finally', 'keep', 'in',
-        'default', 'fn', 'tm', 'return', 'match', 'foreach', 'public', 'embed'
+        'if', 'else', 'try', 'catch', 'finally', 'in', 'loop',
+        'default', 'fun', 'tem', 'return', 'match', 'foreach', 'public', 'private',
     ];
 
+    // Must end with a ':'
+    static public $BLOCK_KEYWORDS = [
+        'if', 'else', 'try', 'catch', 'finally', 'fun', 'tem', 'match', 'foreach', 'loop'
+    ];
+
+    // Allow continuation on next line if next glyph is one of these
     static public $SKIP_NEWLINE_BEFORE = [
         'else', 'catch', 'finally',
         '+', '-', '/', '*', '~', '%', '**',
         '||', '&&', '||:', '&&:',
-        '.', '{',
+        '.',
         '+|', '+&', '+^', '+<', '+>'
     ];
 
@@ -275,8 +287,8 @@ class CompilerConstants {
         '=<'  => '<=',
         '=>'  => ">= (comparison) or colon ':' (map key)",
         '<>'  => '!=',
-        // '>>'  => '+> (bit shift)', // has to be caught downstream by ShortPrint
-        '<<'  => '+< (bit shift left)',
+        // '>>'  => '+> (bit-shift right)', // caught in ShortPrint
+        '<<'  => '+< (bit-shift left)',
         '++'  => '+= 1',
         '--'  => '-= 1',
         '->'  => 'dot (.)',
@@ -305,7 +317,7 @@ class CompilerConstants {
     ];
 
     static $TYPE_DECLARATIONS = [
-        's', 'b', 'n', 'f', 'l', 'm', 'fn', 'o', 'any'
+        's', 'b', 'n', 'f', 'l', 'm', 'fun', 'o', 'any'
     ];
 
     static $OK_NEXT_ADJ_TOKENS = [
@@ -328,8 +340,8 @@ class CompilerConstants {
 
         'match',
         'catch',
-        'fn',
-        'tm',
+        'fun',
+        'tem',
         'in',
         'as',
         'return',
