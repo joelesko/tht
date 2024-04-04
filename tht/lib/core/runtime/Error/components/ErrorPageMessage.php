@@ -33,10 +33,10 @@ class ErrorPageMessage extends ErrorPageComponent {
             ['/preg_\w+\(\)/', 'Regex Pattern'],
             ['/\(T_.*?\)/', ''],
 
-            ['/\barray\b/', 'List'],
-            ['/\bbool\b/',  'Boolean'],
-            ['/\bint\b/',   'Integer'],
-            ['/\bfloat\b/', 'Float'],
+            ['/\b(?<!\$)array\b/', 'List'],
+            ['/\b(?<!\$)bool\b/',  'Boolean'],
+            ['/\b(?<!\$)int\b/',   'Integer'],
+            ['/\b(?<!\$)float\b/', 'Float'],
 
             ['/\bO(list|map|regex|string)/i', '$1'],
 
