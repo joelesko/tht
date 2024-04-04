@@ -20,10 +20,10 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     ];
 
     function error($msg, $pos=null, $skipDoc=false) {
-        ErrorHandler::addSubOrigin('template');
         if (!$skipDoc) {
             ErrorHandler::setHelpLink('/reference/templates#html-templates', 'HTML Templates');
         }
+        ErrorHandler::addSubOrigin('template');
         $this->reader->error($msg, $pos);
     }
 
@@ -126,13 +126,16 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         else if ($c === '=' && !$this->inQuote) {
             $nc = $r->nextChar();
             if ($nc == ' ') {
-                $this->error('Please remove the space after: `=`');
+                ErrorHandler::addSubOrigin('formatChecker.htmlTemplates');
+                $this->reader->error('Please remove the space after: `=`');
             }
             else if ($r->prevChar() == ' ') {
-                $this->error('Please remove the space before: `=`');
+                ErrorHandler::addSubOrigin('formatChecker.htmlTemplates');
+                $this->reader->error('Please remove the space before: `=`');
             }
             else if ($nc != '"' && $nc != "'") {
-                $this->error('Missing double-quote `"` after: `=`');
+                ErrorHandler::addSubOrigin('formatChecker.htmlTemplates');
+                $this->reader->error('Missing double-quote `"` after: `=`');
             }
             $this->currentTag['html'] .= $c;
             $str .= $c;
@@ -388,7 +391,8 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             $this->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
         }
         else if (!preg_match('/[a-z]/', $name) && preg_match('/[A-Z]/', $name)) {
-            $this->error("Tag `$name` should be all lowercase.", $tag['pos']);
+            ErrorHandler::addSubOrigin('formatChecker.htmlTemplates');
+            $this->reader->error("Tag `$name` should be all lowercase.", $tag['pos']);
         }
         else if (substr($name, 0, 1) === '?' || substr($name, 0, 1) === '%') {
             $sigil = substr($name, 0, 1);
