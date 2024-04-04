@@ -7,7 +7,7 @@ abstract class OTypeString extends OClass implements \JsonSerializable {
     protected $type = 'typeString';
 
     protected $suggestMethod = [
-        'tostring'   => 'stringify()',
+        'tostring'   => 'renderString()',
     ];
 
     protected $str = '';

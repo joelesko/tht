@@ -7,9 +7,9 @@ class OMap extends OBag {
     protected $type = 'map';
 
     protected $suggestMethod = [
+        'len'     => 'length()',
         'count'   => 'length()',
         'size'    => 'length()',
-        'empty'   => 'isEmpty()',
         'delete'  => 'remove()',
     ];
 

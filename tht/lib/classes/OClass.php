@@ -473,7 +473,13 @@ class OClass implements \JsonSerializable {
         // If there is a method of the same name, suggest that
         $suggest = '';
         if (method_exists($this, $ufield)) {
-            $suggest = 'Try: Call method `' . $ufield . '()`';
+            $suggest = 'Try: Call method `' . unu_($ufield) . '()`';
+        }
+
+        if (!$suggest) {
+            $reflect = new \ReflectionClass($this);
+            $fields = $reflect->getProperties();
+            $suggest = ErrorHandler::getFuzzySuggest($plainField, $fields);
         }
 
         $myType = $this->bareClassName();
@@ -519,9 +525,7 @@ class OClass implements \JsonSerializable {
             }
         }
 
-        $suggestion = $this->getSuggestedMethod($method);
-
-        $suggest = $suggestion ? " Try: $suggestion" : '';
+        $suggest = $this->getSuggestedMethod($method);
 
         $c = $this->bareClassName();
 
@@ -530,101 +534,21 @@ class OClass implements \JsonSerializable {
 
     function getSuggestedMethod($method) {
 
-        $suggestion = '';
-
-        $umethod = strtolower($method);
-
-        if (method_exists($this, $umethod)) {
-            $suggest = 'Try: Call method `' . $umethod . '()`';
-        }
-
         // Common alias,  e.g. explode -> split
         if (property_exists($this, 'suggestMethod')) {
             $fuzzyMethod = strtolower($method);
             if (isset($this->suggestMethod[$fuzzyMethod])) {
-                $suggestion = '`' . $this->suggestMethod[$fuzzyMethod] . '`';
+                return '  Try: `' . $this->suggestMethod[$fuzzyMethod] . '`';
             }
         }
 
         // Fuzzy match with existing methods
-        if (!$suggestion) {
-            $mismatchMethod = $this->findMismatchMethod($method);
-            if ($mismatchMethod) {
-                $suggestion = '`' . unu_($mismatchMethod) . '` (exact case)';
-            }
-        }
-
-        return $suggestion;
-    }
-
-    function fuzzyToken($token) {
-
-        $fuzzy = str_replace('z_', '', $token);
-        $fuzzy = preg_replace('/_/', '',  unu_($fuzzy));
-
-        return strtolower($fuzzy);
-    }
-
-    function findMismatchMethod($findMethod) {
-
         $reflect = new \ReflectionClass($this);
-        $findMethod = $this->fuzzyToken($findMethod);
         $methods = $reflect->getMethods();
+        $methods = array_map(function($a) { return $a->name; }, $methods);
+        $suggest = ErrorHandler::getFuzzySuggest($method, $methods, 'isMethod');
 
-        foreach ($methods as $m) {
-            if (!hasu_($m->name)) { continue; }
-
-            $fuzzy = $this->fuzzyToken($m->name);
-
-            // mymethod --> myMethod
-            if ($fuzzy == $findMethod) {
-                return $m->name;
-            }
-
-            // foo --> getFoo
-            $findMethodGet = 'get' . $findMethod;
-            if ($fuzzy == $findMethodGet) {
-                return $m->name;
-            }
-
-            // getFoo --> foo
-            $fuzzyGet = 'get' . $fuzzy;
-            if ($fuzzyGet == $findMethod) {
-                return $m->name;
-            }
-
-            // foo --> setFoo
-            if ($fuzzy == 'set' . $findMethod) {
-                return $m->name;
-            }
-
-            // foo --> toFoo
-            if ($fuzzy == 'to' . $findMethod) {
-                return $m->name;
-            }
-
-            // TODO: toFoo --> foo
-
-            // foo --> isFoo
-            if ($fuzzy == 'is' . $findMethod) {
-                return $m->name;
-            }
-
-            // Words rearranged
-            $fuzzyChars = $this->getSortedChars($fuzzy);
-            $checkChars = $this->getSortedChars($findMethod);
-            if ($fuzzyChars === $checkChars) {
-                return $m->name;
-            }
-        }
-
-        return '';
-    }
-
-    function getSortedChars($s) {
-        $chars = str_split($s);
-        sort($chars);
-        return implode($chars);
+        return $suggest;
     }
 
     function u_z_call_method($method, $args=[]) {

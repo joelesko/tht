@@ -42,7 +42,8 @@ class OModule extends OClass implements \JsonSerializable {
 
         if (!in_array($uf, $this->exportedFunctions)) {
             if (!function_exists($qf)) {
-                $this->error("Unknown function `$f` for module: `$m`");
+                $suggest = ErrorHandler::getFuzzySuggest($f, $this->exportedFunctions, 'isMethod');
+                $this->error("Unknown function `$f` for module: `$m`  $suggest");
             }
             else if (!$this->isLocalReference()) {
                 $this->error("Can not call non-public function `$f` in module: `$m`");
@@ -79,7 +80,16 @@ class OModule extends OClass implements \JsonSerializable {
 
         $k = unu_($uk);
         if (!isset($this->fields[$uk])) {
-            $this->error("Unknown module variable: `$k`");
+
+            $suggest = '';
+            if (in_array($uk, $this->exportedFunctions)) {
+                $suggest = 'Try: Call method `' . $k . '()`';
+            }
+            else {
+                $suggest = ErrorHandler::getFuzzySuggest($k, array_keys($this->fields));
+            }
+
+            $this->error("Unknown module variable: `$k`  $suggest");
         }
         else if (!$this->isConstant($k) && !$this->isLocalReference()) {
             $this->error("Can not read private module variable: `$k`");

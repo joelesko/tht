@@ -19,6 +19,7 @@ class ErrorHandler {
     static private $trapErrors = false;
     static private $trappedError = null;
     static private $helpLink = null;
+    static private $formatCheckerRule = '';
     static private $origins = [];
     static private $subOrigins = [];
     static private $topLevelFunction = [];
@@ -116,6 +117,60 @@ class ErrorHandler {
             'url'   => $url,
             'label' => $label
         ];
+    }
+
+    static function getFuzzySuggest($needle, $haystack, $useMethodPrefixes='') {
+
+        $haystack = self::filterUserlandNames($haystack);
+
+        $prefixes = OList::create(
+            $useMethodPrefixes ? ['get', 'set', 'to', 'is', 'num', 'z', 'xDanger'] : []
+        );
+        $matches = v($needle)->u_fuzzy_search(OList::create($haystack), $prefixes);
+
+        $topMatches = self::getTopFuzzyMatches($matches);
+        if ($topMatches) {
+            return 'Try: ' . $topMatches;
+        }
+
+        return '';
+    }
+
+    static function filterUserlandNames($els) {
+        $names = [];
+        foreach ($els as $el) {
+            $names []= unu_($el);
+        }
+        return $names;
+    }
+
+    static function getTopFuzzyMatches($matches) {
+        if (!$matches->u_length()) {
+            return '';
+        }
+
+        if ($matches->u_length() == 1) {
+            $m = $matches->u_pop();
+            $suggest = "`" . $m['word'] . "`";
+            if ($m['score'] >= 8) {
+                $suggest .= ' (possible typo)';
+            }
+            return $suggest;
+        }
+
+        $topScore = floor($matches[1]['score']);
+        $topWords = $matches->u_filter(function($a) use ($topScore) {
+            return floor($a['score']) == $topScore;
+        });
+        $topWords = $topWords->u_map(function($a) {
+            return '`' . $a['word'] . '`';
+        });
+
+        return $topWords->u_join(' ');
+    }
+
+    static function setFormatCheckerRule($rule) {
+        self::$formatCheckerRule = $rule;
     }
 
     static function setStdLibHelpLink($type, $packageName, $method='') {
@@ -338,6 +393,9 @@ class ErrorHandler {
             $error['message'] = "Permission denied $verb file: `$file` Try: Run `tht fix` in your app directory to update permissions.";
             $error['phpFile'] = '';
             $error['phpLine'] = 0;
+        }
+        else if (preg_match('/Unhandled match case(.*)/i', $error['message'], $m)) {
+            $error['message'] = 'No match found for value: `' . trim($m[1]) . '`';
         }
 
         return $error;

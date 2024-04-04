@@ -44,14 +44,17 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
             return $this->val[$plainField];
         }
         else {
-            $tip = $plainField == 'length' ? "  Try: `length()`" : '';
-            foreach (array_keys($this->val) as $key) {
-                if (strtolower($key) == strtolower($plainField)) {
-                    $tip = "Try: `$key`";
-                }
+            $suggest = '';
+
+            if (method_exists($this, u_($plainField))) {
+                $suggest = '  Try: Call method `' . $plainField . '()`';
             }
-            // ErrorHandler::addObjectDetails('Fields', array_keys($this->val));
-            $this->error("Field does not exist: `$plainField`" . $tip);
+            else {
+                $suggest = ErrorHandler::getFuzzySuggest($plainField, array_keys($this->val));
+            }
+
+//            ErrorHandler::addObjectDetails('Fields', array_keys($this->val));
+            $this->error("Field does not exist: `$plainField`  " . $suggest);
         }
     }
 
@@ -71,7 +74,12 @@ class OBag extends OVar implements \ArrayAccess, \Iterator, \Countable {
             return $this;
         }
         else {
-            $this->error("Unknown field: `$plainField`  Try: Check spelling, or add field with e.g. `\$map['fieldName']`");
+            $suggest = $this->getFieldSuggest($plainField);
+            if (!$suggest) {
+                $suggest = "Try: ";
+            }
+            $suggest .= "  (Can add as a dynamic field with: `\$map['$plainField']`)";
+            $this->error("Unknown field: `$plainField`  $suggest");
         }
     }
 

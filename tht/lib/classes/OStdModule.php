@@ -55,14 +55,12 @@ class OStdModule extends OClass implements \JsonSerializable {
     }
 
     function __set ($k, $v) {
-        Tht::error("Can not set field `$k` on a standard module.");
+        Tht::error("Can not set field on a standard module: `$k`");
     }
 
     function __get ($f) {
-
-        $try = '`' . unu_($f) . '()`';
-        // TODO: check if method actually exists
-        $this->error("Unknown field. Did you mean to call method $try?");
+        $f = unu_($f);
+        Tht::error("Can not get field on a standard module: `$f`  Try: Call method `$f()`");
     }
 
     function toStringToken() {
@@ -71,7 +69,6 @@ class OStdModule extends OClass implements \JsonSerializable {
         );
     }
 
-
     // TODO: some overlap with OClass
     function __call ($method, $args) {
 
@@ -79,24 +76,22 @@ class OStdModule extends OClass implements \JsonSerializable {
 
         $c = $this->getClass();
 
-        $suggestion = $this->getSuggestedMethod($method);
+        $suggest = $this->getSuggestedMethod($method);
 
-        if (!$suggestion) {
+        if (!$suggest) {
             // Look if method is in other Modules
             $possibles = [];
             foreach (LibModules::$files as $lib) {
-                if (method_exists(Tht::module($lib), $method)) {
-                    $possibles []= $lib . '.' . $method;
+                if (method_exists(Tht::module($lib), u_($method))) {
+                    $possibles []= '`' . $lib . '.' . $method . '`';
                 }
             }
             if (count($possibles)) {
-                $suggestion = implode(', ', $possibles);
+                $suggest = 'Try: ' . implode(', ', $possibles);
             }
         }
 
-        $suggest = $suggestion ? " Try: " . $suggestion : '';
-
         ErrorHandler::setHelpLink('/manual/module/' . strtolower($c), $c);
-        $this->error("Unknown method `$method` for module: `$c`  $suggest");
+        $this->error("Unknown method in `$c` module: `$method`  $suggest");
     }
 }
