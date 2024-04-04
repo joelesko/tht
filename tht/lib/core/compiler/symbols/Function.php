@@ -219,8 +219,8 @@ class S_Function extends S_Statement {
             }
 
             if (count($argSymbols) > CompilerConstants::$MAX_FUN_ARGS) {
-                ErrorHandler::setHelpLink('/reference/format-checker#max-arguments', 'Max Arguments');
-                $p->error('Can not have more than ' . CompilerConstants::$MAX_FUN_ARGS . ' arguments to a function. Try: Combine some arguments into a Map', $sOpenParen->token);
+                ErrorHandler::setHelpLink('/language-tour/option-maps', 'Option Maps');
+                $p->error('Can not have more than ' . CompilerConstants::$MAX_FUN_ARGS . ' arguments to a function. Try: Combine arguments into a Map', $sOpenParen->token);
             }
 
             $this->addKid($p->makeAstList(AstList::ARGS, $argSymbols));
