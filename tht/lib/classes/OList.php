@@ -9,6 +9,7 @@ class OList extends OBag {
     protected $hasNumericKeys = true;
 
     public $suggestMethod = [
+        'len'     => 'length()',
         'shift'   => 'popFirst()',
         'unshift' => 'pushFirst($item)',
         'count'   => 'length()',
@@ -156,6 +157,15 @@ class OList extends OBag {
         $commonList = array_unique($commonList);
 
         return (count($commonList) == count($otherList));
+    }
+
+    function u_contains_any ($otherList) {
+
+        $this->ARGS('l', func_get_args());
+
+        $commonList = array_intersect($this->val, unv($otherList));
+
+        return count($commonList) > 0;
     }
 
     function u_first ($n=1) {
