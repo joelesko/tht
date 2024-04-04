@@ -271,7 +271,7 @@ class Compiler {
 
                     // Go up the line numbers and find the nearest one with a mapping to THT
                     $checkLineNum = $phpLineNum;
-                    while (true) {
+                    while (true && $checkLineNum > 0) {
                         if (isset($sourceMap[$checkLineNum])) {
                             return [
                                 'lang' => 'tht',
