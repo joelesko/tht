@@ -13,31 +13,19 @@ class OString extends OVar implements \ArrayAccess {
     protected $errorContext = 'string';
 
     protected $suggestMethod = [
+
+        'len'     => 'length()',
         'count'   => 'length()',
         'size'    => 'length()',
         'explode' => 'split(delimiter)',
         'find'    => 'indexOf(item), contains(item), match(regex)',
 
-        'replaceall' => 'replace()',
-
-        'upper'       => 'upperCase()',
-        'toupper'     => 'upperCase()',
-        'touppercase' => 'upperCase()',
-        'lower'       => 'lowerCase()',
-        'tolower'     => 'lowerCase()',
-        'tolowercase' => 'lowerCase()',
-
         'ltrim'     => 'trimLeft()',
         'rtrim'     => 'trimRight()',
-        'lefttrim'  => 'trimLeft()',
-        'righttrim' => 'trimRight()',
 
-        'leftpad'   => 'padLeft()',
         'lpad'      => 'padLeft()',
-        'rightpad'  => 'padRight()',
         'rpad'      => 'padRight()',
 
-        'substr'    => 'substring()',
         'slice'     => 'substring()',
 
         'beginswith'  => 'startsWith()',
@@ -214,23 +202,41 @@ class OString extends OVar implements \ArrayAccess {
 
         $this->ARGS('I', func_get_args());
 
-        return $n <= 0 ? '' : $this->u_substring(1, $n);
+        return $n <= 0 ? '' : $this->u_substring(1,  OMap::create([ 'numChars' => $n ]));
     }
 
     function u_right($n) {
 
         $this->ARGS('I', func_get_args());
 
-        return $n <= 0 ? '' : $this->u_substring(-1 * $n, $n);
+        return $n <= 0 ? '' : $this->u_substring(-1 * $n,  OMap::create([ 'numChars' => $n ]));
     }
 
-    function u_substring($start, $len=null) {
+    // TODO: add `toIndex` option to implement slicing
+    function u_substring($start, $flags=null) {
 
-        $this->ARGS('ii', func_get_args());
+        $this->ARGS('im', func_get_args());
+
+        $flags = $this->flags($flags, [
+            'numChars' => 0,
+            'toIndex' => 0,
+        ]);
 
         $start = $this->checkIndex($start);
 
-        $len = !$len ? null : $len;
+        if (!$flags['numChars'] && !$flags['toIndex']) {
+            $len = null;
+        }
+        else if ($flags['numChars']) {
+            $len = $flags['numChars'];
+        }
+        else if ($flags['toIndex']) {
+            $end = $this->checkIndex($flags['toIndex']);
+            if ($start > $end) {
+                $this->error("Start index ($start) is greater than end index ($end).");
+            }
+            $len = ($end - $start) + 1;
+        }
 
         return mb_substr($this->val, $start, $len);
     }
@@ -398,10 +404,14 @@ class OString extends OVar implements \ArrayAccess {
             return $this->u_match($strOrRx)->u_length();
         }
         else if ($matchType == 'string') {
+
             $x = $this->val;
             $suffLen = v($strOrRx . '')->u_length();
             $this->val = $x;
-            return $this->_strpos($strOrRx, $flags['ignoreCase']) == ($this->u_length() - $suffLen) + ONE_INDEX;
+
+            $pos = $this->_strrpos($strOrRx, $flags['ignoreCase']);
+
+            return $pos > 0 && $pos == ($this->u_length() - $suffLen);
         }
     }
 
@@ -426,7 +436,7 @@ class OString extends OVar implements \ArrayAccess {
     }
 
     function u_ensure_wrap($ls, $rs) {
-        $this->ARGS('s', func_get_args());
+        $this->ARGS('ss', func_get_args());
 
         if (!($this->u_starts_with($ls) && $this->u_ends_with($rs))) {
             return $ls . $this->val . $rs;
@@ -435,6 +445,17 @@ class OString extends OVar implements \ArrayAccess {
         return $this->val;
     }
 
+    function u_remove_wrap($ls, $rs) {
+        $this->ARGS('ss', func_get_args());
+
+        if ($this->u_starts_with($ls) && $this->u_ends_with($rs)) {
+            $str = $this->u_remove_left($ls);
+            $str = v($str)->u_remove_right($rs);
+            return $str;
+        }
+
+        return $this->val;
+    }
 
 
     // Locking
@@ -471,35 +492,38 @@ class OString extends OVar implements \ArrayAccess {
         return '(UNKNOWN)';
     }
 
-    function u_match ($match, $sGroupNames = '') {
+    function u_match ($regex, $sGroupNames = '') {
 
         $this->ARGS('*s', func_get_args());
 
-        if (!ORegex::isa($match)) {
+        if (!ORegex::isa($regex)) {
             $this->error("1st argument must be a Regex string `r'...'`");
         }
 
-        $startPos = $this->checkIndex($match->getStartIndex(), true);
+        $startPos = $this->checkIndex($regex->getStartIndex(), true);
 
-        $found = preg_match($match->getPattern(), $this->val, $matches, PREG_OFFSET_CAPTURE, $startPos);
+        $found = preg_match($regex->getPattern(), $this->val, $matches, PREG_OFFSET_CAPTURE, $startPos);
 
         if ($found === false) {
             $this->error('Error in match: ' . $this->pregErrorMessage(), 'match');
         }
 
-        if ($found === 1) {
-            return $this->getMatchReturn($matches, $sGroupNames);
+        if ($found) {
+            $result = $this->getMatchReturn($regex, $matches, $sGroupNames);
+            Tht::module('String')->lastMatchResult = $result;
+            return $result;
         }
 
         return OMap::create([]);
     }
 
-    function getMatchReturn($matches, $sGroupNames) {
+    function getMatchReturn($regex, $matches, $sGroupNames) {
 
         // No capture groups. Just return the full match.
         if (count($matches) == 1) {
+           // $this->error("Regex must contain at least one capture group in parens: `(...)`  Try: `(" . $regex->getPattern() . ')`');
             return OMap::create([
-                'full' => $matches[0][0],
+                'full'  => $matches[0][0],
                 'index' => $matches[0][1] + ONE_INDEX,
             ]);
         }
@@ -508,12 +532,14 @@ class OString extends OVar implements \ArrayAccess {
             $ret = OMap::create([]);
 
             $ret['full'] = $matches[0][0];
+            $ret['index'] = $matches[0][1] + ONE_INDEX;
+
             array_shift($matches);
 
             $ret['indexOf'] = OMap::create([]);
 
             if ($sGroupNames) {
-                $groupNames = preg_split('/\s*\|\s*/u', $sGroupNames);
+                $groupNames = preg_split('/\|/u', $sGroupNames);
                 $numNames = count($groupNames);
                 $numGroups = count($matches);
 
@@ -522,6 +548,7 @@ class OString extends OVar implements \ArrayAccess {
                 }
 
                 foreach ($groupNames as $i => $name) {
+                    $name = trim($name);
                     $ret[$name] = $matches[$i][0];
                     $ret['indexOf'][$name] = $matches[$i][1] + ONE_INDEX;
                 }
@@ -537,18 +564,18 @@ class OString extends OVar implements \ArrayAccess {
         }
     }
 
-    function u_match_all ($match, $sGroupNames = '') {
+    function u_match_all ($regex, $sGroupNames = '') {
 
         $this->ARGS('*s', func_get_args());
 
-        if (!ORegex::isa($match)) {
+        if (!ORegex::isa($regex)) {
             $this->error("1st argument must be a Regex string `r'...'`");
         }
 
         // TODO: Move matching logic into ORegex object?
-        $startPos = $this->checkIndex($match->getStartIndex(), true);
+        $startPos = $this->checkIndex($regex->getStartIndex(), true);
 
-        $numMatches = preg_match_all($match->getPattern(), $this->val,
+        $numMatches = preg_match_all($regex->getPattern(), $this->val,
             $matches, PREG_SET_ORDER|PREG_OFFSET_CAPTURE, $startPos);
 
         if ($numMatches === false) {
@@ -561,7 +588,7 @@ class OString extends OVar implements \ArrayAccess {
 
         $retMatches = [];
         foreach ($matches as $m) {
-            $retMatches []= $this->getMatchReturn($m, $sGroupNames);
+            $retMatches []= $this->getMatchReturn($regex, $m, $sGroupNames);
         }
 
         return OList::create($retMatches);
@@ -648,12 +675,22 @@ class OString extends OVar implements \ArrayAccess {
     // Mapping from #192 to #383
     // https://docs.oracle.com/cd/E29584_01/webhelp/mdex_basicDev/src/rbdv_chars_mapping.html
     function u_to_ascii() {
+
         $this->ARGS('', func_get_args());
 
         $from = "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽž";
         $to   = "AAAAAAACEEEEIIIIENOOOOOOUUUUYPsaaaaaaaceeeeiiiienoooooouuuuypyAaAaAaCcCcCcCcDdDdEeEeEeEeEeGgGgGgGgHhHhIiIiIiIiIiIiJjKklLlLlLlLlLnNnNnNnnNoOoOoOoOrRrRrRrSsSsSsStTtTtTuUuUuUuUuUuUwWyYyYZzZzZz";
 
+        // Smart quotes, dashes etc.
+        $from .= '‘’“”–—';
+        $to   .= "''\"\"--";
+
         $str = $this->u_replace_chars($from, $to);
+
+        // Ellipsis
+        $str = preg_replace('/\x{2026}/u', '...', $str);
+
+        $str = preg_replace('/[^[:ascii:]]/u', '', $str);
 
         return $str;
     }
@@ -680,7 +717,7 @@ class OString extends OVar implements \ArrayAccess {
             $orig = $this->val;  // save after singleton changes
             $len = $this->u_length() - v($s)->u_length();
 
-            return v($orig)->u_substring(1, $len);
+            return v($orig)->u_substring(1, OMap::create([ 'numChars' => $len ]));
         }
 
         return $this->val;
@@ -694,7 +731,7 @@ class OString extends OVar implements \ArrayAccess {
             $orig = $this->val;  // save after singleton changes
             $len = $this->u_length() - v($s)->u_length();
 
-            return v($orig)->u_substring(1, $len);
+            return v($orig)->u_substring(1,  OMap::create([ 'numChars' => $len ]));
         }
 
         return $this->val;
@@ -711,8 +748,8 @@ class OString extends OVar implements \ArrayAccess {
             return $this->val . $s;
         }
 
-        $start = $this->u_substring(ONE_INDEX, $index);
-        $end = $this->u_substring($index + 1, $len);
+        $start = $this->u_substring(ONE_INDEX,  OMap::create([ 'numChars' => $index ]));
+        $end = $this->u_substring($index + 1,  OMap::create([ 'numChars' => $len ]));
 
         return $start . $s . $end;
     }
@@ -1379,14 +1416,30 @@ class OString extends OVar implements \ArrayAccess {
 
     // }
 
+    function u_is_upper_case() {
+
+        $this->ARGS('', func_get_args());
+
+        return !!preg_match('/^[[:upper:]]+$/u', $this->val);
+    }
+
+    function u_is_lower_case() {
+
+        $this->ARGS('', func_get_args());
+
+        return !!preg_match('/^[[:lower:]]+$/u', $this->val);
+    }
+
+    function u_is_ascii() {
+
+        $this->ARGS('', func_get_args());
+
+        return !!preg_match('/^[[:ascii:]]+$/u', $this->val);
+    }
 
 
-    // function u_is_upper_case() {
 
-    //     $this->ARGS('', func_get_args());
 
-    //     return $this->u_has_upper_case() && !$this->u_has_lower_case();
-    // }
 
     // function u_has_upper_case() {
 
@@ -1395,12 +1448,7 @@ class OString extends OVar implements \ArrayAccess {
     //     return mb_ereg_match('.*[[:upper:]]', $this->val);
     // }
 
-    // function u_is_lower_case() {
 
-    //     $this->ARGS('', func_get_args());
-
-    //     return $this->u_has_lower_case() && !$this->u_has_upper_case();
-    // }
 
     // function u_has_lower_case() {
 
@@ -1440,6 +1488,8 @@ class OString extends OVar implements \ArrayAccess {
     //     return mb_ereg_match('^[[:alnum:]]+$', $this->val);
     // }
 
+
+
     // TODO: Allow scientific notation?
     function u_is_numeric($numType='any') {
 
@@ -1460,12 +1510,7 @@ class OString extends OVar implements \ArrayAccess {
         }
     }
 
-    // function u_is_ascii() {
 
-    //     $this->ARGS('', func_get_args());
-
-    //     return mb_ereg_match('^[[:ascii:]]*$', $this->val);
-    // }
 
     // Encoding
 
@@ -1742,6 +1787,143 @@ class OString extends OVar implements \ArrayAccess {
         else {
             return mb_substr($raw[1], 0, 40) . '…';
         }
+    }
+
+    function u_fuzzy_search($words, $prefixes=[]) {
+
+        $this->ARGS('ll', func_get_args());
+
+        $prefixes = v($prefixes);
+
+        $scores = [];
+        foreach ($words as $w) {
+            $score = $this->fuzzyCompareScore($this->val, $w, $prefixes);
+            if ($score == 10) {
+                return OList::create([
+                    OMap::create([
+                        'word' => $w,
+                        'score' => 10
+                    ])
+                ]);
+            }
+            else if ($score > 0){
+                $score += (mb_strlen($w) / 100);
+                $scores []= OMap::create([
+                    'word' => $w,
+                    'score' => $score,
+                ]);
+            }
+        }
+
+        return OList::create($scores)->u_sort_by_column('score')->u_reverse();
+    }
+
+    function u_fuzzy_search_score($word, $prefixes=[]) {
+
+        $this->ARGS('sl', func_get_args());
+        $prefixes = v($prefixes);
+
+        return $this->fuzzyCompareScore($this->val, $word, $prefixes);
+    }
+
+    function toFuzzy($raw) {
+        return preg_replace('/[^a-z0-9]/', '', strtolower($raw));
+    }
+
+    function toFuzzyWords($raw) {
+        return v(v($raw)->u_to_token_case('-'))->u_split('-');
+    }
+
+    function fuzzyCompareScore($raw1, $raw2, $prefixes) {
+
+        $w1 = $this->toFuzzy($raw1);
+        $w2 = $this->toFuzzy($raw2);
+
+        $len1 = mb_strlen($w1);
+        $len2 = mb_strlen($w2);
+
+        // mymethod --> myMethod
+        if ($w1 == $w2) { return 10; }
+
+        // Words swapped or letters transposed
+        $w1Chars = $this->getSortedChars($w1);
+        $w2Chars = $this->getSortedChars($w2);
+        if ($w1Chars === $w2Chars) {
+            return 9;
+        }
+
+        // Typo - add/remove/replace one char
+        if ($len1 >= 4 && $len2 >= 4) {
+            if (levenshtein($raw1, $raw2) == 1) {
+                return 8;
+            }
+        }
+
+        // Plural
+        if ($len1 >= 3 && $len2 >= 3) {
+            if ($w1 == $w2 . 's')  { return 7; }
+            if ($w2 == $w1 . 's')  { return 7; }
+            if ($w1 == $w2 . 'es') { return 7; }
+            if ($w2 == $w1 . 'es') { return 7; }
+        }
+
+        // e.g. foo --> getFoo
+        foreach ($prefixes as $prefix) {
+            $prefix = mb_strtolower($prefix);
+            if ($prefix . $w1 == $w2) { return 6; }
+            if ($prefix . $w2 == $w1) { return 6; }
+        }
+
+        // toFoo --> toFooBar
+        // (length of 4 is an arbitrary cut off. could be adjusted)
+        if ($len1 >= 4 && $len2 >= 4) {
+            if (v($w2)->u_starts_with($w1)) { return 5; }
+            if (v($w2)->u_ends_with($w1))   { return 5; }
+            if (v($w1)->u_starts_with($w2)) { return 5; }
+            if (v($w1)->u_ends_with($w2))   { return 5; }
+        }
+
+        // toBar--> toFooBar
+        if ($this->fuzzyWordCompare($raw1, $raw2)) { return 4; }
+
+        // toFooXyz --> toFooBar
+        if ($this->fuzzyFirstWords($raw1, $raw2)) { return 3; }
+
+        return 0;
+    }
+
+    function getSortedChars($s) {
+        $chars = str_split($s);
+        sort($chars);
+        return implode($chars);
+    }
+
+    // Match if we have one extra or one fewer words, but the rest of the string matches.
+    // e.g. toUrlSlug --> toSlug
+    function fuzzyWordCompare($raw1, $raw2) {
+
+        $subWords1 = $this->toFuzzyWords($raw1);
+        $subWords2 = $this->toFuzzyWords($raw2);
+
+        $maxWords = max(count($subWords1), count($subWords2));
+        $minWords = min(count($subWords1), count($subWords2));
+
+        $overlap = array_intersect(unv($subWords1), unv($subWords2));
+        $numOverlap = count($overlap);
+
+        return $numOverlap == $minWords && $maxWords - $minWords == 1;
+    }
+
+    // Match if first two words match
+    // e.g. sortByColumn --> sortByKey
+    function fuzzyFirstWords($raw1, $raw2) {
+
+        $subWords1 = $this->toFuzzyWords($raw1);
+        $subWords2 = $this->toFuzzyWords($raw2);
+
+        $overlap = array_intersect(unv($subWords1), unv($subWords2));
+
+        return isset($overlap[0]) && isset($overlap[1]);
     }
 
 }
