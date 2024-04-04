@@ -359,16 +359,21 @@ class Security {
         }
     }
 
+    static function jsonValidate($rawJsonString) {
+
+        return json_validate($rawJsonString, 512, JSON_INVALID_UTF8_IGNORE);
+    }
+
     // https://bishopfox.com/blog/json-interoperability-vulnerabilities
-    static function jsonDecode($rawJsonString, $useAlt=false) {
+    static function jsonDecode($rawJsonString) {
 
         $jsonData = '';
 
         // TODO: Fail on duplicate keys. Unfortunately, the stdlib json_decode doesn't have a flag to do so.
-        $jsonData = json_decode($rawJsonString, false, JSON_INVALID_UTF8_SUBSTITUTE);
+        $jsonData = json_decode($rawJsonString, false, 512, JSON_INVALID_UTF8_SUBSTITUTE);
 
         if (is_null($jsonData)) {
-            Tht::module('Json')->error("Unable to decode JSON string: `" . v($rawJsonString)->u_limit(20) . "`");
+            Tht::module('Json')->error("Unable to decode JSON string: " . json_last_error_msg());
         }
 
         $bagged = self::convertJsonToBags($jsonData);
@@ -841,7 +846,7 @@ class Security {
         ini_set('allow_url_include', '0');
 
         // limits
-        ini_set('max_execution_time', Tht::isMode('cli') ? 0 : intval(Tht::getConfig('maxExecutionTimeSecs')));
+        ini_set('max_execution_time', Tht::isMode('cli') ? '0' : Tht::getConfig('maxExecutionTimeSecs'));
         ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
         ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
     }
