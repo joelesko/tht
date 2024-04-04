@@ -56,8 +56,6 @@ class u_Test extends OStdModule {
 
     function u_dies ($callback, $desc, $matchError='') {
 
-
-
         $this->ARGS('css', func_get_args());
 
         if (Tht::module('Perf')->isActive()) {
@@ -90,11 +88,14 @@ class u_Test extends OStdModule {
             $errorMsg = $trapped['message'];
         }
 
-
         $caughtError = !!$errorMsg;
         if ($matchError) {
             $fuzzy1 = str_replace('`', "'", strtolower($errorMsg));
+            $fuzzy1 = preg_replace('/\s+/', ' ', $fuzzy1);
+
             $fuzzy2 = str_replace('`', "'", strtolower($matchError));
+            $fuzzy2 = preg_replace('/\s+/', ' ', $fuzzy2);
+
             $caughtError = strpos($fuzzy1, $fuzzy2) !== false;
         }
 
