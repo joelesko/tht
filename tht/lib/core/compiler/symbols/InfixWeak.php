@@ -10,18 +10,24 @@ class S_InfixWeak extends Symbol {
 
     function asInner ($p, $left) {
 
+        $this->space(' = ', 'infix');
+
+        if ($this->hasNewlineAfter()) {
+            $infixValue = $this->getValue();
+            if ($this->isAssignment) {
+                // Don't alow dangling assignment
+                $this->space(' =S');
+            }
+            else {
+                $p->error("Unexpected newline.  Try: Put `$infixValue` on next line to continue statement.");
+            }
+        }
+
         $p->next();
 
         if ($this->isAssignment && $p->expressionDepth >= 2 && !$p->allowAssignmentExpression) {
             $tip = $this->token[TOKEN_VALUE] == '=' ? "Did you mean `==`?" : '';
             $p->error("Assignment can not be used as an expression.  $tip", $this->token);
-        }
-
-        $this->space(' = ');
-
-        if ($p->symbol->isNewline()) {
-            $infixValue = $this->getValue();
-            $p->error("Unexpected newline.  Try: Put `$infixValue` on next line to continue statement.");
         }
 
         if ($this->isAssignment) {

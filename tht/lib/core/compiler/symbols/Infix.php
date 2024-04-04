@@ -15,7 +15,7 @@ class S_Infix extends Symbol {
             $p->error('Invalid operator: `=>` Try: `>=` (greater or equal)');
         }
 
-        $this->space(' + ');
+        $this->space(' + ', 'infix');
         $p->next();
 
         if ($p->symbol->isNewline()) {
