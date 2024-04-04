@@ -203,4 +203,9 @@ class u_Meta extends OStdModule {
 
         return OList::create($classes);
     }
+
+    function u_you_can_do_this() {
+        $this->ARGS('', func_get_args());
+        return true;
+    }
 }
