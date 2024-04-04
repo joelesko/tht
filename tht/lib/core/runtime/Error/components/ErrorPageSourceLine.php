@@ -42,10 +42,15 @@ class ErrorPageSourceLine extends ErrorPageComponent {
 
         $line = (count($lines) > $srcLineNum0) ? $lines[$srcLineNum0] : '';
 
+        // Adjust pos for lines that have mb chars
+        if ($pos) {
+            $asciiSegBeforePos = substr($line, 0, $pos);
+            $pos = mb_strlen($asciiSegBeforePos);
+        }
 
         // trim indent
         preg_match('/^(\s*)/', $line, $matches);
-        $numSpaces = strlen($matches[1]);
+        $numSpaces = mb_strlen($matches[1]);
         $line = ltrim($line);
         if (!trim($line)) { return ''; }
         $prefix = $srcLineNum1 . ':  ';
@@ -53,9 +58,9 @@ class ErrorPageSourceLine extends ErrorPageComponent {
         // Make sure pointer is visible in long lines
         $this->initIsLongLine($line);
         $maxLen = $this->MAX_SOURCE_LINE_LENGTH;
-        if (strlen($line) > $maxLen && $pos > $maxLen) {
-            $trimNum = abs($maxLen - strlen($line));
-            $line = substr($line, $trimNum);
+        if (mb_strlen($line) > $maxLen && $pos > $maxLen) {
+            $trimNum = abs($maxLen - mb_strlen($line));
+            $line = mb_substr($line, $trimNum);
             $pos -= $trimNum;
             $pos -= 2;
             $prefix .= '… ';
@@ -76,7 +81,7 @@ class ErrorPageSourceLine extends ErrorPageComponent {
     }
 
     function initIsLongLine($line) {
-        if (strlen($line) > $this->MAX_SOURCE_LINE_LENGTH) {
+        if (mb_strlen($line) > $this->MAX_SOURCE_LINE_LENGTH) {
             $this->isLongLine = true;
         }
     }
