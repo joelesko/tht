@@ -5,6 +5,7 @@ namespace o;
 class u_String extends OStdModule {
 
     public $lastReplaceCount = -1;
+    public $lastMatchResult = null;
 
     function u_unicode_to_char ($num) {
 
@@ -100,6 +101,17 @@ class u_String extends OStdModule {
         }
 
         return $this->lastReplaceCount;
+    }
+
+    function u_last_match() {
+
+        $this->ARGS('', func_get_args());
+
+        if ($this->lastMatch === null) {
+            $this->error('No match method has been called yet.');
+        }
+
+        return $this->lastMatch;
     }
 
 }
