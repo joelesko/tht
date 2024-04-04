@@ -107,11 +107,11 @@ class u_String extends OStdModule {
 
         $this->ARGS('', func_get_args());
 
-        if ($this->lastMatch === null) {
+        if ($this->lastMatchResult === null) {
             $this->error('No match method has been called yet.');
         }
 
-        return $this->lastMatch;
+        return $this->lastMatchResult;
     }
 
 }
