@@ -1,0 +1,42 @@
+
+
+// TODO: test logLevel limit set in app.jcon
+public fun run($t) {
+
+    if $t.skipSlowTests(): return $t
+
+    $t.section('Log')
+
+    $logFile = Log.getFile()
+    $logFile.delete(-ifExists)
+
+    Log.trace('trace!')
+    Log.debug('debug!')
+    Log.info('info!')
+    Log.warn('warn!')
+    Log.error('error!')
+    Log.fatal('fatal!')
+
+    Log.info({ a: 123, z: true })
+
+    $lines = $logFile.read()
+
+    $levels = q[
+        trace
+        debug
+        info
+        warn
+        error
+        fatal
+    ]
+
+    foreach $levels as $i/$level {
+        $rx = Regex('"{}".*{}!'.fill([$level.toUpperCase(), $level]))
+        $t.ok($lines[$i].match($rx), $level)
+    }
+
+    $lastLine = $lines.pop()
+    $t.ok($lastLine.contains('"a":123,"z":true'), 'json event')
+
+    return $t
+}

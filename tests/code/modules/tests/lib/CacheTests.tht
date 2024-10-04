@@ -1,0 +1,85 @@
+
+public fun run($t) {
+
+    if $t.skipSlowTests(): return $t
+
+    $t.section('Module: Cache')
+
+    Cache.forceFileDriver()
+
+    Cache.delete('test')
+    Cache.set('test', 123, 1)
+
+    $t.ok(Cache.has('test'), 'has')
+    $t.ok(Cache.get('test') == 123, 'get')
+
+    Cache.delete('not1')
+    Cache.delete('not2')
+    Cache.delete('not3')
+    Cache.delete('not4')
+
+    $t.ok(!Cache.has('not1'), 'has not')
+    $t.ok(Cache.get('not1', 'missing') == 'missing', 'get default')
+
+    $v = Cache.get('not2', fun {
+        return 'fromSetter'
+    })
+    $t.ok($v == 'fromSetter', 'get with default function')
+
+    Cache.set('not3', 'fromSetter', 0)
+    $t.ok(Cache.get('not3') == 'fromSetter', 'get with default function')
+
+    $t.dies(
+        fun { Cache.get('not4', fun { }) }
+        'must return a non-null value'
+    )
+
+
+
+    Cache.set('data', { a: ['x', 'y', 'z'] }, 3)
+    $t.ok(Cache.get('data').a.join('|') == 'x|y|z', 'get map + list')
+
+    Cache.delete('data')
+    $t.ok(!Cache.has('data'), 'delete')
+
+    $t.ok(Cache.counter('count') == 1, 'counter 1')
+    $t.ok(Cache.counter('count') == 2, 'counter 2')
+    $t.ok(Cache.counter('count', 2) == 4, 'counter +2')
+    $t.ok(Cache.counter('count', -1) == 3, 'counter -1')
+
+    Cache.delete('count')
+
+    Cache.set('short', 'xyz', 1)
+    Cache.set('med', 'xyz', 10)
+    Cache.set('forever', 'xyz', 0)
+
+    Cache.clearLocalCache()
+    System.sleep(2000)
+
+    $t.ok(!Cache.has('short'), '1s expiry')
+    $t.ok(Cache.get('short') == '', '1s expiry val')
+
+    $t.ok(Cache.has('med'), '10s expiry')
+    $t.ok(Cache.get('med') == 'xyz', 'no expiry val')
+    $t.ok(Cache.has('forever'), 'no expiry')
+    $t.ok(Cache.get('forever') == 'xyz', 'no expiry val')
+
+    Cache.delete('short')
+    Cache.delete('med')
+    Cache.delete('forever')
+
+    Cache.set('filePath', file'file.txt', 2)
+    $t.ok(Cache.get('filePath').stringType() == 'file', 'FileTypeString')
+
+    $map = {
+        date: Date.now()
+        url: url'https://example.com'
+    }
+    Cache.set('typeStringMap', $map, 2)
+
+    $ret = Cache.get('typeStringMap')
+    $t.ok($ret.date.zClassName() == 'Date', 'map with Date')
+    $t.ok($ret.url.isTypeString() && $ret.url.stringType() == 'url', 'map with UrlTypeString')
+
+    return $t
+}

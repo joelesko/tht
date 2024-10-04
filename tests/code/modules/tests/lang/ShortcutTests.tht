@@ -1,0 +1,125 @@
+public fun run($t) {
+
+    $t.section('Logic Assignment')
+
+    $a = 0 ||: 5
+    $t.ok($a == 5, '||: false')
+    $a = 2 ||: 5
+    $t.ok($a == 2, '||: true')
+    $a = 0 &&: 5
+    $t.ok($a == 0, '&&: false')
+    $a = 2 &&: 5
+    $t.ok($a == 5, '&&: true')
+    $a = 0 ||: 2 &&: 4
+    $t.ok($a == 4, '||: &&:')
+    $a = 1 &&: 0 ||: 5
+    $t.ok($a == 5, '&&: ||:')
+    $a = 0 ||: '' ||: 6
+    $t.ok($a == 6, '||: ||:')
+    $a = 1 &&: 2 &&: 3
+    $t.ok($a == 3, '&&: &&:')
+    $a = 1
+    $a &&= 5
+    $t.ok($a == 5, '&&= true')
+    $a = 0
+    $a &&= 3
+    $t.ok($a == 0, '&&= false')
+    $a = 0
+    $a ||= 2
+    $t.ok($a == 2, '||= true')
+    $a ||= 3
+    $t.ok($a == 2, '||= false')
+
+
+    // default = '' (force a default if using [...]?)
+
+    // $seen = {}.default(99)
+    // >> $seen['abc']
+
+
+    // if '12345'.length() as $len: print($len ~ '!!!')
+
+    // $zz = '123456789'
+    // $m = match $zz {
+    //     $zz.length() as $lent: $lent ~ ' in match!!!'
+    // }
+    // >> $m
+
+
+
+    // $result = ''
+    // if $xx = '12345'.length(): $result = $xx ~ '!'
+    // $t.ok($result == '5!', '?= if-assign')
+    // >> $xx
+
+    // $result = ''
+    // if $xx ?= ''.length(): $result = $xx ~ '!'
+    // $t.ok($result == '', '?= if-assign - false')
+
+
+
+    $t.section('Ternary')
+
+    $t.ok(2 > 1 ? 'yes' : '', 'ternary - true')
+    $t.ok(1 > 2 ? '' : 'yes', 'ternary 0 false')
+
+
+    $t.section('One-Liner')
+
+    $ifDo = 1
+    if true: $ifDo = 2
+    $t.ok($ifDo == 2, 'one-liner - true')
+    if false: $ifDo = 9
+    $t.ok($ifDo == 2, 'one-liner - false')
+
+    $fnOneLine = fun ($x) {
+        if $x == 1:      return 10
+        else if $x == 2: return 20
+        else if $x == 3: return 30
+        else:            return 40
+    }
+
+    $t.ok($fnOneLine(1) == 10, 'one-liner if/else (if)')
+    $t.ok($fnOneLine(2) == 20, 'one-liner if/else (else if)')
+    $t.ok($fnOneLine(3) == 30, 'one-liner if/else (else if)')
+    $t.ok($fnOneLine(4) == 40, 'one-liner if/else (else)')
+
+
+
+    $t.section('Dot Assign')
+
+    $map = { str: 'abc def' }
+    $map.str = .toUpperCase().reverse()
+    $t.ok($map.str == 'FED CBA', 'dot assign: $foo = .method()')
+
+
+
+    $t.section('If Assign')
+
+    $t.parserError('if $n := 123 {\n}\nprint($n)', 'unknown variable')
+    $t.parserError('$n = 1\nif $n := 123 {\n}', 'variable already defined')
+
+    $val = 'abc 123'
+    $result = ''
+    if $num := $val.match(rx'\d+') {
+        $result = $num
+        if $chars := $val.match(rx'[a-z]+') {
+            $result ~= '|' ~ $chars
+        }
+    }
+    $t.ok($result == '123|abc', 'if assign')
+
+    $result2 = ''
+    if $num := $val.match(rx'\d+'): $result2 = $num
+    $t.ok($result2 == '123', 'if assign - one-liner')
+
+    $result3 = 0
+    if ($len := $val.length()) > 3 {
+        $result3 = $len
+    }
+    $t.ok($result3 == 7, 'if assign - in parens')
+
+    $t.parserError('$tern = $len := $val.length() ? 1 : 0', 'can only be used in an `if`')
+
+    return $t
+}

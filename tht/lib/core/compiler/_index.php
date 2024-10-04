@@ -1,25 +1,32 @@
 <?php
 
+namespace o;
+
 class ThtLib {
 
-    static public $files = [
-        'Constants',
-        'TemplateTransformers',
-        'Tokenizer',
-        'SymbolTable',
-        'Symbol',
-        'Parser',
-        'Validator',
-        'SourceMap',
-        'SourceAnalyzer',
-        'Emitter',
-        'EmitterPHP',
+    static private $files = [
+
+        'CompilerConstants',
+
+        '1_Tokenizer',
+        '2_Parser',
+        '3_Emitter',
+
+        'Symbol/SymbolTable',
+        'Symbol/Symbol',
+
+        'Parser/Validator',
+        'SourceAnalyzer/SourceMap',
+        'SourceAnalyzer/SourceAnalyzer',
+
+        'Emitter/EmitterPHP',
+
+        'TemplateTransformers/TemplateTransformers',
     ];
 
-    static public function load () {
-        $libDir = dirname(__FILE__);
-        foreach (ThtLib::$files as $lib) {
-            require_once($libDir . '/' . $lib . '.php');
+    static public function load() {
+        foreach (self::$files as $lib) {
+            require_once(Tht::systemPath('lib/core/compiler/' . $lib . '.php'));
         }
     }
 }

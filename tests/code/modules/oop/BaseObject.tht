@@ -1,0 +1,55 @@
+
+@@.BaseModuleConstant = 'constant'
+
+
+class BaseObject {
+
+    fields {
+        privateVar: 'private'
+        privateNoInit: 'noInit'
+    }
+
+    public fields {
+        publicVar: 'public'
+        overrideNew: 222
+        overrideInit: 111
+        getterVal: 'getter'
+
+        num: 123
+        flag: true
+        string: 'xyz'
+        map: { a: 123 }
+        list: [1, 2, 3]
+    }
+
+    public fun onCreate {
+        @.overrideNew = 444
+    }
+
+    public fun getGetterVal {
+        return @.getterVal ~ '!'
+    }
+
+    public fun publicCallPrivate {
+        return @.privateFn()
+    }
+
+    public fun readNoInit {
+        return @.privateNoInit
+    }
+
+    public fun publicFn {
+        return 'public'
+    }
+
+    public fun returnSelf {
+        return @
+    }
+
+    fun privateFn {
+        return 'private'
+    }
+}
+
+
+

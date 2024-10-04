@@ -1,0 +1,270 @@
+
+public fun run($t) {
+
+    $t.section('Functions')
+
+    // callKeywords(kwOne: 333)
+
+    fun testfun {
+        return 'yay'
+    }
+    $t.ok(testfun() == 'yay', 'no args')
+
+    fun testA($arg) {
+        return $arg ~ '!'
+    }
+    $t.ok(testA('hey') == 'hey!', 'with arg')
+
+    fun testB($arg = 'default') {
+        return $arg ~ '!'
+    }
+    $t.ok(testB() == 'default!', 'default')
+
+    // fun testSum {
+    //     $asum = 0
+    //     foreach Meta.getArgs() as $arg {
+    //         $asum += $arg
+    //     }
+    //     return $asum
+    // }
+    // $sum = testSum(1, 2, 3, 4)
+    // $t.ok($sum == 10, 'variable args')
+
+
+    fun testNumArgs($a, $b) {
+        return true
+    }
+    $t.dies(fun { testNumArgs(1, 2, 3) }, 'too many arguments')
+
+
+    // fun testBooleanArg($b = false) {
+    //     return $b ? 'true' : 'false'
+    // }
+    // $t.ok(testBooleanArg($arg := true) == 'true', 'boolean arg')
+
+
+    fun withOp($foo, $bar = 'default') {
+        return $bar
+    }
+    $r = withOp('hello', 'world')
+    $t.ok($r == 'world', 'default, supplied')
+
+    $r = withOp('hello')
+    $t.ok($r == 'default', 'default, fallback')
+
+    $outer = 'OUT'
+    $funClosure = fun ($a) {
+        return $a ~ '/' ~ $outer
+    }
+    $t.ok($funClosure('IN') == 'IN/OUT', 'closure')
+
+
+    $outer = 'OUT'
+    $funClosure2 = fun ($a) {
+        $outer ~= '-append'
+    }
+    $funClosure2(1)
+    $t.ok($outer == 'OUT-append', 'closure - modify outer')
+
+    $outer = 'OUT'
+    $fnNamed = fun someFun {
+        return 123 ~ $outer
+    }
+    $t.ok($fnNamed() == '123OUT', 'named closure')
+
+
+    $t.parserError('foo(\n    123,\n    456\n)', 'Comma `,` is not needed')
+    $t.parserOk('foo(\n    123\n    456\n)\nfun foo { }\n', 'Multi-line function call - parse')
+
+    $mlTotal = multilineFunCall(
+        10
+        20
+        30
+        40
+    )
+
+    $t.ok($mlTotal == 100, 'Multi-line function call - runtime')
+
+
+
+    fun addToList($list) {
+        $list #= 4
+    }
+    $refList = [1, 2, 3]
+    addToList($refList)
+    $t.ok($refList.join() == '123', 'pass-by-copy - list')
+
+    fun modNested($n) {
+        $n.map.list[2] = 22222
+    }
+    $nested = {
+        num: 111
+        map: { list: [1, 2, 3] }
+    }
+    modNested($nested)
+    $t.ok($nested.map.list[2] == 2, 'pass-by-copy - nested')
+
+    fun modTypeStr($ats) {
+        return $ats.fill('FILLED')
+    }
+    $ts = html'<b>String {}</b>'
+    $tsOk = modTypeStr($ts)
+    $t.ok(!$ts.renderString().contains('FILLED'), 'pass-by-copy - typestring')
+    $t.ok($tsOk.renderString().contains('FILLED'), 'pass-by-copy - typestring returned')
+
+
+
+    $refList.reverse()
+    $t.ok($refList[1] == 1, 'list.reverse - not changed in place')
+
+
+
+    fun addToString($s) {
+        $s ~= '4'
+    }
+    $refStr = '123'
+    addToString($refStr)
+    $t.ok($refStr.length() == 3, 'string - pass by ref - unchanged')
+
+
+    $tem = tem fooHtml {
+        <h1> Hello world!
+    }
+    $t.ok($tem().renderString().contains('</h1>'), 'anon template')
+
+    $outer = 'OUTER'
+    $tem = tem fooHtml {
+        <h1> Hello {{ $outer }}!
+    }
+    $t.ok($tem().renderString().contains('OUTER!<'), 'anon template with closure vars')
+
+
+
+    fun missingArgs($arg1, $arg2) {
+    }
+    $t.dies(x{ missingArgs(1) }, 'Missing argument - user function', 'Too few arguments')
+    $t.dies(x{ Page.create() }, 'Missing argument - module', 'Too few arguments')
+
+    $t.ok(testDefaultMap().a == 123, 'map as default arg')
+    $t.ok(testDefaultMap({ a: 345 }).a == 345, 'map as default arg - with passed arg')
+
+    $t.ok(testDefaultList()[2] == 'b', 'list as default arg')
+    $t.ok(testDefaultList(['x', 'y', 'z'])[2] == 'y', 'list as default arg - with passed arg')
+
+    $t.ok(testDefaultMaps().a == 'aa', 'multiple default args as maps')
+    $t.ok(testDefaultMaps().m2.b == 'bb', 'multiple default args as maps')
+
+    $t.parserError('fun foo { }\n$a = 1', 'top-level')
+    $t.parserError('fun { }', 'must have a name')
+
+    $t.section('Function - Native Argument Checking')
+
+        .ok($t.checkArgs('s', 'x'), 'string')
+        .ok($t.checkArgs('S', ''), ' empty string')
+        .ok($t.checkArgs('n', 123), 'number')
+        .ok($t.checkArgs('l', []), 'list')
+        .ok($t.checkArgs('b', 1 == 0), 'boolean')
+        .ok($t.checkArgs('m', {}), 'map')
+        .ok($t.checkArgs('snl', '0', 0, []), 'multi: string, number, list')
+
+
+        .dies(fun { $t.checkArgs('i', 1, 2) }, 'Too many args', 'expects 1 argument')
+
+        .dies(fun { $t.checkArgs('m', []) }, 'be: `map`  Got: `list`')
+        .dies(fun { $t.checkArgs('m', 'x') }, 'be: `map`  Got: `string`')
+        .dies(fun { $t.checkArgs('m', 123) }, 'be: `map`  Got: `integer`')
+        .dies(fun { $t.checkArgs('m', 1 == 1) }, 'be: `map` Got: `boolean`')
+
+        .ok($t.checkArgs('s', 123), 'Number as string')
+        .dies(fun { $t.checkArgs('n', '123') }, 'be: `number` Got: `string`')
+
+        .dies(fun { $t.checkArgs('snl', [], 123, []) }, 'be: `string` Got: `list`')
+        .dies(fun { $t.checkArgs('snl', 'x', '123', []) }, 'be: `number` Got: `string`')
+        .dies(fun { $t.checkArgs('snl', 'x', 123, 'x') }, 'be: `list` Got: `string`')
+
+        .dies(fun { $t.checkArgs('s', '') }, 'Empty string')
+
+        .dies(fun { $t.checkArgs('i', 3.0) }, 'No float for int', 'toInt')
+        .dies(fun { $t.checkArgs('I', -3) }, 'Positive int: -3', 'negative')
+        .ok($t.checkArgs('I',  3), 'Positive int: 3 (ok)')
+        .ok($t.checkArgs('I',  0), 'Positive int: 0 (ok)')
+
+        // $t.ok($t.checkArgs('f', -someFlag), 'Flag ok')
+        // $t.dies(fun { $t.checkArgs('f', '-notflag') }, 'Expect flag. Got String', 'to be a `-flag`')
+        // $t.dies(fun { $t.checkArgs('f', 1 == 1) }, 'Expect flag. Got Boolean', 'to be a `-flag`')
+        .parserError('foo(true)', 'Can`t use a Boolean')
+
+    // $a = [1, 2, 3]
+    // $t.ok(spread(...$a) == '1:2:3', 'spread operator (...)')
+
+
+    $t.section('Function - Expression Syntax (Lambdas)')
+
+    $a = 99 // make sure it doesn't get captured below.
+    $fx = x{ $a + 1 }
+    $t.ok($fx(2) == 3, 'basic syntax')
+    $fxs = [
+        x{ $a + 10 }
+        x{ $a + 100 }
+    ]
+    $t.ok($fxs[1](3) == 13, 'expressions in list')
+    $t.ok($fxs[2](3) == 103, 'expressions in list')
+
+    $ex = x{
+        $a >= 20
+    }
+    $fxFilter = [10, 20, 30].filter($ex).join('/')
+    $t.ok($fxFilter == '20/30', 'multiline lambda')
+
+    $fxJoin = [1, 2, 3].map(x{ $a + 6 }).join('')
+    $t.ok($fxJoin == '789', 'functional usage')
+
+    $outerVar = 23
+    $fn = x{ $outerVar + $a }
+    $t.ok($fn(100) == 123, 'with outer vars')
+
+    $t.ok(closureVars(1) == 456, 'regression: double-used outer vars')
+
+    return $t
+}
+
+
+
+fun testDefaultMap($xmap = { a: 123 }) {
+    return $xmap
+}
+
+fun testDefaultList($xlist = ['a', 'b', 'c']) {
+
+    return $xlist
+}
+
+fun testDefaultMaps($m1 = { a: 'aa' }, $m2 = { b: 'bb' }) {
+    $m1['m2'] = $m2
+    return $m1
+}
+
+fun spread(...$args) {
+    return $args.join(':')
+}
+
+fun multilineFunCall($a, $b, $c, $d) {
+
+    return $a + $b + $c + $d
+}
+
+fun callKeywords($kwOne = 1, $kwTwo = 2) {
+    return [$kwOne, $kwTwo]
+}
+
+// regression test: closures were double-using outer vars
+fun closureVars($x) {
+    $x = 123
+    $f = fun {
+        return 456
+    }
+    return $f()
+}
+
+
+

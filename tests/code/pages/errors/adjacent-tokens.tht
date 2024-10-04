@@ -1,0 +1,11 @@
+
+
+foo bar
+
+if $a 123 {
+    // ...
+}
+
+// Invalid standalone expression.
+// $a['oo'] 123
+

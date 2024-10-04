@@ -1,0 +1,21 @@
+
+public fun run($t) {
+
+    $t.section('Module: AppConfig')
+
+    $t.ok(AppConfig.get('num') == -123.45, 'get num')
+    $t.ok(AppConfig.get('booleanFalse') == false, 'get boolean')
+    $t.ok(AppConfig.get('booleanTrue') == true, 'get boolean')
+    $t.ok(AppConfig.get('string') == 'value with spaces, etc.', 'get string')
+    $t.ok(AppConfig.get('map').key == 'value', 'get map')
+    $t.ok(AppConfig.get('list')[2] == 'value 2', 'get list')
+    $t.dies(
+        fun { AppConfig.get('MISSING') }, 'missing key'
+        'No `app` config value for key'
+    )
+    $t.ok(AppConfig.get('local').localVar == 789, 'local config')
+
+    $t.ok(AppConfig.get('aUrl').rawString() == 'https://asite.com', 'url typestring')
+
+    return $t
+}

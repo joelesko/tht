@@ -1,0 +1,180 @@
+
+public fun run($t) {
+
+    $t.section('Math operators')
+
+    $a = 2
+    $b = $a + 1 + 2
+    $c = $a * 3 + 1
+    $d = $a / 2
+    $xe = 5 % 2
+    $f = 3 + -1
+    $xg = -1 + -1
+    $h = 2 ** 4
+
+    $t.ok($a ==  2, 'assign')
+    $t.ok($b ==  5, 'add')
+    $t.ok($c ==  7, 'mult, add')
+    $t.ok($d ==  1, 'divide')
+    $t.ok($f ==  2, 'plus negative')
+    $t.ok($h == 16, 'exponent')
+
+    $t.ok(5 % 3 ==  2, 'modulo')
+    $t.ok(5 % -3 ==  2, 'modulo negative right')
+    $t.ok(-5 % 3 ==  -2, 'modulo negative left')
+    $t.ok(-5 % -3 ==  -2, 'modulo negative both')
+
+
+    $fp = 1.1 + 2.2
+    $t.ok($fp > 3.2 && $fp < 3.4, 'floating point')
+
+    $t.ok(1_000_000 + 2_000 == 1_002_000, '_ separator')
+
+
+    $t.ok(2 + 2 * 3 == 8, 'multiply/add precendence')
+    $t.ok(2 * 2 ** 3 == 16, 'exponent precendence')
+
+
+    $t.section('Strict Math')
+
+    // TODO: I would rather not allow these, but concerned about the perf hit.
+    // Maybe catch these if/when we end up doing static checks.
+    $t.ok('2' + 2 == 4, 'Numeric string + number')
+    $t.ok(true + 2 == 3, 'true + number')
+    $t.ok(false + 2 == 2, 'true + number')
+    $t.ok(null + 2  == 2, 'null + number')
+
+    $t.dies(x{ 'a' + 2 }, 'Invalid type in math operation: `String + Number`')
+    $t.dies(x{ 2 + 'b' }, 'Invalid type in math operation: `Number + String`')
+    $t.dies(x{ 'a' * 2 }, 'Invalid type in math operation: `String * Number`')
+    $t.dies(x{ 'a' % 2 }, 'Invalid type in math operation: `String % Number`')
+    $t.dies(x{ {} + 2 }, 'Invalid type in math operation: `Map + Number`')
+    $t.dies(fun {
+        $aa = 1
+        $aa += 'v'
+    }, 'Invalid type in math operation: `Number + String`')
+    $t.dies(x{ 2 ** 'a' }, 'Invalid type in math operation: `Number ** String`')
+
+    $t.dies(fun { return 2 / 0 }, 'Division by zero')
+    $t.dies(fun { return 2 % 0 }, 'Modulo by zero')
+
+
+
+    $t.section('Hex & Binary Numbers')
+
+    $t.ok(0b10111 == 23, 'binary')
+    $t.ok(0b10111 * 2 == 46, 'binary * dec')
+
+    $t.ok(0x1f == 31, 'hex')
+    $t.ok(0x1f * 2 == 62, 'hex * dec')
+
+    $t.ok(0123 == 123, 'no octal leading zero')
+
+
+    $t.section('Truth')
+
+
+    $true = true
+    $false = false
+
+    $t.ok(!$false, '! false')
+    $t.ok($true, 'true')
+    $t.ok($true || $false, '||')
+    $t.ok($true && $true, '&&')
+    $t.ok(!($true && $false), '! &&')
+    $t.ok(!($false || $false), '! ||')
+
+
+    $t.section('Positive/Negative')
+
+    $t.ok(-1 < 1, '< negative')
+    $t.ok(1 > -1, '> negative')
+    $t.ok(2 * -1 == -2, 'times negative')
+    $t.ok(+2 + +2 == 4, 'unary plus')
+
+
+    $t.section('Comparison')
+
+    $t.ok(1 == 1, '==')
+    $t.ok(0 == 0.0, '0 == 0.0')
+    $t.ok(1 == 1.0, '1 == 1.0')
+    $t.ok(1 != 2, '!=')
+    $t.ok(1 < 2, '<')
+    $t.ok(2 > 1, '>')
+    $t.ok(4 >= 3, '>= gt')
+    $t.ok(2 <= 3, '<= lt')
+    $t.ok(3 >= 3, '>= eq')
+    $t.ok(3 <= 3, '<= eq')
+
+    $t.ok(4 <=> 2 == 1, '<=> = 1')
+    $t.ok(2 <=> 4 == -1, '<=> = -1')
+    $t.ok(2 <=> 2 == 0, '<=> = 0')
+    $t.ok(2.1 <=> 2.0 == 1, '<=> float = 1')
+    $t.ok(2.0 <=> 2.1 == -1, '<=> float = -1')
+    $t.ok(2.0 <=> 2.0 == 0, '<=> float = 0')
+
+    $str = 'moo'
+    $t.ok($str <=> 'zoo'    == -1, '<=> string -')
+    $t.ok($str <=> 'abcdef' ==  1, '<=> string +')
+    $t.ok($str <=> 'moo'    ==  0, '<=> string =')
+
+
+    $t.section('Type Juggling Comparison')
+
+    $t.ok(2 > '1', 'number > numeric string')
+    $t.ok('a' > 1, 'string > number')
+    $t.ok(2 > false, 'number > boolean')
+
+    // Note: these fail if you have the devErrors constant set to `true`
+    // Otherwise, it catches a NOTICE.
+    $t.dies(x{ 0 > [] }, 'List could not be converted to Number')
+    $t.dies(x{ 0 > Date.now() }, 'DateObject could not be converted to Number')
+
+    $t.ok('' != false, '`` != false')
+    $t.ok(0 != false, '0 != false')
+    $t.ok('0' != 0, '`0` == 0')
+    $t.ok(1 != true, '1 != true')
+    $t.ok([1] != true, 'true != list')
+    $t.ok([] != false, 'false != empty list')
+
+
+    $t.section('Truthy/Falsey')
+
+    $t.ok((1 ? 't' : 'f') == 't', '1 = truthy')
+    $t.ok((0 ? 't' : 'f') == 'f', '0 = falsey')
+    $t.ok((0.0 ? 't' : 'f') == 'f', '0.0 = falsey')
+    $t.ok(('' ? 't' : 'f') == 'f', '`` = falsey')
+    $t.ok(('0' ? 't' : 'f') == 't', '`0` = truthy')
+    $t.ok((null ? 't' : 'f') == 'f', 'null = falsey')
+    $t.ok(([] ? 't' : 'f') == 'f', '[] = falsey')
+    $t.ok(({} ? 't' : 'f') == 'f', '{} = falsey')
+    $t.ok(([1] ? 't' : 'f') == 't', '[1] = truthy')
+    $t.ok(({ a: 1 } ? 't' : 'f') == 't', '{ a: 1 } = truthy')
+
+
+
+    $t.section('Math Assignment')
+
+    $aa = 10
+    $aa += 10
+    $t.ok($aa == 20, '+=')
+    $aa *= 2
+    $t.ok($aa == 40, '*=')
+    $aa -= 30
+    $t.ok($aa == 10, '-=')
+    $aa /= 2
+    $t.ok($aa == 5, '/=')
+    $aa **= 2
+    $t.ok($aa == 25, '**=')
+
+
+    $t.section('Float & Ints')
+
+    $t.ok(5 == 5.0, '5 == 5.0')
+    $t.ok(1 + 2.0 == 3, '1 + 2.0 == 3')
+    $t.ok(1 + 2.0 == 3.0, '1 + 2.0 == 3.0')
+    $t.ok(1.0 + 2.0 == 3.0, '1.0 + 2.0 == 3.0')
+    $t.ok(1.11111 + 2.22222 == 3.33333, '1.11111 + 2.22222 == 3.33333')
+
+    return $t
+}

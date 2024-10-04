@@ -1,0 +1,15 @@
+fun main {
+    
+    $out = {
+        hello: 'world'
+        list: q[a b c]
+        num: 123
+        fromString: Input.get('fromString', 'b')
+    }
+
+    if $out.fromString {
+        $out = Json.encode($out)
+    }
+
+    Output.sendJson($out)
+}

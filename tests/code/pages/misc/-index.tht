@@ -1,0 +1,29 @@
+
+fun main {
+
+    $files = dir'app:/code/pages/misc'.readDir()
+
+    $page = Page.create({
+        title: 'Manual Test Pages'
+        css: url'/css/basic.css'
+        main: html($files)
+    })
+
+    Output.sendPage($page)
+}
+
+
+tem html($files) {
+
+    <h1> Manual Test Pages
+
+    <ul>
+    --- foreach $files as $f {
+    <li> <a href="{{ $f.toUrl() }}">{{ $f.toUrl() }}
+    --- }
+    </ul>
+
+
+}
+
+

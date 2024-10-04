@@ -6,7 +6,7 @@ class CssTemplateTransformer extends TemplateTransformer {
 
     function onEndString($str) {
 
-        if (Tht::getConfig('minifyAssetTemplates')) {
+        if (Tht::getThtConfig('minifyAssetTemplates')) {
 
             $hasTrailingSpace = preg_match('/ $/', $str);
             $hasLeadingSpace = preg_match('/^ /', $str);

@@ -1,0 +1,40 @@
+
+public fun run($t) {
+
+    $t.section('Module: Net')
+
+    if $t.skipSlowTests(): return $t
+
+    $head = Net.httpHead(url'http://example.com')
+
+    $t.ok($head.status == 200, 'head - status')
+    $t.ok($head.contentLength > 500, 'head - number')
+    $t.ok($head.date.zClassName() == 'Date', 'head - date')
+
+    $t.ok(Net.httpHead(url'https://badhost.blah').status == 0, 'head - bad host')
+
+
+    Net.setTimeoutSecs(5)
+    $t.ok(Net.httpStatus(url'https://httpstat.us/200?sleep=1000') == 200, 'timeout ok')
+    $t.ok(Net.lastError() == '', 'no last error')
+
+    Net.setTimeoutSecs(1)
+    $t.ok(Net.httpStatus(url'https://httpstat.us/200?sleep=2000') == 0, 'timed out')
+    $t.ok(Net.lastError().contains(rx'failed to open stream'i), 'last error')
+
+    $content = Net.httpGet(url'https://tht.dev')
+    $t.ok($content.match(rx'programming language'i), 'get request')
+
+    $content = Net.httpPost(
+        url'https://putsreq.com/TiktDvn26ykgGwi8GQ4M'
+        { name: 'tht' }
+    )
+    $t.ok('OK|tht', 'post request')
+    $t.ok(Net.lastError() == '', 'last error reset')
+
+    $t.ok(Net.httpStatus(url'https://tht.dev/install') == 200, 'urlExists - ok')
+    $t.ok(Net.httpStatus(url'https://tht-nope.dev')    == 0,   'urlExists - bad hostname')
+    $t.ok(Net.httpStatus(url'https://tht.dev/sdfsdf')  == 404, 'urlExists - missing path')
+
+    return $t
+}

@@ -1,0 +1,26 @@
+
+public fun run($t) {
+
+    return $t
+
+    $img = Image.create({ sizeX: 300, sizeY: 200 })
+
+    >> '-- rect --'
+    $img.drawRectangle(
+        { x: 1, y: 1, sizeX: 60, center: false }
+        { color: 'red', fill: true }
+    )
+
+    >> '-- ellipse --'
+    $img.drawEllipse(
+        { x: 1, y: 1, sizeX: 60, center: false }
+        { color: 'blue', fill: true }
+    )
+
+  //  $img.fill({ x: 1, y: 1 })
+
+    >> $img
+
+    return $t
+}
+

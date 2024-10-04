@@ -1,0 +1,358 @@
+
+public fun run($t) {
+
+    $t.section('Maps')
+
+    $m = {
+        a: 1
+    }
+    $t.parserError('$m = { a:\n    1\n}', 'Expected closing delimiter on same line')
+    $t.parserError('$m = { a: 1, }', 'trailing comma')
+    $t.parserError('$m = {\n    a: 1,\n}', 'Comma `,` is not needed')
+    $t.parserError('$m = { a: 1\n    b: 2\n}', 'Expected closing delimiter on same line')
+    $t.parserError('$m = { rx`X`: 123 }', 'Map key must be a String, Number, or Word')
+    $t.parserError('$dyn = `x`\n$dm = { $dyn: 123 }', 'variable not allowed as Map key')
+    $t.parserError('$m = { `a` ~ `b`: 123 }', 'Map key must be a String, Number, or Word')
+    $t.parserError('$m = { b: 123 c }', 'Expected a comma or newline')
+
+    $t.parserOk('$m = { 999: 123 }', 'Number as key')
+    $t.parserOk('$m = { Upper: 123 }', 'Map with uppercase key')
+    $t.parserOk('$m = { z: 1, else: 2, if: 3 }', 'One-line map with reserved keys')
+
+    $map = '''
+        $mapWithKeywords = {
+            try: 1
+            catch: 2
+            finally: 3
+            return: 4
+            if: 5
+            else: 6
+            fun: 7
+            tem: 8
+            match: 9
+            case: 10
+            new: 11
+            final: 12
+            class: 13
+            break: 14
+            loop: 15
+        }
+
+    '''
+    $t.parserOk($map, 'Map with keywords as key')
+
+
+
+    $m[1.5] = 'float'
+    $m[99] = 'int'
+    $m[-99] = 'negative'
+
+    $t.dies(x{ $m[{ a: 1 }] == 1 }, 'Can`t use non-string as a map key')
+
+    $t.ok($m[1.5] == 'float', 'float as map key')
+    $t.ok($m[99] == 'int', 'int as map key')
+    $t.ok($m[-99] == 'negative', 'negative int as map key')
+
+    $t.dies(fun { $m #= '123' }, 'Can`t use list append')
+
+    $user = { name: 'Drac', age: 500, friends: [{ name: 'Igor' }] }
+
+    $t.ok($user['name'] == 'Drac', 'bracket')
+    $t.ok($user.get('name') == 'Drac', 'get')
+    $t.ok($user.length() == 3, 'length')
+    $t.ok($user.get('foo', 'bar') == 'bar', 'default')
+    $t.ok($user.get(['friends', 1, 'name']) == 'Igor', 'chained')
+    $t.ok($user['friends'][1]['name'] == 'Igor', 'chained brackets')
+    $t.ok($user.get(['friends', 2, 'name'], '') == '', 'chained - missing value')
+
+    $user['height'] = '6ft'
+    $t.ok($user.get('height') == '6ft', 'put')
+    $mapNum = { name: 'Frank', age: 8 }
+    $t.ok($mapNum.get('age') == 8, 'numeric val')
+    $mlmap = {
+        name: 'Joe'
+        id: 12345
+    }
+    $t.ok($mlmap.id == 12345, 'multiline map')
+    $t.parserError('{ a: 1, b: 2, }', 'trailing comma')
+
+    $mlmap['foo'] ||= 33
+    $t.ok($mlmap.foo == 33, 'default assign')
+
+
+
+
+    $map = { a: { b: 1 }, x: { y: 2 } }
+    $map.x.y = 99
+    $t.ok($map.x.y == 99, 'deep assignment')
+
+
+    $t.section('Maps - dot access')
+
+    $t.ok($user.name == 'Drac', 'dot access')
+    $t.dies(fun { $n = $user.nameX }, 'map key does not exist')
+
+
+    $t.section('Maps - Missing values')
+
+    $empty = { foo: 1 }
+    $t.ok($empty['missing'] == null, 'missing value == notfound')
+    $t.ok(!$empty['missing'] == true, 'empty bool')
+    $empty['def'] ||= 'default'
+    $t.ok($empty['def'] == 'default', 'empty or assign')
+
+
+    // suggest key(case)
+    $t.dies(fun {
+        $m = { name: 'foo' }
+        $n = $m.Name
+    }, 'Try: `name`', 'Try: \`name\`')
+
+    $t.section('Maps - Explicit default')
+
+    $dmap = { foo: 1 }.default('HAY')
+    $t.ok($dmap['missing'] == 'HAY', 'Map default - not found')
+    $t.ok($dmap['foo'] == 1, 'Map default - found')
+
+    $countMap = {}.default(0)
+    $countMap['a'] += 100
+    $t.ok($countMap.a == 100, 'numeric default')
+
+
+    $t.section('Maps - Methods')
+
+    $map = { a: 1, b: 2 }
+
+    $t.ok($map.hasKey('b'), 'hasKey true')
+    $t.ok(!$map.hasKey('z'), 'hasKey false')
+
+    $t.ok($map.hasValue(2), 'hasValue true')
+    $t.ok(!$map.hasValue(99), 'hasValue false')
+
+    $t.ok($map.keys().join('|') == 'a|b', 'keys')
+    $t.ok($map.values().join('|') == '1|2', 'values')
+
+    $map.renameKey('b', 'c')
+    $t.ok($map['c'] == 2, 'renameKey')
+
+    $map = { a: 1, b: 2 }
+
+
+    // copy / isempty
+    $map2 = $map.copy()
+    $map2['b'] = 3
+    $t.ok($map.b == 2, 'copy')
+    $t.ok($map2.b == 3, 'copy')
+    $t.ok(!$map2.isEmpty(), 'not isEmpty')
+    $map2.clear()
+    $t.ok($map2.isEmpty(), 'clear / isEmpty')
+
+    // remove
+    $t.ok($map.remove('b') == 2, 'delete - key exists')
+    $t.ok($map.remove('Z') == null, 'delete - key nonexistent')
+    $t.ok($map.keys().length() == 1, 'delete - modified map')
+
+    // reverse
+    $map = { a: 1, b: 2, c: 1 }
+    $flipped = $map.reverse()
+    $t.ok($flipped['1'] == 'c', 'reverse')
+    $t.ok($flipped['2'] == 'b', 'reverse')
+    $t.ok($flipped.length() == 2, 'reverse length')
+
+    // slice
+    $map = { a: 1, b: 2, c: 3 }
+    $t.ok($map.slice(q[b c]).c == 3, 'slice()')
+    $t.ok($map.slice(q[b c]).keys().join(':') == 'b:c', 'slice() keys')
+    $t.ok($map.slice(q[a z]).z == null, 'slice() with missing key')
+
+    // merge
+    $merged = $map.merge({ b: 8, d: 9 })
+    $t.ok($merged.toList().join(',') == 'a,1,b,8,c,3,d,9', 'merge')
+
+    $m1 = {
+        outer1: {
+            inner1: 111
+            changeMe: 333
+        }
+    }
+    $addIn = {
+        outer1: {
+            inner1b: [1]
+            changeMe: 999
+        }
+        outer2: {
+            inner2: 222
+        }
+    }
+    $m2 = $m1.merge($addIn, -deep)
+    $t.ok($m2.outer1.changeMe == 999, 'merge deep')
+    $t.ok($m2.outer2.inner2 == 222, 'merge deep')
+    $t.ok($m2.outer1.inner1 == 111, 'merge deep')
+
+    $m1 = { a: { z: 1 } }
+    $m2 = $m1.merge({ a: { x: 99 } })
+    $t.ok($m2.a.x == 99 && !$m2.a['z'], 'merge - flat')
+
+
+
+    // Truthiness
+
+    $isTrue = true
+    if {}: $isTrue = false
+    $t.ok($isTrue, 'empty map is falsey')
+
+    $isTrue = false
+    if !{}: $isTrue = true
+    $t.ok($isTrue, 'empty map negated is truthy')
+
+    $isTrue = false
+    if { a: 1 }: $isTrue = true
+    $t.ok($isTrue, 'map with key is truthy')
+
+    $t.ok({ a: 1 } || false, '{ a: 1 } || false == truthy')
+    $t.ok(!({} && true), '!({} && true) == truthy')
+
+    $v = {}
+    $v ||= 123
+    $t.ok($v == 123, '{} ||= 123')
+    $v = {}
+    $v &&= 123
+    $t.ok($v.isMap(), '{} &&= 123')
+
+    $v = { a: 99 }
+    $v ||= 123
+    $t.ok($v.isMap(), '{ a: 99 } ||= 123')
+    $v = { a: 99 }
+    $v &&= 123
+    $t.ok($v == 123, '{ a: 99 } &&= 123')
+
+    $t.ok({ a: 123 }.keysForValue(123)[1] == 'a', 'keysForValue - found')
+    $t.ok({ a: 123, b: 123 }.keysForValue(123).join('|') == 'a|b', 'keysForValue - found first')
+    $t.ok({}.keysForValue('VAL').length() == 0, 'keysForValue - not found')
+
+
+    $t.section('Maps - Misc Errors')
+
+    $t.dies(fun { {}.merge(['a']) }, 'Map.merge(<list>)', 'to be: \`map\`')
+    $t.parserError('$a = {}\n$b = $a.$a', 'square brackets')
+
+
+    $t.section('Lists & Maps')
+
+    $t.ok([].isEmpty(), 'empty list')
+    $t.ok({}.isEmpty(), 'empty map')
+    $t.ok(![1, 2, 3].isEmpty(), 'non-empty list')
+    $t.ok(!{ foo: 0 }.isEmpty(), 'non-empty map')
+
+
+    // Deep copy List
+    $nested = [1, [2, 3], { a: 4 }, { l: [5, 6] }]
+    $dcopy = $nested.copy()
+
+    $dcopy[1] += 1
+    $dcopy[2][1] += 1
+    $dcopy[3].a += 1
+    $dcopy[4].l[2] += 1
+
+    $njson = Json.encode($nested)
+
+    $njson = Json.encode($nested).renderString()
+    $dcJson = Json.encode($dcopy).renderString()
+
+    $t.ok($njson == '[1,[2,3],{"a":4},{"l":[5,6]}]', 'deep copy - list - orig unchanged')
+    $t.ok($dcJson == '[2,[3,3],{"a":5},{"l":[5,7]}]', 'deep copy - list - modified copy')
+
+
+    // Deep copy Map
+    $nestMap = { a: 1, l: [2, 3], m: { a: [4, 5] } }
+    $mapCopy = $nestMap.copy()
+
+    $mapCopy.a += 1
+    $mapCopy.l[2] += 1
+    $mapCopy.m.a[2] += 1
+    $mapCopy.m['b'] = 9
+
+    $mapJson = Json.encode($nestMap).renderString()
+    $copyJson = Json.encode($mapCopy).renderString()
+
+    $t.ok($mapJson == '{"a":1,"l":[2,3],"m":{"a":[4,5]}}', 'deep copy - map - orig unchanged')
+    $okJson = '{"a":2,"l":[2,4],"m":{"a":[4,6],"b":9}}'
+    $t.ok($copyJson == $okJson, 'deep copy - map - modified copy')
+
+
+    // Deep copy by reference
+    $nestMap = { a: 1, l: [2, 3], m: { a: [4, 5] } }
+    $mapRefCopy = $nestMap.copy(-refs)
+    $mapRefCopy.m.a[1] = 99
+    $t.ok($nestMap.m.a[1] == 99, 'copy by reference - map')
+
+    $nestList = [1, [2, 3], { a: 4 }, { l: [5, 6] }]
+    $listRefCopy = $nestList.copy(-refs)
+    $listRefCopy[4].l[2] = 999
+    $t.ok($nestList[4].l[2] == 999, 'copy by reference - list')
+
+
+    // Enums
+
+    $enum = { lower, Upper, N500 }
+    $t.ok($enum.lower == 'lower', 'enum - lower key')
+    $t.ok($enum.Upper == 'Upper', 'enum - Upper key')
+    $t.ok($enum.N500 == 'N500', 'enum - number')
+
+
+    $t.section('Maps - Equals')
+
+    $t.ok(({ a: 1, b: 2 } == { a: 1, b: 2 }), '== - true')
+    $t.ok({ a: 1, b: 2 }.equals({ a: 1, b: 2 }), 'equals - true')
+    $t.ok(!{ a: 1, b: 2 }.equals({ a: 1, b: 2, c: 3 }), 'equals - false')
+    $t.ok({ a: 1, b: { c: 3 } }.equals({ a: 1, b: { c: 3 } }), 'equals nested map - true')
+    $t.ok(!{ a: 1, b: { c: 3 } }.equals({ a: 1, b: { c: 4 } }), 'equals nested map - false')
+    $t.ok(!{ 0: 'a', 1: 'b' }.equals(['a', 'b']), 'equals similar list - false')
+
+    $m = {
+        a: 123
+        doSomething: fun { return 'fn:' ~ @.a }
+        short: x{ @.a + 1 }
+    }
+    $t.ok($m.doSomething() == 'fn:123', 'added closure to map')
+    $t.ok($m.short() == 124, 'added x-function to map')
+
+    $t.section('Maps - Option Maps')
+
+    $ops = { num: 123, bool, str: 'hello' }
+    $ops.check({ num: 0, bool: false, str: 'default' })
+
+    $t.ok($ops.bool == true && $ops.str == 'hello', 'option map')
+
+    $ops = { num: 123 }
+    $t.dies(fun { $ops.check({ numX: 0 }) }, 'invalid option map key')
+
+    $ops = { num: 123 }
+    $t.dies(fun { $ops.check({ num: 'foo' }) }, 'must be of type: `string`')
+
+
+    $t.section('Maps - Check')
+
+    // $schema = {
+    //     name: 's'
+    //     age: 'i'
+    //     email: 'email'
+    //     color: 'in:red,blue,green'
+    //     website: 'url|optional'
+    //     createDate: 'date|optional'
+    // }
+
+    // $map = {
+    //     name: 'Joe'
+    //     age: 48
+    //     email: 'joe'
+    //     color: 'orange'
+    //     sdfsdf: 123
+    // }
+
+    // $map.vcheck($schema)
+
+    return $t
+}
+
+

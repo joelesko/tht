@@ -1,0 +1,40 @@
+
+fun main {
+
+    $pid = Input.route('pid')
+
+    $items = []
+    foreach range(1, 100) as $i {
+
+        $item = {
+            num: $i
+            name: $pid ~ $i
+        }
+
+        $items #= $item
+    }
+
+    Output.sendHtml(html($pid, $items))
+}
+
+tem html($pid, $items) {
+    <!doctype html>
+    <html>
+        <head>
+            <title> Route Param Test
+        </>
+        <body>
+            THT - Route Param: {{ $pid }}
+            <ul>
+            --- foreach $items as $item {
+                {{ itemHtml($item) }}
+            --- }
+            </>
+        </>
+    </>
+}
+
+tem itemHtml($item) {
+    <li> {{ $item.num }}: {{ $item.name }}
+}
+

@@ -1,0 +1,43 @@
+
+public fun run($t) {
+
+    $t.section('Module: Session')
+
+    Session.deleteAll()
+
+    Session.set('key1', 'value')
+    Session.set('key2', { a: 'b' })
+    $t.ok(Session.get('key1') == 'value', 'set/get')
+    $t.ok(Session.get('key2').a == 'b', 'get map')
+
+    $t.ok(Session.getAll().keys().join('|') == 'key1|key2', 'getAll')
+
+    $t.ok(Session.get('missing', '') == '', 'get with blank default')
+    $t.ok(Session.get('missing', 'default') == 'default', 'get with default')
+
+    $t.ok(Session.hasKey('key1'), 'hasKey true')
+    $t.ok(Session.delete('key1') == 'value', 'delete')
+    $t.ok(!Session.hasKey('key1'), 'hasKey false')
+
+    Session.deleteAll()
+    $t.ok(Session.getAll().keys().length() == 0, 'deleteAll')
+
+    $t.ok(Session.addCounter('num') == 1, 'counter 1')
+    $t.ok(Session.addCounter('num') == 2, 'counter 2')
+
+    Session.setFlash('fkey', 'fvalue')
+    $t.ok(Session.getFlash('fkey') == 'fvalue', 'flash set/get')
+
+    $t.ok(Session.hasFlash('fkey'), 'hasFlash - true')
+    $t.ok(Session.hasFlash('missing') == false, 'hasFlash - false')
+
+    Session.addToList('list', 123)
+    $t.ok(Session.get('list')[1] == 123, 'addToList 1')
+
+    Session.addToList('list', 456)
+    $t.ok(Session.get('list')[2] == 456, 'addToList 2')
+
+    $t.dies(fun { Session.get('missing') }, 'get bad key', 'Unknown session key')
+
+    return $t
+}

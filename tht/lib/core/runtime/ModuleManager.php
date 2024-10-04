@@ -11,12 +11,12 @@ class ModuleManager {
     static function init() {
 
         self::initAutoloading();
-        LibModules::load();
+        StdLibModules::load();
     }
 
-    static function isStdLib ($lib) {
+    static function isStdLib($lib) {
 
-        return LibModules::isa($lib);
+        return StdLibModules::isa($lib);
     }
 
     static function getNamespace($relPath) {
@@ -69,25 +69,39 @@ class ModuleManager {
         return $path;
     }
 
-    static function getNamespacedPackage ($relPath) {
+    static function cleanNamespacedFunction($ns) {
+
+        $parts = explode('\\', $ns);
+
+        $fun = array_pop($parts);
+        $mod = array_pop($parts) ?? '';
+
+        $mod = str_replace('_x', '', $mod);
+
+        if ($mod) { $mod .= '.'; }
+
+        return $mod . $fun;
+    }
+
+    static function getNamespacedPackage($relPath) {
 
         // todo: handle subdirs
         return '\\' . self::getNamespace('modules/' . $relPath) . '\\' . u_($relPath);
     }
 
-    static function registerUserModule ($file, $nameSpace) {
+    static function registerUserModule($file, $nameSpace) {
 
         $relPath = Tht::getRelativePath('app', $file);
         self::$fileToNameSpace[$relPath] = $nameSpace;
         self::registerModule($nameSpace, $relPath);
     }
 
-    static function registerStdModule ($name, $obj = -1) {
+    static function registerStdModule($name, $obj = -1) {
 
         self::$moduleRegistry[$name] = $obj;
     }
 
-    static function registerModule ($nameSpace, $path) {
+    static function registerModule($nameSpace, $path) {
 
         self::$moduleRegistry[$path] = new OModule ($nameSpace, $path);
     }
@@ -115,9 +129,9 @@ class ModuleManager {
     }
 
 
-    static function get($modName, $isSideload = false) {
+    static function get($modName) {
 
-        $cacheKey = $modName . ($isSideload ? '_side' : '');
+        $cacheKey = $modName;
         if (isset(self::$moduleCache[$cacheKey])) {
             return self::$moduleCache[$cacheKey];
         }
@@ -135,11 +149,6 @@ class ModuleManager {
         else {
             // User module
             $mod = self::loadUserModule($cleanModName);
-        }
-
-        if ($isSideload) {
-            // Wrap in adapter
-            $mod = new \o\OModulePhpAdapter($mod);
         }
 
         self::$moduleCache[$cacheKey] = $mod;
@@ -172,9 +181,16 @@ class ModuleManager {
     // Entry point for `load()`
     static function loadUserModule($relPath) {
 
+        $modName = basename($relPath);
+        if (self::isStdLib($modName)) {
+            Tht::error('Module already exists as a standard module: `' . $modName . '`  Try: Rename your module.');
+        }
+
         // relative to calling file
         if (preg_match('!^\.!', $relPath)) {
+
             $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1];
+            $caller = Tht::getUserlandCaller();
 
             $callerPath = $caller['file']; // e.g. 'my_file.tht.php'
             if (!preg_match('/_modules_/', $callerPath)) {
@@ -189,10 +205,28 @@ class ModuleManager {
             $dottedFullPath = Tht::makePath(Tht::path('modules'), $dottedRelPath) . '.tht';
 
             $path = Tht::realpath($dottedFullPath);
+
             $path = Tht::getRelativePath('modules', $path);
+
             $path = str_replace('.tht', '', $path);
 
             $relPath = $path;
+        }
+
+        $relPath = OTypeString::isa($relPath) ? $relPath->u_render_string() : $relPath;
+        if (v($relPath)->u_ends_with('*')) {
+            $relPath = rtrim($relPath, '*');
+            $fullPath = Tht::path('modules', $relPath);
+            $subFiles = PathTypeString::create($fullPath)->u_read_dir(OMap::create([ 'filter' => 'files' ]));
+            $mods = OMap::create([]);
+            foreach ($subFiles as $f) {
+                $f = $f->u_render_string();
+                if (!v($f)->u_ends_with('.tht')) { continue; }
+                $f = str_replace('.tht', '', $f);
+                $f = Tht::getRelativePath('modules', $f);
+                $mods[basename($f)] = self::loadUserModule($f);
+            }
+            return $mods;
         }
 
         self::validateImportPath($relPath);
@@ -201,6 +235,7 @@ class ModuleManager {
 
         Compiler::process($fullPath);
 
+        // Note: can't just rely on Compiler.process to catch mismatch
         $relPath = Tht::getRelativePath('app', $fullPath);
         if (!isset(self::$moduleRegistry[$relPath])) {
             Tht::error("Module file name mismatch: `$relPath`  Try: Check exact spelling/case");
@@ -219,14 +254,14 @@ class ModuleManager {
         if (preg_match('!\.tht!i', $relPath)) {
             Tht::error("Please remove `.tht` file extension from load path.");
         }
-        // else if (strpos($relPath, './') !== false || strpos($relPath, '..') !== false) {
+        // else if (str_contains($relPath, './') || str_contains($relPath, '..')) {
         //     Tht::error("Dot shortcuts (`.` or `..`) are not supported in command: `import`");
         // }
-        else if (strpos($relPath, '\\') !== false) {
+        else if (str_contains($relPath, '\\')) {
             Tht::error("Please use forward slashes `/` in file paths.");
         }
         else if (preg_match('![^a-zA-Z0-9\/\.]!', $relPath)) {
-            Tht::error("Invalid character in `load` path: `$relPath`");
+            Tht::error("Invalid character in `load` path: `$relPath`  Try: `test/TestModule.tht` (example)");
         }
     }
 
@@ -245,24 +280,18 @@ class ModuleManager {
 
             $class = str_replace('o\\u_', '', $aclass);
 
-            if ($class !== 'Perf') { Tht::module('Perf')->u_start('tht.loadModule', $class); }
+            //if ($class !== 'Perf') { $perfTask = Tht::module('Perf')->u_start('tht.loadModule', $class); }
 
-            if (LibModules::isa($class)) {
-                if ($class == 'System') {
-                    $class = 'SystemX';
-                }
-                Tht::loadLib('../modules/' . $class . '.php');
-
+            if (StdLibModules::isa($class)) {
+                Tht::loadLib('lib/stdlib/modules/' . $class . '.php');
             } else if (strpos($aclass, 'tht\\') === 0) {
-
                 self::loadUserModule(self::namespaceToModulePath($aclass));
-
             } else {
-                // Tht::error("Can not autoload PHP class: `$aclass`");
-                // UPDATE: Allow pass through for PHP interop
+                // Tht::error("Unable to autoload PHP class: `$aclass`");
+                // UPDATE: Allow pass-through for PHP interop
             }
 
-            if ($class !== 'Perf') { Tht::module('Perf')->u_stop(); }
+           // if ($class !== 'Perf') { $perfTask->u_stop(); }
 
         });
     }

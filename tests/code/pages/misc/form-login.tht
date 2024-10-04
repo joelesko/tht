@@ -1,0 +1,54 @@
+
+@@.form = Form.create('loginForm', {
+    username: {
+        rule: 'username'
+    }
+    password: {
+        rule: 'password'
+    }
+})
+
+fun main {
+
+    $page = Page.create({
+        title: 'Login Form'
+        main: formHtml()
+        css: [url'/css/basic.css']
+        js: [url'/js/form.js']
+    })
+
+    Output.sendPage($page)
+}
+
+fun postMode {
+
+    @@.form.process(fun ($data) {
+
+        if $data.password.check('$2y$10$wFKvNdyD4NmRJEV5tFdWT.AFH6kd1Qc/oKJIC6v8dMz5q6N8tGune') {
+            return thanksHtml($data)
+        }
+        else {
+            return ['password', 'Incorrect password.']
+        }
+
+    })
+}
+
+tem formHtml {
+
+    <h1> Login Form
+
+    <.panel>
+        {{ @@.form.toHtml('Log In') }}
+    </>
+
+}
+
+tem thanksHtml($data) {
+
+    <p> Welcome back, <b>{{ $data.username }}</>!
+
+    <p> Hashed password: <b> {{ $data.password.xDangerHash() }}
+
+    <p> <a href=""> Back to Form
+}

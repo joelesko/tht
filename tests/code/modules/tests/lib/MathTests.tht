@@ -1,0 +1,28 @@
+
+public fun run($t) {
+
+    $t.section('Module: Math')
+
+    $rand = Math.random(6, 8)
+    $rnd = Math.random()
+
+    $t
+        .ok($rand >= 6 && $rand <= 8, 'random')
+        .ok($rand.floor() == $rand, 'random is int')
+        .ok($rnd >= 0.0 && $rnd < 1.0, 'random float')
+
+        .ok(Math.convertBase(21, 10, 2) == '10101', 'convertBase: dec to bin')
+        .ok(Math.convertBase('1af9', 16, 10) == 6905, 'convertBase: hex to dec')
+
+        .ok(Math.hexToDec('F1') == 241, 'hexToDex')
+        .ok(Math.hexToDec('FF0000') == 16711680, 'hexToDex - color')
+        .ok(Math.hexToDec('#FF0000') == 16711680, 'hexToDex - CSS color')
+        .ok(Math.hexToDec('0xFF0000') == 16711680, 'hexToDex - 0x prefix')
+        .ok(Math.decToHex(241) == 'f1', 'decToHex')
+        .ok(Math.decToHex(16) == '10', 'decToHex')
+
+        .ok(Math.sqrt(16) == 4, 'sqrt')
+        .ok(Math.pi().round(2) == 3.14, 'pi')
+
+    return $t
+}

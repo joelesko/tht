@@ -1,0 +1,62 @@
+
+public fun run($t) {
+
+    $t.section('Module: Meta')
+
+        .ok(Meta.functionExists('metaCallMe'), 'functionExists')
+        .ok(Meta.callFunction('metaCallMe', ['a', 'b']) == 'a|b', 'callFunction & arguments')
+
+        .ok(Meta.failIfTemplateMode() == null, 'failIfTemplateMode ok')
+        .dies(fun { failModeHtml() }, 'can`t be called in Template mode')
+        .dies(fun { templateFailOutputHtml() }, 'can`t be called in Template mode')
+        .dies(fun { templateFailInputHtml() }, 'can`t be called in Template mode')
+
+        .ok(Meta.functionExists('dynamicFunction'), 'dynamic fun exists')
+        .ok(Meta.callFunction('dynamicFunction', ['Hey']) == 'Hey!!!', 'call dynamic function')
+
+        .ok(Meta.getThtVersion().match(rx'\d+\.\d+\.\d+'), 'thtVersion')
+        .ok(Meta.getThtVersion(-num).match(rx'^\d{5}$'), 'thtVersion - digits')
+
+    if !$t.skipSlowTests() {
+        $t.ok(Meta.zGetStdLib()['File'].read.contains('$file.read'), 'zGetStdLib')
+    }
+
+    return $t
+}
+
+fun trigger($x, $y) {
+
+    $x = 456
+
+    $triggerError = fun {
+        return 123
+    }
+}
+
+fun metaCallMe($arg1, $arg2) {
+
+    return $arg1 ~ '|' ~ $arg2
+}
+
+fun failTemplateMode {
+    Meta.failIfTemplateMode()
+}
+
+tem failModeHtml {
+    --- failTemplateMode()
+}
+
+fun dynamicFunction($a) {
+    return $a ~ '!!!'
+}
+
+tem templateFailOutputHtml {
+
+    --- Output.sendPage({})
+}
+
+tem templateFailInputHtml {
+
+    --- Input.get('num', 'i')
+}
+

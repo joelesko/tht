@@ -1,0 +1,64 @@
+
+fun main {
+
+    $files = q[
+        tht_favicon.png
+        lospec_continuum_773674.png
+        oscar_the_grouch.png
+        logo_social.png
+        text.png
+        landscape.jpeg
+        gradient.png
+        motorcycle_alpha.png
+    ]
+
+    if Input.get('css') {
+        Output.sendCss(css())
+    }
+    else {
+
+        Output.sendHtml(pageHtml($files))
+    }
+}
+
+tem pageHtml($files) {
+    
+    <html>
+    <head> <link rel="stylesheet" href="?css=true" />
+
+    <body>
+
+    <style> body { background-color: #ddd; font-family: arial; } img { max-width: 600px } h2 { font-size: 300%; margin: 3rem 0 2rem; }
+
+    <h2> Image Optimization Test
+
+    <p> Optimization code is in `Image/ImageOptimizer.php`.
+
+    <h2> Optimized
+    --- foreach $files as $f {
+    <div> <img src="{{ '/images/optimize/' ~ $f }}">
+    --- }
+
+    <h2> Thumbs
+    --- foreach $files as $f {
+        ---  $f = .replace('.', '_thumb200.')
+    <div> <img src="{{ '/images/optimize/' ~ $f }}">
+    --- }
+
+    <h2> As Is
+    --- foreach $files as $f {
+        --- $f = .replace('.', '_asis.')
+    <div> <img src="{{ '/images/optimize/' ~ $f }}">
+    --- }
+
+    </>
+    </>
+}
+
+tem css {
+
+    body {
+        background: url(/images/optimize/bg_texture.png);
+    }
+
+}

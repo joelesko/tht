@@ -1,0 +1,8 @@
+
+
+$str = 'string'
+
+>> $str.upperCase()
+
+
+

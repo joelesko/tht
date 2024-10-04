@@ -1,0 +1,11 @@
+
+System.setMaxMemoryMb(3)
+
+$mem = ''
+
+foreach range(1, 10000) as $x {
+    foreach range(1, 10000) as $y {
+        $mem ~= 'xxxxxxx'.repeat(1_000_000)
+    }
+}
+

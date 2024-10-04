@@ -1,0 +1,23 @@
+
+fun main {
+    transformImage()
+}
+
+fun transformImage($image = '') {
+    getColor('default')
+}
+
+fun getColor($filter) {
+
+    $color = Math.hexdec('#66ff00')
+
+    if $filter == 'monochrome' {
+        $color = toMonochrome($color)
+    }
+
+    return $color
+}
+
+fun toMonochrome {
+    return 0
+}

@@ -1,0 +1,132 @@
+
+fun main {
+
+    $products = getAllFromCart()
+
+    $page = Page.create({
+        title: 'Database Example'
+        css: url'/vendor/basic.css'
+        main: pageHtml($products)
+    })
+
+    Output.sendPage($page)
+}
+
+
+// Modes (via 'mode' param in links)
+// See:  https://tht.dev/reference/page-modes
+//----------------------------------------------------------
+
+fun addTacosMode {
+
+    addToCart('tacos', Math.random(1, 4))
+
+    return true   // refresh page
+}
+
+fun addTatersMode {
+
+    addToCart('taters', Math.random(1, 6))
+
+    return true
+}
+
+fun deleteAllTacosMode {
+
+    deleteFromCart('tacos')
+
+    return true
+}
+
+fun deleteAllTatersMode {
+
+    deleteFromCart('taters')
+
+    return true
+}
+
+
+// Database Access
+//----------------------------------------------------------
+
+// Database: data/db/app.db (sqlite)
+// Table: cart
+// Columns:
+//    product: varchar
+//    quantity: int
+
+fun getAllFromCart {
+
+    return Db.selectRows(sql'select * from cart')
+}
+
+fun addToCart($product, $num) {
+
+    Db.insertRow('cart', { product: $product, quantity: $num })
+}
+
+fun deleteFromCart($product) {
+
+    Db.deleteRows('cart', { product: $product })
+}
+
+
+// Templates
+//----------------------------------------------------------
+
+tem pageHtml($products) {
+
+    <h1> Database Example
+
+    <table>
+        <tr>
+            <th> Product
+            <th> Quantity
+        </>
+        --- foreach $products as $p {
+        <tr>
+            <td> {{ $p.product }}
+            <td> {{ $p.quantity }}
+        </>
+        --- }
+    </>
+
+    --- if !$products {
+        <p> <i> No items in cart.
+    --- }
+
+
+    {{ linksHtml() }}
+}
+
+tem linksHtml {
+
+    <style>
+        .links { margin-top: 6rem; width: 42rem; }
+        .links button { margin: 1.5rem 0; width: 20rem; }
+    </>
+
+    <.links>
+        {{ button('addTacos', 'plus') }}
+        {{ button('deleteAllTacos', 'cancel') }}
+        {{ button('addTaters', 'plus') }}
+        {{ button('deleteAllTaters', 'cancel') }}
+    </>
+}
+
+// Creates a button that submits data via a hidden form,
+// wthout the need for AJAX.
+fun button($mode, $iconType) {
+
+    $data = { mode: $mode }
+    $label = $mode.toHumanized().toTitleCase()
+    $iconLabel = iconLabelHtml($label, $iconType)
+
+    return Web.postLink($iconLabel, url'this', $data)
+}
+
+tem iconLabelHtml($label, $iconType) {
+    {{ Web.icon($iconType) }} {{ $label }}
+}
+
+

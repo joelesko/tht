@@ -1,0 +1,165 @@
+
+
+// Split these to separate files
+
+
+
+// Std Modules - not enough arguments (triggered by PHP)
+//
+
+// Built-in arg type
+// doSomething({ foo: 'bar' })
+// fn doSomething($msg:s) {
+//     print($msg)
+// }
+
+
+// With stack trace
+// TODO: fix formatting of function names
+
+// Standalone expression/literals
+//$a == 123
+//$a
+//true
+//{}
+
+
+// Unknown function (tht validator)
+// myFun()
+
+// wrong function case
+// myFuN()
+// fn myFun() { }
+
+// Unknown function (passes validation, but caught in PHP)
+// bar()
+// fn foo() {
+//     fn bar($a) {
+//         print('bar' ~ $a)
+//     }
+// }
+
+
+// Non-existent field, in nested calls.
+// doSomething()
+// fn doSomething() {
+//     doAnotherThing()
+// }
+// fn doAnotherThing() {
+//     $a = {}
+//     $b = $a.foo
+// }
+
+
+// undefined function
+//nope()
+
+
+
+// PHP Runtime Errors
+//-------------------------------
+
+// divide by zero
+//if 2 / 0: print('x')
+
+
+
+// Memory
+// $s = '';
+// foreach range(1, 10000) as $x {
+//     foreach range(1, 10000) as $y {
+//         $s ~= 'xxxxxxxxxx';
+//     }
+// }
+
+
+
+
+// THT Runtime Errors
+//-------------------------------
+
+// standard arguments (too many)
+//Math.floor(1, 1);
+
+//print('foo'.length('x'));
+
+// non-number add
+//$a = 'cat' + 3
+
+// argument type
+// add('cat');
+// F add($n:i) { }
+
+// List
+// $l = [];
+// print($l.first(3));
+
+// require typestring
+//Response.redirect('/');
+
+// stdmodule error
+//Json.decode('sdfsdf');
+
+// user triggered
+//die('foo');
+
+// map via bag
+// $m = {};
+// $m.foo = 123;
+
+// security
+//Php.call('eval', '');
+
+// scope - in function
+// TODO - catch at compile time, write test
+// foo(1);
+// function foo($z) {
+
+//     inner();
+//     function inner() {
+//         print('hi');
+//     }
+// }
+
+
+
+// PHP Shutdown Errors
+//-------------------------------
+
+// too few arguments
+// TODO: message formatting
+ // go(123);
+ // function go($foo:s) { }
+
+//Response.sendHtml(scriptHtml());
+
+
+// tm scriptHtml {
+//     Hello
+//     <script foo='bar'>
+//        console.log('test');
+//     </>
+// }
+
+
+
+// Resource Errors
+//-------------------------------
+
+// Exceeded memory
+// $a = []
+// loop {
+//     $a.push('xxx')
+//     if false: break
+// }
+
+
+
+
+
+// $abc = 'abc'
+// $abc.contains('')
+
+
+
+

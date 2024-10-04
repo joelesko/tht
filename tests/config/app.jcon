@@ -1,0 +1,55 @@
+// Test Site
+
+{
+    routes: {
+        /home: allTests.tht
+        /test/{action}: testAction.tht
+        /test-auto: userAccounts.tht @ autoFunction
+        /benchmark/route/{pid}: benchmark/test-route.tht
+    }
+
+    tht: {
+
+        // used by test
+        timezone: America/Los_Angeles
+
+        showPerfPanel: false
+        _coreDevMode: false
+
+        showErrorPageForMins: 20
+
+        hitCounter: false
+
+        _sendErrorsUrl: local
+
+        litemarkCustomTags: {
+            tag1: <b>CUSTOM: {1}</b>
+            othertag1: <b>OTHER: {1}</b>
+        }
+    }
+
+    app: {
+        num: -123.45
+        booleanFalse: false
+        booleanTrue: true
+        string: value with spaces, etc.
+        map: {
+            key: value
+        }
+        list: [
+            value 1
+            value 2
+        ]
+
+        mlString: '''
+            line 1
+            line 2
+        '''
+
+        aUrl: https://asite.com
+        aFile: /path/to/file.txt
+        aDir: /some/path
+        winFile: C:\some\path\file.txt
+    }
+
+}

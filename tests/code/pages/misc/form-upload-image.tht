@@ -1,0 +1,60 @@
+
+@@.form = Form.create('uploadForm', {
+
+    // uploadFile: {
+    //     type: 'file'
+    //     rule: 'file|maxSizeMb:1'
+    // }
+    uploadImage: {
+        rule: 'image'
+        dir: 'uploads/profiles'
+        dim: '200x200'
+    }
+})
+
+fun main {
+
+    $page = Page.create({
+        title: 'Upload Image'
+        main: formHtml()
+        css: [url'/css/basic.css']
+        js: [url'/js/form.js']
+    })
+
+    Output.sendPage($page)
+}
+
+fun postMode {
+
+    // Validate input, then run the inner function
+    @@.form.process(fun ($data) {
+
+        $imageUrl = @@.form.getUploadedImage('uploadImage', 'uploads')
+
+        >> $imageUrl
+
+        return thanksHtml($imageUrl)
+    })
+}
+
+
+
+tem formHtml {
+
+    <h1> Upload Image
+
+    <.panel>
+        --- $buttonLabel = Web.icon('check').append(html' Upload Image')
+        {{ @@.form.toHtml($buttonLabel) }}
+    </>
+
+}
+
+tem thanksHtml($imageUrl) {
+
+    <p> Thanks, we got your upload!
+
+    <img src="{{ $imageUrl }}">
+
+    <p> <a href="/examples/contact-form"> Back to Form
+}

@@ -1,0 +1,8 @@
+
+System.setMaxRunTimeSecs(2)
+
+// Note: PHP ignores `sleep` when measuring execution time
+loop {
+    if false: break
+}
+

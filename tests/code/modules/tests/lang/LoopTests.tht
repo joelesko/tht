@@ -1,0 +1,113 @@
+
+public fun run($t) {
+
+    $t.section('Loops')
+
+    $s = ''
+    foreach range(1, 3) as $i {
+        $s ~= $i
+    }
+    $t.ok($s == '123', 'foreach, range')
+
+    $s = ''
+    foreach range(5, 1) as $i {
+        $s ~= $i
+    }
+    $t.ok($s == '54321', 'desc range')
+
+    $s = ''
+    foreach range(0, 8, 2) as $i {
+        $s ~= $i
+    }
+    $t.ok($s == '02468', 'range step 2')
+
+
+    $s = ''
+    $nums = [1, 2, 3, 4, 5]
+    foreach $nums as $n {
+        $s ~= $n
+    }
+    $t.ok($s == '12345', 'foreach, list')
+    $s = ''
+    foreach $nums as $n {
+        $s ~= $n
+    }
+    $t.ok($s == '12345', 'foreach, list - second time (reset)')
+
+
+
+    $pairs = { a: 1, b: 2, c: 3 }
+    $s = ''
+    foreach $pairs as $letter/$number {
+        $s ~= $number ~ $letter
+    }
+    $t.ok($s == '1a2b3c', 'foreach, map')
+
+    $s = ''
+    foreach $pairs as $letter/$number {
+        $s ~= $number ~ $letter
+    }
+    $t.ok($s == '1a2b3c', 'foreach, map - second time (reset)')
+
+
+    $s = ''
+    foreach range(7, 9) as $i/$num {
+        $s ~= $i ~ $num
+    }
+    $t.ok($s == '172839', 'foreach, range with index')
+
+    $s = ''
+    foreach [4, 5, 6] as $i/$num {
+        $s ~= $i ~ $num
+    }
+    $t.ok($s == '142536', 'foreach, list with index')
+
+
+
+
+    $i = 0
+    $s = ''
+    loop {
+        $i += 1
+        $s ~= $i
+        if $i == 3: break
+    }
+    $t.ok($s == '123', 'loop - break')
+
+    $i = 0
+    $s = ''
+    loop {
+        $i += 1
+        if $i == 4: continue
+        $s ~= $i
+        if $i == 5: break
+    }
+    $t.ok($s == '1235', 'loop - continue')
+
+
+    $i = 0
+    foreach [11, 22, 33] as $n {
+        $i = $n
+        if $n > 20: break
+    }
+    $t.ok($i == 22, 'foreach - break')
+
+    $i = 0
+    foreach [11, 22, 33] as $n {
+        $i = $n
+        if $n > 20: continue
+    }
+    $t.ok($i == 33, 'foreach - continue')
+
+
+    $t.parserError('loop {\n    $a = 1\n}\n', 'needs a \'break\'')
+    $t.parserError('loop {\n    loop { break }\n}\n', 'needs a \'break\'')
+    $t.parserOk('loop {\n    loop { break }\n    break\n}\n', 'nested breaks')
+    $t.parserOk('fun go {\n    loop {\n        return\n    }\n}', 'return instead of break')
+
+    $t.parserError('$a = 1\nbreak', 'not allowed outside of a loop: `break`')
+    $t.parserError('$a = 1\ncontinue', 'not allowed outside of a loop: `continue`')
+
+    return $t
+}
+

@@ -1,0 +1,58 @@
+{
+    tht: {
+        // Do NOT change this after your app goes live.
+        // ALL of the URLs that contain scrambled IDs will change!
+        // See: https://tht.dev/manual/class/string/scramble-num
+        scrambleNumSecretKey: 5e1a0950
+    }
+
+    // Database settings
+    // See: https://tht.help/manual/module/db
+    databases: {
+
+        // Default sqlite file in 'data/db'
+        default: {
+            driver: sqlite
+            file: app.db
+        }
+
+        errors: {
+            driver: sqlite
+            file: errors.db
+        }
+
+        mapDb: {
+            driver: sqlite
+            file: qdb.db
+            buckets: [
+                users
+            ]
+        }
+
+        badDb: {
+            driver: badDriver
+        }
+
+        mysqlDb: {
+            driver: mysql
+            server: localhost
+            database: mysql
+            username: root
+            password:
+        }
+
+    }
+
+    email: {
+        host: smtp.sendgrid.net
+        port: 587
+        user: apikey
+        password: <api_key>
+    }
+
+    app: {
+        local: {
+            localVar: 789
+        }
+    }
+}

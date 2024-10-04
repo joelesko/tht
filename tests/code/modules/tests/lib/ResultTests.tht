@@ -1,0 +1,15 @@
+public fun run($t) {
+
+    $t.section('Result Objects')
+
+    $okResult = Result.ok(123)
+    $t.ok(!$okResult.getFailCode(), 'not ok')
+    $t.ok($okResult.get() == 123, 'ok value')
+
+    $failResult = Result.fail('testFail')
+    $t.ok($failResult.getFailCode() == 'testFail', 'failCode')
+
+    $t.dies(fun { $failResult.get() }, 'get failed result', 'in a failure state')
+
+    return $t
+}

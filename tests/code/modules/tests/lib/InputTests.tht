@@ -1,0 +1,180 @@
+
+fun formValidate($v, $type) {
+
+    return Input.validateValue('test', $v, $type)['value']
+}
+
+fun formValidateResult($v, $type) {
+
+    return Input.validateValue('test', $v, $type)
+}
+
+public fun run($t) {
+
+    $t.section('Module: Input')
+
+    $badQueryVal = Input.get('sdfsd')
+    $t.ok($badQueryVal == '', 'get - bad string')
+
+    $badQueryVal = Input.get('sdfsd', 'i')
+    $t.ok($badQueryVal == 0, 'get - bad int')
+
+    $data = Input.getAll({
+        email: 'email'
+        comment: 'ms'
+    })
+
+    $badFields = $data.errors
+    $t.ok(!$data.ok, 'getAll - not ok')
+    $badField = $badFields[2]['key']
+    $t.ok($badFields.length() == 2 && $badField == 'comment', 'getAll - errors')
+
+    $t.dies(fun { formValidate('abc', 'badRule') }, 'bad rule', 'Unknown validation type')
+
+    $t.ok(formValidate('', 'id|optional') == '', 'optional ok')
+    $t.ok(formValidate('123', 'id|optional') == '123', 'optional ok')
+
+    $t.ok(formValidate('id123', 'id') == 'id123', 'id ok')
+    $t.ok(formValidate('$foo', 'id') == '', 'id not ok')
+
+    $result = formValidateResult('', 'i')
+    $t.ok($result['ok'] == false && $result['value'] == 0, 'empty i - not ok, default zero')
+
+    $result = formValidateResult('', 's')
+    $t.ok($result['ok'] == false && $result['value'] == '', 'empty s - not ok, default empty')
+
+    $result = formValidateResult('', 'b')
+    $t.ok($result['ok'] == false && $result['value'] == false, 'empty b - not ok, default false')
+
+    $t.ok(formValidate('1234', 'i') == 1234, 'int ok')
+    $t.ok(formValidate('-123', 'i|min:-200') == -123, 'negative')
+
+    $t.ok(formValidate('$1', 'i') == 0, 'number not ok')
+
+    $t.ok(formValidate('123.4', 'f') == 123.4, 'float ok')
+    $t.ok(formValidate('-123.4', 'f|min:-200') == -123.4, 'float - negative')
+
+    $t.ok(formValidate('0', 'f') == 0.0, 'float - 0')
+    $t.ok(formValidate('1.2', 'f') == 1.2, 'float - 1.2')
+    $t.ok(formValidate('11', 'f|min:1|max:10') == 0.0, 'float - out of range')
+
+    $t.ok(formValidate('true', 'b') == true, 'boolean ok')
+    $t.ok(formValidate('false', 'b') == false, 'boolean ok')
+    $t.ok(formValidate('1', 'b') == true, 'boolean num 1 = true')
+    $t.ok(formValidate('0', 'b') == false, 'boolean num 0 = false')
+    $t.ok(formValidate('$1', 'b') == false, 'boolean not ok = false')
+
+
+    $t.ok(formValidate('me@mail.com', 'email') == 'me@mail.com', 'email ok')
+    $t.ok(formValidate('me.com', 'email') == '', 'email not ok - missing @')
+    $t.ok(formValidate('me@mailcom', 'email') == '', 'email not ok - missing dot')
+    $t.ok(formValidate('skip', 'email') == '', 'email not ok')
+
+    $t.ok(formValidate('me@mail@com', 'email') == '', 'email - two @`s')
+    $t.ok(formValidate('me@mail.com.', 'email') == 'me@mail.com', 'email - trailing dot')
+    $t.ok(formValidate('me@mail.cm', 'email') == 'me@mail.com', 'email - .cm to .com')
+
+    $t.ok(formValidate('me@gmai.com', 'email') == 'me@gmail.com', 'email - gmail typo')
+    $t.ok(formValidate('me@gmal.com', 'email') == 'me@gmail.com', 'email - gmail typo')
+    $t.ok(formValidate('me@gmaill.com', 'email') == 'me@gmail.com', 'email - gmail typo')
+    $t.ok(formValidate('me@hotmai.cm', 'email') == 'me@hotmail.com', 'email - hotmail typo')
+    $t.ok(formValidate('me@htmail.com', 'email') == 'me@hotmail.com', 'email - hotmail typo')
+
+    $t.ok(formValidate('me@yaho.co.uk', 'email') == 'me@yahoo.co.uk', 'email - yahoo typo')
+    $t.ok(formValidate('me@yahii.com', 'email') == 'me@yahoo.com', 'email - yahoo typo')
+    $t.ok(formValidate('me@yagoo.com', 'email') == 'me@yahoo.com', 'email - yahoo typo')
+
+    $t.ok(formValidate('1', 'accepted') == true, 'accepted ok')
+    $t.ok(formValidate('true', 'accepted') == true, 'accepted ok - true')
+    $t.ok(formValidate('0', 'accepted') == false, 'accepted not ok')
+    $t.ok(formValidate('false', 'accepted') == false, 'accepted not ok - false')
+    $t.ok(formValidate('', 'accepted') == false, 'accepted not ok')
+
+    $t.ok(formValidate('(123) 456-7890 x23', 'phone') == '(123) 456-7890 x23', 'phone ok')
+    $t.ok(formValidate('badPhone', 'phone') == '', 'phone not ok')
+
+    $t.ok(formValidate('abc  123!', 's') == 'abc 123!', 'text ok')
+    $t.ok(formValidate('abc<b>tag', 's') == 'abctag', 'text no tag')
+    $t.ok(formValidate('abc\nline2', 's') == 'abc line2', 'text newline')
+
+    $sb = 'abc   123   \n\n  xyz!  \n  '
+    $t.ok(formValidate($sb, 'ms') == 'abc   123\n\n  xyz!', 'multiline spaces')
+    $t.ok(formValidate('abc<b>tag', 'ms') == 'abctag', 'multiline no tag')
+    $t.ok(
+        formValidate('abc\n\n\n\nline2', 'ms') == 'abc\n\n\nline2'
+        'multiline newline'
+    )
+    $t.ok(formValidate('short', 'ms|min:8') == '', 'multiline min')
+
+    $t.ok(formValidate('???', 's|civilize') == '?', 'civilized ?')
+
+    $t.ok(formValidate('toolong', 's|max:5') == '', 'max string')
+    $t.ok(formValidate('100', 'i|max:10') == 0, 'max int')
+    $t.ok(formValidate('5', 'i|min:10') == 0, 'min int')
+
+
+    $t.ok(formValidate('user 123', 'username') == '', 'username - space')
+    $t.ok(formValidate('user123', 'username') == 'user123', 'username ok')
+
+    $json = formValidate('{"a":[1,2,3],"b":true}', 'json')
+    $t.ok($json.a[2] == 2 && $json.b == true, 'json')
+
+    $rule = 's|in:red,blue,green'
+    $t.ok(formValidate('green', $rule) == 'green', 'in: ok')
+    $t.ok(formValidate('orange', $rule) == '', 'in: not ok')
+
+    $rule = 's|notIn:red,blue,green'
+    $t.ok(formValidate('orange', $rule) == 'orange', 'notIn: ok')
+    $t.ok(formValidate('green', $rule) == '', 'notIn: not ok')
+
+    $date = formValidate('2021-07-14', 'date')
+    $t.ok($date.format() == '2021-07-14T00:00:00-0700', 'date')
+
+    $date = formValidate('2021-07-14T15:43', 'dateTime')
+    $t.ok($date.format() == '2021-07-14T15:43:00-0700', 'dateTime')
+
+    $date = formValidate('2021-07', 'dateMonth')
+    $t.ok($date.format() == '2021-07-01T00:00:00-0700', 'dateMonth')
+
+    $date = formValidate('2021-W13', 'dateWeek')
+    $t.ok($date.format() == '2021-03-29T00:00:00-0700', 'dateWeek')
+
+    $time = formValidate('13:45', 'time')
+    $t.ok($time == '13:45', 'time')
+
+    if !$t.skipSlowTests() {
+        $pass = formValidate('pass123', 'newPassword')
+        $t.ok($pass == '', 'newPassword - weak')
+
+        $pass = formValidate('js83!ksdfsdf', 'newPassword')
+        $t.ok($pass.xDangerPlainText() == 'js83!ksdfsdf', 'newPassword - ok')
+
+        $pass = formValidate('p@ssw0rd', 'password')
+        $t.ok($pass.xDangerPlainText() == 'p@ssw0rd', 'password - ok')
+    }
+
+    $t.ok(formValidate(['a1', 'a2'], 'id|list').join('|') == 'a1|a2', 'list')
+    $t.ok(formValidate(33, 'i|list')[1] == 33, 'list - one element')
+    $t.ok(formValidate([33, 44], 'i|list').join('|') == '33|44', 'list|i')
+    $t.ok(formValidate(['a5', 'a6'], 'id') == '', 'list data without list rule')
+    $t.ok(formValidate([7, [8, 9]], 'i|list').length() == 0, 'nested list not allowed')
+
+    $t.ok(formValidate('g8b5bdp', 'unscramble') == 10000, 'unscramble')
+
+    $badString = ' foo' ~ String.unicodeToChar(0x0) ~ 'bar '
+    $t.ok(Input.zSanitizeRawInput($badString) == 'foobar', 'sanitize raw input - null')
+
+    $badString = ' foo' ~ String.unicodeToChar(0x2FEF) ~ 'bar '
+    $t.ok(Input.zSanitizeRawInput($badString) == 'foobar', 'sanitize raw input - not defined')
+
+    $badString = ' foo' ~ String.unicodeToChar(0x001F) ~ 'bar '
+    $t.ok(Input.zSanitizeRawInput($badString) == 'foobar', 'sanitize raw input - unit separator')
+
+    // TODO: same/notSame
+
+    // TODO: test get, post, and post w/out csrf
+
+    return $t
+}
+
+

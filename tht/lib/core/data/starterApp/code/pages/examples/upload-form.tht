@@ -1,0 +1,60 @@
+
+@@.form = Form.create('uploadForm', {
+
+    resume: {
+        tag: 'file'
+        rule: {
+            type: 'file'
+            ext: 'doc,pdf,txt'
+            dir: dir'app:/data/uploads/resumes'
+        }
+        help: 'Allowed files: doc, pdf, txt -- Under 2 MB'
+    }
+})
+
+
+// Runs when the page is first loaded.
+fun main {
+
+    $page = Page.create({
+        title: 'Upload Form'
+        main: formHtml()
+        css: [url'/vendor/basic.css']
+        js: [url'/vendor/form.js']
+    })
+
+    Output.sendPage($page)
+}
+
+// Runs when the form is submitted (i.e. request method is POST)
+fun postMode {
+
+    // Validate input, then run the inner function
+    @@.form.process(fun ($data) {
+
+        $resumePath = $data.resume
+
+        // Replace form with HTML fragment
+        return thanksHtml()
+    })
+}
+
+tem formHtml {
+
+    <h1> Upload Form
+
+    <.panel>
+
+        --- $buttonLabel = Web.icon('upload').append(html' Upload Files')
+        {{ @@.form.toHtml($buttonLabel) }}
+
+    </>
+
+}
+
+tem thanksHtml {
+
+    <p> The files were validated and uploaded to <code>data/uploads/resumes</>.
+
+    <p> <a href="/examples/upload-form"> Back to Form
+}

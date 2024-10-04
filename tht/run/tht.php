@@ -3,7 +3,7 @@
 namespace o;
 
 // Include THT lib
-require dirname(__FILE__) . '/../lib/core/Tht.php';
+require dirname(__FILE__) . '/../lib/core/main/Tht.php';
 
 // Run app
 $thtReturnStatus = Tht::main();

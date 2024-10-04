@@ -1,0 +1,28 @@
+@@.AppName = 'MyApp'
+
+public fun newPage {
+
+    $page = Page.create({
+
+        appName: @@.AppName
+        icon: url'/images/favicon_128.png'
+
+        header: headerHtml()
+        footer: footerHtml()
+
+        css: [
+            url'/vendor/basic.css'
+            url'/css/app.css'
+        ]
+    })
+
+    return $page
+}
+
+tem headerHtml {
+    <.logo> {{ @@.AppName }}
+}
+
+tem footerHtml {
+    &copy; {{ Date.now().format('Y') }}
+}

@@ -6,7 +6,7 @@ class JsTemplateTransformer extends TemplateTransformer {
 
     function onEndChunk($str) {
 
-        if (Tht::getConfig('minifyAssetTemplates')) {
+        if (Tht::getThtConfig('minifyAssetTemplates')) {
             $str = Tht::module('Output')->minifyJs($str);
         }
 

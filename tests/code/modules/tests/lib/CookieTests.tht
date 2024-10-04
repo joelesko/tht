@@ -1,0 +1,18 @@
+
+public fun run($t) {
+
+    $t.section('Module: Cookie')
+
+    Cookie.set('test', 'abc123')
+    $t.ok(Cookie.get('test') == 'abc123', 'Cookie - get/set')
+
+    Cookie.set('deleteMe', 'xxx')
+    Cookie.delete('deleteMe')
+    $t.ok(Cookie.get('deleteMe') == '', 'Cookie - delete')
+
+    $t.dies(fun {
+        Cookie.set('test', '{"a":123}')
+    }, 'alphanumeric')
+
+    return $t
+}

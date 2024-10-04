@@ -1,0 +1,24 @@
+
+fun main {
+
+    // Get 'name' as a (s)tring from the query.  Default to 'World'.
+    $name = Input.get('name', 's', 'World')
+
+    $html = helloHtml($name)
+
+    Output.sendHtml($html)
+}
+
+tem helloHtml($name) {
+
+    <div style="font-family: arial; color: #26a; padding: 1rem 2rem;">
+
+        <h1> Hello, {{ $name }}!
+
+        <p> Change "name" in the query string in the address bar.
+
+        <p> e.g. <a href="hello-query?name=Ima+Teapot">hello-query?name=<b>Ima+Teapot</>
+
+    </>
+}
+

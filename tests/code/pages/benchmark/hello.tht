@@ -1,0 +1,12 @@
+
+$page = Page.create({
+    title: 'Hello World'
+    body: html()
+})
+
+Output.sendPage($page)
+
+tem html {
+
+    Hello World!
+}

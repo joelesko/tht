@@ -1,0 +1,40 @@
+//  App Config
+//--------------------------------------------------------------
+{
+    //  Dynamic URL Routes
+    //  Each target path is relative to the `pages` directory.
+    //  See: https://tht.dev/reference/url-router
+    //---------------------------------------------------
+
+    routes: {
+        /examples/route-colors/{color}: examples/route-colors.tht
+    }
+
+
+    //  Custom App Config
+    //  See: https://tht.dev/manual/module/config/get
+    //---------------------------------------------------
+
+    app: {
+        // myNumber: 1234
+        // myBoolean: true
+        // myString: Hello World
+    }
+
+
+    //  Core THT Config
+    //  See: https://tht.dev/reference/app-config
+    //---------------------------------------------------
+
+    tht: {
+        // Print performance timing info
+        // See https://tht.dev/reference/perf-panel
+        showPerfPanel: false
+    }
+
+
+    // Email Config & Database Config
+    //---------------------------------------------------
+
+    // See `config/app.local.jcon`
+}

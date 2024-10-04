@@ -1,0 +1,56 @@
+
+// See the manual on how Forms work here:
+//   https://tht.dev/manual/module/form
+
+// This is called when the page is first requested.
+fun main {
+
+    $page = Page.create({
+        css: [url'vendor/basic.css']
+        js: [url'vendor/form.js']
+    })
+
+    $form = getForm()
+    $html = formHtml($form)
+    $page.setMain($html)
+
+    Output.sendPage($page)
+}
+
+// This is called when the form is submitted.
+fun postMode {
+
+    $form = getForm()
+
+    // Validate the input field.
+    // If it's ok, then it runs the inner function.
+    $form.process(fun ($data) {
+
+        // Send HTML back to the browser, which will replace the form.
+        return helloHtml($data.name)
+    })
+}
+
+fun getForm {
+
+    // Create a form with a single 'text' input field.
+    $form = Form.create('helloForm', {
+        name: { tag: 'text', rule: 'name' }
+    })
+
+    return $form
+}
+
+tem formHtml($form) {
+
+    <h1> Hello Form
+
+    {{ $form.toHtml('Submit') }}
+}
+
+tem helloHtml($name) {
+
+    <p> Hello, <b>{{ $name }}</>!
+
+    <p> <a href="hello-form"> Back to Form
+}

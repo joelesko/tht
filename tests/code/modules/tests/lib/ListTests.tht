@@ -1,0 +1,352 @@
+
+
+public fun run($t) {
+
+    $t.section('Lists')
+
+    $ary = [1, 2, 3, 4, 5]
+    $t.ok([4, 5, 6].reverse()[-1] == 4, 'direct list method')
+    $t.ok($ary.length() == 5, 'size')
+    $t.ok($ary[2] == 2, 'direct')
+    $t.ok($ary.join(':') == '1:2:3:4:5', 'join')
+    $t.ok($ary.reverse().join(':') == '5:4:3:2:1', 'reverse')
+
+
+    $ary = [[0, 0], [1, 1]]
+    $ary[1][1] = 99
+    $t.ok($ary[1][1] == 99, 'deep assignment')
+
+    $t.parserError('$a = [, 1, 2, 3]', 'unexpected comma')
+    $t.parserError('$a = [1, 2, 3, ]', 'trailing comma')
+    $t.parserError('$a = [\n    1,\n]', 'Comma `,` is not needed')
+    $t.parserError('$a = [1\n    2]', 'Expected closing delimiter on same line')
+    $t.parserError('$a = [\n    1,\n    { a: 123 }\n]', 'Comma `,` is not needed')
+    $t.parserError('$a = [1 2]', 'expected a comma or newline')
+    $t.parserError('$a = [1, 2 3]',   'expected a comma or newline')
+    $t.parserError('$a = [a: 123]', 'Convert `[…]` to `{…}`')
+    $t.parserOk('$a = [\n]', 'empty multi-line list')
+    $t.parserOk('$a = [\n    1, 2, 3\n    4, 5, 6\n]', 'multi-line list with commas')
+
+    $ary = [1, 2, 3, 4, 5]
+    $t.ok($ary[-2] == 4, 'negative index')
+
+    $ary[1] = 99
+    $t.ok($ary[1] == 99, 'direct set')
+
+    $mlary = [
+        'hello'
+        { name: 'world' }
+        'yay'
+    ]
+
+    $t.ok($mlary[2]['name'] == 'world', 'multiline array')
+
+
+
+
+    // copy
+    $copyAryA = [1, 2]
+    $copyAryB = $copyAryA.copy()
+    $copyAryA[1] = 11
+    $copyAryB[1] = 22
+
+    $t.ok($copyAryA[1] == 11 && $copyAryB[1] == 22, 'copy')
+
+    // insert / remove
+    $ary = [1, 2, 3]
+
+    $ary.push(40)
+    $t.ok($ary[4] == 40, 'push')
+    $t.ok($ary.pop() == 40, 'pop')
+    $t.ok($ary.length() == 3, 'pop modified original')
+
+    $t.ok($ary.insert(1, -10)[1] == -10 && $ary.length() == 4, 'insert index 0')
+    $t.ok($ary.remove(1) == -10 && $ary.length() == 3, 'remove index 0')
+
+    $t.dies(fun { [1, 2].remove(3) }, 'Index `3` is outside of List length: `2`')
+    $t.dies(fun { [].remove(1) }, 'Index `1` is outside of List length: `0`')
+
+
+    // insert
+    $ary = [1, 2, 3]
+    $ary.insert(1, 40)
+    $t.ok($ary[1] == 40 && $ary.length() == 4, 'insert index 0')
+
+    $ary = [1, 2, 3]
+    $ary.insert(-1, 40)
+    $t.ok($ary[3] == 40 && $ary.length() == 4, 'insert index -1')
+
+
+    // pushFirst / popFirst
+    $ary = [1, 2, 3]
+    $t.ok($ary.pushFirst(-99).join(',') == '-99,1,2,3', 'pushFirst')
+    $t.ok($ary.popFirst() == -99, 'popFirst')
+
+    $t.dies(fun { [].pop() }, '`pop` on an empty list')
+    $t.dies(fun { [].popFirst() }, '`popFirst` on an empty list')
+
+    $t.ok([0, 1, 2].remove(-1) == 2, 'remove index -1')
+    $t.ok([0, 1, 2].remove(-2) == 1, 'remove index -2')
+
+    $t.dies(fun { [0, 1, 2].remove(99) }, 'Index `99` is outside of List length: `3`')
+
+    $t.ok([0, 1, 2].remove(1, 2).join('|') == '0|1', 'remove index 1, items = 2')
+    $t.ok([0, 1, 2].remove(-2, 2).join('|') == '1|2', 'remove index -2, items = 2')
+
+    $ary = [1, 2, 3]
+    $ary.pop()
+    $t.ok($ary.length() == 2 && $ary.last() == 2, 'size after pop')
+
+    $ary.pushAll([3, 4])
+    $t.ok($ary.length() == 4 && $ary.last() == 4, 'pushAll')
+
+
+    // insertAll
+    $ary = [1, 2, 3]
+    $ary.insertAll(3, [10, 11])
+    $t.ok($ary.length() == 5 && $ary[3] == 10 && $ary.last() == 3, 'insertAll')
+
+    $ary = [1, 2, 3]
+    $ary.insertAll(-2, [10, 11])
+    $t.ok($ary.length() == 5 && $ary[3] == 11 && $ary.last() == 3, 'insertAll - negative')
+
+    // slice
+    $t.ok([0, 1, 2, 3].slice(2).join('|') == '1|2|3', 'slice')
+    $t.ok([0, 1, 2, 3].slice(-2).join('|') == '2|3', 'slice -2')
+    $t.ok([0, 1, 2, 3].slice(2, 2).join('|') == '1|2', 'slice w length')
+
+    // splice steps
+    $items = ['a', 'b', 'c', 'd', 'e']
+    $items.remove(3, 2)
+    $t.ok($items.join('|') == 'a|b|e', 'splice step 1')
+    $items.insertAll(3, ['X', 'Y', 'Z'])
+    $t.ok($items.join('|') == 'a|b|X|Y|Z|e', 'splice step 2')
+
+
+    // repeat
+    $repeat1 = [].repeat('z', 5)
+    $t.ok($repeat1.join(',') == 'z,z,z,z,z', 'repeat 1')
+    $repeat1 = ['a', 'b'].repeat('z', 3)
+    $t.ok($repeat1.join(',') == 'a,b,z,z,z', 'repeat append')
+
+    // Quoted Lists
+    $t.ok(q[ aa bb  'cc' ][2] == 'bb', 'quoted list')
+    $t.ok(q[ aa bb  'cc' ][3] == '`cc`', 'quoted list + quotes')
+    $ml = q[
+        aa bb
+        'cc'
+    ]
+    $t.ok($ml[1] == 'aa bb', 'multiline quoted list')
+    $t.ok($ml[2] == '`cc`', 'multiline quoted list + quotes')
+    $t.ok({ a: q[a b c] }.a[2] == 'b', 'quoted list in single-line map key')
+
+    // Truthiness
+
+    $isTrue = true
+    if []: $isTrue = false
+    $t.ok($isTrue, 'empty list is falsey')
+
+    $isTrue = false
+    if ![]: $isTrue = true
+    $t.ok($isTrue, 'empty list negated is truthy')
+
+    $isTrue = false
+    if [1]: $isTrue = true
+    $t.ok($isTrue, 'list with key is truthy')
+
+    $t.ok([1] || false, '[1] || false == truthy')
+    $t.ok(!([] && true), '!([] && true) == truthy')
+
+    $v = []
+    $v ||= 123
+    $t.ok($v == 123, '[] ||= 123')
+    $v = []
+    $v &&= 123
+    $t.ok($v.isList(), '[] &&= 123')
+
+    $v = [99]
+    $v ||= 123
+    $t.ok($v.isList(), '[99] ||= 123')
+    $v = [99]
+    $v &&= 123
+    $t.ok($v == 123, '[99] &&= 123')
+
+
+    $t.section('Lists - Sorting')
+
+    // sort
+    $t.ok(['a', 'b', 'c'].sort().join('|') == 'a|b|c', 'sort')
+    $t.ok(['1', '2', '10'].sort().join('|') == '1|2|10', 'sort numeric strings')
+
+    $list = q[ a b c ].sort(x{ $b <=> $a })
+    $t.ok($list.join('|') == 'c|b|a', 'sort function')
+
+    $list = [1, 3, 2].sort({ reverse })
+    $t.ok($list.join('|') == '3|2|1', 'reverse sort')
+
+    $list = ['a1', 'a10', 'a2'].sort()
+    $t.ok($list.join('|') == 'a1|a2|a10', '-natural sort')
+
+    $list = ['a1', 'a10', 'a2'].sort({ ascii })
+    $t.ok($list.join('|') == 'a1|a10|a2', '-ascii sort')
+
+    $list = ['a1', 'a3', 'A2', 'A4'].sort({ ignoreCase })
+    $t.ok($list.join('|') == 'a1|A2|a3|A4', '-ignoreCase')
+
+    $list = ['a1', 'a3', 'A2', 'A4'].sort({ ignoreCase, reverse })
+    $t.ok($list.join('|') == 'A4|a3|A2|a1', '-ignoreCase -reverse')
+
+
+
+    $list = ['a', 'b', 'c', 'x'].swap(2, 3)
+    $t.ok($list.join() == 'acbx', 'swap')
+
+    $list = ['a', 'b', 'c', 'x'].swap(1, -1)
+    $t.ok($list.join() == 'xbca', 'swap negative index')
+
+
+
+    $t.section('Lists - Out of Bounds')
+
+    $t.dies(fun { [1].slice(2) }, 'slice', 'outside of List length')
+
+    $t.dies(fun { [1, 2, 3].first(5) }, 'Called `first(5)` on List of length: `3`')
+    $t.dies(fun { [1, 2, 3].last(5) }, 'Called `last(5)` on List of length: `3`')
+
+    $t.dies(fun { [].first() }, 'Called `first(1)` on List of length: `0`')
+    $t.dies(fun { [].last() }, 'Called `last(1)` on List of length: `0`')
+
+    $list = [1, 2, 3]
+    $t.dies(fun { return $list[5] }, 'Index `5` is outside of List length: `3`')
+    $t.dies(fun { return $list[-5] }, 'Index `-1` is outside of List length: `3`')
+
+
+    $t.section('Lists - Misc')
+
+    $t.ok(q[a a b c d d].unique().join(':') == 'a:b:c:d', 'unique')
+
+
+
+    $rand1 = [20, 21, 22, 23].random(1)
+    $rand2 = [20, 21, 22, 23].random(2)
+    $t.ok($rand1 >= 20, 'random 1')
+    $t.ok(Math.sum($rand2) >= 40, 'random 2')
+
+    $compact = [1, 0, 0, false, '', 'zz'].compact()
+    $t.ok($compact.join('|') == '1|zz', 'compact')
+
+
+    $t.section('Lists - Functional')
+
+    $t.ok([1, 2, 3].map(x{ $a * 2 }).join(':') == '2:4:6', 'map')
+    $t.ok([1, 2, 3].reduce(x{ $a + $b }) == 6, 'reduce')
+    $t.ok([1, 2, 3].reduce(x{ $a + $b }, 100) == 106, 'reduce - initial')
+    $t.ok([].reduce(x{ $a + $b }, 123) == 123, 'reduce - empty list - initial')
+    $t.dies(fun { [].reduce(x{ $a + $b }) }, 'empty list without argument: `startValue`')
+    $t.ok([1, 2, 3, 4].filter(x{ $a % 2 }).join(':') == '1:3', 'filter')
+
+    $mdl = [1, 2, [], [3, 4], [[5, 6], [7, 8]]]
+    $t.ok($mdl.flat(99).join('') == '12345678', 'flat')
+    $t.ok([1, [2, [3]]].flat().length() == 3, 'flat(1)')
+
+    $table = [{ a: 20 }, { a: 70 }, { a: -30 }]
+    $tableVals = $table.sortByColumn('a').map(x{ $a.a }).join(',')
+    $t.ok($tableVals == '-30,20,70', 'tableSort by map')
+
+    $table = [[1, 50], [2, -30], [3, 10]]
+    $tableVals = $table.sortByColumn(2).map(x{ $a[2] }).join(',')
+    $t.ok($tableVals == '-30,10,50', 'tableSort by index')
+    $tableVals = $table.sortByColumn(2, -reverse).map(x{ $a[2] }).join(',')
+    $t.ok($tableVals == '50,10,-30', 'tableSort by index (DESC)')
+
+    $rows = [
+        { a: 20,  b: 'x' }
+        { a: 70,  b: 'y' }
+        { a: -30, b: 'z' }
+    ]
+    $vals = $rows.getColumn('a').join(',')
+    $t.ok($vals == '20,70,-30', 'getColumn')
+    $vals = $rows.getColumn('a', 'b')
+    $t.ok($vals.y == 70 && $vals.length() == 3, 'getColumn with index')
+
+    $t.section('Lists - Searching')
+
+    $t.ok(['a', 'b', 'c'].contains('c'), 'contains')
+    $t.ok(!['a', 'b', 'c'].contains('D'), 'contains - no')
+
+    $t.ok(['a', 'b', 'c'].containsAll(['a', 'c']), 'containsAll')
+    $t.ok(['a', 'b', 'b', 'c'].containsAll(['a', 'c']), 'containsAll - 2 negatives')
+    $t.ok(['a', 'b', 'c', 'c'].containsAll(['a', 'c']), 'containsAll - 2 positives')
+    $t.ok(['a', 'b', 'c'].containsAll(['a', 'c', 'c']), 'containsAll - 2 positives - right')
+    $t.ok(!['a', 'b', 'c'].containsAll(['c', 'D']), 'containsAll - no')
+
+    $t.ok(['a', 'b', 'c'].containsAny(['c', 'D']), 'containsAny - yes')
+    $t.ok(!['a', 'b', 'c'].containsAny(['x', 'y']), 'containsAny - no')
+
+
+    $t.section('Lists - Equals')
+
+    $t.ok(['a', 'b'] == ['a', 'b'], '== - true')
+    $t.ok(['a', 'b'] != ['a', 'b', 'c'], '!= - true')
+    $t.ok(['a', 'b'].equals(['a', 'b']), 'equals - true')
+    $t.ok(!['a', 'b'].equals(['a', 'b', 'c']), 'equals - false')
+    $t.ok(['a', [1, 2]].equals(['a', [1, 2]]), 'equals nested list - true')
+    $t.ok(!['a', [1, 2]].equals(['a', [8, 9]]), 'equals nested list - false')
+    $t.ok(!['a', 'b'].equals({ 0: 'a', 1: 'b' }), 'equals similar map - false')
+
+
+    $t.section('Lists - Conversions')
+
+    // $zip = ['a', 1, 'b', 2, 'c', 3].toZipperMap()
+    // $t.ok($zip['c'] == 3, 'toZipperMap')
+
+    $vals = [1, 2, 3].toMap(['a', 'b', 'c'])
+    $t.ok($vals['c'] == 3, 'toMap')
+
+    $t.dies(x{ ['a', 'b', 'c'].toMap([]) }, 'number of keys')
+
+    $vals = ['a', 'b', 'c'].toMap()
+    $t.ok($vals['3'] == 'c', 'toMap - no argument')
+
+    $set = ['a', 'b', 'c', 'c'].toSet()
+    $t.ok($set['c'] == true, 'toSet')
+
+
+
+    // TODO: test multiple array args
+
+    $t.section('Lists - Set')
+
+    $list1 = ['green', 'blue', 'red']
+    $list2 = ['blue', 'green', 'yellow']
+    $int = $list1.intersection($list2).join(',')
+    $t.ok($int == 'green,blue', 'intersection')
+
+    $union = $list1.union($list2).join(',')
+    $t.ok($union == 'green,blue,red,yellow', 'union')
+
+    $diff = $list1.difference($list2).join(',')
+    $t.ok($diff == 'red', 'difference')
+
+
+    $t.section('Lists - Querying')
+
+    $rows = [
+        { id: 0, color: 'red' }
+        { id: 1, color: 'green' }
+        { id: 2, color: 'green' }
+        { id: 3, color: 'blue' }
+    ]
+    $counts = $rows.countBy(x{ $a.color })
+    $t.ok($counts.green == 2, 'countBy')
+
+    $index = $rows.indexBy(x{ $a.id })
+    $t.ok($index[3].color == 'blue', 'indexBy')
+
+    $groups = $rows.groupBy(x{ $a.color })
+    $t.ok($groups.green.length() == 2, 'groupBy')
+
+    $t.dies(fun { $a = [1].groupBy(x{ false }) }, 'string key')
+
+    return $t
+}

@@ -1,0 +1,316 @@
+
+public fun run($t) {
+
+    $t.section('Module: Litemark')
+
+    $b = testLm().renderString()
+
+    $t.ok($b.contains('<h1>Heading 1'), 'H1')
+    $t.ok($b.contains('<h2>Heading 2'), 'H2')
+
+    $t.ok($b.contains('<p>\nLine 1\nLine 2\n</p>'), 'p 2-line')
+    $t.ok($b.contains('<p>\nPara 2\n</p>'), 'p 1-line')
+
+    $t.ok($b.contains('This is <strong>bold</strong>'), 'bold')
+    $t.ok($b.contains('This is <em>italic</em>'), 'italic')
+    $t.ok($b.contains('This is <strong><em>bold italic</em></strong>'), 'bold italic')
+    $t.ok($b.contains('This is <em><strong>italic bold</strong></em>'), 'italic bold')
+
+    $t.ok($b.contains('inline <del>strike text</del>'), 'inline del')
+    $t.ok($b.contains('<del><a href="/url" rel="noopener">url</a></del>'), 'next del + link')
+
+    $t.ok($b.contains('<li>Item 1'), 'li 1')
+    $t.ok($b.contains('<li>Item 3'), 'li 3')
+
+    $t.ok($b.contains('href="/rel-url"'), 'a cmd - url only')
+
+    $t.ok($b.contains('link label</a>'), 'a cmd - label')
+
+    $t.ok($b.contains('<a href="http://abc.com/inline/url.htm?a=1&b=2#xzy"'), 'auto-link URL')
+    $t.ok($b.contains('<a href="http://paren.com/"'), 'auto-link URL - paren')
+    $t.ok($b.contains('<a href="http://comma.com"'), 'auto-link URL - comma')
+
+    $t.ok($b.contains('pre-break<br />post-break'), '[br]')
+
+    $t.ok($b.contains('<pre class="">\ncode_here'), 'code block')
+    $t.ok($b.contains('<pre class="custom-class">'), 'code block class')
+
+    $t.ok($b.contains('<b>CUSTOM: jcon</b>'), 'from JCON')
+    $t.ok($b.contains('<b>OTHER: jcon</b>'), 'from JCON, other')
+
+    $body = lm'''
+
+        This is [custom | custom tag "content"!]
+
+        - callbacks: [cb | cbarg] and [cberror]
+
+    '''
+
+    $customOut = Litemark.parse($body, {
+        features: 'lists'
+        customTags: {
+            custom1: '<span class="custom">{1}</span>'
+            cb1: x{ '<b class="cb">{}!</b>'.fill($a) }
+            cberror0: fun {
+                die('oops')
+            }
+        }
+    })
+    $co = $customOut.renderString()
+
+
+
+
+    $tagHtml = '<span class="custom">custom tag &ldquo;content&rdquo;!</span>'
+    $t.ok($co.contains($tagHtml), 'custom tag html')
+    $t.ok($co.contains('<b class="cb">cbarg!</b>'), 'callback')
+    $t.ok($co.contains('[ERROR'), 'callback error')
+
+
+    $body = lm'''
+        This is a https://link.com/to/somewhere?param=1
+    '''
+
+    $urlOut = Litemark.parse($body, {
+        urlHandler: fun ($url) {
+            return html'<a href="{}">link</a>'.fill($url)
+        }
+    })
+    $uo = $urlOut.renderString()
+    $t.ok($uo.contains('https://link.com/to/somewhere?param=1'), 'urlHandler')
+
+    $parse = fun {
+        Litemark.parse($body, {
+            urlHandler: fun ($url) {
+                return '<a href="{}">link</a>'.fill($url)
+            }
+        })
+    }
+    $t.dies($parse, 'urlHandler error', 'must return an html TypeString')
+
+
+
+
+    $body = lm'''
+        This is <b>HTML</b>
+    '''
+
+    // allow
+    $htmlOut = Litemark.parse($body, {
+        features: 'xDangerHtml'
+    })
+    $ho = $htmlOut.renderString()
+    $t.ok($ho.contains('<b>'), 'allowHtml = yes')
+
+    // don't allow HTML
+    $htmlOut = Litemark.parse($body, {
+        features: ':forum'
+    })
+    $ho = $htmlOut.renderString()
+    $t.ok($ho.contains('&lt;b&gt;'), 'allowHtml = no')
+
+
+
+    $body = lm'''
+        This is a [https://a.com | link]
+    '''
+
+    // allow
+    $out = Litemark.parse($body, {
+        features: 'links|indexLinks'
+    })
+    $so = $out.renderString()
+    $t.ok(!$so.contains('nofollow') && $so.contains('noopener'), 'indexLinks = yes')
+
+    // don't allow HTML
+    $out = Litemark.parse($body, {
+        features: ':forum'
+    })
+    $so = $out.renderString()
+    $t.ok($so.contains('nofollow'), 'indexLinks = no')
+
+    $body = lm'''
+        # Heading
+
+        - list 1
+        - list 2
+
+        [image http://image]
+
+        This is [del | inline]
+    '''
+
+    // allow
+    $out = Litemark.parse($body, {
+        features: ':blog'
+    })
+    $so = $out.renderString()
+    $t.ok($so.contains('<h1>'), 'featureSet, heading = yes')
+    $t.ok($so.contains('<li>'), 'featureSet, list = yes')
+    $t.ok($so.contains('<img loading="lazy" src="http://image"'), 'featureSet, image = yes')
+    $t.ok($so.contains('<del>'), 'featureSet, inline = yes')
+
+
+    // allow
+    $out = Litemark.parse($body, {
+        features: 'headings|lists|images'
+    })
+    $so = $out.renderString()
+    $t.ok($so.contains('<h1>'), 'ind feature, heading = yes')
+    $t.ok($so.contains('<li>'), 'ind feature, list = yes')
+    $t.ok($so.contains('<img loading="lazy" src="http://image"'), 'ind feature, image = yes')
+
+
+
+    $out = Litemark.parse($body, {
+        features: ':comment'
+    })
+    $so = $out.renderString()
+    $t.ok($so.contains('# Heading'), ':comment, heading = no')
+    $t.ok($so.contains('- list 2'), ':comment, list = no')
+    $t.ok($so.contains('[image'), ':comment, image = no')
+    $t.ok($so.contains('[del |'), ':comment, inline = no')
+
+
+    $body = '''
+
+        This is code:
+        \`\`\`
+        code { $foo }
+        \`\`\`
+
+        This is a quote:
+        > line 1
+        > line 2
+
+    '''.xDangerToType('lm')
+
+    $out = Litemark.parse($body, {
+        features: ':comment'
+    })
+    $so = $out.renderString()
+
+    $t.ok($so.contains('\`\`\`'), ':comment, code fence = no')
+    $t.ok($so.contains('> line 2'), ':comment, blockquote = no')
+
+    $out = Litemark.parse($body, {
+        features: ':forum'
+    })
+    $so = $out.renderString()
+    $t.ok($so.contains('<pre'), ':forum, code fence = yes')
+    $t.ok($so.contains('<blockquote>'), ':forum, blockquote = yes')
+
+
+    // unclosed tag
+    $body = lm'''
+
+        [foo unclosed blah blah
+        [other tag]
+
+    '''
+    $out = Litemark.parse($body, {
+
+    }).renderString()
+    $t.ok($out.contains('MISSING \`]\`'), 'unclosed tag')
+
+
+    // bad featureSet
+    $lm = fun {
+        Litemark.parse($body, {
+            features: ':blah'
+        })
+    }
+    $t.dies($lm, 'unknown featureSet', 'Unknown feature set')
+
+    // bad feature
+    $lm = fun {
+        Litemark.parse($body, {
+            features: 'blah'
+        })
+    }
+    $t.dies($lm, 'unknown feature', 'Unknown feature')
+
+
+    // bad tag name
+    $lm = fun {
+        Litemark.parse($body, {
+            customTags: {
+                badTag1: html'...'
+            }
+        })
+    }
+    $t.dies($lm, 'all lowercase', 'must be all lowercase')
+
+    // bad tag name - no number
+    $lm = fun {
+        Litemark.parse($body, {
+            customTags: {
+                nonum: html'...'
+            }
+        })
+    }
+    $t.dies($lm, 'end in number', 'end with number')
+
+    return $t
+}
+
+
+tem testLm {
+
+    # Heading 1
+
+    ## Heading 2
+
+    Line 1
+    Line 2
+
+    Para 2
+
+    This is **bold**
+
+    This is __italic__
+
+    This is **__bold italic__**
+    This is __**italic bold**__
+
+    - Item 1
+    - Item 2
+    - Item 3
+
+    pre-break[br]post-break
+
+    inline [del strike text]
+    nested [del [/url | url]]
+
+    [/rel-url]
+
+    [/rel-url | link label]
+
+    [http://abs/url]
+
+    Inline URL: http://abc.com/inline/url.htm?a=1&b=2#xzy.
+
+    More URLs: http://comma.com, (http://paren.com/)
+
+    From JCON: [tag jcon]
+    From JCON2: [othertag jcon]
+
+    [http://abs/url | abs label]
+
+    [info | callout with **bold**]
+
+    ```
+    code_here
+    ```
+
+    ```custom-class
+        more_code
+    ```
+
+}
+
+
+
+// Templates
+//-----------------------------------------
+

@@ -1,0 +1,108 @@
+
+public fun run($t) {
+
+    $t.section('Functions - Type Declarations')
+
+    $t.ok(takesString('a'), 'string')
+    $t.ok(takesString(''), 'string - ``')
+    $t.dies(fun { takesString() }, 'string - none', 'Too few arguments')
+
+    $t.ok(takesInt(1), 'int - 1')
+    $t.ok(takesInt(0), 'int - 0')
+
+    $t.ok(takesFloat(1), 'float - 1')
+    $t.ok(takesFloat(1.1), 'float - 1.1')
+    $t.ok(takesFloat(-1.1), 'float - -1.1')
+
+    $t.ok(takesBool(1 == 1), 'boolean - 1')
+    $t.ok(takesBool(1 == 0), 'boolean - 1')
+
+    $t.ok(takesMap({ a: 1 }), 'map - map')
+    $t.ok(takesMap({}), 'map - empty map')
+
+    $t.ok(takesList(['a']), 'list - list')
+    $t.ok(takesList([]), 'list - empty list')
+
+    // $t.ok(takesFlag(-someFlag), 'flag')
+
+    $t.ok(takesFunction(fun { return 1 }), 'fun - function')
+    $f = fun { }
+    $t.ok(takesFunction($f) == null, 'fun - empty block')
+
+    $t.ok(takesObject($t), 'object')
+    $t.ok(takesObject({ a: 1 }), 'object - map')
+
+    $t.ok(takesAny(1), 'any - int')
+    $t.ok(takesAny('a'), 'any - string')
+    $t.ok(takesAny({}), 'any - map')
+
+    $t.ok(takesStringDefault() == 'default', 'default')
+    $t.ok(takesMultipleDefault(3) == '3,default', 'multiple')
+    $t.ok(takesMultipleDefault(5, 'a') == '5,a', 'multiple, default')
+
+    // Built-in type checking
+    // Error messages differ in PHP 8, where they are a bit more consistent
+    $t.dies(fun { takesString(123) }, 'Expected: `String` Got: `Number`')
+    $t.dies(fun { takesString(1 == 1) }, 'Expected: `String` Got: `true`')
+    $t.dies(fun { takesString([]) }, 'Expected: `String` Got: `List`')
+    $t.dies(fun { takesFloat('1.1') }, 'Expected: `Number` Got: `String`')
+    $t.dies(fun { takesBool(1) }, 'Expected: `Boolean` Got: `Number`')
+    $t.dies(fun { takesBool(0) }, 'Expected: `Boolean` Got: `Number`')
+    $t.dies(fun { takesBool('') }, 'Expected: `Boolean` Got: `String`')
+    $t.dies(fun { takesMap(['a']) }, 'Expected: `Map` Got: `List`')
+    $t.dies(fun { takesList({ a: 1 }) }, 'Expected: `List` Got: `Map`')
+    $t.dies(fun { takesObject(1) }, 'Expected: `Object` Got: `Number`')
+
+    $t.dies(fun { 'abc'.getChar(1.5) }, 'be: `integer`')
+    $t.dies(fun { 'abc'.limit(-3) }, 'be: `positive integer`')
+
+    return $t
+}
+
+fun takesString($val:s) {
+    return true
+}
+
+fun takesBool($val:b) {
+    return true
+}
+
+fun takesInt($val:n) {
+    return true
+}
+
+fun takesFloat($val:n) {
+    return true
+}
+
+fun takesList($val:l) {
+    return true
+}
+
+fun takesMap($val:m) {
+    return true
+}
+
+// fun takesFlag($val:f) {
+//     return true
+// }
+
+fun takesFunction($fnCallback:fun) {
+    return $fnCallback()
+}
+
+fun takesAny($val:any) {
+    return true
+}
+
+fun takesObject($val:o) {
+    return true
+}
+
+fun takesStringDefault($val:s = 'default') {
+    return $val
+}
+
+fun takesMultipleDefault($num:n, $str:s = 'default') {
+    return $num ~ ',' ~ $str
+}

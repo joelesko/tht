@@ -1,0 +1,121 @@
+
+public fun run($t) {
+
+    $t.section('Module: Db')
+
+    if $t.skipSlowTests(): return $t
+
+    Db.xDangerDropTable('test')
+    Db.createTable('test', { key: 'varchar(255)', value: 'varchar(255)' })
+
+    $key = 'test' ~ Math.random(0, 1000)
+    Db.insertRow('test', { key: $key, value: Date.unixTime() })
+    Db.insertRow('test', { key: $key ~ '-date', value: date'2021-03-14' })
+    Db.insertRow('test', { key: $key ~ '-password', value: String.xDangerPassword('p@ssw0rd') })
+
+    $t.ok(Db.lastInsertId() == 3, 'lastInsertId')
+
+    $t.ok(Db.countRows('test', sql'value != ""') == 3, 'count 3 (sql)')
+    $t.ok(Db.countRows('test', { key: $key }) == 1, 'count 1 (map)')
+
+    $rows = Db.selectRows(sql'select * from test')
+    $t.ok($rows.length() == 3, 'Insert & select row')
+    $t.ok($rows[1].key == $key, 'Check inserted row')
+
+    $dateRow = Db.selectRow(sql'select * from test where key = {}'.fill($key ~ '-date'))
+    $t.ok($dateRow['value'] == '2021-03-14 00:00:00', 'inserted date value')
+
+    $pwRow = Db.selectRow(sql'select * from test where key = {}'.fill($key ~ '-password'))
+    $t.ok($pwRow['value'].left(7) == '$2y$10$', 'inserted password value')
+
+    Db.xDangerDropTable('dates')
+    Db.createTable('dates', { key: 'varchar(255)', createDate: 'varchar(20)' })
+    Db.insertRow('dates', { key: $key, createDate: date'2021-03-14' })
+    $row = Db.selectRow(sql'select * from dates')
+    $t.ok($row.createDate.format('Y/m/d') == '2021/03/14', 'returned date value')
+
+    $dbh = Db.useDatabase('default')
+    $rows = $dbh.selectRows(sql'select * from test')
+    $t.ok($rows[1].key == $key, 'Db.useDatabase')
+
+    Db.updateRow('test', { value: 'new!' }, { key: $key })
+    $row = Db.selectRow(sql'select * from test where key = {}'.fill($key))
+    $t.ok($row['value'] == 'new!', 'updateRow')
+
+    $t.dies(fun {
+        Db.updateRow('test', { value: 'new!' }, sql'key != ""')
+    }, 'updateRow - too many', 'more than one row')
+
+
+    Db.deleteRow('test', { key: $key })
+    $rows = Db.selectRows(sql'select * from test')
+    $t.ok($rows.length() == 2, 'Delete row')
+
+    foreach range(1, 9) as $i {
+        Db.insertRow('test', { key: 'num', value: $i })
+    }
+    $num = Db.countRows('test', { key: 'num', 'value >=': 5 })
+    $t.ok($num == 5, 'operator in where key: >=')
+
+    $rows = Db.selectRows(sql'select * from test', { key: 'num', 'value >=': 5 })
+    $t.ok($rows.length() == 5, 'selectRows - whereMap')
+
+    $rows = Db.selectRows(sql'select * from test', { limit: 3 })
+    $t.ok($rows.length() == 3, 'selectRows - whereMap - limit')
+
+    $rows = Db.selectRows(sql'select * from test', { key: 'num', orderBy: 'value' })
+    $t.ok($rows[1].value == '1', 'selectRows - whereMap - order by')
+
+    $rows = Db.selectRows(sql'select * from test', { key: 'num', orderByDesc: 'value' })
+    $t.ok($rows[1].value == '9', 'selectRows - whereMap - order by desc')
+
+    $row = Db.selectRow(sql'select * from test', { key: 'num', 'value': 5 })
+    $t.ok($row.value == '5', 'selectRow - whereMap')
+
+
+    Db.insertRow('test', { key: 'in1', value: 11 })
+    Db.insertRow('test', { key: 'in2', value: 22 })
+    Db.insertRow('test', { key: 'in3', value: 33 })
+    Db.insertRow('test', { key: 'in4', value: 44 })
+    Db.insertRow('test', { key: 'in5', value: 55 })
+
+    $inIds = q[in1 in3 in5 in99]
+    $rows = Db.selectRows(sql'select * from test where key in ({in})'.fill({ in: $inIds }))
+    $t.ok($rows.getColumn('value').join(',') == '11,33,55', 'where in')
+
+    $rows = Db.selectRows(sql'select * from test', { 'key in': $inIds })
+    $t.ok($rows.getColumn('value').join(',') == '11,33,55', 'where in - via whereMap')
+
+
+    $t.dies(fun {
+        Db.deleteRow('test', sql'key != ""')
+    }, 'deleteRow - too many', 'more than one row')
+
+    $t.dies(fun {
+        Db.updateRow('"bad', { key: $key }, sql' key = {}'.fill($key))
+    }, 'invalid table name - updateRow', 'Invalid table name')
+
+    $t.dies(fun {
+        Db.deleteRow('"bad', sql' key = {}'.fill($key))
+    }, 'invalid table name - deleteRows', 'Invalid table name')
+
+    $t.dies(fun {
+        Db.runQuery('delete from test')
+    }, 'reject renderString query - query', 'must be passed a `sql`')
+
+    $t.dies(fun {
+        Db.selectRows('select * from test')
+    }, 'reject renderString query - selectRows', 'must be passed a `sql`')
+
+    $t.dies(fun {
+        Db.useDatabase('badDb')
+    }, 'bad driver name', 'unknown')
+
+
+    // TODO: test inserted, updated Date
+    // TODO: test returned date column (and col with "-date" suffix)
+
+    //Db.selectRows('shows', { 'publishDate >': date'48 hours' })
+
+    return $t
+}

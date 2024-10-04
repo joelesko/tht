@@ -1,0 +1,139 @@
+
+public fun run($t) {
+
+    $t.section('Module: Json')
+
+        .ok(Json.decode(json'{"k1":[123,"hello"]}')['k1'][2] == 'hello', 'decode sub-list')
+        .ok(Json.decode(json'{"k1":{"k2":"hello"}}')['k1']['k2'] == 'hello', 'decode sub-map')
+        .ok(Json.decode(json'[1,2,3]')[2] == 2, 'decode list')
+        .ok(Json.decode(json'true') == true, 'decode boolean')
+        .ok(Json.decode(json'123.45') == 123.45, 'decode number')
+
+    $st = Json.encode({ a: 'hi', b: [1, 2, 3] })
+
+    $t
+        .ok($st.renderString().contains('"hi"'), 'encode string')
+        .ok($st.renderString().contains('[1,2,3]'), 'encode list')
+        .ok($st.renderString().contains('"b":'), 'encode key')
+        .dies(fun { Json.decode(json'{"a":123,/*"b":"comment"*/}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"test\ud800":123}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"te\st":123}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":123}=') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":NaN}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":Inf}') }, 'unable to decode')
+        .dies(fun { Json.decode(json'{"a":1.0e4096}') }, 'invalid large number')
+
+    $obj = Json.decode($st)
+    $t.ok($obj.b[2] == 2, 'decode after encode')
+
+
+    $t.ok(Json.validate(json'{"a":[1,2,3]}'), 'validate - true')
+    $t.ok(!Json.validate(json'{"a:[1,2,3]}'), 'validate - false')
+
+
+    // $rawJson = json'''
+    //     {"web-app": {
+    //   "servlet": [
+    //     {
+    //       "servlet-name": "cofaxCDS",
+    //       "servlet-class": "org.cofax.cds.CDSServlet",
+    //       "init-param": {
+    //         "configGlossary:installationAt": "Philadelphia, PA",
+    //         "configGlossary:adminEmail": "ksm@pobox.com",
+    //         "configGlossary:poweredBy": "Cofax",
+    //         "configGlossary:poweredByIcon": "/images/cofax.gif",
+    //         "configGlossary:staticPath": "/content/static",
+    //         "templateProcessorClass": "org.cofax.WysiwygTemplate",
+    //         "templateLoaderClass": "org.cofax.FilesTemplateLoader",
+    //         "templatePath": "templates",
+    //         "templateOverridePath": "",
+    //         "defaultListTemplate": "listTemplate.htm",
+    //         "defaultFileTemplate": "articleTemplate.htm",
+    //         "useJSP": false,
+    //         "jspListTemplate": "listTemplate.jsp",
+    //         "jspFileTemplate": "articleTemplate.jsp",
+    //         "cachePackageTagsTrack": 200,
+    //         "cachePackageTagsStore": 200,
+    //         "cachePackageTagsRefresh": 60,
+    //         "cacheTemplatesTrack": 100,
+    //         "cacheTemplatesStore": 50,
+    //         "cacheTemplatesRefresh": 15,
+    //         "cachePagesTrack": 200,
+    //         "cachePagesStore": 100,
+    //         "cachePagesRefresh": 10,
+    //         "cachePagesDirtyRead": 10,
+    //         "searchEngineListTemplate": "forSearchEnginesList.htm",
+    //         "searchEngineFileTemplate": "forSearchEngines.htm",
+    //         "searchEngineRobotsDb": "WEB-INF/robots.db",
+    //         "useDataStore": true,
+    //         "dataStoreClass": "org.cofax.SqlDataStore",
+    //         "redirectionClass": "org.cofax.SqlRedirection",
+    //         "dataStoreName": "cofax",
+    //         "dataStoreDriver": "com.microsoft.jdbc.sqlserver.SQLServerDriver",
+    //         "dataStoreUrl": "jdbc:microsoft:sqlserver://LOCALHOST:1433;DatabaseName=goon",
+    //         "dataStoreUser": "sa",
+    //         "dataStorePassword": "dataStoreTestQuery",
+    //         "dataStoreTestQuery": "SET NOCOUNT ON;select test='test';",
+    //         "dataStoreLogFile": "/usr/local/tomcat/logs/datastore.log",
+    //         "dataStoreInitConns": 10,
+    //         "dataStoreMaxConns": 100,
+    //         "dataStoreConnUsageLimit": 100,
+    //         "dataStoreLogLevel": "debug",
+    //         "maxUrlLength": 500}},
+    //     {
+    //       "servlet-name": "cofaxEmail",
+    //       "servlet-class": "org.cofax.cds.EmailServlet",
+    //       "init-param": {
+    //       "mailHost": "mail1",
+    //       "mailHostOverride": "mail2"}},
+    //     {
+    //       "servlet-name": "cofaxAdmin",
+    //       "servlet-class": "org.cofax.cds.AdminServlet"},
+
+    //     {
+    //       "servlet-name": "fileServlet",
+    //       "servlet-class": "org.cofax.cds.FileServlet"},
+    //     {
+    //       "servlet-name": "cofaxTools",
+    //       "servlet-class": "org.cofax.cms.CofaxToolsServlet",
+    //       "init-param": {
+    //         "templatePath": "toolstemplates/",
+    //         "log": 1,
+    //         "logLocation": "/usr/local/tomcat/logs/CofaxTools.log",
+    //         "logMaxSize": "",
+    //         "dataLog": 1,
+    //         "dataLogLocation": "/usr/local/tomcat/logs/dataLog.log",
+    //         "dataLogMaxSize": "",
+    //         "removePageCache": "/content/admin/remove?cache=pages&id=",
+    //         "removeTemplateCache": "/content/admin/remove?cache=templates&id=",
+    //         "fileTransferFolder": "/usr/local/tomcat/webapps/content/fileTransferFolder",
+    //         "lookInContext": 1,
+    //         "adminGroupID": 4,
+    //         "betaServer": true}}],
+    //   "servlet-mapping": {
+    //     "cofaxCDS": "/",
+    //     "cofaxEmail": "/cofaxutil/aemail/*",
+    //     "cofaxAdmin": "/admin/*",
+    //     "fileServlet": "/static/*",
+    //     "cofaxTools": "/tools/*"},
+
+    //   "taglib": {
+    //     "taglib-uri": "cofax.tld",
+    //     "taglib-location": "/WEB-INF/tlds/cofax.tld"}}}
+    // '''
+
+
+    // Perf.start('Json.decode')
+    // foreach range(1, 1000) as $i {
+    //     Json.decode($rawJson)
+    // }
+    // Perf.stop()
+
+
+    // Waiting for PHP security patch
+    // $dupe = json'{"a":123,"a":999}'
+    // >> $dupe
+    // >> Json.decode($dupe)
+
+    return $t
+}

@@ -1,0 +1,23 @@
+
+public fun run($t) {
+
+    $t.section('Module: System')
+
+    $t.ok(System.getEnvVar('PATH') != '', 'envVar - PATH')
+    $t.ok(System.getEnvVar('DFSDFHJSF') == '', 'envVar - missing')
+    $t.ok(System.getEnvVar('DFSDFHJSF', 'def') == 'def', 'envVar - default')
+    $t.ok(System.getStartTime() > 10000000, 'startTime')
+    $t.ok(System.getMemoryUsage() > 0, 'memoryUsage')
+    $t.ok(System.getPeakMemoryUsage() > 0, 'peakMemoryUsage')
+    $t.ok(System.getOs().match(rx'(mac|windows|linux)'), 'os')
+
+    $t.dies(fun { System.setMaxRunTimeSecs(-1) }, 'positive integer')
+    $t.dies(fun { System.setMaxRunTimeSecs(0) }, '`maxRunTimeSecs` must be greater than 0')
+    $t.dies(fun { System.setMaxMemoryMb(-1) }, 'positive integer')
+    $t.dies(fun { System.setMaxMemoryMb(0) }, '`maxMemoryMb` must be greater than 0')
+
+    // Can't be called in webMode
+    //$t.ok(System.command(cmd'ls').output[0] == 'thtApp.php', 'command')
+
+    return $t
+}

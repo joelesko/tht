@@ -1,9 +1,0 @@
-fn main() {
-
-    Response.sendHtml(html())
-
-}
-
-tm html() {
-    Hello World!
-}

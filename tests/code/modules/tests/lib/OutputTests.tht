@@ -1,0 +1,12 @@
+
+public fun run($t) {
+
+    $t.section('Module: Output')
+
+    $t.dies(
+        fun {  Output.redirect('http://google.com') }, 'redirect - normal'
+        'must be passed a `url`'
+    )
+
+    return $t
+}

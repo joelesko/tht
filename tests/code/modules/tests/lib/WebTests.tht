@@ -1,0 +1,46 @@
+
+public fun run($t) {
+
+    $t.section('Module: Web')
+
+    $t.ok(Web.skipHitCounter() == true, 'skipHitCounter - true')
+
+    $t.ok(Web.icon('arrowRight').renderString().contains('ticon'), 'icon')
+    $t.dies(fun { Web.icon('missingBlah') }, 'icon - error', 'Unknown icon')
+
+    $em = Web.maskEmail('user@example.com')
+    $t.ok($em.renderString().match(rx'&#64;.*?display:none'), 'mask email')
+
+    $postHtml = Web.postLink(html'Delete', url'/delete', { id: 123 }, 'delete-button')
+        .renderString()
+    $m1 = '<button type="submit" class="delete-button">Delete</button>'
+    $m2 = '<form method="post" action="/delete"'
+    $t.ok($postHtml.contains($m1) && $postHtml.contains($m2), 'postLink')
+
+
+    $m1 = '<link rel="stylesheet" href="/assets/app.css" />'
+    $t.ok(Web.cssTag(url'/assets/app.css').renderString() == $m1, 'cssTag')
+
+    $al = Web.anchor('Oranges, etc.').renderString()
+    $t.ok($al == '<a name="oranges-etc"></a>', 'anchor')
+
+    $al = Web.anchor('Oranges, etc.', -link).renderString()
+    $m = '<a href="#oranges-etc" class="anchor-link">#</a><a name="oranges-etc"></a>'
+    $t.ok($al == $m, 'anchor w self-link')
+
+    $al = Web.anchor('Oranges, etc.', { link, linkLabel: 'link' }).renderString()
+    $m = '<a href="#oranges-etc" class="anchor-link">link</a><a name="oranges-etc"></a>'
+    $t.ok($al == $m, 'anchor w self-link & label')
+
+    $al = Web.anchorUrl('Oranges, etc.').renderString()
+    $t.ok($al == '#oranges-etc', 'anchorUrl')
+
+    // TODO
+    // >> Web.htmx('getThing', { id: 123 }).renderString()
+
+    $t.ok(Web.nonce().length() == 40, 'nonce')
+    $t.ok(Web.csrfToken().length() == 32, 'csrfToken')
+
+    return $t
+}
+

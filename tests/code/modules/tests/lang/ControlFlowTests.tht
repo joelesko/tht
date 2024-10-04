@@ -1,0 +1,182 @@
+
+public fun run($t) {
+
+
+    $t.section('If / Else')
+
+    $a = 1
+
+    if true: $a = 2
+    $t.ok($a == 2, 'if true')
+
+    if false: $a = 3
+    $t.ok($a == 2, 'if false')
+
+    if false {
+        $a = 3
+    } else {
+        $a = 4
+    }
+    $t.ok($a == 4, 'else')
+
+    if false {
+        $a = 3
+    } else if true {
+        $a = 5
+    }
+    $t.ok($a == 5, 'else if')
+
+    if false {
+        $a = 3
+    } else if false {
+        $a = 5
+    } else if false {
+        $a = 9
+    } else {
+        $a = 6
+    }
+    $t.ok($a == 6, 'if, else if, else')
+
+
+
+
+
+    $t.section('Short Circuiting')
+
+    $fn1 = x{ 1 }
+    $fn0 = x{ 0 }
+    $fnDie = fun { die('Do not reach here!') }
+
+    $b = $fn1() || $fnDie()
+    $t.ok($b == true, 'or')
+
+    $b = $fn0() && $fnDie()
+    $t.ok($b == false, 'and')
+
+    $b = $fn1() ||: $fnDie()
+    $t.ok($b == 1, 'valgate or')
+
+    $b = $fn0() &&: $fnDie()
+    $t.ok($b == 0, 'valgate and')
+
+    $b = $fn1() &&: $fn0() &&: $fnDie()
+    $t.ok($b == 0, 'valgate and+and')
+
+    $b = $fn0() ||: $fn1() ||: $fnDie()
+    $t.ok($b == 1, 'valgate or+or')
+
+
+
+    $t.section('Match')
+
+    // $t.parserError('match true {\n}', 'Please remove literal boolean')
+
+    // $fnMatchNum  = fun ($n) {
+
+    //     $m = match $n {
+    //         1234, 5678: 'exact'
+    //         12.5: 'float'
+    //         $n > 2000: 'gt 2000'
+    //         $n > 10 && $n < 20: '10 to 20'
+    //         $n > 1000, $n < 0: 'extreme'
+    //         default: 'default'
+    //     }
+    //     return $m
+    // }
+
+    // $t.ok($fnMatchNum(1234) == 'exact', 'match w subject - exact 1st')
+    // $t.ok($fnMatchNum(5678) == 'exact', 'match w subject - exact 2nd')
+    // $t.ok($fnMatchNum(12.5) == 'float', 'match w subject  - float')
+    // $t.ok($fnMatchNum(2222) == 'gt 2000', 'match w subject  - expression')
+    // $t.ok($fnMatchNum(15) == '10 to 20', 'match w subject  - compound expression')
+    // $t.ok($fnMatchNum(1111) == 'extreme', 'match w subject  - comma expressions 1st')
+    // $t.ok($fnMatchNum(-100) == 'extreme', 'match w subject  - comma expressions 2nd')
+    // $t.ok($fnMatchNum(3) == 'default', 'match w subject  - default')
+
+
+    // $fnMatchStr  = fun ($z) {
+
+    //     $map = { m: '' }
+    //     $map.m ||= match {
+    //         $z.contains('x'): 'contains'
+    //         $z.length() > 3: 'length'
+    //         default: $z.reverse() ~ '!'
+    //     }
+    //     return $map.m
+    // }
+
+    // $t.ok($fnMatchStr('12345') == 'length', 'match no subject - length')
+    // $t.ok($fnMatchStr('xyz') == 'contains', 'match no subject  - contains')
+    // $t.ok($fnMatchStr('abc') == 'cba!', 'match no subject  - default as expression')
+
+
+    // $fnMatchMap  = fun ($map) {
+
+    //     $m = match $map {
+    //         { a: 1 }: '1'
+    //         { a: 123 }: '123'
+    //         $map.hasKey('b'): 'BBB'
+    //         default: 'error'
+    //     }
+    //     return $m
+    // }
+
+    // $t.ok($fnMatchMap({ a: 123 }) == '123', 'match map - exact')
+    // $t.ok($fnMatchMap({ a: 1, b: 2 }) == 'BBB', 'match map  - hasKey')
+
+
+    // $fnMatchMissing = fun ($z) {
+    //     match $z {
+    //         'foo': 'string'
+    //     }
+    // }
+    // $t.dies(fun { $fnMatchMissing(999) }, 'No match found for value: `999`')
+
+
+    // $fnMatchFalsey = fun ($z) {
+    //     match $z {
+    //         0: 'zero'
+    //         false: 'false'
+    //         '': 'string'
+    //         {}: 'map'
+    //         default: 'error'
+    //     }
+    // }
+    // $falseArg = false
+    // $t.ok($fnMatchFalsey(0) == 'zero', 'match falsey - zero')
+    // $t.ok($fnMatchFalsey($falseArg) == 'false', 'match falsey - false')
+    // $t.ok($fnMatchFalsey('') == 'string', 'match falsey - string')
+    // $t.ok($fnMatchFalsey({}) == 'map', 'match falsey - map')
+
+
+
+
+
+
+    $t.section('Try/Catch')
+
+    $ex = false
+    $fin = false
+    try {
+        die('ERROR!')
+    } catch $err {
+        $ex = $err
+    } finally {
+        $fin = true
+    }
+
+    $t.ok($ex.message() == 'ERROR!', 'try/catch thrown')
+    $t.ok($fin, 'try/catch - finally')
+
+    $fileEx = false
+    try {
+        file'/sdfsdf'.read()
+    } catch $e {
+        $fileEx = $e.message()
+    }
+    $t.ok($fileEx.contains('Path does not exist'), 'catch File exception')
+
+
+
+    return $t
+}

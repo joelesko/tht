@@ -1,0 +1,52 @@
+
+public fun run($t) {
+
+    $t.section('Module: Php')
+
+    $t.ok(Php.getVersion().match(rx'\d+\.\d+\.\d+'), 'PHP version')
+    $t.ok(Php.getVersion(-num) >= 50500, 'PHP version - numeric')
+
+    $fl = Php.options(['PATHINFO_FILENAME', 'PATHINFO_BASENAME'])
+    $t.ok($fl == 10, 'PHP - constant flags')
+
+    $t.ok(Php.getConstant('E_CORE_ERROR') == 16, 'getConstant')
+
+    $t.ok(Php.call('strrev', 'abcdef') == 'fedcba', 'call')
+    $t.dies(
+        fun { Php.call('nonexistent', 1, 2) }, 'Non-existent PHP call'
+        'PHP function does not exist'
+    )
+    $t.dies(
+        fun { Php.call('eval', 'echo("hi");') }, 'stop blocklisted fun - by name'
+        'PHP function is blocklisted'
+    )
+    $t.dies(
+        fun { Php.call('ini_set', 'x', 'y') }, 'stop blocklisted fun - by match'
+        'PHP function is blocklisted'
+    )
+
+
+    Php.require('vendor/testVendorClass.php')
+
+    $vc = Php.new('Abc/VendorClass')
+    $t.ok($vc.takeArray([1, 2, 3]) == 1, 'Vendor class - take array')
+    $t.ok($vc.returnArray([1, 2, 3])[1] == 'a', 'Vendor class - return array')
+    $t.ok($vc.returnRecords().remove(1)['color'] == 'Red', 'Vendor class - recursive arrays')
+    $t.ok($vc.returnObject().callMe() == 'abc', 'Vendor subClass')
+
+    $t.ok($vc.zSet('ALL_CAP_FIELD', 789), 'Vendor class - ALL_CAP_FIELD')
+    $t.ok($vc.zGet('ALL_CAP_FIELD') == 789, 'Vendor class - ALL_CAP_FIELD')
+    $t.ok($vc.zCall('ALL_CAP_METHOD') == 'FOO', 'Vendor class - ALL_CAP_METHOD')
+
+    $t.dies(fun { $v = Php.version }, 'version()', 'Try: call method `version()`')
+
+    $t.ok(Php.functionExists('strpos'), 'fun exists')
+    $t.ok(!Php.functionExists('strposxx'), 'fun exists (not)')
+    $t.ok(Php.classExists('DateTime'), 'class exists')
+    $t.ok(!Php.classExists('FooBar'), 'class exists (not)')
+    $t.ok(Php.classExists('/o/u_Test'), 'class exists (o namespace)')
+
+    $t.ok(Php.call('Abc/VendorClass::staticFunction', 123) == 'STATIC: 123', 'static call')
+
+    return $t
+}

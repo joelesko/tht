@@ -1,0 +1,47 @@
+
+public fun run($t) {
+
+    $t.section('Module: Jcon')
+
+    $d = Jcon.parse('{\nkey: value\n}\n')
+    $t.ok($d.key == 'value', 'string value')
+
+    $d = Jcon.parse('{\n key: "hello"\n }')
+    $t.ok($d.key == 'hello', 'quoted string value')
+
+    $d = Jcon.parse('{\nkey: true\n}\n')
+    $t.ok($d.key == true, 'true value')
+
+    $d = Jcon.parse('{\nkeyA: valA\nkeyB: valB\n}\n')
+    $t.ok($d.keyB == 'valB', '2nd key')
+
+    $d = Jcon.parse('{\nkey: false\n}\n')
+    $t.ok($d.key == false, 'false value')
+
+    $d = Jcon.parse('{\nkey: 1234.5\n}\n')
+    $t.ok($d.key == 1234.5, 'num value')
+
+    $d = Jcon.parse('{\nkey: [\nv1\nv2\nv3\n]\n}\n')
+    $t.ok($d.key.length() == 3, 'list value')
+    $t.ok($d.key[3] == 'v3', 'list value')
+
+    $d = Jcon.parse('{\nkey: \'\'\'\nThis is\nmultiline\n\'\'\'\n}\n')
+    $t.ok($d.key.contains('\nmultiline'), 'multiline value')
+
+    $d = Jcon.parse('{\nkeLm: \'\'\'\n## Heading!\n\'\'\'\n}\n')
+    $t.ok($d.keLm.renderString().contains('<h2>'), 'Litemark value')
+
+    $t
+        .ok(Jcon.fileExists('app.jcon'), 'fileExists')
+        .ok(!Jcon.fileExists('missing.jcon'), 'fileExists - not')
+
+        .dies(fun { Jcon.parse('sdfsdf') }, 'missing top-level')
+        .dies(fun { Jcon.parse('{ foo: 123 }') }, 'Missing newline after open brace')
+        .dies(fun { Jcon.parse('{\n foo: 123, \n}') }, 'remove trailing comma')
+        .dies(fun { Jcon.parse('{\n foo: 1\n foo: 2\n }') }, 'duplicate key')
+        .dies(fun { Jcon.parse('{\n foo : 1\n }') }, 'extra space before colon')
+        .dies(fun { Jcon.parse('{\n foo:1\n }') }, 'missing space after colon')
+        .dies(fun { Jcon.parse('') }, 'empty string')
+
+    return $t
+}

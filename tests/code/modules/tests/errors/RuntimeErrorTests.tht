@@ -1,0 +1,84 @@
+
+public fun run($t) {
+
+    $t.section('Runtime Errors')
+
+    $t.dies(x{ 'abc'.sdf() }, 'Unknown object method')
+    $t.dies(x{ { a: 1 }.sdfsdf() }, 'Unknown object method')
+
+    $funFor = fun {
+        foreach 2 as $foo {
+        }
+    }
+    $t.dies($funFor, 'bad foreach var', 'argument')
+
+    $str = 'abc'
+    $map = { someKey: 123 }
+    $list = [1, 2, 3]
+
+
+    $t.section('Suggested Methods/Fields - String')
+
+        .dies(fun { $a = $str.lowerCase }, 'toLowerCase()')
+        .dies(fun { $a = $str.explode }, 'split(delimiter)')
+        .dies(fun { $a = $str.len }, 'length()')
+        .dies(fun { $a = $str.len() }, 'length()')
+        .dies(fun { $a = $str.spilt }, 'split()')
+        .dies(fun { $a = $str.split }, 'split()')
+        .dies(fun { $a = $str.spilt() }, 'split()')
+        .dies(fun { $a = $str.char }, 'getChar()')
+
+        .dies(x{ 'x'.splitwords() }, 'Try: `splitWords()`')
+        .dies(x{ (1).leftZeroPad() }, 'Try: `zeroPadLeft()`')
+        .dies(x{ (1).even() }, 'Try: `isEven()`')
+        .dies(x{ 'x'.leftPad() }, 'Try: `padLeft()`')
+        .dies(x{ 'x'.pad() }, 'Try: `padRight()` `padLeft()` `padBoth()`')
+        .dies(x{ 'x'.spilt() }, 'Try: `split()`')
+        .dies(x{ 'x'.starts() }, 'Try: `startsWith()`')
+        .dies(x{ 'x'.toType() }, 'Try: `xDangerToType()`')
+
+
+    $t.section('Suggested Methods/Fields - Map')
+
+        .dies(fun { $a = $map.keys }, 'keys()')
+        .dies(fun { $a = $map.somekey }, 'someKey')
+        .dies(fun { $a = $map.keySome }, 'someKey')
+        .dies(fun { $a = $map.someKye }, 'someKey')
+        .dies(fun { $a = $map.somKey }, 'someKey')
+        .dies(fun { $a = $map.some }, 'someKey')
+        .dies(fun { $a = $map.delete() }, 'remove')
+
+    $t.section('Suggested Methods/Fields - List')
+
+        .dies(fun { $a = $list.shift() }, 'popFirst()')
+        .dies(fun { $a = $list.empty() }, 'isEmpty()')
+        .dies(fun { $a = $list.len() }, 'length()')
+        .dies(fun { $a = $list.length }, 'length()')
+        .dies(fun { $a = $list.count }, 'length()')
+
+
+    $t.section('Suggested Methods/Fields - Std Module')
+
+        .dies(fun { $a = Json.stringify() }, 'Json.encode()')
+        .dies(fun { $a = Output.json() }, 'Output.sendJson()')
+        .dies(fun { $a = Output.header() }, 'Output.setHeader()')
+        .dies(fun { $a = Db.select() }, 'Try: `Db.selectRow()` `Db.selectRows()`')
+        .dies(fun { $a = Date.locale() }, 'Date.setLocale()')
+        .dies(x{ Math.random }, 'Try: Call method `random()`')
+        .dies(x{ Math.radnom() }, 'Try: `Math.random()`')
+        .dies(x{ Page.random() }, 'Try: `Math.random()`')
+
+    $t.section('Suggested Methods/Fields - User Module')
+
+
+    load('subDir/OtherModule')
+    $t.dies(x{ OtherModule.useAdjacant() }, 'Try: `useAdjacent()`')
+    $t.dies(x{ OtherModule.useAdjacent }, 'Try: Call method `useAdjacent()`')
+
+
+
+    return $t
+}
+
+
+

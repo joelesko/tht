@@ -1,0 +1,22 @@
+
+public fun run($t) {
+
+    $t.section('Bitwise Operators')
+
+        .ok(1 +| 2 == 3, 'bitwise or (+|)')
+        .ok(2 +& 3 == 2, 'bitwise AND (+&)')
+        .ok(1 +^ 2 == 3, 'bitwise XOR (+^)')
+
+        .ok(+~5 == -6, 'bitwise NOT (+~)')
+
+        .ok(3 +< 2 == 12, 'bitwise shift LEFT (+<)')
+        .ok(13 +> 2 == 3, 'bitwise shift RIGHT (+>)')
+
+        .ok(0b100 +| 0b010 == 0b110, 'OR (+|) with binary number')
+        .ok(0b100 +& 0b110 == 0b100, 'AND (+&) with binary number')
+        .ok(0b100 +^ 0b110 == 0b010, 'XOR (+^) with binary number')
+        .ok(+~0b110 == -7, 'NOT (+~) with binary number')
+
+    return $t
+}
+

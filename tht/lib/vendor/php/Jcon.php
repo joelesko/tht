@@ -329,7 +329,7 @@ function stringToValue($v) {
         return false;
     }
     else if (preg_match('/^-?[0-9\.]+$/', $v)) {
-        if (strpos($v, '.') !== false) {
+        if (str_contains($v, '.')) {
             return floatval($v);
         } else {
             return intval($v);
@@ -339,7 +339,7 @@ function stringToValue($v) {
     }
 }
 
-function trimLines ($val) {
+function trimLines($val) {
     $trimmed = rtrim($val);
     $lines = explode("\n", $trimmed);
     while (count($lines)) {
@@ -353,7 +353,7 @@ function trimLines ($val) {
     return implode("\n", $lines);
 }
 
-function trimIndent ($v) {
+function trimIndent($v) {
     $minIndent = 999;
     $trimmed = trimLines($v);
     if (!strlen($trimmed)) { return ''; }

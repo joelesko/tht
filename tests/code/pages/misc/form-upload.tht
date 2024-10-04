@@ -1,0 +1,55 @@
+
+@@.form = Form.create('uploadForm', {
+
+    name: {
+        rule: 'name'
+    }
+    uploadFile: {
+        rule: {
+            type: 'file'
+            maxSizeMb: 5
+            ext: 'pdf'
+            dir: dir'app:/data/uploads'
+        }
+    }
+})
+
+fun main {
+
+    $page = Page.create({
+        title: 'Upload Form'
+        main: formHtml()
+        css: [url'/css/basic.css']
+        js: [url'/js/form.js']
+    })
+
+    Output.sendPage($page)
+}
+
+fun postMode {
+
+    @@.form.process(fun ($data) {
+
+        return thanksHtml($data)
+    })
+}
+
+tem formHtml {
+
+    <h1> Upload Form
+
+    <.panel>
+        --- $buttonLabel = Web.icon('check').append(html' Upload File')
+        {{ @@.form.toHtml($buttonLabel) }}
+    </>
+
+}
+
+tem thanksHtml($data) {
+
+    <p> Thanks <b>{{ $data.name }}</>, we got your upload!
+
+    <p> File: {{ $data.uploadFile.renderString() }}
+
+    <p> <a href=""> Back to Form
+}

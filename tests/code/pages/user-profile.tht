@@ -1,0 +1,62 @@
+
+// Used for creating screenshots of the THT error page with stack trace.
+
+
+
+
+fun main {
+
+    $allUsers = getFollowers(3683, -filter)
+
+}
+
+
+
+fun getFollowers($userId, $flags) {
+
+    $users = [
+        { id: 1, name: 'tacotime33', isActive: false }
+        { id: 2, name: 'puppydog1',  isActive: false }
+        { id: 3, name: 'sidchip64',  isActive: true }
+    ]
+
+    $users = getUserNames($users)
+
+    return $users
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fun getUserNames($allUsers) {
+
+    $userNames = []
+    foreach $allUsers as $user {
+        if $user.isActive {
+            $userNames #= $user.name.toUpper()
+        }
+    }
+
+    return $userNames
+}
+
+
+

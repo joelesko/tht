@@ -1,0 +1,391 @@
+
+public fun run($t) {
+
+    $t.section('Parser')
+
+    $code = '''
+
+        // test comments
+
+        /*
+            this is a block comment
+        */
+
+        $commented = 2 // line-end comment
+
+    '''
+    $t.parserOk($code, 'comments')
+    $longComment = '// ' ~ 'a'.repeat(121) ~ '\n'
+    $t.parserOk($longComment, 'line comment over 120 chars')
+    $longBlockComment = '/*\n' ~ 'a'.repeat(121) ~ '\n*/'
+    $t.parserOk($longBlockComment, 'block comment over 120 chars')
+
+    $longLine = '''
+        $url = url'https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600&family=Roboto:wght@400;500&display=swap&otherParam=123'
+    '''
+    $t.parserError($longLine, 'try: a multi-line string')
+
+    $longFn = 'fun tooManyArgs($a1, $a2, $a3, $a4, $a5) { }'
+    $t.parserError($longFn, 'Can`t have more than 4 arguments')
+
+
+
+    $t.section('Parser Errors - Names')
+        .parserError('$FOO = 3',        'camelCase')
+        .parserError('$fOO = 3',        'camelCase')
+        .parserError('$XMLreader = {}', 'camelCase')
+        .parserError('$a_b = 3',        'camelCase')
+        .parserError('$$a = 1',         'only one `$`')
+        .parserError('$a$b = 1',        'only one `$`')
+        .parserError('$ = 1', 'missing a name')
+        .parserError('if true {\n} Else {\n}',  'all lowercase')
+        .parserError('fun fo$o {}', '$')
+        .parserError('fun FOO {}',   'camelCase')
+        .parserError('fun a {}',    'longer than 1')
+
+        $longName = 'a'.repeat(41)
+        $t.parserError('$' ~ $longName ~ ' = 1', '40 characters or less')
+        $t.parserError('fun ' ~ $longName ~ ' () {}', '40 characters or less')
+
+        $t.parserError('$test = 123\n$a = $tast + 1', 'Try: `$test`')
+        $t.parserError('tast()\nfun test { return 1 }\n', 'Try: `test()`')
+
+
+    $t.section('Parser Errors - Validator - Vars')
+
+        .parserOk('$if = 1', 'keyword as var: $if')
+        .parserOk('$fun = fun { return 1 }', 'keyword as var: $if')
+
+        .parserError('$UpperCase = 123', 'lower camelCase')
+        .parserError('$ = 123', 'missing a name')
+        .parserError('$1 = 123', 'start with a letter')
+        .parserError('$$ = 123', 'one `$` prefix')
+        .parserError('$foo_bar = 123', 'no underscores')
+        .parserError('$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 1', 'or less')
+
+
+    $t.section('Parser Errors - Validator - Words')
+
+        .parserError('$foo.foo_bar = 1', 'underscore')
+        .parserError('$foo.A = 1', '1 character')
+        .parserError('$foo.a$a = 1', 'can not contain sigil: `$`')
+        .parserError('$a.goHTML', 'pure lowerCamelCase')
+        .parserError('$a.UPPER', 'camelCase')
+        .parserError('fun DoSomething {}', 'pure lowerCamelCase')
+        .parserError('$a.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx = 1', 'or less')
+        .parserError('function foo { return $a }', 'try: `fun`')
+        .parserError('$l = xyz[foo bar]', 'Try: `$xyz` or `q[...]`')
+        .parserError('forach $a as $i {\n}', 'try: `foreach`')
+        .parserError('$a = { b + 1 }', 'Map key must be a string, number, or word')
+
+
+    $t.section('Parser Errors - Aliases')
+
+        .parserError('for ($ary as $a) { }', 'try: \`foreach')
+        .parserError('$ary = []\nforeach $a in $ary { }', 'expected `as`')
+        .parserError('$m = { a: 3 }\nforeach $m as $k => $v {}', '$k/$v')
+
+        .parserError('$a = 1 ^ 2',  '+^')
+        .parserError('$a = 1 & 2',  '+&')
+        .parserError('$a = 1 | 2',  '+|')
+        .parserError('$a = 1 >> 2',  '+>')
+        .parserError('$a = 1 << 2',  '+<')
+        .parserError('$a = 1++',  '+= 1')
+        .parserError('if true { } elif false {}',  'else if')
+        .parserError('if true { } elsif false {}',  'else if')
+        .parserError('if true { } elseif false {}',  'else if')
+        .parserError('switch() {}',  'try: `if/else')
+        .parserError('require()',  'try: `load`')
+        .parserError('new()',  'try: Remove `new`')
+        .parserError('while () {}',  'try: `loop { ... }`')
+        .parserError('while true {}',  'try: `loop { ... }`')
+        .parserError('$a = 1 ?: 0',  '||:')
+        .parserError('$a = 1 ?? 0',  '||:')
+        .parserError('$a = ``\n$a .= `xyz`',  '~=')
+        .parserError('2 > 1 ? true : false', 'unnecessary ternary')
+        .parserError('2 > 1 ? false : true', 'unnecessary ternary')
+        .parserError('if `foo` == $b { }', 'Literal value should go on the right side')
+        .parserError('if 123 == $b { }', 'Literal value should go on the right side')
+        .parserError('if true == $b { }', 'Literal value should go on the right side')
+
+
+
+
+    $t.section('Parser Errors - Misc')
+
+        .parserError('$a', 'Unexpected variable')
+        .parserError('true', 'Unexpected word')
+        .parserError('{}', 'invalid statement')
+        .parserError('$a || 123', 'invalid statement')
+        .parserError('$a == 123', '`=` (assignment)')
+        .parserError('$a =\n123', 'remove the newline')
+        .parserError('if $a = 3 { }', 'Can`t assign variable')
+        .parserError('break', 'outside of a loop')
+        .parserError('return', 'outside of a function')
+        .parserOk('if true { $a = 1 }', 'newline not needed for one-line if')
+        .parserOk('fun foo { return 1 }', 'newline not needed for one-line fun')
+
+        // TODO: small bug: outer parens aren't caught if there is no following statement
+        .parserError('if (1 == 1) { }\n$a = 1', 'outer parens')
+
+        .parserError('if (false && (1 == 1)) { }\n$a = 1', 'outer parens')
+        .parserError('if true { }\nelse if (1 == 1) { }\n$a = 1', 'outer parens')
+        .parserError('foreach ([`a`] as $bbb) { }', 'outer parens')
+        .parserOk('if (1 == 1) && false { }', 'outer parens')
+        .parserOk('if false && (1 == 1) { }', 'outer parens')
+        .parserOk('if (1 == 1) && (2 == 2) { }', 'outer parens')
+        .parserOk('if (1 == 1) && `abc`.reverse() { }', 'outer parens')
+        .parserError('$a = `hello', 'unexpected newline')
+        .parserError('foreach $a {}', 'expected `as`')
+        .parserError('for ($i = 0; i < 10; i += 1) {}', 'Try: \`foreach')
+        .parserError('1 ? 2 ? 3 : 4 : 5', 'nested ternary')
+        .parserError('$a = e`foo`', 'string modifier')
+        .parserError('if 2 => 1 { }', '>=')
+        .parserError('if 1 =< 2 { }', '<=')
+        .parserError('$a = 1 <> 2', '!=')
+        .parserError('fun foo\n$a = 1', 'Expected `{`')
+
+
+        .parserError('if false && ($a == 3) return', 'Expected `{`')
+        .parserError('$a = { FOO: `bar` }', 'camelCase')
+        .parserError('$a = { foo: `bar`, foo: 1 }', 'duplicate key')
+        .parserError('$a = (1 + )', 'missing right operand')
+        .parserError('$a = 2 + (1 * ) + 1', 'missing right operand')
+        .parserError('<?', 'Unknown token: `<?`')
+        .parserError('?>', 'Unknown token: `?>`')
+        .parserError('<?=', 'Unknown token: `<?=`')
+        .parserError('`hello`[] = `a`', 'Can`t assign variable')
+        .parserError('fun test(\n    ma1\n    ma2\n) {\n}', 'Newline')
+        .parserError('fun test(\n    ma1 \n    ma2\n) {\n}', 'Newline')
+        .parserError('$a = 1;', 'remove semicolon')
+        .parserError('$a = [1,, ]', 'Unexpected comma')
+        .parserError('$a = [,, 1]', 'Unexpected comma')
+
+        $crlf =  String.unicodeToChar(13) ~ String.unicodeToChar(10)
+        $t.parserOk('$a = 1' ~ $crlf ~ '$b = 2', 'Ignore CR (Windows line break)')
+
+        .parserError('$a = ``` sdf', 'newline')
+        .parserError('$a = ```\n    dfg ```', 'separate line')
+        .parserError('$a = ```\n    dfg ', 'unclosed')
+
+        .parserError('$a = 1, $b = 2', 'unexpected separator', '')
+        .parserError('foo())', 'extra separator')
+        .parserError('foo()]', 'extra separator')
+        .parserError('foo()}', 'extra separator')
+
+        .parserError('`foo` == $a', 'right side of the expression')
+        .parserError('1 == $a', 'right side of the expression')
+        .parserError('true == $a', 'right side of the expression')
+        .parserError('true == bar()', 'right side of the expression')
+        .parserError('`foo` == bar()', 'right side of the expression')
+        .parserError('`foo` == $a.key', 'right side of the expression')
+
+        .parserError('$a = 1 >> 2', 'can only be used at the beginning of a line')
+        .parserOk('\n>> 123', 'print shortcut')
+
+        .parserError('$a = `str``', 'Extra quote')
+        .parserError('$test = 123\\n', 'Unknown token: `\\`')
+
+
+    $t.section('Parser Errors - Adjacent Tokens')
+        .parserError('$a = $foo $foo',   'unknown variable')
+        .parserError('$a = `foo` $foo', 'unexpected variable')
+        .parserError('$a = 123 $foo',   'unexpected variable')
+        .parserError('$a = $foo foo',   'unexpected word')
+        .parserError('$a = foo `foo`', 'unexpected word')
+        .parserError('$a = 123 `foo`', 'unexpected string')
+        .parserError('$a = foo 123',   'unexpected word')
+        .parserError('$a = `foo` 123', 'unexpected number')
+        .parserError('$a = { k: a, b c }', 'unexpected keyword')
+        .parserError('let $a = 123', 'unsupported keyword')
+        .parserError('function foo() {}', 'unsupported keyword')
+
+
+    $t.section('Parser Errors - Newlines')
+        .parserError('$a = 1 /*\n', 'separate line')
+        .parserError('/*\nsdf\n*/ d', 'missing newline')
+        .parserError('/*\nsdf', 'missing a closing token: `*/`')
+        .parserError('tem fooText() {\n} $a = 1', 'Missing newline after closing brace')
+        .parserError('if\n(true)\n{ } ', 'newline after: `if`')
+        .parserError('foreach\n(el in list)', 'newline after: `foreach`')
+        .parserError('fun\nfoo()', 'newline after: `fun`')
+        .parserError('class\nFoo {}', 'Unsupported keyword: `class`')
+        .parserError('$a = new\nFoo()', 'remove `new`')
+        .parserOk('$a = fun { $c = 1 }', 'Statement in anon function')
+        .parserOk('if true { $a = 1 }', 'Statement in conditional block')
+
+        .parserError('if true\n{ }',             'Please move open brace')
+        .parserError('if true {\n}\nelse\n{ }',  'Please move open brace')
+        .parserError('foreach [`a`] as $a\n{ }', 'Please move open brace')
+        .parserError('fun fnn\n{ }',              'Please move open brace')
+        .parserError('$a = [\n    1, 2]\n$b = 1', 'Please remove the newline')
+        .parserError('foo(\n)',                   'Please remove the newline after: `(`')
+        .parserOk('if true { // comment\n}',      'line comment after opening brace')
+
+    $t.section('Parser Errors - Indent')
+        .parserError('$foo = 1\n+ 22',  '4 spaces right')
+        .parserOk('$foo = 1\n    + 22', 'indent before operator')
+        .parserError('$map = {\n  a: 123\n}',  '2 spaces right')
+        .parserOk('$map = {\n    a: 123\n}', 'indent inside map')
+        .parserError('$list = [\n  111\n]',  '2 spaces right')
+        .parserOk('$list = [\n    111\n]', 'indent inside list')
+        .parserError('$list = [\n      111\n]',  '2 spaces left')
+        .parserError('$foo = (\n  1 + 2\n)',  '2 spaces right')
+        .parserOk('$foo = (\n    1 + 2\n)', 'indent inside parens')
+        .parserError('fun foo {\n  $a = 1\n}',  '2 spaces right')
+        .parserOk('fun foo {\n    $a = 1\n}', 'indent inside function')
+        .parserError('if true {\n  $a = 1\n}',  '2 spaces right')
+        .parserOk('if true {\n    $a = 1\n}', 'indent inside block')
+        .parserError('$a = {\n    b: [1]\n$aa = 123', 'Expected `}` or indentation')
+        .parserError('$a = {\n  b: [1]\n}', 'Please move indentation')
+
+    $t.section('Parser Errors - Spaces')
+
+        .parserError('fun(){}',         'space after: `fun`')
+        .parserError('fun foo () {}',   'space before: `(`')
+        .parserError('fun foo{}',       'space before: `{`')
+        .parserError('$a = fun() {}',   'space after: `fun`')
+        .parserError('fun foo {a = 1 }',     'space after: `{`')
+
+        .parserError('$z = x{$a > 1 }', 'space after: `{`')
+        .parserError('$z = x{ $a > 1}', 'space before: `}`')
+        .parserOk('$z = x{\n    $a > 1\n}', 'newline after: `{`')
+
+        .parserError('( a + 1)',             'space after: `(`')
+        .parserOk('$a = (\n    1 +\n    2\n)', 'newline after: `(`')
+        .parserError('foo( )',               'space after: `(`')
+        .parserError('$a = [ ]',             'space after: `[`')
+        .parserError('$a = { }',             'space after: `{`')
+        .parserOk('$a = [\n]',               'space after: `[`')
+        .parserOk('$a = {\n}',               'space after: `{`')
+        .parserError('$a = $b[ 0]',           'space after: `[`')
+        .parserError('$a = $b[0 ]',           'space before: `]`')
+        .parserError('$a= 1+2',              'space before: `=`')
+        .parserError('$a =1+2',              'space after: `=`')
+        .parserError('$a = 1+ 2',            'space before: `+`')
+        .parserError('$a = 1 +2',            'space after: `+`')
+        .parserError('$a = 1 + - 2',         'space after: `-`')
+        .parserError('$a = {a:`b`}',         'space after: `{`')
+        .parserError('$a = { a:`b`}',        'space after: `:`')
+        .parserError('$a = { a : `b`}',      'space before: `:`')
+        .parserError('$a = [1,2,3]',         'space after: `,`')
+        .parserError('if(true) {}',          'space after: `if`')
+        .parserError('if ( true) {}',        'space after: `(`')
+        .parserError('if true{}',          'space before: `{`')
+        .parserError('fun foo { return(a) }', 'space after: `return`')
+        .parserError('$a,$b,$c',             'space after: `,`')
+        .parserError('$a? 1 : 2',            'space before: `?`')
+        .parserError('$a ?1 : 2',            'space after: `?`')
+        .parserError('$a ? 1: 2',            'space before: `:`')
+        .parserError('$a ? 1 :2',            'space after: `:`')
+        .parserError('if true :$a = 1',   'space before: `:`')
+        .parserError('if true:\n$a = 1',  'newline after: `:`')
+        .parserOk('$a = [1, 2, 3]',       'no padding inside `[...]`')
+        .parserError('$a = [ 1, 2]',  'space after: `[`')
+        .parserError('$a = [1, 2 ]',      'space before: `]`')
+
+        .parserError('String .random(4)', 'space before: `.`')
+        .parserError('String. random(4)', 'space after: `.`')
+        .parserError('String.\n    random(4)', 'newline after: `.`')
+        .parserOk('String\n    .random(4)', 'newline before: `.`')
+
+        .parserError('\tfoo()', 'tab character not supported')
+        .parserError('$foo = \t123', 'tab character not supported')
+        .parserError('\ntem fHtml {\n\t    Test\n}', 'tab character not supported')
+        .parserError('\ntem fHtml {\n    {{123 }}\n}\n', 'space after: `{{`')
+
+
+
+    $t.section('Parser Errors - Templates')
+
+        // TODO: there is a bug if a tem is the first line of source code
+        .parserError('\ntem fHtml {<',                'newline')
+        .parserError('\ntem fHtml {\n    ---$a = 1',        'space after: `---`')
+        .parserError('\ntem fHtml {\n    --- $a = 1 + \n}\n',       'Unexpected newline')
+        .parserError('\ntem fHtml {\n    {{5 }}\n}\n',     'space after: `{{`')
+        .parserError('\ntem fHtml {\n    {{ 5}}\n}\n',     'space before: `}}`')
+        .parserError('\ntem fHtml {\n    {{ \n5 }}',    'unexpected newline')
+        .parserError('\ntem fHtml {\n    <p class="foo>\n }',     'missing a closing double-quote')
+        .parserError('\ntem fHtml {\n    <b>Hi</div>',    'expected `</b>`')
+        .parserOk('\ntem fffHtml {\n    </>\n}\n',  'extra closing tag')
+        .parserError('\ntem fHtml {\n    <p>\n    </>\n    </>}\n',  'extra closing tag')
+        .parserOk('\ntem fHtml {\n    </b>\n}\n',  'named closing tag')
+        .parserError('fun fHtml {\n    <',              'unexpected token: `<`', '')
+        .parserError('\ntem fHtml {\n    <b>\n}', 'missing closing tag')
+        .parserOk('\ntem fHtml {\n    <b>\n    </...>\n}', 'continue tag')
+        .parserError('\ntem foo {\n',                   'missing type')
+        .parserError('\ntem fHtml {\nTest\n}', 'please indent line')
+        .parserError('\ntem {\nTest\n}', 'must have a name')
+
+
+    $t.section('Parser Errors - Assignment as Expression')
+
+        .parserError('$b = 1\n$a = $b = 3',        'can`t assign variable')
+        .parserError('$b = 1\n$a = $b += 3',       'can`t assign variable')
+        .parserError('$a = { b: $c = 1 }',           'can`t assign variable')
+        .parserError('foo($a = 3)',               'can`t assign variable')
+        .parserError('$a[$b = 3]',                  'can`t assign variable')
+        .parserError('foreach $a = 3 as $b {}',      'can`t assign variable')
+        .parserError('if $a = 3 {}',                 'can`t assign variable')
+        .parserError('fun foo { return $a = 3 }', 'can`t assign variable')
+
+
+    $t.section('Parser Errors - Scope')
+
+        .parserError('$a = $b + 1', 'unknown variable')
+        .parserError('fun foo { }\nfun foo() { }', 'already defined')
+        .parserError('fun foo { }\nfun fOo() { }', 'defined as: `foo`')
+        .parserError('fun foo($aa, $aa) { }', 'already defined')
+        .parserError('fun foo($aa, $aA) { }', 'typo')
+
+        .parserError('fun print() {}', 'core function')
+        .parserError('fun finally() {}', 'reserved')
+        .parserError('fun else() {}', 'reserved')
+
+        .parserError('$a = 1\nfun foo {\n    print($a)\n}', 'unknown variable')
+
+        .parserError('$a = $b[4]', 'unknown variable')
+        .parserError('$fOo = 1\n$foO = 2', 'typo')
+        .parserError('$a = $b + 1', 'unknown variable')
+        .parserError('$a = $a + 1', 'unknown variable')
+        .parserError('fOo()\nfun foo { }', 'typo', '')
+        .parserError('fun main { }\n$a = 1', 'declared before functions')
+        .parserError('@.a = 123', 'outside of an object')
+        .parserError('$a = 1\nforeach [0] as $a {\n}', 'already defined')
+        .parserError('foreach [0] as $a {\n}\nprint($a)', 'unknown variable')
+        .parserError('try {\n}\ncatch $ex {\n}\nprint($ex)', 'unknown variable')
+        .parserError('$a = 1\nforeach [0] as $a { }', 'already defined')
+        .parserError('foreach [0] as $a/$a { }', 'already defined')
+        .parserError('public foo() { }', 'Missing `fun` or `tem` keyword')
+
+        .parserOk('foreach [] as $n: print($n)\n$b = 3', 'statement after one-liner foreach')
+        .parserOk('if true: print(2)\n$b = 3', 'statement after one-liner if')
+        .parserOk(
+            'fun outer {\n    fun fnIn: print(2)\n    $b = 3\n}'
+            'statement after one-liner fn'
+        )
+
+    $t.section('Missing $')
+        .parserError('tt = 123', 'Try: `$tt`')
+        .parserError('$a = tt', 'Try: `$tt`')
+        .parserError('tt #= 123', 'Try: `$tt`')
+        .parserError('tt += 123', 'Try: `$tt`')
+        .parserError('$a = tt - 3', 'Try: `$tt`')
+        .parserError('$a = tt ~ `!`', 'Try: `$tt`')
+        .parserError('$a = 3 - tt', 'Try: `$tt`')
+        .parserError('$a = tt[3]', 'Try: `$tt`')
+        .parserError('fun ff { return tt }', 'Try: `$tt`')
+        .parserError('$a = [tt, 123]', 'Try: `$tt`')
+        .parserError('$a = { b: tt }', 'Try: `$tt`')
+
+
+
+    //$a = 3 - t
+    //return t
+
+     // TODO: this is a runtime error.  capture this at compileTime
+    //$code = '$outer = 1\nfn()\fun fn() {\nprint($outer)\n}'
+    //$t.parserError($code, 'unknown variable', '')
+
+    return $t
+}

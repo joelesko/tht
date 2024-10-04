@@ -1,0 +1,101 @@
+
+public fun run($t) {
+
+    $t.section('Classes (OOP)')
+
+    return $t
+
+    load('oop/BaseObject')
+
+    // inits
+    $b = BaseObject({ overrideInit: 333 })
+    $t.ok($b.publicFn() == 'public', 'call public fn')
+    $t.ok($b.overrideInit == 333, 'override field from init')
+    $t.ok($b.overrideNew == 444, 'override field in new()')
+    $t.ok($b.publicCallPrivate() == 'private', 'public calling private')
+    $t.ok($b.getterVal == 'getter!', 'getter function - auto')
+    $t.ok($b.getGetterVal() == 'getter!', 'getter function - direct')
+
+
+    // public/private
+    $t.dies(fun {
+        $ba = BaseObject()
+        $ba.privateVar = 999
+    }, 'can`t write to private field', 'Can`t write directly to field')
+
+    $t.dies(fun {
+        $ba = BaseObject()
+        $z = $ba.privateVar
+    }, 'can`t read private field', 'Can`t read private field')
+
+    $t.ok($b.publicVar == 'public', 'read public var')
+    $t.dies(fun {
+        $ba = BaseObject()
+        $ba.publicVar = 'changed'
+    }, 'can`t write to field', 'Try: Using a setter function')
+
+    $b = BaseObject({ privateNoInit: 'didInit' })
+    $t.ok($b.readNoInit() == 'noInit', 'don`t initialize private field')
+
+    // general errors
+    $t.dies(
+        fun { BaseObject({}, 'extra') }, 'expects only one argument'
+        'Constructor expects only one argument'
+    )
+    $t.dies(
+        fun { BaseObject('non-map') }, 'first argument must be map'
+        'First argument must be a Map'
+    )
+    $t.dies(
+        fun { BaseObject({ flag: 'true' }) }, 'init types must match'
+        'Field `flag` must be of type: `boolean`'
+    )
+    $t.dies(
+        fun { $b.privateFn() }, 'private function'
+        'Can`t call private method'
+    )
+    $t.dies(fun { $b.newer = 123 }, 'can`t create field after object is constructed')
+    $t.parserError('class Foo {\n    $a = 1\n}', 'assignment not allowed')
+    $t.parserError('class Foo {\n    foo()\n}', 'Invalid statement inside `class` block')
+    $t.parserError('class Foo1 { }\n\nclass F2 { }', 'Only one class allowed')
+
+
+    load('oop/FactoryObject')
+    $fo = FactoryObject({})
+    $t.ok($fo.var == 789, 'factory created object')
+
+
+
+    $t.section('OOP - Meta Methods')
+
+    $b = BaseObject()
+    $t.ok($b.zGetMethods().length() == 5, 'zGetMethods')
+    $t.ok($b.zGetMethods().contains('publicFn'), 'zGetMethods - contains')
+    $t.ok($b.zCallMethod('publicFn') == 'public', 'zCallMethod')
+
+
+    // $t.section('OOP - Composition')
+
+    // load('oop/ComposeParent')
+    // load('oop/ComposeHelper')
+
+    // $o = ComposeParent()
+    // $t.ok($o.useHelper() == 'helper:111', 'default helper')
+
+    // $o = ComposeParent({
+    //     helper: ComposeHelper({ num: 999 })
+    // })
+    // $t.ok($o.useHelper() == 'helper:999', 'initialized helper')
+
+
+    // $t.section('OOP - Embedded Object')
+
+    // $t.ok($o.embeddedMethod() == 'embeddedMethod', 'embedded call')
+    // $t.ok($o.embeddedField == 'embedded', 'embedded field')
+    // $t.ok($o.val == 123, 'embedded field from init map')
+    // $t.ok($o.useEmbedded() == 'embedded:123', 'embedded reference in base')
+    // $t.dies(fun () keep($o) { $o.addConflict() }, 'conflicting method')
+
+    return $t
+}
+

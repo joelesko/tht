@@ -1,0 +1,22 @@
+
+public fun run($t) {
+
+    $t.section('Flags')
+
+    $flag = -myFlag
+    $t.ok($flag.myFlag, 'flag - key')
+
+    $t.ok(getFlag().myFlag == false, 'flag as arg - false')
+    $t.ok(getFlag(-myFlag).myFlag == true, 'flag as arg - true')
+
+    return $t
+}
+
+fun getFlag($fl = {}) {
+
+    $fl.check({
+        myFlag: false
+    })
+
+    return $fl
+}

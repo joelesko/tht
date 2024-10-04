@@ -27,7 +27,7 @@ class Minifier extends StringReader {
         $this->crunchRegex = $crunchRegex;
         $this->keepNewlines = $keepNewlines;
 
-        Tht::module('Perf')->u_start('minify.' . $perfId, $this->fullText);
+        $perfTask = Tht::module('Perf')->u_start('minify.' . $perfId, $this->fullText);
 
         // TODO: This is a little ugly when switching between string and code
         while (true) {
@@ -93,7 +93,7 @@ class Minifier extends StringReader {
             $this->next();
         }
 
-        Tht::module('Perf')->u_stop();
+        $perfTask->u_stop();
 
         return $keepNewlines ? $this->out : trim($this->out);
     }

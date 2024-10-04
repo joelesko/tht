@@ -1,0 +1,80 @@
+
+public fun run($t) {
+
+    $t.section('User Modules')
+
+    if $t.skipSlowTests(): return $t
+
+    $t.ok(TestModule.bareFun('Joe') == 'bareFunction:Joe', 'module call - autoloaded')
+
+    $t.ok(TestModule.testModuleVar() == 'moduleVar:mod', 'module var - inside access')
+    $t.ok(TestModule.ModuleConstant == 'constant', 'module constant - outside access')
+
+    $t.dies(
+        fun { $a = TestModule.moduleVar }
+        'Can`t read private module variable'
+    )
+
+    $t.dies(
+        fun { TestModule.ModuleConstant = 'outsideChange' }
+        'Can`t set field'
+    )
+    $t.dies(
+        fun { TestModule.changeConstantAndDie() }
+        'Can`t write to read-only constant'
+    )
+
+    $t.dies(
+        fun { TestModule.nonExportedFn() }
+        'Can`t call non-public'
+    )
+
+    $t.dies(
+        fun { $m = load('Math') }
+        'already exists as a standard module'
+    )
+
+    // Meta Methods
+
+    $t.ok(TestModule.type() == 'module', 'type')
+    $t.ok(TestModule.zClassName() == 'TestModule', 'zClassName')
+    $t.ok(TestModule.zHasField('moduleVar'), 'zHasField')
+    $t.ok(TestModule.zHasField('moduleVar'), 'zHasField')
+    $t.ok(!TestModule.zHasField('notExist'), 'zHasField - false')
+    $t.ok(TestModule.zHasMethod('bareFun'), 'zHasMethod = true')
+    $t.ok(!TestModule.zHasMethod('notExist'), 'zHasMethod = false')
+    $t.ok(TestModule.zGetMethods().length() == 3, 'zGetMethods')
+    $t.ok(TestModule.zGetFields().length() == 3, 'zGetFields')
+    $t.ok(TestModule.zGetField('moduleVar') == 'mod', 'zGetField')
+    $t.dies(fun { TestModule.zSetField('moduleVar', 3) }, 'read-only')
+
+
+
+    load('subDir/OtherModule')
+    $t.ok(OtherModule.ok('Foo') == 'ok:Foo', 'import from subfolder')
+
+    $t
+        .dies(fun { load('http://tht.dev') }, 'import url', 'Invalid character in `load` path')
+        .dies(fun { load('../Foo') }, 'Source file not found')
+        .dies(fun { load('Foo%') }, 'import with illegal char', 'Invalid character in `load` path')
+        .dies(fun { load('Foo.tht') }, 'import with tht extension', 'Please remove `.tht`')
+
+    //$t.ok(BaseObject.BaseModuleConstant == 'constant', 'constant from subfolder module')
+    $t.dies(
+        fun { TestModule.ConstantMap.Purple = 'xxx' }
+        'can`t modify constant'
+        'Can`t modify read-only'
+    )
+
+    // load modules with relative paths
+    $t.ok(OtherModule.useAdjacent() == 'adjacent', 'call rel adjacent module')
+    load('subDir/AdjacentModule')
+    $t.ok(AdjacentModule.callUpperModule() == 'bareFunction:adj', 'call rel parent module')
+
+    $t.dies(fun { load('subDir/Adjacentmodule') }, 'file name mismatch', 'Check exact spelling')
+
+    return $t
+}
+
+
+

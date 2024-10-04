@@ -1,0 +1,68 @@
+
+@@.form = Form.create('checkboxForm', {
+    size: {
+        tag: 'radio'
+        options: {
+            small: 'Small (12 inch)'
+            medium:   'Medium (14 inch)'
+            large: 'Large (16 inch)'
+        }
+    }
+    toppings: {
+        tag: 'checkbox'
+        options: q[ pepperoni sausage onions mushrooms anchovies ]
+    }
+})
+
+
+// Runs when the page is first loaded.
+fun main {
+
+    $page = Page.create({
+        title: 'Checkbox Form'
+        main: formHtml()
+        css: [url'/vendor/basic.css']
+        js: [url'/vendor/form.js']
+    })
+
+    Output.sendPage($page)
+}
+
+// Runs when the form is submitted (i.e. request method is POST)
+fun postMode {
+
+    // Validate input, then run the inner function
+    @@.form.process(fun ($data) {
+
+        // Replace form with HTML fragment
+        return thanksHtml($data)
+    })
+}
+
+tem formHtml {
+
+    <h1> Checkbox Form
+
+    <.panel>
+
+        <h2> Pizza
+
+        --- $buttonLabel = Web.icon('lock').append(html' Order Pizza')
+        {{ @@.form.toHtml($buttonLabel) }}
+
+    </>
+
+}
+
+tem thanksHtml($pizza) {
+
+    <p> We are making your <b>{{ $pizza.size.toUpperCase(-first) }}</> pizza with:
+
+    <ul>
+    --- foreach $pizza.toppings as $pt {
+        <li> <b> {{ $pt.toUpperCase(-first) }}
+    --- }
+    </>
+
+    <p> <a href="/examples/checkbox-form"> Back to Form
+}

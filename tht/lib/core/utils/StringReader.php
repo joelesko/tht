@@ -72,7 +72,7 @@ class StringReader {
         foreach (range(0,1) as $n) {
             StringReader::$SisBinaryDigit['' . $n] = 1;
         }
-        $hexDigits = str_split('0123456789abcdef');
+        $hexDigits = str_split('0123456789abcdefABCDEF');
         foreach ($hexDigits as $n) {
             StringReader::$SisHexDigit['' . $n] = 1;
         }
@@ -84,11 +84,11 @@ class StringReader {
         }
     }
 
-    function error($msg) {
+    function error(string $msg): void {
         Tht::error($msg . '  Line: ' . $this->lineNum . '  Pos: ' . $this->colNum);
     }
 
-    function updateTokenPos () {
+    function updateTokenPos() {
         $this->tokenPos = [$this->lineNum, $this->colNum];
     }
 
@@ -96,7 +96,7 @@ class StringReader {
         return $this->tokenPos;
     }
 
-    function char ($size=1, $offset=0) {
+    function char($size=1, $offset=0) {
         $i = $this->i + $offset;
         if ($i < 0 || $i + ($size-1) >= $this->len) {
             return null;
@@ -107,15 +107,15 @@ class StringReader {
         return substr($this->fullText, $i, $size);
     }
 
-    function prevChar ($numChars=1) {
+    function prevChar($numChars=1) {
         return $this->char($numChars, -1 * $numChars);
     }
 
-    function nextChar ($numChars=1) {
+    function nextChar($numChars=1) {
         return $this->char($numChars, 1);
     }
 
-    function nextFor ($str) {
+    function nextFor($str) {
         $this->next(strlen($str));
     }
 
@@ -126,7 +126,7 @@ class StringReader {
 
     // Advance N characters
     // WARNING: Super hot path!  Each change should be measured.
-    function next ($num=1) {
+    function next($num=1) {
 
         if ($this->i >= $this->len) { return; }
 
@@ -170,7 +170,7 @@ class StringReader {
         $this->char1 = $this->fullText[$this->i];
     }
 
-    function slurpLine () {
+    function slurpLine() {
 
         $line = '';
         $isIndent = true;
@@ -207,33 +207,33 @@ class StringReader {
         ];
     }
 
-    function getLine () {
+    function getLine() {
         $l = $this->slurpLine();
         return $l['fullText'];
     }
 
-    function atEndOfFile () {
+    function atEndOfFile() {
         return $this->char1 === null;
     }
 
-    function atStartOfLine () {
+    function atStartOfLine() {
         return $this->startOfLine;
     }
 
-    function atNewLine () {
+    function atNewLine() {
         return $this->char1 === "\n";
     }
 
     // TODO: rename - isNow()?
-    function isGlyph ($str) {
+    function isGlyph($str) {
         return substr($this->fullText, $this->i, strlen($str)) === $str;
     }
 
-    function isDigit ($c) {
+    function isDigit($c) {
         return isset($this->isDigit[$c]);
     }
 
-    function isAlpha ($c) {
+    function isAlpha($c) {
        return isset($this->isAlpha[$c]);
     }
 
@@ -356,7 +356,7 @@ class TemplateStringReader extends StringReader {
 
     private $templateTransfomer;
 
-    function __construct ($type, $fullText) {
+    function __construct($type, $fullText) {
         $templateClass = "o\\" . ucfirst($type) . 'TemplateTransformer';
         $this->templateTransfomer = new $templateClass ($this);
 

@@ -1,0 +1,186 @@
+
+public fun run($t) {
+
+    $t.section('Templates')
+
+    // Punt on these for now
+    // $wsLine = whitespaceLineHtml().renderString()
+    // $t.ok($wsLine == '<div><b>a 1</b><b>a 2</b></div>\n', 'HTML whitespace - lines')
+
+    // $wsTags = whitespaceTagHtml().renderString()
+    // $t.ok($wsTags == '<p>This is a <b>Message</b>!</p>\n', 'HTML whitespace - tags')
+
+    $htmlUsers = templateHtml(['Frodo', 'Sam', 'Gandalf']).renderString()
+    $t.ok($htmlUsers.match(rx'<li>Frodo.*?<li>Sam.*?<li>Gandalf's), 'template - loop & variables')
+
+    $htmlUsers = templateHtml(['Frodo', '<b>Sam</b>', 'Gandalf'])
+    $t.ok($htmlUsers.renderString().contains('&lt;b&gt;Sam'), 'template with html escapes')
+
+    $t.section('HTML Templates')
+
+    $t.parserError('tem html {\n    <b class=foo> hi\n }', 'missing double-quote')
+    $t.parserError('tem html {\n    <b class= "foo"> hi\n }', 'space after: `=`')
+    $t.parserError('tem html {\n    <b class ="foo"> hi\n }', 'space before: `=`')
+    $t.parserError('tem html {\n    <b class="foo> hi\n }', 'closing double-quote')
+    $t.parserError('tem html {\n    <p>\n    sdfsdf\n}', 'closing tag')
+
+
+    $t.section('Template Escaping')
+
+    $t.ok(entHtml().renderString().contains('&gt;'), 'html - entity')
+    $plain = formatBlockHtml().renderString()
+    $t.ok($plain.contains('&lt;foo&gt;\n    indented'), 'html - format block')
+  //  $t.ok(bsHtml().unlock().contains('a\nb\nc'), 'html - newlines')
+    $h = expHtml('"\'', 'a&b"').renderString()
+    $t.ok($h.contains('<p "&quot;&apos;">'), 'html - tag attribute')
+    $t.ok($h.contains('a&amp;b'), 'html - outer')
+
+    $t.ok(tagsHtml(inCss()).renderString().contains('<style'), 'html - css style block')
+    $t.ok(tagsHtml(inJs()).renderString().contains('<script'), 'html - js block')
+    $t.ok(tagsHtml(entHtml()).renderString().contains('<p>2 &gt; 1</p>'), 'html - embed html')
+
+    $ls = html'<p>a &gt; c</p>'
+    $t.ok(tagsHtml($ls).renderString().contains('<p>a &gt; c</p>'), 'html - TypeString')
+
+        .ok(dataJs('string').renderString().contains('"string"'), 'js - string')
+        .ok(dataJs('a\nb').renderString().contains('"a\\nb"'), 'js - string newline')
+        .ok(dataJs('a"b').renderString().contains('"a\\"b"'), 'js - string quote')
+
+        .ok(dataJs(1234).renderString().contains('1234'), 'js - num')
+        .ok(dataJs(1 == 1).renderString().contains('true'), 'js - bool')
+        .ok(dataJs({ a: 1 }).renderString().contains('{"a":1}'), 'js - object')
+
+    $t.ok(regexJs().renderString().contains('/\\/[\\w]+\\n/g'), 'js - regex with backslashes')
+
+    // TODO: Fix this in next version
+    // $mlVar = '''
+
+    //     Line 1
+    //       Line 2
+
+    // '''
+
+    // $out = multilineVarText($mlVar).renderString()
+    // $t.ok($out.contains('Message:\n\nLine 1\n  Line 2'), 'nested multiline string with indent')
+
+    $chunks = []
+    $chunks #= chunkHtml(5)
+    $chunks #= chunkHtml(9)
+
+    $out = listOfChunksHtml($chunks).renderString()
+    $t.ok($out.contains('C5') && $out.contains('C9'), 'list of nested templates')
+
+    return $t
+}
+
+
+
+tem whitespaceLineHtml {
+    <div>
+       <b>a 1</b>
+       <b>a 2</b>
+    </div>
+}
+
+tem whitespaceTagHtml {
+    <p> This is a <b>Message </b>! </p>
+}
+
+tem templateHtml($users) {
+
+    --- // comment
+    <b> Hello
+    --- foreach $users as $u { // comment
+        <li> {{ $u }}
+    --- }
+
+}
+
+tem dataJs($d) {
+    $d =  {{ $d }}
+}
+
+tem regexJs {
+    'foo'.match(/\/[\w]+\n/g);
+}
+
+tem entHtml {
+    <p> 2 &gt; 1
+}
+
+tem formatBlockHtml {
+    <p>>>
+        <foo>
+            indented
+    </>
+}
+
+tem bsHtml {
+    a\nb\nc
+}
+
+tem jsHtml {
+    <script nonce="{{ Web.nonce() }}">
+    var a = '&lt;a\nb\nc'
+    </>
+}
+
+tem expHtml($inner, $outer) {
+    <p "{{ $inner }}"> {{ $outer }}
+}
+
+tem tagsHtml($exp) {
+    {{ $exp }}
+}
+
+tem inCss {
+    font-weight: bold
+}
+
+tem inJs {
+    var a = 1
+}
+
+
+tem expCss($inp) {
+    font-weight: {{ $inp }}
+}
+
+// TODO: TEST ME
+tem spaceHtml {
+
+    <b>FOO</b> <a href="/"> BAR </>
+
+    <h1> Header
+
+    <!-- comment -->
+
+    <p style="background-color: #eee"> paragraph1
+
+    <div style="border: solid 1px #eee; padding: 30px">
+        <div> Item A
+        <div> Item <b>Bravo
+        <div> Item <b>Charlie</>
+        <div>{{ 'dynamic' }}
+    </>
+}
+
+tem multilineVarText($mlVar) {
+
+    Message:
+
+    {{ $mlVar }}
+}
+
+tem chunkHtml($num) {
+    C{{ $num }}
+}
+
+tem listOfChunksHtml($chunks) {
+    {{ $chunks }}
+}
+
+tem tagHtml($val) {
+    <p> {{ $val }}
+}
+

@@ -1,0 +1,28 @@
+
+// TODO: This is all hardcoded to my local setup
+public fun run($t) {
+
+    $t.section('Module: Request')
+
+    if $t.skipSlowTests(): return $t
+
+    $t.ok(Request.getIp(), 'ip')
+    $t.ok(Request.getIp(-all).zClassName() == 'List', 'ip list')
+
+    $ua = Request.getUserAgent()
+    $t.ok($ua.os == 'mac' || $ua.os == 'windows', 'userAgent - os')
+    $t.ok($ua.browser == 'chrome' || $ua.browser == 'firefox', 'userAgent - browser')
+    $t.ok($ua.full.contains('Mozilla'), 'userAgent - full')
+    $t.ok(Request.getLanguages()[1] == 'en-us', 'languages')
+
+    $t.ok(Request.isHttps() == false, 'isHttps')
+    $t.ok(Request.isAjax() == false, 'isAjax')
+    $ref = Request.getReferrer()
+    $t.ok($ref == '' || $ref.contains('localhost', -ignoreCase), 'referrer')
+
+    $t.ok(Request.getMethod() == 'get', 'method')
+    $t.ok(Request.getHeaders().hasKey('accept-encoding'), 'headers')
+
+    return $t
+}
+

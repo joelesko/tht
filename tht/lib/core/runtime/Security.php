@@ -69,7 +69,7 @@ class Security {
         if (self::$isDev !== null) { return self::$isDev; }
 
         $ip = self::getClientIp();
-        $devIp = Tht::getConfig('devIp');
+        $devIp = Tht::getThtConfig('devIp');
         $isDevIp = $devIp && $devIp == $ip;
 
         self::$isDev = false;
@@ -97,12 +97,7 @@ class Security {
     }
 
     // Filter super globals and move them to internal data
-    static function initRequestData () {
-
-        if (!Tht::module('Request')->u_is_https() && !Security::isDev()) {
-            ErrorHandler::setHelpLink('https://certbot.eff.org/', 'Convert to HTTPS');
-            self::error("Input data (GET & POST) can only be processed when the app is served as HTTPS.");
-        }
+    static function initRequestData() {
 
         $data = [
             'get'     => $_GET,
@@ -121,13 +116,6 @@ class Security {
             $data['post'] = Tht::module('Json')->u_decode($raw);
             $data['post']['_raw'] = $raw;
         }
-        // else if (in_array($data['headers']['method'], ['put', 'patch', 'delete'])) {
-
-        //     // Convert other HTTP methods to POST
-        //     $raw = file_get_contents("php://input");
-        //     parse_str($raw, $data['post']);
-        //     $data['post']['_raw'] = $raw;
-        // }
         else if (isset($HTTP_RAW_POST_DATA)) {
 
             $data['post']['_raw'] = $HTTP_RAW_POST_DATA;
@@ -141,6 +129,13 @@ class Security {
         $data['env'] = $upEnv;
 
         return $data;
+    }
+
+    static public function validateHttps() {
+        if (!Tht::module('Request')->u_is_https() && !Security::isDev()) {
+            ErrorHandler::setHelpLink('https://certbot.eff.org/', 'Convert to HTTPS');
+            self::error("Input data (GET & POST) can only be processed when the app is served as HTTPS.");
+        }
     }
 
     static private function initHttpRequestHeaders($serverVars) {
@@ -221,14 +216,14 @@ class Security {
 
     static function hashPassword($raw) {
 
-        Tht::module('Perf')->u_start('Password.hash');
+        $perfTask = Tht::module('Perf')->u_start('Password.hash');
 
         self::checkPrevHash($raw);
 
         $hash = password_hash($raw, PASSWORD_DEFAULT);
         self::$prevHash = $hash;
 
-        Tht::module('Perf')->u_stop();
+        $perfTask->u_stop();
 
         return $hash;
     }
@@ -238,7 +233,7 @@ class Security {
         return password_verify($plainText, $correctHash);
     }
 
-    static function createPassword ($plainText) {
+    static function createPassword($plainText) {
 
         return new OPassword ($plainText);
     }
@@ -287,7 +282,7 @@ class Security {
 
         // random_int is crypto secure
         $str = '';
-        for ($i = 0; $i < $len; $i++) {
+        for ($i = 0; $i < $len; $i += 1) {
             $str .= base_convert(random_int(0, 35), 10, 36);
         }
 
@@ -325,11 +320,11 @@ class Security {
 
     static private function hashIdTransform($i) {
 
-        $secretKeyHex = Tht::getConfig('scrambleNumSecretKey');
+        $secretKeyHex = Tht::getThtConfig('scrambleNumSecretKey');
 
         if (!preg_match('/^[0-9a-f]{8}+$/', $secretKeyHex)) {
             $randomHex = self::getRandomScrambleKey();
-            self::error("Config key `scrambleNumSecretKey` must be a 8-digit hex string. Got: `$secretKeyHex` Try: `$randomHex` (randomly generated)");
+            self::error("Config key `scrambleNumSecretKey` must be a 8-digit hex string.  Got: `$secretKeyHex`  Try: `$randomHex` (randomly generated)");
         }
         $secretKeyDec = hexdec($secretKeyHex);
 
@@ -364,7 +359,18 @@ class Security {
         return json_validate($rawJsonString, 512, JSON_INVALID_UTF8_IGNORE);
     }
 
+    static function jsonEncode($rawString) {
+
+        // SECURITY: Using JSON_UNESCAPED_SLASHES for internal usability.
+        // Apparently allowing "</script>" inside a string will end any <script> block and create a vulnerability.
+        // However, this gets escaped downstream.
+        $json = json_encode($rawString, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+
+        return $json;
+    }
+
     // https://bishopfox.com/blog/json-interoperability-vulnerabilities
+    // Alas, this PHP ER is still open: https://bugs.php.net/bug.php?id=78765
     static function jsonDecode($rawJsonString) {
 
         $jsonData = '';
@@ -376,24 +382,24 @@ class Security {
             Tht::module('Json')->error("Unable to decode JSON string: " . json_last_error_msg());
         }
 
-        $bagged = self::convertJsonToBags($jsonData);
+        $thtData = self::jsonToTht($jsonData);
 
-        return $bagged;
+        return $thtData;
     }
 
     // Recursively convert to THT Lists and Maps
-    static private function convertJsonToBags ($obj, $key='(root)') {
+    static private function jsonToTht($obj, $key='(root)') {
 
         if (is_object($obj)) {
             $map = [];
             foreach (get_object_vars($obj) as $key => $val) {
-                $map[$key] = self::convertJsonToBags($val, $key);
+                $map[$key] = self::jsonToTht($val, $key);
             }
             return OMap::create($map);
         }
         else if (is_array($obj)){
             foreach ($obj as $i => $val) {
-                $obj[$i] = self::convertJsonToBags($obj[$i], $i);
+                $obj[$i] = self::jsonToTht($obj[$i], $i);
             }
             return OList::create($obj);
         }
@@ -429,7 +435,7 @@ class Security {
         ini_set('session.use_trans_sid', 1);
         ini_set('session.cookie_samesite', 'Lax');
 
-        ini_set('session.gc_maxlifetime',  Tht::getConfig('sessionDurationHours') * 3600);
+        ini_set('session.gc_maxlifetime',  Tht::getThtConfig('sessionDurationHours') * 3600);
         ini_set('session.cookie_lifetime', self::$SESSION_COOKIE_DURATION);
         ini_set('session.sid_length',      self::$SESSION_ID_LENGTH);
     }
@@ -442,7 +448,8 @@ class Security {
             }
         }
         else if (is_string($str)) {
-            $str = str_replace(chr(0), '', $str);  // remove null bytes
+            // Remove invisible control chars, including null
+            $str = preg_replace('/\p{C}/u', '', $str);
             $str = trim($str);
         }
 
@@ -459,35 +466,63 @@ class Security {
         }
     }
 
-    static function validateFilePath ($path, $allowOutsideSandbox=false) {
+    // https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
+    // Plus, added more, including spaces.
+    static function findInvalidCharInPath($path) {
+
+        // Ignore windows drive
+        $path = preg_replace('#^/?[A-Za-z]:#', '', $path);
+
+        $found = preg_match('#([,;:%|="?*<>\x00-\x1F])#x', $path, $m);
+        if (!$found) { return ''; }
+
+        $char = $m[1];
+
+        $ascii = ord($char);
+        if ($ascii <= 31) { $char = 'x' . dechex($ascii); }
+
+        return $char;
+    }
+
+    static function sanitizeForFileName($fileName) {
+
+        $fileName = preg_replace('#[\x00-\x1F]#', '', $fileName);
+        $fileName = preg_replace('#[/\\\\,;:%|="\'?*<>.\s]#', '_', $fileName);
+
+        return $fileName;
+    }
+
+    static function validateFilePath($oPath) {
+
+        $path = $oPath;
 
         if (is_uploaded_file($path)) {
             return $path;
         }
 
         $path = str_replace('\\', '/', $path);
-        $path = preg_replace('#/{2,}#', '/', $path);
+
+        // Combine '//' to '/', unless it is a windows share (beginning of string)
+        $path = preg_replace('#(?<!^)/{2,}#', '/', $path);
 
         if (strlen($path) > 1) {  $path = rtrim($path, '/');  }
 
         if (!strlen($path)) {
-            Tht::module('File')->error("File path cannot be empty: `$path`");
+            Tht::module('File')->error("File path can not be empty.");
         }
-        else if (v($path)->u_is_url()) {
-            Tht::module('File')->error("Remote URL not allowed: `$path`");
+        else if (preg_match('#[a-zA-Z]{2,}:/#', $path)) {
+            Tht::module('File')->error("Remote URL not allowed: `$oPath`");
         }
-        else if (strpos($path, '..') !== false) {
-            Tht::module('File')->error("Parent shortcut `..` not allowed in path: `$path`");
+        else if (str_contains($path, '..')) {
+            Tht::module('File')->error("Parent shortcut `..` not allowed in path: `$oPath`");
         }
-        else if (strpos($path, './') !== false) {
-            Tht::module('File')->error("Dot directory `.` not allowed in path: `$path`");
+        else if (preg_match('#(^|/)\./#', $path)) {
+            Tht::module('File')->error("Dot directory `.` not allowed in path: `$oPath`");
         }
-        // else if (preg_match('/^[a-zA-Z]:/', $path)) {
-        //     Tht::module('File')->error("Drive letter not allowed in path: `$path`  Try: Use Unix filepaths (forward slashes)");
-        // }
 
-        if (!$allowOutsideSandbox) {
-            $path = self::getSandboxedPath($path);
+        // TODO: decide what to do with this.
+        else if ($char = self::findInvalidCharInPath($path)) {
+            Tht::module('File')->error("Invalid character `$char` found in path: `$oPath`");
         }
 
         return $path;
@@ -495,50 +530,58 @@ class Security {
 
     // Reject any file name that has evasion patterns in it and
     // make sure the extension is in a whitelist.
-    static function validateUploadedFile($file, $allowExtensions) {
+    static function validateUploadedFile($fileKey, $sAllowExtensions, $maxSizeMb, $uploadDir) {
+
+        $result = Tht::module('Result');
+
+        if (!$sAllowExtensions || !is_string($sAllowExtensions)) {
+            $this->error("Input field `$key` with validation type `file` requires an `ext` rule with a comma-delimited list of allowed extensions.");
+        }
+        $allowExtensions = preg_split('/\s*,\s*/', $sAllowExtensions);
+
+
+        $files = Tht::getPhpGlobal('files', '*');
+        $file = $files[$fileKey] ?? null;
+        if (!$file) {
+            return $result->u_fail('missing_file_key');
+        }
 
         // Don't allow multiple files via []
         if (is_array($file['error'])) {
-            u_Input::setUploadError('Duplicate file keys not allowed');
-            return fales;
+            return $result->u_fail('Duplicate file keys not allowed.');
         }
 
         if ($file['error']) {
             if ($file['error'] == 1) {
-                u_Input::setUploadError('Max upload size exceeded.');
+                $actualSizeMb = round($file['size'] / 1_000_000, 1);
+                $maxSize = ini_get('upload_max_filesize');
+                return $result->u_fail('File size too large: ' . $actualSizeMb . 'MB  (Max: ' . $maxSize . ')');
             }
-            else {
-                u_Input::$setUploadError('Upload error: ' . $file['error']);
-            }
-            return false;
+            return $result->u_fail('Upload error: ' . $file['error']);
         }
 
         if (!$file['size']) {
-            u_Input::setUploadError('File is empty.');
-            return false;
+            return $result->u_fail('File is empty.');
         }
 
 
         $name = $file['name'];
 
-        if (strpos($name, '..') !== false) {
-            u_Input::setUploadError('Invalid filename');
-            return false;
+        if (str_contains($name, '..')) {
+            return $result->u_fail('Invalid filename.');
         }
-        if (strpos($name, '/') !== false) {
-            u_Input::setUploadError('Invalid filename');
-            return false;
+        if (str_contains($name, '/')) {
+            return $result->u_fail('Invalid filename.');
         }
 
         // only one extension allowed
         $parts = explode('.', $name);
-        if (count($parts) !== 2) {
-            u_Input::setUploadError('Invalid filename');
-            return false;
+        if (count($parts) == 1) {
+            return $result->u_fail('Missing filename extension.');
         }
 
         // Check against allowlist of extensions
-        $uploadedExt = strtolower($parts[1]);
+        $uploadedExt = strtolower(array_pop($parts));
         $found = false;
         foreach ($allowExtensions as $ext) {
             if ($uploadedExt == $ext) {
@@ -547,28 +590,52 @@ class Security {
             }
         }
         if (!$found) {
-            u_Input::setUploadError("Unsupported file extension: `$uploadedExt`");
-            return false;
+            return $result->u_fail("Unsupported file extension: `$uploadedExt`");
+        }
+
+        // Validate file size
+        $sizeMb = round($file['size'] / 1_000_000, 1);
+        if ($sizeMb > $maxSizeMb) {
+            return $result->u_fail("File size ($sizeMb MB) can not be larger than $maxSizeMb MB.");
+        }
+        else if ($sizeMb === 0) {
+            return $result->u_fail("File can not be empty.");
         }
 
         // Validate MIME type
-        $actualMime = Tht::module('*File')->u_get_mime_type($file['tmp_name']);
+        $actualMime = PathTypeString::create($file['tmp_name'])->u_get_mime_type();
         if (!$actualMime) {
-            u_Input::setUploadError('Unknown file type');
-            return false;
+            return $result->u_fail('Unknown file type.');
         }
 
         // MIME inferred from file extension
-        $extMime = Tht::module('*File')->u_extension_to_mime_type($uploadedExt);
-
+        $extMime = Tht::module('File')->u_extension_to_mime_type($uploadedExt);
         $ok = self::validateUploadedMimeType($actualMime, $extMime);
         if (!$ok) {
-            u_Input::setUploadError("File type `$actualMime` does not match file extension: `$uploadedExt`");
-            return false;
+            return $result->u_fail("File type `$actualMime` does not match file extension: `$uploadedExt`");
         }
-        else {
-            return $uploadedExt;
+
+        // Convert relative path to app/data/uploads
+        if ($uploadDir->u_is_relative()) {
+            $uploadRoot = new DirTypeString(Tht::path('uploads'));
+            $uploadDir = $uploadRoot->u_append_path($uploadDir);
         }
+
+        // Make sure dir exists
+        $uploadDir->u_make_dir();
+
+        // Move file to dir with a random name
+        $newName = Tht::module('String')->u_random_token(30) . '.' . $uploadedExt;
+        $newFile = new FileTypeString($newName);
+        $newPath = $uploadDir->u_append_path($newFile);
+        $sNewPath = $newPath->u_render_string();
+
+        $moveOk = move_uploaded_file($file['tmp_name'], $sNewPath);
+        if (!$moveOk) {
+            Tht::error("Unable to move uploaded file for input field: `$key`  To Path: `$sNewPath`");
+        }
+
+        return $result->u_ok(new FileTypeString($sNewPath));
     }
 
     static function validateUploadedMimeType($actualMime, $extMime) {
@@ -597,21 +664,6 @@ class Security {
         }
 
         return false;
-    }
-
-    // Make sure path is under data/files
-    static function getSandboxedPath($path) {
-
-        if ($path[0] !== '/') {
-            return Tht::path('files', $path);
-        }
-
-        $sandboxDir = Tht::path('files');
-        if (strpos($path, $sandboxDir) !== 0) {
-            Tht::module('File')->error("Path must be relative to `data/files`: `$path`");
-        }
-
-        return $path;
     }
 
     static function isCrossSiteRequest() {
@@ -673,6 +725,9 @@ class Security {
         else if (preg_match('/[^a-z0-9\-\/\.]/', $path))  {
             Tht::module('Output')->u_send_error(400, 'Page address is not valid.', new HtmlTypeString('Path must be lowercase, numbers, or characters: <code>-./</code>'));
         }
+        else if (preg_match('#//#', $path))  {
+            Tht::module('Output')->u_send_error(400, 'Page address is not valid.', new HtmlTypeString('Path contains empty segment (<code>//</code>).'));
+        }
     }
 
     // Disabled for now.  Might be too restrictive.
@@ -693,7 +748,7 @@ class Security {
 
         // Default: 30 failed attempts allowed every 60 minutes
         // See: tht.dev/manual/class/password/check#rate-limiting
-        $attemptsAllowedPerHour = Tht::getConfig('passwordAttemptsPerHour');
+        $attemptsAllowedPerHour = Tht::getThtConfig('passwordAttemptsPerHour');
         if (!$attemptsAllowedPerHour) {
             return $isCorrectMatch;
         }
@@ -767,17 +822,17 @@ class Security {
         $docRoot = Tht::normalizeWinPath(
             Tht::getPhpGlobal('server', 'DOCUMENT_ROOT')
         );
-        $inDocRoot = Tht::module('*File')->u_has_root_path($path, $docRoot);
+        $inDocRoot = Tht::hasRootPath($path, $docRoot);
 
         if ($inDocRoot) {
             self::error("(Security) File `$path` can not be inside the Document Root.");
         }
     }
 
-    static function initResponseHeaders () {
+    static function initResponseHeaders() {
 
         if (headers_sent($atFile, $atLine)) {
-            Tht::startupError('Headers Already Sent');
+            Tht::startupError("Unable to set response headers because output was already sent.");
         }
 
         // Set response headers
@@ -804,17 +859,16 @@ class Security {
 
         header('Cross-Origin-Embedder-Policy: require-corp');
         header('Cross-Origin-Opener-Policy: same-origin');
-
     }
 
     // Content Security Policy (CSP)
     static function getCsp() {
 
-        $csp = Tht::getConfig('contentSecurityPolicy');
+        $csp = Tht::getThtConfig('contentSecurityPolicy');
 
         if (!$csp) {
             $nonce = "'nonce-" . Tht::module('Web')->u_nonce() . "'";
-            $eval = Tht::getConfig('xDangerAllowJsEval') ? '\'unsafe-eval\'' : '';
+            $eval = Tht::getThtConfig('xDangerAllowJsEval') ? '\'unsafe-eval\'' : '';
 
             // Yuck, apparently nonces don't work on iframes (https://github.com/w3c/webappsec-csp/issues/116)
             // TODO: make this a config param for whitelist
@@ -827,36 +881,22 @@ class Security {
     }
 
     // Set PHP ini
-    static function initPhpIni () {
+    static function initPhpIni() {
 
         // locale
         date_default_timezone_set(Tht::getTimezone());
 
+        // encoding
         ini_set('default_charset', 'utf-8');
         mb_internal_encoding('utf-8');
 
-        // logging
-        error_reporting(E_ALL & ~E_DEPRECATED);
-        ini_set('display_errors', (Tht::isMode('cli') || Tht::getConfig('_coreDevMode')) ? '1' : '0');
-        ini_set('display_startup_errors', '1');
-        ini_set('log_errors', '0');  // assume we are logging all errors manually
-
-        // file security
-        ini_set('allow_url_fopen', '0');
-        ini_set('allow_url_include', '0');
-
-        // limits
-        ini_set('max_execution_time', Tht::isMode('cli') ? '0' : Tht::getConfig('maxExecutionTimeSecs'));
-        ini_set('max_input_time', intval(Tht::getConfig('maxInputTimeSecs')));
-        ini_set('memory_limit', intval(Tht::getConfig('memoryLimitMb')) . "M");
-    }
-
-    // Register an un-sandboxed version of File, for internal use.
-    static function registerInternalFileModule() {
-
-        $f = new u_File ();
-        $f->xDangerDisableSandbox();
-        ModuleManager::registerStdModule('*File', $f);
+        // resource limits
+        ini_set('max_execution_time', Tht::getThtConfig('maxRunTimeSecs'));
+        $memLimitMb = Tht::getThtConfig('maxMemoryMb');
+        if ($memLimitMb < 1) {
+            Tht::configError('Config value `maxMemoryMb` must be 1 MB or higher.');
+        }
+        ini_set('memory_limit', intval($memLimitMb) . "M");
     }
 
     // https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet
@@ -878,11 +918,11 @@ class Security {
             // Illegal characters
             return false;
         }
-        else if (strpos('&#', $sUrl) !== false) {
+        else if (str_contains('&#', $sUrl)) {
             // No HTML escapes allowed
             return false;
         }
-        else if (strpos('%', $url['host']) !== false) {
+        else if (str_contains('%', $url['host'])) {
             // No escapes allowed in host
             return false;
         }
@@ -907,7 +947,7 @@ class Security {
 
         $alpha = preg_replace('/[^a-z:]/', '', strtolower($in));
 
-        if (strpos($alpha, 'javascript:') !== false) {
+        if (str_contains($alpha, 'javascript:')) {
             $in = '(REMOVED:UNSAFE_URL)';
         }
 
@@ -955,8 +995,9 @@ class Security {
 
     static function sanitizeUrlHash($hash) {
 
-        $hash = preg_replace('![^a-z0-9\-]!', '-', strtolower($hash));
-        $hash = rtrim($hash, '-');
+        $hash = ltrim($hash, '#');
+        $hash = preg_replace('![^a-z0-9\-]+!u', '-', strtolower($hash));
+        $hash = trim($hash, '-');
 
         return $hash;
     }
@@ -966,7 +1007,7 @@ class Security {
         // Remove user
         // https://www.cvedetails.com/cve/CVE-2016-10397/
         // $url = preg_replace('!(\/+).*@!', '$1', $url);
-        // if (strpos($url, '@') !== false) {
+        // if (str_contains($url, '@')) {
         //     $url = preg_replace('!.*@!', '', $url);
         // }
 
@@ -978,6 +1019,10 @@ class Security {
         }
 
         $u = parse_url($url);
+
+        if ($u === false) {
+            Tht::error("Unable to parse URL: `" . $url . "`");
+        }
 
         unset($u['user']);
 

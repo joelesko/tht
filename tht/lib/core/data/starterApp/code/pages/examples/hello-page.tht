@@ -1,0 +1,36 @@
+
+fun main {
+
+    $page = Page.create({
+        title: 'My Page Title'
+        description: 'This is an example page.'
+        css: [url'vendor/basic.css']
+
+        header: headerHtml()
+        footer: footerHtml()
+        main: pageHtml()
+    })
+
+    Output.sendPage($page)
+}
+
+tem pageHtml {
+
+    <h1> Hello World
+
+    <p> This is a full HTML document created with the Page module.
+
+    <p> Use "View Page Source" in your browser to see the final HTML output.
+}
+
+tem headerHtml {
+    <div style="background-color: #ddd; padding: 1rem 2rem">
+        Header
+    </>
+}
+
+tem footerHtml {
+    <div style="border-top: solid 2px #ccc; padding: 2rem; text-align: center">
+        Footer
+    </>
+}

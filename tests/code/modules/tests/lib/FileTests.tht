@@ -1,0 +1,550 @@
+
+public fun run($t) {
+
+    if $t.skipSlowTests(): return $t
+
+    $t.section('Module: File')
+
+
+
+    $t.section('Paths')
+
+    $t.ok(file'public:/file.txt'.renderString().contains('code/public/file.txt'), 'root - public')
+    $t.ok(dir'app:/code/pages'.exists(), 'root - app')
+    $t.ok(dir'home:/'.exists(), 'root - home')
+    $t.ok(dir'files:/dir'.renderString().contains('data/files/dir'), 'root - files')
+    $t.dies(fun { $a = file'publi:/file.txt' }, 'possible typo')
+
+    $t.dies(fun { $a = file'../file.txt' }, 'parent shortcut `..` not allowed')
+    $t.dies(fun { $a = file'./file.txt' }, 'Dot directory `.` not allowed')
+
+    $winParts = file'C:\my\path\file.txt'.pathParts()
+    $t.ok($winParts.dirs.join('|') == '/|my|path', 'windows path')
+    $t.ok($winParts.drive == 'C:', 'drive in windows path')
+
+    $winConfigParts = AppConfig.get('winFile').pathParts()
+    $t.ok($winConfigParts.dirs.join('|') == '/|some|path'
+    && $winConfigParts.drive == 'C:', 'windows path - from config')
+
+    $t.dies(fun { $a = file'/my/path/*.txt' }, 'invalid character `*`')
+    $t.dies(fun { $a = file'/my/path/?.txt' }, 'invalid character `?`')
+
+    $f = file'/my/path/file{}.txt'.fill(123)
+    $t.ok($f.renderString().endsWith('file123.txt'), 'fill param')
+    $f = file'/my/path/file{}.txt'.fill('*:/\= .?')
+    $t.ok($f.renderString().endsWith('file________.txt'), 'fill param - illegal char')
+
+
+    $t.dies(fun { file'my/file.txt'.read() }, 'Can`t call method `read` on relative path')
+
+    $t.ok(dir'dir1/dir2'.pathParts().dirName == 'dir2', 'pathParts - dirName - dir')
+    $t.ok(file'dir3/dir4/file.txt'.pathParts().dirName == 'dir4', 'pathParts - dirName - file')
+
+
+
+
+    $t.section('File - exists')
+
+    $existsFile = file'files:/createMe.txt'
+    $existsFile.write('')
+    $t.ok($existsFile.exists(), 'exists')
+
+    $notExistsFile = file'files:/notExists.txt'
+    $t.ok(!$notExistsFile.exists(), '!exists')
+
+    $existsDir = dir'files:/subDir'
+    $notExistsDir = dir'files:/notExistsDir'
+
+
+
+    $t.section('File - isFile/isDir')
+
+    $t.ok($existsFile.isFile(), 'file - isFile = true')
+    $t.ok(!$notExistsFile.isFile(), 'missing file - isFile = false')
+    $t.ok(!$existsDir.isFile(), 'dir - isFile = false')
+    $t.ok(!$notExistsDir.isFile(), 'missing dir - isFile = false')
+
+    $t.ok(!$existsFile.isDir(), 'file - isDir = false')
+    $t.ok(!$notExistsFile.isDir(), 'missing file - isDir = false')
+    $t.ok($existsDir.isDir(), 'dir - isDir = true')
+    $t.ok(!$notExistsDir.isDir(), 'missing dir - isDir = false')
+
+    $t.section('File - isRelative/isAbsolute')
+
+    $relFilePath = file'relpath/file.txt'
+    $t.ok($relFilePath.isRelative(), 'relFilePath - isRelative')
+    $t.ok(!$relFilePath.isAbsolute(), 'relFilePath - !isAbsolute')
+    $absFilePath = file'/abspath/file.txt'
+    $t.ok(!$absFilePath.isRelative(), 'absFilePath - !isRelative')
+    $t.ok($absFilePath.isAbsolute(), 'absFilePath - isAbsolute')
+
+    $relDirPath = dir'relpath/dir'
+    $t.ok($relDirPath.isRelative(), 'relDirPath - isRelative')
+    $t.ok(!$relDirPath.isAbsolute(), 'relDirPath - !isAbsolute')
+    $absDirPath = dir'/abspath/dir'
+    $t.ok(!$absDirPath.isRelative(), 'absDirPath - !isRelative')
+    $t.ok($absDirPath.isAbsolute(), 'absDirPath - isAbsolute')
+
+    $t.section('File - hasRootDir')
+
+    $file = file'/some/root/file.txt'
+    $t.ok($file.hasRootDir(dir'/some/root'), 'file - hasRootDir - true')
+    $t.ok(!$file.hasRootDir(dir'/other/root'), 'file - hasRootDir - false')
+    $t.dies(x{ $file.hasRootDir(file'/some/file.txt') }, 'must be passed a `dir`')
+
+    $rootDir = dir'/some/root'
+    $t.ok($rootDir.hasRootDir($rootDir), 'self - hasRootDir - true')
+
+
+    $rootDir = dir'rel/root'
+    $otherDir = dir'rel/root/other/dir'
+    $t.ok($otherDir.hasRootDir($rootDir), 'dir - hasRootDir - relative root')
+
+
+
+    $file = file'/some/root/file.txt'
+    $relFile = $file.removeRootDir(dir'/some/')
+    $t.ok(
+        $relFile.stringType() == 'file' && $relFile.isRelative()
+        && $relFile.renderString() == 'root/file.txt'
+        'removeRootDir'
+    )
+
+    $t.section('File - parentDir')
+
+    $file = file'/some/root/file.txt'
+    $parent = $file.parentDir()
+    $t.ok(
+        $parent.stringType() == 'dir' && $parent.renderString() == '/some/root', 'parentDir - file'
+    )
+
+    $dir = file'/some/dir/path'
+    $parent = $dir.parentDir()
+    $t.ok(
+        $parent.stringType() == 'dir' && $parent.renderString() == '/some/dir', 'parentDir - dir'
+    )
+
+    $t.ok(dir'/'.parentDir() == null, 'parentDir - root = null')
+
+    $relParent = file'some/dir/path'.parentDir()
+    $t.ok(
+        $relParent.stringType() == 'dir' && $relParent.renderString() == 'some/dir'
+        'parentDir - relative'
+    )
+
+    $t.ok(dir'/'.parentDir() == null, 'parentDir - root = null')
+    $t.ok(dir'relDir'.parentDir() == null, 'parentDir - relative top = null')
+
+
+
+    $t.section('File - Read')
+
+    $mlFile = file'files:/multiline.txt'
+    $mlFile.write('11\n22\n33\n\n  \n100')
+
+    $lines = $mlFile.read()
+    $t.ok($lines.join('|') == '11|22|33|100', 'read')
+
+    $lines = $mlFile.read(-keepBlanks)
+    $t.ok($lines.join('|') == '11|22|33||  |100', 'read - keepBlanks')
+
+    $content = $mlFile.read(-join)
+    $t.ok($content == '11\n22\n33\n\n  \n100', 'read - join')
+
+    $lines = []
+    $mlFile.readEachLine(fun ($line) {
+        $lines #= $line
+    })
+    $t.ok($lines.join('|') == '11|22|33|100', 'readEachLine')
+
+    $lines = []
+    $mlFile.readEachLine(fun ($line) {
+        $lines #= $line
+    }, -keepBlanks)
+    $t.ok($lines.join('|') == '11|22|33||  |100', 'readEachLine - keepBlanks')
+
+    $num = $mlFile.readEachLine(fun ($line) {
+        if $line > 30: return $line
+    }, -keepBlanks)
+    $t.ok($num == '33', 'readEachLine - early return')
+
+
+
+    $countFile = file'files:/countMe.txt'
+    $countFile.write('1\n\n2\n  \n3')
+    $t.ok($countFile.countLines() == 3, 'countLines - skip blanks')
+    $countFile.write('1')
+    $t.ok($countFile.countLines(-keepBlanks) == 1, 'countLines - no newlines')
+    $countFile.write('1\n')
+    $t.ok($countFile.countLines(-keepBlanks) == 1, 'countLines - line with newline')
+    $countFile.write('\n1')
+    $t.ok($countFile.countLines(-keepBlanks) == 2, 'countLines - line with newline')
+    $countFile.write('1\n\n2')
+    $t.ok($countFile.countLines(-keepBlanks) == 3, 'countLines - blank line with zero width')
+    $countFile.write('1\n  \n2')
+    $t.ok($countFile.countLines(-keepBlanks) == 3, 'countLines - blank line with spaces')
+    $countFile.write('')
+    $t.ok($countFile.countLines(-keepBlanks) == 0, 'countLines - empty file')
+
+
+
+    $t.section('File - Write')
+
+    $writeFile = file'files:/writeMe.txt'
+    $writeFile.delete(-ifExists)
+    $didExist = $writeFile.exists()
+    $writeFile.write('123')
+    $t.ok(!$didExist && $writeFile.getSize() == 3, 'write')
+
+    $writeFile.write(['aaa', 'bbb'])
+    $content = $writeFile.read(-join)
+    $t.ok($content == 'aaa\nbbb', 'write - list')
+
+    $writeFile.write('zzz', -ifNotExists)
+    $content = $writeFile.read(-join)
+    $t.ok($content == 'aaa\nbbb', 'write - ifNotExists - pass')
+
+    $writeFile.delete()
+    $writeFile.write('zzz', -ifNotExists)
+    $content = $writeFile.read(-join)
+    $t.ok($content == 'zzz', 'write - ifNotExists - write')
+
+
+
+    $t.section('File - Append')
+
+    $appendFile = file'files:/appendMe.txt'
+    $appendFile.delete(-ifExists)
+
+    $appendFile.append('123')
+    $appendFile.append('456')
+    $content = $appendFile.read(-join)
+    $t.ok($content == '123456', 'File append line')
+
+    $appendFile.append(['789', '000'])
+    $lines = $appendFile.read().join('|')
+    $t.ok($lines == '123456789|000', 'append list')
+
+
+
+
+
+
+
+    $t.section('File: Copy/Move/Delete')
+
+    // Copy
+
+    $copyFileFrom = file'files:/copyMe.txt'
+    $copyFileFrom.write('x')
+    $copyFileTo = file'files:/subDir/copyMeTarget.txt'
+
+    $copyFileFrom.copy($copyFileTo)
+    $t.ok($copyFileFrom.exists() && $copyFileTo.exists(), 'copy file to subfolder & rename')
+    $t.dies(fun { $copyFileFrom.copy($copyFileTo) }, 'already exists')
+
+    $copyFileTo.delete()
+
+    $copyDirTo = dir'files:/subDir'
+    $target = $copyFileFrom.copy($copyDirTo)
+    $t.ok(
+        $copyFileFrom.exists() && $target.exists() && file'files:/subdir/copyMe.txt'.exists()
+        'copy file to dir target'
+    )
+
+    $copyFileFrom.delete()
+    $target.delete()
+
+
+    // Move
+
+    $moveFileFrom = file'files:/moveMe.txt'
+    $moveFileFrom.write('x')
+    $moveFileTo = file'files:/subDir/moveMeTarget.txt'
+
+    $moveFileFrom.move($moveFileTo)
+    $t.ok(!$moveFileFrom.exists() && $moveFileTo.exists(), 'move file to subfolder & rename')
+    $t.dies(fun { $moveFileTo.move($moveFileTo) }, 'already exists')
+
+    $moveFileTo.move($moveFileFrom)
+
+    $moveToDir = dir'files:/subDir'
+    $target = $moveFileFrom.move($moveToDir, -overwrite)
+    $t.ok(
+        !$moveFileFrom.exists() && $target.exists() && file'files:/subDir/moveMe.txt'.exists()
+        'move file to dir target'
+    )
+
+    $target.delete()
+
+
+    // TODO: add tests for copy(-overwrite) and move(-overwrite)
+
+
+
+
+    // Delete
+    $delFile = file'files:/deleteMe.txt'
+    $delFile.write('x')
+    $didExist = $delFile.exists()
+    $delFile.delete()
+    $t.ok(!$delFile.exists() && $didExist, 'delete')
+    $t.dies(fun { $delFile.delete() }, 'does not exist')
+
+
+
+
+    $t.section('File - Dates')
+
+    $dateFile = file'files:/dateMe.txt'
+    $dateFile.delete()
+    $dateFile.write('')
+    $date = $dateFile.getDate()
+    $t.ok($date.modified.diff() == 0, 'getDate - modified')
+    $t.ok($date.accessed.diff() == 0, 'getDate - accessed')
+
+    // NOTE: This returns an older date in Windows
+    $t.ok($date['created?'].diff() == 0, 'getDate - created?')
+
+    $dateFile.delete()
+    $dateFile.write('')
+    $dateFile.setDate(Date.create('-1 minute'))
+    $date = $dateFile.getDate()
+    $t.ok($date.modified.diff() == -60 && $date.accessed.diff() == -60, 'setDate')
+
+    $dateFile.setDate(Date.create('-1 day'), 'modified')
+    $t.ok($dateFile.getDate().modified.diff() == -86400, 'setDate - modified')
+
+    $dateFile.setDate(Date.create('-1 day'), 'accessed')
+    $t.ok($dateFile.getDate().accessed.diff() == -86400, 'setDate - accessed')
+
+    // TODO: work on directory
+
+
+    $t.section('File - Size')
+
+    $sizeFile = file'files:/sizeMe.txt'
+    $sizeFile.write('123456789\n12345')
+    $t.ok($sizeFile.getSize() == 15, 'getSize')
+    $sizeFile.write('')
+    $t.ok($sizeFile.getSize() == 0, 'getSize - empty')
+    $sizeFile.write('x'.repeat(1200))
+    $t.ok($sizeFile.getSize('kB') == 1.2, 'getSize - with units')
+    $sizeFile.delete()
+    $t.dies(fun { $sizeFile.getSize() }, 'does not exist')
+    $t.ok($sizeFile.getSize('kB', -ifExists) == 0, 'getSize - ifExists - 0')
+
+
+
+    $t.section('File: Permissions')
+
+    $permsFile = file'files:/perms.txt'
+    $permsFile.write('...')
+    $perm = $permsFile.getPerms()
+    $t.ok($perm.read == true, 'perms - read')
+    $t.ok($perm.write == true, 'perms - write')
+    $t.ok($perm.execute == false, 'perms - execute')
+    $permsFile.delete()
+
+
+
+    $t.section('File: Directories')
+
+    $dir = dir'files:/createMe'
+
+    $dir.makeDir()
+    $t.ok($dir.exists(), 'createDir')
+
+    $subFile = $dir.appendPath(file'subfile.txt')
+    $subFile.write('x')
+    $t.ok($subFile.renderString().endsWith('/createMe/subfile.txt'), 'appendPath')
+
+    $subDir = $dir.appendPath(dir'other/dir')
+    $t.ok($subDir.renderString().endsWith('/createMe/other/dir'), 'appendPath - dir')
+    $t.dies(fun { $dir.appendPath(dir'/abs/dir') }, 'must be a relative path')
+
+    $dir.deleteDir()
+    $t.ok(!$dir.exists(), 'deleteDir - with file content')
+    $t.dies(x{ $dir.deleteDir() }, 'does not exist')
+    $t.ok($dir.deleteDir(-ifExists), 'deleteDir - ifExists')
+
+
+    $t.section('Dir: copy/move')
+
+    $copyDirSource = dir'files:/copyMe'
+    $copyDirTarget = dir'files:/copyMeTarget'
+    $copyDirFileTarget = dir'files:/copyMeTarget/subDir/file1.txt'
+    $copyDirSource.copyDir($copyDirTarget)
+    $t.ok($copyDirSource.exists() && $copyDirFileTarget.exists(), 'copy dir')
+    $copyDirTarget.deleteDir()
+
+
+    $moveDirSource = dir'files:/moveMe'
+    $moveDirTarget = dir'files:/moveMeTarget'
+    $moveDirFileTarget = dir'files:/moveMeTarget/subDir/file1.txt'
+    $moveDirSource.moveDir($moveDirTarget)
+    $t.ok(!$moveDirSource.exists() && $moveDirFileTarget.exists(), 'move dir')
+    $moveDirTarget.moveDir($moveDirSource)
+
+
+
+
+    $t.section('File: MIME Types')
+
+    $t.ok(file'files:/testMime.txtx'.getMimeType() == 'text/plain', 'mime: text/plain')
+    $t.ok(file'files:/testMime.pdfx'.getMimeType() == 'application/pdf', 'mime: application/pdf')
+
+    $t.ok(File.extensionToMimeType('png') == 'image/png', 'ext to mime')
+    $t.ok(File.extensionToMimeType('.pdf') == 'application/pdf', 'ext with dot to mime')
+    $t.ok(File.extensionToMimeType('foo') == 'application/octet-stream', 'ext to mime: default')
+
+    $t.ok(File.mimeTypeToExtension('image/png') == 'png', 'mime to ext')
+    $t.ok(File.mimeTypeToExtension('text/html') == 'html', 'mime to ext: dupe')
+    $t.ok(File.mimeTypeToExtension('asdasdsd') == '', 'mime to ext: none')
+
+
+    $t.section('File: Immutable Transforms')
+
+
+    $file = file'/dir/file.txt'
+    $t.ok($file.withFileExt('zip').renderString() == '/dir/file.zip', 'withFileExt')
+    $t.ok($file.withFileExt('').renderString() == '/dir/file', 'withFileExt - blank')
+    $t.ok($file.withFileBase('data').renderString() == '/dir/data.txt', 'withFileBase')
+    $t.ok($file.withFileName('data.zip').renderString() == '/dir/data.zip', 'withFileName')
+
+    $t.dies(fun { $file.withFileExt('.zip') }, 'remove leading dot')
+    $t.dies(fun { $file.withFileExt('a_1') }, 'unsupported character')
+    $t.dies(fun { $file.withFileBase('a/1') }, 'unsupported character')
+    $t.dies(fun { $file.withFileName('a/1') }, 'unsupported character')
+
+    $urlFile = file'app:/code/public/images/icon.png'
+    $t.ok($urlFile.toUrl().renderString() == '/images/icon.png', 'toUrl - public')
+    $urlFile = file'app:/code/pages/search.tht'
+    $t.ok($urlFile.toUrl().renderString() == '/search', 'toUrl - pages')
+    $t.dies(fun { file'app:/foo/bar'.toUrl() }, 'Path must be relative to `code/public`')
+
+
+
+    $t.section('File: Path Parts')
+
+    $p = file'files:/some/path/file.txt'
+    $parts = $p.pathParts()
+
+
+    // $t.ok($parts.dirPathList.last() == $d.renderString(), 'Path info dirList has parent dir')
+    // $t.ok($parts.fileExt == 'txt', 'Path info extension')
+    // $t.ok($parts.fileName == 'testFile.txt', 'Path info fileName')
+    // $t.ok($parts.fileNameShort == 'testFile', 'Path info shortFileName')
+
+    // // $t.ok(File.parsePath('././profile.png').dirList.length() == 0, 'remove . from path')
+
+    // $t.ok(dir'APP'.renderString().endsWith('/testApp'), 'app path')
+
+    // $docPath = file'APP/code/public/foobar.html'
+    // $t.ok($docPath.renderString().right(19) == '/public/foobar.html', 'app path with file')
+
+
+
+
+    $sortedFiles = [
+        file'files:/file3.txt'
+        file'files:/file1.txt'
+        file'files:/file2.txt'
+    ].sort()
+
+    $t.ok($sortedFiles[1].pathParts().fileName == 'file1.txt', 'sort files - 1')
+    $t.ok($sortedFiles[2].pathParts().fileName == 'file2.txt', 'sort files - 2')
+    $t.ok($sortedFiles[3].pathParts().fileName == 'file3.txt', 'sort files - 3')
+
+
+
+
+
+    $t.section('Dir: loopDir')
+
+    $loopDir = dir'files:/loopMe'
+
+
+    $combined = []
+    $fnLoop = fun ($lpath) {
+        $parts = $lpath.pathParts()
+        $combined #= $parts['fileName'] ||: $parts['dirName']
+    }
+
+    $combined = []
+    $loopDir.loopDir($fnLoop)
+    $sCombined = $combined.sort().join('|')
+
+    $expected = 'file1.txt|file2.txt'
+    $t.ok($sCombined == $expected, 'File.loopDir - default')
+
+    $combined = []
+    $loopDir.loopDir($fnLoop, -deep)
+    $sCombined = $combined.sort().join('|')
+    $expected = 'file1.txt|file2.txt|subfile1.txt|subfile1.txt'
+    $t.ok($sCombined == $expected, 'File.loopDir - deep')
+
+    $combined = []
+    $loopDir.loopDir($fnLoop, { deep, filter: 'all' })
+    $sCombined = $combined.sort().join('|')
+    $expected = 'dir1|dir2|file1.txt|file2.txt|subdir1|subfile1.txt|subfile1.txt'
+    $t.ok($sCombined == $expected, 'File.loopDir - deep + filter:all')
+
+    $combined = []
+    $loopDir.loopDir($fnLoop, { deep, filter: 'dirs' })
+    $sCombined = $combined.sort().join('|')
+    $expected = 'dir1|dir2|subdir1'
+    $t.ok($sCombined == $expected, 'File.loopDir - deep + filter:dirs')
+
+    $combined = []
+    $loopDir.loopDir($fnLoop, { deep, filter: 'dirs' })
+    $sCombined = $combined.sort().join('|')
+    $expected = 'dir1|dir2|subdir1'
+    $t.ok($sCombined == $expected, 'File.loopDir - deep + filter:dirs')
+
+    $fnLoop = fun ($lpath) {
+        $name = $lpath.pathParts()['fileName']
+        if $name == 'subfile1.txt': return 123
+    }
+    $ret = $loopDir.loopDir($fnLoop, { deep })
+    $t.ok($ret == 123, 'loopDir - early return')
+
+
+    $t.section('Dir: readDir')
+
+
+    $files = $loopDir.readDir()
+
+    $t.ok(
+        $files.length() == 2 && $files[1].renderString().endsWith('loopMe/file1.txt')
+        'readDir'
+    )
+
+    $files = $loopDir.readDir({ filter: 'all' })
+    $t.ok(
+        $files.length() == 4 && $files[4].renderString().endsWith('loopMe/file2.txt')
+        'readDir - filter: all'
+    )
+
+    $files = $loopDir.readDir({ filter: 'dirs' })
+    $t.ok(
+        $files.length() == 2 && $files[2].renderString().endsWith('loopMe/dir2')
+        'readDir - filter: dirs'
+    )
+
+    $files = $loopDir.readDir({ deep, filter: 'files' })
+    $t.ok(
+        $files.length() == 4 && $files[4].renderString().endsWith('loopMe/file2.txt')
+        'readDir - deep, filter: files'
+    )
+
+    $files = $loopDir.readDir({ deep, filter: 'all' })
+    $t.ok(
+        $files.length() == 7 && $files[5].renderString().endsWith('loopMe/dir2/subfile1.txt')
+        'readDir - deep, filter: all'
+    )
+
+    return $t
+
+}
+

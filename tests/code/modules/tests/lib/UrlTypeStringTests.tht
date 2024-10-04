@@ -1,0 +1,194 @@
+
+public fun run($t) {
+
+    $t.section('Url TypeStrings')
+
+    $lUrl = url'http://test.com/'
+    $lUrl.setQuery({ test: 123, foo: 'a b' })
+    $t.ok($lUrl.getScheme() == 'http', 'get scheme')
+    $t.ok($lUrl.getPort() == 80, 'get port')
+    $t.ok($lUrl.getHost() == 'test.com', 'get host')
+    $t.ok($lUrl.getOrigin() == 'http://test.com', 'get origin')
+
+    $t.ok($lUrl.isAbsolute(), 'isAbsolute = true')
+    $t.ok(!$lUrl.isRelative(), 'isRelative = false')
+    $sUrl = $lUrl.renderString()
+    $t.ok($sUrl.contains('?test=123&foo=a%20b'), 'query add')
+
+    $relUrl = url'/path/page'
+    $t.ok(!$relUrl.isAbsolute(), 'isAbsolute = false')
+    $t.ok($relUrl.isRelative(), 'isRelative = true')
+
+    $changeUrl = url'http://asite.com/home'
+    $changeUrl.setHost('othersite.com')
+    $changeUrl.setScheme('https')
+    $changeUrl.setPath('/other/path')
+    $changeUrl.setQuery({ baz: 999 })
+    $sChanged = $changeUrl.renderString()
+    $t.ok($sChanged == 'https://othersite.com/other/path?baz=999', 'overrided parts')
+
+    $t.ok(url'/page'.toLink('hey').renderString() == '<a href="/page">hey</a>', 'toLink()')
+
+    $mixedQuery = url'/path?foo=123'.setQuery({ bar: 456 })
+    $t.ok($mixedQuery.renderString() == '/path?foo=123&bar=456', 'url: mixed query')
+
+    $t.ok(url'/foo#abc'.getHash() == 'abc', 'hash get')
+    $t.ok(url'/foo#abc'.setHash('xyz').renderString() == '/foo#xyz', 'hash set')
+    $t.ok(url'/foo?a=1#abc'.setHash('X,Y,Z,').getHash() == 'x-y-z', 'hash set & sanitize')
+
+    $toRelUrl = url'http://mysite.com/path/home'.toRelative()
+    $t.ok($toRelUrl.renderString() == '/path/home', 'toRelative')
+    $t.ok($toRelUrl.toRelative().renderString() == '/path/home', 'toRelative `/path/home`')
+    $t.ok(url'path/home'.toRelative().renderString() == '/path/home', 'toRelative `path/home`')
+    $t.ok(url'/'.toRelative().renderString() == '/', 'toRelative `/`')
+    $originUrl = url'http://site.com'.toRelative().renderString()
+    $t.ok($originUrl == '/', 'toRelative `http://site.com`')
+
+    $relWithQuery = url'http://mysite/page?foo=1'.toRelative()
+    $t.ok($relWithQuery.renderString() == '/page?foo=1', 'toRelative with query')
+
+    $absUrl = url'/my/path'.toAbsolute('https://mysite.com')
+    $t.ok($absUrl.renderString() == 'https://mysite.com/my/path', 'toAbsolute')
+
+    $absUrl = url'http://oldsite/my/path'.toAbsolute('https://newsite')
+    $t.ok($absUrl.renderString() == 'https://newsite/my/path', 'toAbsolute - replace origin')
+
+    $urlWithQuery = url'/foo'.setQuery({ a: 1 })
+    $urlWithQuery.clearQuery()
+    $t.ok($urlWithQuery.renderString() == '/foo', 'clearQuery')
+
+    $url = url'https://site.com/this/is/a/path?a=1'
+    $t.ok($url.getPathParts().join('|') == 'this|is|a|path', 'pathParts')
+
+    $relUrl = url'/dir/page?a=123'
+    $absUrl = $relUrl.toAbsolute()
+    $t.ok($absUrl.renderString().contains('http://localhost'), 'relative to absolute')
+
+    $localRelUrl = url'/dir/page?a=123'
+    $localAbsUrl = url'/dir/page?a=123'.toAbsolute()
+    $remoteUrl = url'https://example.com/dir/page?a=123'
+
+    $t.ok(!$localRelUrl.isRemote(), 'localRelUrl - isRemote false')
+    $t.ok($localRelUrl.isLocal(), 'localRelUrl - isLocal true')
+
+    $t.ok(!$localAbsUrl.isRemote(), 'localAbsUrl - isRemote false')
+    $t.ok($localAbsUrl.isLocal(), 'localAbsUrl - isLocal true')
+
+    $t.ok($remoteUrl.isRemote(), 'remoteUrl - isRemote true')
+    $t.ok(!$remoteUrl.isLocal(), 'remoteUrl - isLocal false')
+
+    $t.ok(url'/my/path'.appendPath('added').getPath() == '/my/path/added', 'appendPath')
+    $t.ok(
+        url'/my/path'.appendPath('/added/other').getPath() == '/my/path/added/other'
+        'appendPath'
+    )
+
+    $t.ok(
+        url'/page/'.appendSlug('A day at the ocean', 'the a').getPath() == '/page/day-at-ocean'
+        'appendSlug - literal skipWords'
+    )
+
+    $titles = q[
+        A day at the ocean -- Turtles & Tide Pools
+        When is Tom Thomas's next game? How to watch Iowa vs. Indiana tonight
+        Don't go to sleep before 11 o'clock!
+        My top 10 favorite 2D video games of all time
+        What's the best programming language to learn in 2024?
+        Tech startups raised $34B in 2019
+        What`s a slug and is it important for SEO?
+        BigTechCo's stock price hits $300, its highest ever
+        Netflix Secret Codes 2024: Every Category on Netflix
+        This man Watched 'Lord of the Rings' for the 3,000th time
+    ]
+
+    $slugUrlsDefault = q[
+        /path/a-day-at-the-ocean-turtles-tide-pools
+        /path/when-is-tom-thomass-next-game-how-to-watch-iowa-vs-indiana-tonight
+        /path/dont-go-to-sleep-before-11-oclock
+        /path/my-top-10-favorite-2d-video-games-of-all-time
+        /path/whats-the-best-programming-language-to-learn-in-2024
+        /path/tech-startups-raised-34b-in-2019
+        /path/whats-a-slug-and-is-it-important-for-seo
+        /path/bigtechcos-stock-price-hits-300-its-highest-ever
+        /path/netflix-secret-codes-2024-every-category-on-netflix
+        /path/this-man-watched-lord-of-the-rings-for-the-3000th-time
+    ]
+
+    $slugUrlsCommon = q[
+        /path/day-ocean-turtles-tide-pools
+        /path/tom-thomas-next-game-watch-iowa-indiana-tonight
+        /path/sleep-before-11-oclock
+        /path/top-10-favorite-2d-video-games-all-time
+        /path/best-programming-language-learn-2024
+        /path/tech-startups-raised-34b-2019
+        /path/slug-important-seo
+        /path/bigtechco-stock-price-hits-300-highest-ever
+        /path/netflix-secret-codes-2024-every-category
+        /path/man-watched-lord-rings-3000th-time
+    ]
+
+    foreach $titles as $i/$longText {
+        $gotSlugPathDefault = url'/path/'.appendSlug($longText).getPath()
+        $okSlugPathDefault = $slugUrlsDefault.popFirst()
+        $t.ok(
+            $gotSlugPathDefault == $okSlugPathDefault
+            'appendSlug(default): ' ~ $gotSlugPathDefault ~ ' | expected = ' ~ $okSlugPathDefault
+        )
+
+        $gotSlugPathCommon = url'/path/'.appendSlug($longText, ':common').getPath()
+        $okSlugPathCommon = $slugUrlsCommon.popFirst()
+        $t.ok(
+            $gotSlugPathCommon == $okSlugPathCommon
+            'appendSlug(common): ' ~ $gotSlugPathCommon ~ ' | expected = ' ~ $okSlugPathCommon
+        )
+    }
+
+
+    $t.section('UrlQuery')
+
+    $qUrl = url'/page?name=test&num=123'
+    $t.ok($qUrl.getQuery().get('name') == 'test', 'get, default rule')
+    $t.ok($qUrl.getQuery().get('num', 'i') == 123, 'get, i')
+    $t.ok($qUrl.getQuery().get('name', 'i') == 0, 'get, i, default')
+
+    $qUrl.getQuery().set({ num: 999, flag: true })
+    $t.ok($qUrl.getQuery().get('num', 'i') == 999, 'set i')
+    $t.ok($qUrl.getQuery().get('flag', 'b') == true, 'set b')
+
+    $sqUrl = $qUrl.renderString()
+    $t.ok($sqUrl == '/page?name=test&num=999&flag=true', 'query() + renderString()')
+
+    $sxUrl = url'/page?foo=123'
+    $sxUrl.getQuery().setDefault({ foo: 999, other: 'yes' })
+    $t.ok($sxUrl.renderString() == '/page?foo=123&other=yes', 'setDefault')
+
+    $otherUrl = url'/page'.setQuery({ z: 99 })
+    $sxUrl.setQuery($otherUrl)
+    $t.ok($sxUrl.renderString() == '/page?foo=123&other=yes&z=99', 'get from other Url')
+
+    $otherUrl.setQuery({ z: 333 })
+    $sxUrl.setQuery($otherUrl.getQuery())
+    $t.ok($sxUrl.renderString() == '/page?foo=123&other=yes&z=333', 'get from other UrlQuery')
+
+    $fQuery = url'/page?foo=123&bar=xyz'.getQuery()
+    $t.ok($fQuery.has('foo'), 'hasField')
+    $t.ok(!$fQuery.has('no'), 'not hasField')
+    $t.ok($fQuery.getNames().join('|') == 'foo|bar', 'fields')
+
+    $kQuery = url'/page?a=11&b=22&c=33'.getQuery()
+    $kQuery.keep(['b', 'c'])
+    $t.ok($kQuery.renderString() == '?b=22&c=33', 'keep')
+
+    $dQuery = url'/page?a=11&b=22&c=33'.getQuery()
+    $dQuery.delete('b')
+    $names = $dQuery.getNames().join('|')
+    $t.ok($names == 'a|c', 'delete')
+
+    $staticQuery = url'/page?a=11&b=22&a=99'.renderString()
+    $t.ok($staticQuery == '/page?a=11&b=22&a=99', 'static query with dupe keys')
+
+//    https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600&family=Roboto:wght@400;500&display=swap
+
+
+    return $t
+}

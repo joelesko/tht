@@ -1,0 +1,58 @@
+
+public fun run($t) {
+
+    $t.section('Types')
+
+    $t.ok([].zClassName() == 'List', 'List')
+    $t.ok({}.zClassName() == 'Map', 'Map')
+    $t.ok('foo'.zClassName() == 'String', 'String')
+
+    $n = 123
+    $t.ok($n.zClassName() == 'Number', 'Number')
+
+    $f = true
+    $t.ok($f.zClassName() == 'Boolean', 'Boolean')
+
+    $fnn = fun { }
+    $t.ok($fnn.zClassName() == 'Function', 'Function')
+
+    $t.ok(sql'abc'.zClassName() == 'SqlTypeString', 'SqlTypeString')
+    $t.ok(rx'a'.zClassName() == 'Regex', 'Regex')
+    $t.ok(fnNoReturn() == null, 'no return is null')
+
+
+    // load('oop/BaseObject')
+
+    // $b = BaseObject({})
+    // $t.ok($b.type() == 'object', 'object')
+    // $t.ok('abc'.zClassName() == 'String', 'class: String')
+    // $t.ok([1, 2, 3].zClassName() == 'List', 'class: List')
+    // $t.ok(html'abc'.zClassName() == 'HtmlTypeString', 'class: HtmlTypeString')
+    // $t.ok($b.zClassName() == 'BaseObject', 'class: Base')
+
+
+    $t.section('Types - .equals')
+
+        .ok('a'.equals('a'), 'string - true')
+        .ok(!'a'.equals('b'), 'string - false')
+        .ok(!'1'.equals(1), 'string to num - false')
+        .ok(!'1'.equals(1 == 1), 'string to bool - false')
+        .ok((false).equals(1 == 0), 'bool - true')
+
+        .ok({}.equals({}), 'map to map - true')
+        .ok({ a: 1 }.equals({ a: 1 }), 'map to map - true')
+        .ok(!{ a: 1 }.equals({ a: 2 }), 'map to map - false')
+
+        .ok({ a: 1, b: 2 }.equals({ b: 2, a: 1 }), 'map key order - true')
+
+        .ok(![].equals({}), 'list to map - false')
+
+
+
+    return $t
+}
+
+fun fnNoReturn {
+
+}
+

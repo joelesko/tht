@@ -1,0 +1,118 @@
+public fun run($t) {
+
+    $map = { a: 2, b: 3 }
+
+    $page = Page.create({
+        title: 'THT Unit Tests'
+        css: url'/css/basic.css'
+        main: html'TEST'  // trigger
+    })
+
+    $t.section('Null')
+
+    $counts = { a: 0 }
+    $counts.a ??+= 1
+    $counts['b'] ??+= 1
+    $counts['b'] ??+= 1
+    $t.ok($counts['a'] == 1 && $counts['b'] == 2, '??+=')
+
+    $counts['z'] ??= 1234
+    $t.ok($counts['z'] == 1234, '??=')
+
+    $counts['c']?.reverse()?.toUpperCase()
+
+    $counts['c'] = ?.reverse()
+
+    $t.ok(nullDefault() == null, 'pending return')
+    $t.ok(nullDefault()?.reverse()?.toUpperCase() == null, 'dotnull ?.')
+
+    //$t.ok(pending == null, 'pending == null')
+
+    $n = null
+
+    $t.ok($n == null, 'equals null')
+    $t.ok($n != 0, '0 != null')
+    $t.ok($n != false, 'false != null')
+    $t.ok($n ? 'truthy' : 'falsey' == 'falsey', 'is falsey')
+
+    $a = $n ||: 1
+    $t.ok($a == 1, 'orval')
+    $a = $n &&: 2
+    $t.ok($a == null, 'andval')
+
+    $a = $n ??: 3
+    $t.ok($a == 3, 'nullval - with null')
+    $a = false ??: 3
+    $t.ok($a == false, 'nullval - with false')
+    $a = true ??: 3
+    $t.ok($a == true, 'nullval - with true')
+
+    $a = null
+    $a ??= 123
+    $t.ok($a == 123, 'nullassign - with null')
+
+    $a = false
+    $a ??= 123
+    $t.ok($a == false, 'nullassign - with false')
+
+    $a = true
+    $a ??= 123
+    $t.ok($a == true, 'nullassign - with true')
+
+
+    $t.parserError('$x ??= 1', 'Unknown variable')
+
+    $map = { n: pending }
+    $t.ok($map.n == pending, 'pending map value')
+    $json = Json.encode($map)
+    $t.ok($json.renderString() == '{"n":null}', 'json encoded')
+    $fromJson = Json.decode($json)
+    $t.ok($fromJson.n == null, 'null json value')
+
+    $t.ok(takesNull(null) == null, 'pass in null to nullable arg')
+    $t.dies(fun { takesNotNull(null) }, 'Null passed to non-nullable')
+
+    $t.parserError('if null == $a { }', 'right side of the expression')
+    $t.parserError('$a = NULL', 'must be all lowercase')
+
+    $t.ok($n.type() == 'null', 'type() is null')
+    $t.ok($n.toString() == 'null', 'toString()')
+
+    $t.dies(fun { 'sdfsdf'.split(null) }, 'expects argument #1 to be: `non-null`')
+
+    $t.ok(fnNoReturn() == null, 'no return')
+    $t.ok(emptyReturn() == null, 'empty return')
+
+    $map = {}
+    $map['x'] ??= '123'
+    $t.ok($map.x == '123', 'map with ??=')
+    $t.ok($map['z'] == null, 'map missing key')
+
+    $t.ok($map['z']?.trim() == null, '?. with null')
+    $t.ok($map['x']?.reverse() == '321', '?. with non-null')
+
+    return $t
+}
+
+fun takesNull($argOrNull) {
+
+    return $argOrNull
+}
+
+fun takesNotNull($arg) {
+
+    return $arg
+}
+
+fun fnNoReturn {
+    // ...
+}
+
+fun emptyReturn {
+    return
+}
+
+fun nullDefault($v = null) {
+    return $v
+}
+

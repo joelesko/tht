@@ -38,8 +38,8 @@ window.colorCode = function (theme='light', sel='pre, .tht-color-code') {
         // numbers
         c = c.replace(/\b(-?\d[\d\.]*)/g, '<span class=(qq)cc-value(qq)>$1</span>');
 
-        // booleans
-        c = c.replace(/\b(true|false)\b/gi, '<span class=(qq)cc-value(qq)>$1</span>');
+        // constants
+        c = c.replace(/\b(true|false|null|nothing)\b/gi, '<span class=(qq)cc-value(qq)>$1</span>');
 
         // strings
         c = c.replace(/('''([\w\W]*?)''')/gm, '<span class=(qq)cc-value(qq)>$1</span>');
@@ -62,7 +62,7 @@ window.colorCode = function (theme='light', sel='pre, .tht-color-code') {
         c = c.replace(/(&lt;!--.*?--&gt;)/gm, '<span class=(qq)cc-comment(qq)>$1</span>');
 
         // template: single-line code
-        c = c.replace(/(^|\s)((---)\s+.*)/g, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
+        c = c.replace(/(^|\s)((====)\s+.*)/g, '$1<span class=(qq)cc-template-code(qq)>$2</span>');
 
         // template: expression
         // c = c.replace(/(\{\{(.*?)\}\})/g, '<span class=(qq)cc-template-expr(qq)>$1</span>');
@@ -75,7 +75,7 @@ window.colorCode = function (theme='light', sel='pre, .tht-color-code') {
 };
 
 function colorCodeKeywords() {
-    return 'let|var|const|constant|function|tm|fn|def|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|load|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|where|switch|match|keep|use|fields|inner|outer';
+    return 'let|var|const|constant|function|tem|fun|fn|func|def|for|foreach|loop|while|do|array|new|if|else|elsif|elif|this|break|continue|return|require|import|load|class|static|public|private|protected|final|int|double|boolean|bool|string|float|long|in|as|try|catch|throw|finally|select|from|join|inner join|outer join|cross join|insert|delete|update|where|switch|match|keep|use|fields|inner|outer';
 }
 
 function colorCodeCss() {

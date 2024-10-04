@@ -1,0 +1,22 @@
+
+fun main {
+
+    $status = Email.send({
+        fromName: 'Joe Lesko'
+        from: 'joe@joelesko.com'
+        to: 'joe+get@joelesko.com'
+        cc: 'joe+cc@joelesko.com'
+        subject: 'Test Email'
+        body: html'''
+
+            Hello <b>{}!</b>
+
+            Timestamp: {}
+
+        '''.fill('Joe', Date.now())
+    })
+
+    print($status)
+    print(Email.getLastLogs())
+}
+

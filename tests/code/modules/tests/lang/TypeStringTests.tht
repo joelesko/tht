@@ -1,0 +1,58 @@
+
+public fun run($t) {
+
+    $t.section('TypeStrings')
+
+    $t.dies(fun { return plain'a' ~ 'b' }, 'Can`t string-append')
+    $t.dies(fun { return 'a' ~ plain'b' }, 'Can`t string-append')
+    $t.dies(fun { return url'a' ~ cmd'b' }, 'Can`t string-append')
+
+    // $lock1 = plain'1={},'.fill('a')
+    // $lock2 = plain'2={}'.fill('b')
+    // $combined = $lock1 ~ $lock2
+    // $t.ok($combined.renderString() == '1=a,2=b', 'combined TypeStrings')
+
+    // $t1 = plain't1'
+    // $t1 ~= plain't2'
+    // // $t.ok($t1.renderString() == 't1t2', 'combined with ~=')
+
+    $t.ok(tagHtml('a').stringType() == 'html', 'stringType')
+    $t.ok(sql'x'.stringType() == 'sql', 'stringType')
+
+    $t.dies(
+        fun { return url'page?foo={}' }
+        'dynamic query hardcoded in url string', 'dynamic queries'
+    )
+
+    $lUrl = url'http://test.com/'.setQuery({ foo: 'val`s' })
+    $lCmd = cmd'xget {} > file.txt'.fill($lUrl)
+    $lHtml = deepEscHtml($lCmd)
+
+
+    $escOut = '<b>xget &apos;http://test.com/?' ~ 'foo=val%27s&apos; &gt; file.txt</b>'
+    if System.getOs() == 'windows' {
+        // Windows escapes shell differently
+        $escOut = '<b>xget &quot;http://test.com/?foo=val 27s&quot; &gt; file.txt</b>'
+    }
+    $t.ok($lHtml.renderString() == $escOut, 'recursive escaped renderString()')
+
+    $t.ok(hasDefault(123).renderString() == '<b>123</b>', 'as default arg')
+
+    return $t
+}
+
+tem tagHtml($val) {
+    <p> {{ $val }}
+}
+
+
+tem deepEscHtml($val) {
+    <b> {{ $val }}
+}
+
+fun hasDefault($fillVal, $str = html'<b>{}</b>') {
+
+    return $str.fill($fillVal)
+
+}
+

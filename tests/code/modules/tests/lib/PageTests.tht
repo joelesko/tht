@@ -1,0 +1,59 @@
+
+public fun run($t) {
+
+    $t.section('Module: Page')
+
+    $page = Page.create({
+        appName: 'AppName'
+        joiner: '~'
+        tagline: 'This is a tagline'
+    })
+
+    $page.addBodyClass('class1')
+    $page.addBodyClass('otherClass')
+    $page.setDescription('This is the   desc. ')
+    $page.setIcon(url'/images/icon.png')
+    $page.setImage(url'/images/image.png')
+    $page.addToHead(html'<meta name="custom" property="THT">')
+
+    // Files have to exist
+    $page.addCss(url'/css/basic.css')
+    $page.addJs(url'/js/form.js')
+
+    $out = $page.toHtml()
+
+    $t.ok($out.match(rx'<!doctype html>\s*<html>\s*<head>'s), 'start tags')
+    $t.ok($out.match(rx'<head>.*</head>'s), 'head tags')
+    $t.ok($out.match(rx'</body>\s*</html>'s), 'end tags')
+
+    $title = '<title>AppName ~ This is a tagline'
+    $t.ok($out.renderString().contains($title), 'title - default')
+    $t.ok($out.contains('"og:title" content="This is a tagline"'), 'tagline to og:title')
+
+    $page.setTitle('Page Title')
+
+    $out = $page.toHtml().renderString()
+
+    $title = '<title>Page Title ~ AppName'
+    $t.ok($out.contains($title), 'title - after setTitle')
+
+    $t.ok($out.contains('"og:title" content="Page Title"'), 'og:title')
+    $t.ok($out.contains('"og:site_name" content="AppName"'), 'og:site_name')
+    $t.ok($out.contains('meta name="viewport"'), 'viewport meta tag')
+
+    $t.ok($out.match(rx'''
+        <head>.*<meta name="custom" property="THT">.*</head>
+    '''s), 'addToHead')
+
+    // TODO: Test for min.gz and cache 'v' param
+    $t.ok($out.match(rx'"og:image" content="/images/image\.png"'), 'image')
+    $t.ok($out.match(rx'<link rel="icon" href="/images/icon\.png">'), 'icon')
+    $t.ok($out.match(rx'rel="stylesheet" href="/css/basic\.css"'), 'addCss')
+    $t.ok($out.match(rx'''
+        <script src="/js/form\.js" nonce="[a-zA-Z0-9]{20,}">
+    '''), 'addJs')
+
+    $t.dies(fun { Page.create({ foo: 123 }) }, 'invalid page field')
+
+    return $t
+}

@@ -1,0 +1,156 @@
+
+public fun run($t) {
+
+    $t.section('Module: Date')
+
+    $t.dies(fun { Date.create(1 == 1) }, 'Got: `boolean`')
+
+    $ts = 1400000000
+    $date1 = Date.create($ts)
+
+    $d2 = Date.create('2021-07-29 15:42:01')
+
+    $t.ok(Date.unixTime() > $ts, 'Date.unixTime')
+    $t.ok($date1.format() == '2014-05-13T16:53:20+0000', 'Date.format (default)')
+    $t.ok($date1.format('Y-m-d H:i:s') == '2014-05-13 16:53:20', 'Date.format')
+    $t.ok($date1.toMap().year == 2014, 'toMap')
+
+    $t.ok($d2.get('year') == 2021, 'get - year')
+    $t.ok($d2.get('month') == 7, 'get - month')
+    $t.ok($d2.get('dayName') == 'Thursday', 'get - dayName')
+    $t.dies(fun { $d2.get('mon') }, 'month')
+
+    $dc = Date.create('2021-07-29 15:42:01')
+    $ds = date'2021-07-29 15:42:01'
+    $t.ok($dc.equals($ds), 'date string')
+
+    $ts1 = Date.now().unixTime()
+    $d1 = Date.create($ts1)
+    $ts2 = $ts1 + 378
+    $d2 = Date.create($ts2)
+    $t.ok($d1.unixTime() - $d2.unixTime() == -378, 'fromUnixTime')
+
+    $t.ok(Date.diffToSeconds('2 hours') == 7200, 'diffToSeconds')
+    $t.ok(Date.diffToSeconds('-2 hours') == -7200, 'diffToSeconds - negative')
+
+    $fromMap = Date.create({ year: 2021, month: 5, day: 17 })
+    $t.ok($fromMap.format('Y-m-d') == '2021-05-17', 'create from map')
+    $t.dies(x{ Date.create({ hour: 22, minute: 38, second: 08 }) }, 'contain the fields')
+
+    $added = $fromMap.add('2 months').add('4 days')
+    $t.ok($added.format('Y-m-d') == '2021-07-21', 'add chained')
+
+    $added = $fromMap.add('-3 days')
+    $t.ok($added.format('Y-m-d') == '2021-05-14', 'add negative')
+
+    $added = $fromMap.add('1 week + 3 days')
+    $t.ok($added.format('Y-m-d') == '2021-05-27', 'add compound')
+
+    $added = $fromMap.add(3600 * 24)
+    $t.ok($added.format('Y-m-d') == '2021-05-18', 'add seconds')
+
+
+
+    $now = Date.now()
+    $later = $now.add('3 days')
+
+    $t.ok($later.isAfter($now), 'isAfter')
+    $t.ok(!$now.isAfter($later), 'isAfter false')
+
+    $t.ok($now.isBefore($later), 'isBefore')
+    $t.ok(!$later.isBefore($now), 'isBefore false')
+
+    $t.ok($now.isBeforeOrEqual($now), 'isBeforeOrEqual - equal')
+    $t.ok(!$later.isBeforeOrEqual($now), 'isBeforeOrEqual - false')
+    $t.ok($now.isBeforeOrEqual($later), 'isBeforeOrEqual - true')
+
+    $t.ok($now.isAfterOrEqual($now), 'isAfterOrEqual - equal')
+    $t.ok($later.isAfterOrEqual($now), 'isAfterOrEqual - true')
+    $t.ok(!$now.isAfterOrEqual($later), 'isAfterOrEqual - false')
+
+    $today = Date.today()
+    $t.ok($today.format('Ymd') == $now.format('Ymd'), 'today & now')
+    $t.ok($today.toMap().hour == 0, 'today')
+    $t.ok($now.clearTime().equals($today), 'clearTime')
+
+    $dateDst = Date.create('2022-12-01 15:00:00')
+    $dateDst.setTimezone('Europe/Helsinki')
+    $t.ok($dateDst.getTimezone() == 'America/Los_Angeles', 'getTimezone is from app.jcon')
+    $tzDate = $dateDst.setTimezone('Europe/Helsinki')
+    $t.ok($tzDate.format().contains('+0200'), 'setTimezone')
+    $t.ok(!$tzDate.isDst(), 'isDst - false')
+
+    $dateNotDst = Date.create('2022-05-01 15:00:00')
+    $tzDate = $dateNotDst.setTimezone('Europe/Helsinki')
+    $t.ok($tzDate.format().contains('+0300'), 'DST changes TZ offset')
+    $t.ok($tzDate.isDst(), 'isDst - true')
+
+
+    // setlocale takes something like 0.3ms
+    $locDate = Date.create('2021-06-17')
+    Date.setLocale('de_DE')
+    $t.ok($locDate.format('l, F d, Y') == 'Donnerstag, Junii 17, 2021', 'setLocale - de_DE')
+
+
+    Date.setLocale('en_US')
+    $t.ok($locDate.format('l, F d, Y') == 'Thursday, June 17, 2021', 'setLocale - en_US')
+
+
+    $otherDate = $now.add('50 hours')
+    $t.ok($otherDate.diffHuman() == '2 days', 'diffHuman - days')
+
+
+    $almostMinute = $now.add(58)
+    $t.ok($almostMinute.diffHuman() == '1 minute', 'diffHuman - minutes')
+
+    $longAgo = $now.add('-1000 days')
+    $t.ok($longAgo.diffHuman() == '2 years ago', 'diffHuman - years')
+
+
+    $monthish = $now.add('3 days')
+    $t.ok($monthish.diff() == 259200, 'diff - no args')
+
+    $date1 = Date.create('2022-02-01')
+    $date2 = Date.create('2021-03-01')
+    $t.ok($date1.diffHuman($date2) == '1 year', 'diffHuman - otherDate')
+    $t.ok($date1.diff($date2, 'days').floor() == 337, 'diff - otherDate')
+    $t.ok($date2.diff($date1, 'days').ceiling() == -337, 'diff - negative')
+
+    $past = Date.create('3 mins ago')
+    $future = Date.create('+3 mins')
+    $t.ok($past.isPast() && !$past.isFuture(), 'isPast')
+    $t.ok(!$future.isPast() && $future.isFuture(), 'isFuture')
+
+    $t.ok(Date.daysInMonth() >= 28, 'daysInMonth - no argument')
+    $april = Date.create('2022-04-01')
+    $t.ok(Date.daysInMonth($april) == 30, 'daysInMonth - date object')
+    $t.ok(Date.daysInMonth('2021-07-13') == 31, 'daysInMonth - date string')
+    $t.ok(Date.daysInMonth('sep') == 30, 'daysInMonth - month short name')
+    $t.ok(Date.daysInMonth('Feb 2020') == 29, 'daysInMonth - feb leap year ')
+    $t.ok(Date.daysInMonth('Feb 2021') == 28, 'daysInMonth - feb non-leap ')
+
+    $date1 = Date.create('2033-03-31 13:21:45')
+    $date2 = $date1.set('year', 2333)
+    $t.ok($date2.format('Y-m-d') == '2333-03-31', 'set - year')
+    $date2 = $date1.set('day', 1)
+    $t.ok($date2.format('Y-m-d') == '2033-03-01', 'set - day')
+    $date2 = $date1.set('month', 1)
+    $t.ok($date2.format('Y-m-d') == '2033-01-31', 'set - month')
+    $t.dies(fun { $date1.set('mon', 1) }, 'month')
+
+    $t.ok(Date.monthList()[3] == 'March', 'monthList')
+    $t.ok(Date.monthList(-short)[3] == 'Mar', 'monthList - short')
+
+    $dates = [
+        Date.create('+3 hours')
+        Date.create('+1 hours')
+        Date.create('+2 hours')
+    ].sort()
+
+    $t.ok($dates[1].isBefore($dates[2]) && $dates[2].isBefore($dates[3]), 'sort dates')
+
+    return $t
+}
+
+
+

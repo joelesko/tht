@@ -4,15 +4,18 @@ namespace o;
 
 class Compiler {
 
-    static private $sandboxDepth = 0;
+    static private $sandboxDepth   = 0;
     static private $filesToProcess = [];
-    static private $processedFile = [];
-    static private $didCompile = false;
+    static private $processedFile  = [];
+    static private $processedName  = [];
+    static private $didCompile     = false;
     static private $appCompileTime = 0;
 
-    static function process ($relSourceFile, $isEntry=false) {
+    // Compile file from THT to PHP if it is new or modified.  Then execute it.
+    static function process($relSourceFile, $isEntry=false) {
 
         $sourceFile = Tht::getFullPath($relSourceFile);
+        $fileBaseName = self::getFileBaseName($relSourceFile);
         $fuzzySourceFile = strtolower($sourceFile);
 
         // Source already included
@@ -27,7 +30,8 @@ class Compiler {
         }
 
         if (!file_exists($sourceFile)) {
-            Tht::error("Source file not found: `$sourceFile`");
+            $suggest = ErrorHandler::getFuzzySuggest($fileBaseName, array_keys(self::$processedName));
+            Tht::error("Source file not found: `$sourceFile`  $suggest");
         }
 
         array_unshift(self::$filesToProcess, $sourceFile);
@@ -41,21 +45,26 @@ class Compiler {
         }
 
         // File was modified.  Re-compile.
-        if (!$phpModTime || $phpModTime < $sourceModTime || Tht::getConfig('_coreDevMode')) {
-            self::validateSourceFileName($sourceFile, $isEntry);
-            self::compile($sourceFile, $phpSourceFile);
+        if (!$phpModTime || $phpModTime < $sourceModTime || Tht::getThtConfig('_coreDevMode')) {
+             self::validateSourceFileName($sourceFile, $isEntry);
+             self::compile($sourceFile, $phpSourceFile);
         }
 
         self::$processedFile[$fuzzySourceFile] = true;
+        self::$processedName[$fileBaseName] = true;
 
         self::executePhp($phpSourceFile);
 
         array_shift(self::$filesToProcess);
     }
 
-    static function executePhp ($phpPath) {
+    static function getFileBaseName($filePath) {
+        return preg_replace('/\.tht$/', '', basename($filePath));
+    }
 
-        Tht::module('Perf')->u_start('tht.requireTranspiledFile', basename($phpPath));
+    static function executePhp($phpPath) {
+
+        $perfTask = Tht::module('Perf')->u_start('tht.requireTranspiledFile', basename($phpPath));
 
         try {
             require($phpPath);
@@ -64,7 +73,7 @@ class Compiler {
             ErrorHandler::handleThtRuntimeError($e, $phpPath);
         }
 
-        Tht::module('Perf')->u_stop();
+        $perfTask->u_stop();
     }
 
     // TODO: validate directory case in addition to filename
@@ -95,10 +104,6 @@ class Compiler {
                 $case = $isEntry ? 'lowerCamelCase' : 'UpperCamelCase';
                 Tht::error("File name `$baseBad` must be $case.");
             }
-            else if ($isEntry) {
-                Tht::errorLog("Url `$base` is missing hyphens. Ex: file-name = fileName.tht");
-                Tht::module('Output')->u_send_error(404);
-            }
             else {
                 Tht::error("File name mismatch: `$base`  Try: `$baseBad` (exact case)");
             }
@@ -107,12 +112,12 @@ class Compiler {
         Security::assertIsOutsideDocRoot($filePath);
     }
 
-    static function updateAppCompileTime () {
+    static function updateAppCompileTime() {
 
         touch(Tht::path('appCompileTimeFile'));
     }
 
-    static function getAppCompileTime () {
+    static function getAppCompileTime() {
 
         if (!self::$appCompileTime) {
             self::$appCompileTime = filemtime(Tht::path('appCompileTimeFile'));
@@ -121,45 +126,44 @@ class Compiler {
         return self::$appCompileTime;
     }
 
-    static function getDidCompile () {
+    static function getDidCompile() {
 
         return self::$didCompile;
     }
 
-    static function isSandboxMode () {
+    static function isSandboxMode() {
 
         return self::$sandboxDepth > 0;
     }
 
-    static function getCurrentFile () {
+    static function getCurrentFile() {
 
         return isset(self::$filesToProcess[0]) ? self::$filesToProcess[0] : '';
     }
 
-    static function compile ($sourceFile, $phpSourceFile) {
+    static function compile($sourceFile, $phpSourceFile) {
 
-        Tht::module('Perf')->u_start('tht.compile', $sourceFile);
+        $perfTask = Tht::module('Perf')->u_start('tht.compile', $sourceFile);
 
         self::$didCompile = true;
         self::updateAppCompileTime();
 
-        Tht::loadLib('compiler/_index.php');
+        Tht::loadLib('lib/core/compiler/_index.php');
 
         $rawSource   = self::readSourceFile($sourceFile);
+
         $tokenStream = self::tokenize($rawSource);
         $ast         = self::parse($tokenStream);
         $phpCode     = self::emit($ast, $sourceFile);
 
         self::writePhpFile($phpSourceFile, $phpCode, $sourceFile);
 
-        Tht::module('Perf')->u_stop();
-
-        ErrorTelemetry::send($sourceFile);
+        $perfTask->u_stop();
     }
 
-    static function parseString ($source) {
+    static function parseString($source) {
 
-        Tht::loadLib('compiler/_index.php');
+        Tht::loadLib('lib/core/compiler/_index.php');
 
         $source .= "\n";
         $tokens = self::tokenize($source);
@@ -168,7 +172,7 @@ class Compiler {
         return $ast;
     }
 
-    static function safeParseString ($source) {
+    static function safeParseString($source) {
 
         self::$sandboxDepth += 1;
         $ast = [];
@@ -186,7 +190,7 @@ class Compiler {
         return $ast;
     }
 
-    static function readSourceFile ($sourceFile) {
+    static function readSourceFile($sourceFile) {
 
         $rawSource = file_get_contents($sourceFile);
         $encoding = mb_detect_encoding($rawSource, 'UTF-8', true);
@@ -196,10 +200,13 @@ class Compiler {
             Tht::error('Source file must be saved in UTF-8 format.');
         }
 
+        // Trim spaces at the end of each line
+        $rawSource = preg_replace('/ +$/m', '$1', $rawSource);
+
         return $rawSource;
     }
 
-    static function tokenize ($rawSource) {
+    static function tokenize($rawSource) {
 
         $t = new Tokenizer ($rawSource);
         $tokens = $t->tokenize();
@@ -207,7 +214,7 @@ class Compiler {
         return $tokens;
     }
 
-    static function parse ($tokenStream) {
+    static function parse($tokenStream) {
 
         $parser = new Parser ();
         $ast = $parser->parse($tokenStream);
@@ -215,7 +222,7 @@ class Compiler {
         return $ast;
     }
 
-    static function emit ($ast, $sourceFile) {
+    static function emit($ast, $sourceFile) {
 
         $emitter = new EmitterPHP ();
         $phpCode = $emitter->emit($ast, $sourceFile);
@@ -223,26 +230,28 @@ class Compiler {
         return $phpCode;
     }
 
-    static function writePhpFile ($phpSourceFile, $phpCode, $sourceFile) {
+    static function writePhpFile($phpSourceFile, $phpCode, $sourceFile) {
 
         file_put_contents($phpSourceFile, $phpCode, LOCK_EX);
 
-        // Prevent delay introduced by opcode cache, which defaults to 2 second lag
+        // Force opcache to update. Otherwise it waits 2 seconds to update, which is too long.
         if (Tht::isOpcodeCacheEnabled()) {
             opcache_invalidate($phpSourceFile, true);
         }
 
-        // Lint file
-        $lint = shell_exec('php -l ' . escapeshellarg($phpSourceFile));
-        if (strpos(strtolower($lint), 'no syntax errors') === false) {
+        // Lint file - ~ 40ms
+        // https://www.php.net/manual/en/features.commandline.options.php
+        $lintMsg = shell_exec('php --syntax-check ' . escapeshellarg($phpSourceFile));
+        if (strpos(strtolower($lintMsg), 'no syntax errors') === false) {
+            // Lint error
             touch($phpSourceFile, time() - 100);  // make sure re-compile is forced next time
-            ErrorHandler::handlePhpParseError($lint);
+            ErrorHandler::handlePhpLintError($lintMsg);
         }
     }
 
     // Get the THT source position.
     // Default to PHP if not found.
-    static function sourceLinePhpToTht ($phpFilePath, $phpLineNum, $fnName) {
+    static function sourceLinePhpToTht($phpFilePath, $phpLineNum, $fnName) {
 
         $phpFilePath = Tht::normalizeWinPath($phpFilePath);
 
@@ -252,6 +261,8 @@ class Compiler {
         $phpLines = array_reverse(
             explode("\n", $phpCode)
         );
+
+        if (!$phpLineNum) { $phpLineNum = 0; }
 
         // Read the source map
         foreach ($phpLines as $l) {
@@ -265,14 +276,15 @@ class Compiler {
 
                     $sourceMap = Security::jsonDecode($match[1]);
 
-                    if ($fnName) {
+                    if ($fnName && hasu_($fnName)) {
                         $phpLineNum = self::findRealSourceLineForFunctionCall($fnName, $phpLineNum, $phpLines);
                     }
 
                     // Go up the line numbers and find the nearest one with a mapping to THT
                     $checkLineNum = $phpLineNum;
-                    while (true && $checkLineNum > 0) {
+                    while ($checkLineNum > 0) {
                         if (isset($sourceMap[$checkLineNum])) {
+
                             return [
                                 'lang' => 'tht',
                                 'file' => $sourceMap['file'],
@@ -300,7 +312,7 @@ class Compiler {
     }
 
     // There is a bug in PHP where the call line is wrong if the argument of a
-    // function is an array literal.
+    // function is an multi-line array literal.
     // - If the array values are expressions (map, function call), it gets the line of the LAST key
     // - If the array values are atomic, it gets the line of the FIRST key
     //
@@ -319,12 +331,13 @@ class Compiler {
         $lineNum = $startLineNum;
         while (true) {
             $line = $phpLines[$lineNum];
-
-            if (strpos(strtolower($line), $fnName) !== false) {
-                return $lineNum;
+            if (str_contains(strtolower($line), $fnName)) {
+                return $lineNum + 1;
             }
 
             $lineNum -= 1;
+
+            // Not found
             if (!$lineNum) {
                 return $startLineNum;
             }

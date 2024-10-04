@@ -1,0 +1,28 @@
+// Undocumented.
+// Taking arguments by class name requires a re-factoring of internal namespacing.
+
+public fun run($t) {
+
+    $t.section('Type Hints')
+
+    $t.ok(takeString('x') == 'takeString:x', 'take string')
+    $t.ok(takeString() == 'takeString:default', 'take string - default')
+
+    return $t
+}
+
+fun takeString($arg:s = 'default') {
+    return 'takeString:' ~ $arg
+}
+
+
+// Return types will probably use arrow. (like Python)
+
+// fun takeString($arg:s = 'default') -> s {
+//     return 'takeString:' ~ $arg
+// }
+
+// This also matches the nomenclature used in the tht.dev docs.
+// It also means we need to be a bit smarter about catching use of PHP-style -> instead of dot (.).
+
+

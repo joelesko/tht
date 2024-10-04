@@ -1,0 +1,152 @@
+
+// PERF:
+//
+// Ok, this is really strange, but it seems that when the top-level file is compiled,
+// the RUN-TIME performance improves drastically (2x-3x!) for that request.
+//
+// For example, when I just add a space to this file and recompile, it executes at ~ 17 ms.
+// But in subsequent requests, it runs at about 30-40ms. You would think the opposite would happen!
+// In older versions, it was consistently running under 20ms.
+//
+// All of the subtasks, measured outside of loading, are mostly faster.
+//
+// The same issue happens with the THT home page, which is much simpler.
+// Also happens in PHP 8.2.
+//
+// Just updating the compiled file itself doesn't trigger this, so something in the compiler
+// code path is maybe triggering something.
+//
+// Turning opcache just makes everything consistently slower.
+//
+// I believe it is triggered by the shell_exec() call in Compiler.php::compile.
+// This speeds it up, even when just calling 'php -v'.
+// I haven't been able to create a test case outside of this though.
+//
+
+// TESTING PERF:
+//
+// Set in app.jcon:
+//    _coreDevMode: false
+//    showPerfPanel: true
+//
+// Some tests will be turned off (error handling, etc.) since the purpose is to measure the calls a typical app would make.
+//
+// When benchmarking with command-line 'ab' utility, add `&bench=true` to the url
+
+fun main {
+
+    System.setMaxMemoryMb(32)
+    System.setMaxRunTimeSecs(30)
+
+    $test = Test()
+
+    $isBench = Input.get('bench', 'b') &&: $test.setBenchmarkMode()
+    $file = Input.get('file', 's')
+
+    if $file {
+        $test = runTestFile($test, $file)
+    }
+    else {
+        $test = runAll($test)
+    }
+
+    $resultsHtml = $test.resultsHtml()
+
+    if $isBench {
+        Output.sendHtml($resultsHtml)
+    }
+    else {
+        $page = Page.create({
+            title: 'THT Unit Tests'
+            css: url'/css/basic.css'
+            main: docHtml($resultsHtml, $file)
+        })
+
+        Output.sendPage($page)
+    }
+}
+
+tem docHtml($results, $file:s) {
+
+    <h1> THT Unit Tests
+
+    <p>
+        PHP Version: <b>{{ Php.getVersion() }}<br />
+        THT Version: <b>{{ Meta.getThtVersion() }}
+    </>
+
+    --- if !$file {
+        <p>
+            <details style="cursor: pointer; user-select: none">
+                <summary> Run Individual Test File...
+                <ul> {{ testFileLinksHtml() }}
+            </>
+        </>
+    --- }
+
+    <p> <a href="#test-results" style="font-weight: bold"> {{ Web.icon('arrowDown') }} Jump to Results
+
+    {{ $results }}
+}
+
+fun getDirs {
+    return ['lang', 'lib', 'errors']
+}
+
+fun runFile($t:o, $file:s) {
+    $t = runTestFile($t, $file)
+    return $t.resultsHtml()
+}
+
+fun runAll($t:o) {
+
+    foreach getDirs() as $dir {
+        $t = runTestsInDir($t, $dir)
+    }
+    return $t
+}
+
+fun runTestsInDir($t:o, $dir:s) {
+
+    $mods = getTestModulesInDir($dir)
+    foreach $mods as $modName/$mod {
+        $t = $mod.run($t)
+    }
+    return $t
+}
+
+fun runTestFile($t:o, $file:s) {
+
+    $mod = load('tests/' ~ $file)
+
+    return $mod.run($t)
+}
+
+fun getTestModulesInDir($dir:s) {
+
+    return load('tests/{}/*'.fill($dir))
+}
+
+fun getMergedFileMap {
+
+    $merged = {}
+    foreach getDirs() as $dir {
+        foreach getTestModulesInDir($dir) as $modName/$mod {
+            $merged[$modName] = $dir
+        }
+    }
+
+    return $merged
+}
+
+tem testFileLinksHtml {
+
+    --- $merged = getMergedFileMap()
+    --- foreach $merged.keys().sort() as $modName {
+        --- $dir = $merged[$modName]
+        <li> <a href="/all-tests?file={{ $dir }}/{{ $modName }}"> {{ $modName }}
+    --- }
+}
+
+
+

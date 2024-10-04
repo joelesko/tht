@@ -1,0 +1,974 @@
+/*
+
+    TODO:
+
+    Consistency:
+    - sql types -> tht types -> php types -> input types?
+        - dates
+    - validating ANY KV pair using validation rules.
+
+
+    insert row
+    edit row
+
+    query status: total rows in table, total in query (showing X of Y)
+
+    select database
+
+    run query
+        reuse results view
+
+    delete row(s)
+
+    pagination
+
+    NEED to recover MML MySQl root password
+
+    datetime-local
+    date as date only
+    handle local timezone
+
+*/
+
+@@.defaultDb = 'mapDb'
+@@.db = ''
+@@.dbh = {}
+@@.table = ''
+
+fun initDb($dbKey) {
+    @@.db = $dbKey
+    @@.dbh = Db.useDatabase($dbKey)
+}
+
+fun initTable($table) {
+    @@.table = $table
+}
+
+fun main {
+
+    if Input.get('css', 'b') {
+        return Output.sendCss([basicCss(), mainCss()])
+    }
+
+    $page = Page.create({
+        appName: 'DB Admin'
+        joiner: '|'
+
+        //icon: url'images/tht_favicon.png',
+
+        bodyClass: 'dark-mode'
+        css: url'db-admin?css=1'
+        head: headHtml()
+        js: [
+            url'https://code.jquery.com/jquery-3.7.1.min.js'
+            url'https://unpkg.com/htmx.org@1.5.0'
+            scriptJs()
+        ]
+    })
+
+    initDb(@@.defaultDb)
+
+    $tables = @@.dbh.getTables()
+    $dbs = Db.getDatabases()
+    $dbConfig = {
+        server: @@.dbh.getServer()
+        driver: @@.dbh.getDriver()
+    }
+
+    $page.setBody(bodyHtml($dbConfig, $dbs, $tables))
+
+    return $page
+}
+
+tem headHtml {
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
+    </>
+}
+
+tem bodyHtml($dbConfig, $dbs, $tables) {
+
+    <main>
+        {{ sidebarPanelHtml($dbConfig, $dbs, $tables) }}
+        <.main-panel>
+            <.main-panel-content>
+                <h1> Databases
+                --- foreach $dbs as $db {
+                <.sidebar-link> {{ $db }}
+                --- }
+            </>
+        </>
+    </>
+
+    <.loader-bar></>
+}
+
+tem tabsHtml($table) {
+
+    <.tabs>
+        <.button.tab {{ Web.htmx('panelBrowse', { table: $table }) }} hx-target=".main-panel-content"> Browse
+        <.button.tab {{ Web.htmx('panelInsert', { table: $table }) }} hx-target=".main-panel-content"> Insert
+        <.button.tab {{ Web.htmx('panelRunSql', { table: $table }) }} hx-target=".main-panel-content"> SQL
+    </>
+}
+
+tem scriptJs {
+
+    console.log('RUN');
+    var loaderId = 0;
+
+    $('.main-panel-content').on('click', (e)=>{
+        if (e.target.tagName == 'TD') {
+            $('input', e.target).click();
+        }
+    });
+
+    $(document).on('htmx:load', (e)=>{
+        console.log('LOADED', e);
+        clearTimeout(loaderId);
+        $('.loader-bar').hide();
+    });
+
+    $(document).on('htmx:beforeRequest', (e)=>{
+        console.log('BEFORE REQUEST', e);
+     //   loaderId = setTimeout(()=>{
+            $('.loader-bar').show();
+      //  }, 90);
+    });
+
+
+}
+
+tem sidebarPanelHtml($dbConfig, $dbs, $tables) {
+
+    <.sidebar>
+
+        <.app-logo> 🏛️ tht.dbAdmin
+
+        <h2> {{ @@.db }}
+
+        <.sidebar-info> Server: {{ $dbConfig.server }}
+        <.sidebar-info> Driver: {{ $dbConfig.driver }}
+
+        <h2> Tables
+        --- foreach $tables as $t {
+            <.sidebar-link {{ Web.htmx('panelBrowse', { table: $t }) }} hx-target=".main-panel-content"> &bull; {{ $t }}
+        --- }
+
+
+    </>
+}
+
+
+fun panelRunSqlMode {
+
+    return panelRunSqlModeHtml()
+}
+
+tem panelRunSqlModeHtml {
+
+    <h1> SQL Query
+
+    <form>
+        <textarea placeholder="select * from table" spellcheck="false"> </>
+        <button>{{ Web.icon('check') }} Run Query</>
+    </>
+}
+
+fun panelInsertMode {
+
+    $table = Input.post('table')
+
+    initDb(@@.defaultDb)
+
+    $cols = @@.dbh.getColumns($table)
+    $formConfig = {}
+
+    foreach $cols as $col/$colSchema {
+        $formConfig[$col] = {
+            rule: $colSchema['validationRule']
+        }
+    }
+    $form = Form.create('rowForm', $formConfig)
+
+    return panelInsertModeHtml($table, $form, $cols)
+}
+
+tem panelInsertModeHtml($table, $form, $cols) {
+
+    <h1> {{ $table }}
+
+    {{ tabsHtml($table) }}
+
+    {{ $form.open() }}
+        <.form-fields>
+        --- foreach $cols as $col/$colSchema {
+            <.form-field>
+                <.form-field-label>
+                    {{ $col }}
+                    <.form-field-hint> {{ $colSchema.type }}
+                </>
+                <.form-field-input>
+                    {{ $form.bareTag($col, { autocomplete: 'off' }) }}
+                </>
+            </>
+        --- }
+        </>
+    {{ $form.close() }}
+
+    <button>{{ Web.icon('plus') }} Insert Row</>
+}
+
+fun getFormField($col) {
+
+}
+
+
+
+
+fun panelBrowseMode {
+
+    $tableName = Input.post('table')
+
+    initDb(@@.defaultDb)
+
+    $sql = ('select *\nfrom ' ~ $tableName ~ '\nlimit 50').xDangerToType('sql')
+    $rows = @@.dbh.selectRows($sql)
+
+    $rows = sanitizeRows($rows)
+
+    return panelBrowseModeHtml($tableName, $rows, $sql)
+}
+
+tem panelBrowseModeHtml($tableName, $rows, $sql) {
+
+    <h1> {{ $tableName }}
+
+    {{ tabsHtml($tableName) }}
+
+    <textarea> {{ $sql }}
+
+    --- if !$rows.length() {
+
+        <.alert.success> No rows found.
+
+    --- } else {
+
+        <.alert.success> Rows found: <b>{{ $rows.length() }}
+
+        <table>
+        <thead>
+            <th></>
+            <th></>
+            --- foreach $rows[1].keys() as $v {
+                <th> {{ $v }}
+            --- }
+        </>
+        --- foreach $rows as $r {
+        <tr>
+            <td> edit
+            <td> <input type="checkbox"></>
+            --- foreach $r.values() as $v {
+                <td> {{ $v }}
+            --- }
+        </>
+        --- }
+        </>
+
+    --- }
+}
+
+fun sanitizeRows($rows) {
+
+    foreach $rows as $i/$row {
+        foreach $row as $k/$v {
+            if $v.zClassName() == 'Date' {
+                $rows[$i][$k] = $v.format('sql')
+            }
+            else if $v.type() != 'object' && $v.toString().length() > 100 {
+                $rows[$i][$k] = $v.substring(1, 100) ~ '…'
+            }
+        }
+    }
+
+    return $rows
+}
+
+fun darkMode($origCss) {
+
+    $liteCss = $origCss.renderString()
+
+    $darkCss = $liteCss.replace(r'#([a-fA-F0-9]{3,6})', fun ($m) {
+        $hex = $m[1]
+        if $hex.length() == 3 {
+            $hex = $hex[1] ~ $hex[1] ~ $hex[2] ~ $hex[2] ~ $hex[3] ~ $hex[3]
+        }
+
+        $parts = $hex.matchAll(r'(\w\w)')
+        $outHex = ''
+
+        foreach $parts as $part {
+            $dec = Math.hexToDec($part[1])
+            $dec = 255 - $dec
+            $hexDigit = Math.decToHex($dec)
+            if $hexDigit.length() == 1: $hexDigit = '0' ~ $hexDigit
+            $outHex ~= $hexDigit
+        }
+
+        return '#' ~ $outHex
+    })
+
+    return $darkCss.xDangerToType('css')
+}
+
+fun combinedCss {
+    return basicCss() ~ mainCss()
+}
+
+tem mainCss {
+
+    @indent
+
+    :root
+        --monospaceFont: inconsolata, monospace;
+
+        sdfsdf
+            sdfsdf
+
+    main
+        display: grid;
+        grid-template-columns: 20rem auto;
+        height: 100%;
+        width: 100%;
+        position: fixed;
+
+        font-size: 1.6rem;
+        font-family: roboto, arial, sans-serif;
+
+    input, textarea
+        font-size: 1.8rem;
+        font-weight: 600;
+        font-family: var(--monospaceFont);
+        line-height: 1.4;
+
+    .sidebar
+        height: 100%;
+        width: 20rem;
+        background-color: #eee;
+        padding: 0 1rem 4rem;
+        overflow-x: scroll;
+
+    .sidebar h2
+        font-size: 1.8rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-top: 2rem;
+        border-top: solid 1px #ccc;
+
+    .sidebar-info
+        font-size: 1.4rem;
+        padding: 0.1rem 0;
+
+    .sidebar-link
+        font-size: 1.4rem;
+        cursor: pointer;
+        padding: 0.1rem 0;
+        white-space: nowrap;
+
+    .sidebar-link:hover
+        background-color: #fff;
+
+    .app-logo
+        font-size: 2rem;
+        color: #333;
+        font-weight: bold;
+        margin: 2rem 0 2rem;
+
+    .main-panel
+        width: 100%;
+        padding: 2rem;
+        overflow: scroll;
+
+    * > h1, * > h2
+        margin-top: 0;
+
+    table
+        border: solid 1px #ccc;
+        border-collapse: collapse;
+        margin-top: 2rem;
+
+    table tr
+        border-bottom: solid 1px #e3e3e3;
+
+    table tr:hover td
+        background-color: #effaff !important;
+
+    table td, table th
+        padding: 4px 8px;
+        text-align: left;
+        border-left: solid 1px #e3e3e3;
+
+        font-size: 1.3rem;
+        font-family: var(--monospaceFont);
+
+    table th
+        font-size: 1.2rem;
+
+    table tr:nth-child(odd) td
+        background-color: #f6f6f6;
+
+    input[type="checkbox"]
+        top: 0;
+        transform: scale(1.0);
+
+    .single-query
+        height: 5rem;
+        margin-bottom: 2rem;
+
+    .tabs
+        border-bottom: solid 1px #ccc;
+        padding-left: 2rem;
+        margin-bottom: 2rem;
+
+    .button.tab
+        border-bottom: 0;
+        border-radius: 3px 3px 0 0;
+
+    table tr td:nth-child(1), table tr td:nth-child(2)
+        user-select: none;
+
+    .form-fields
+        display: table;
+        border: solid 2px #eee;
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+
+    .form-field
+        display: table-row;
+
+     .form-field:nth-child(odd)
+        background-color: #f6f6f6;
+
+    .form-field-label
+        display: table-cell;
+        font-weight: bold;
+        padding-right: 2rem;
+        padding-left: 1rem;
+        max-width: 30rem;
+        vertical-align: middle;
+        font-family: var(--monospaceFont);
+
+    .form-field-hint
+        font-weight: normal;
+        font-size: 80%;
+        max-width: 100%;
+
+
+    .form-field-input
+        display: table-cell;
+        vertical-align: middle;
+        padding: 0.5rem 1rem 0.5rem 0;
+
+    .form-field-input textarea
+        width: 40rem;
+        height: 8rem;
+
+    .form-field-input input[type="text"]
+        width: 24rem;
+
+    input[type="number"]
+        max-width: 12rem;
+
+    .loader-bar
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: orange;
+        display: none;
+        z-index: 1000;
+        height: 2rem;
+        opacity: 0.8;
+        animation: stripey 100s linear infinite;
+        background-image: repeating-linear-gradient(
+            -45deg,
+            #d77400,
+            #d77400 10px,
+            transparent 10px,
+            transparent 20px
+        );
+
+    @keyframes stripey
+        0% { background-position: 0 }
+        100% { background-position: 15000px }
+
+    body.dark-mode
+        color-scheme: dark;
+        background-color: #1e1e1e;
+        color: #ddd;
+
+    .dark-mode .sidebar
+        background-color: #282828
+
+    .dark-mode .app-logo
+        color: #ccc;
+
+    .dark-mode .sidebar h2
+        border-top-color: #555;
+
+    .dark-mode .sidebar-link:hover
+        background-color: #345;
+        color: #fff;
+
+    .dark-mode .button, .dark-mode button
+        background-color: #444;
+        color: #ddd;
+
+    .dark-mode .tabs
+        border-bottom-color: #444;
+
+    .dark-mode textarea, .dark-mode select, .dark-mode .input, .dark-mode input
+        border: 1px solid #444;
+        background: #111;
+
+    .dark-mode .form-field:nth-child(odd)
+        background-color: #282828;
+
+    .dark-mode .form-fields
+        border-color: #333;
+
+    .dark-mode table
+        border-color: #333;
+
+    .dark-mode table tr:nth-child(odd) td
+        background-color: #282828;
+
+    .dark-mode table tr
+        border-bottom: solid 1px #333;
+
+    .dark-mode table tr:hover td
+        background-color: #345 !important;
+        text-shadow: 0 0 0.1rem rgb(0,0,0);
+        color: #fff;
+
+    .dark-mode table td, .dark-mode table th
+        border-left-color: #333;
+        font-weight: 600;
+
+    .dark-mode .alert
+        color: #b8e0ff;
+        border-color: #355775;
+        background-color: #1B2731;
+
+
+}
+
+tem basicCss {
+
+    /* sdfsdf */
+
+    /* normalize.css v5.0.0 */
+    button,hr,input{overflow:visible}audio,canvas,progress,video{display:inline-block}progress,sub,sup{vertical-align:baseline}html{font-family:sans-serif;line-height:1.15;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}menu,article,aside,details,footer,header,nav,section{display:block}h1{font-size:2em;margin:.67em 0}figcaption,figure,main{display:block}figure{margin:1em 40px}hr{box-sizing:content-box;height:0}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}a{background-color:transparent;-webkit-text-decoration-skip:objects}a:active,a:hover{outline-width:0}abbr[title]{border-bottom:none;text-decoration:underline;text-decoration:underline dotted}b,strong{font-weight:bolder}dfn{font-style:italic}mark{background-color:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}audio:not([controls]){display:none;height:0}img{border-style:none}svg:not(:root){overflow:hidden}button,input,optgroup,select,textarea{font-family:sans-serif;font-size:100%;line-height:1.15;margin:0}button,input{}button,select{text-transform:none}[type=submit],[type=reset],button,html [type=button]{-webkit-appearance:button}[type=button]::-moz-focus-inner,[type=reset]::-moz-focus-inner,[type=submit]::-moz-focus-inner,button::-moz-focus-inner{border-style:none;padding:0}[type=button]:-moz-focusring,[type=reset]:-moz-focusring,[type=submit]:-moz-focusring,button:-moz-focusring{outline:ButtonText dotted 1px}fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}legend{box-sizing:border-box;color:inherit;display:table;max-width:100%;padding:0;white-space:normal}progress{}textarea{overflow:auto}[type=checkbox],[type=radio]{box-sizing:border-box;padding:0}[type=number]::-webkit-inner-spin-button,[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-cancel-button,[type=search]::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}[hidden],template{display:none}
+
+
+    /* Main
+    /---------------------------------------------------------- */
+
+    /* Additional Resets */
+    html {
+        box-sizing:border-box;
+        overflow-y:scroll;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    *, :after, :before {
+        box-sizing:inherit;
+    }
+
+    @viewport { width: device-width; }
+
+    html {
+        font-size: 62.5%;
+    }
+
+
+
+    /* Buttons
+    /---------------------------------------------------------- */
+
+    button, .button, input[type=button], input[type=submit] {
+        color: #000;
+        background-color: #f3f3f3;
+
+        display: inline-block;
+        padding: 0rem 3rem 0.5px;
+        line-height: 4rem;
+        margin-right: 1rem;
+        font-size: 1.8rem;
+        font-weight: 400;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        touch-action: manipulation;
+        cursor: pointer;
+        user-select: none;
+        border: solid 1px rgba(0,0,0,0.15);
+        border-radius: 0.3rem;
+    }
+
+    button:hover, button:focus,
+    .button:hover, .button:focus,
+    input[type=button]:hover, input[type=button]:focus {
+        background-color: #f9f9f9;
+        outline: none;
+        text-decoration: none;
+    }
+
+    .button-primary, input.button-primary, *[type=submit] {
+        color: #fff;
+        background-color: #3388E2;
+    }
+
+    .button-primary:hover, .button-primary:focus,
+    *[type=submit]:hover, *[type=submit]:focus  {
+        background-color: #2376CE;
+    }
+
+    .button-large, input.button-large {
+        padding: 0rem 4rem;
+        font-size: 2rem;
+        line-height: 5rem;
+        border-radius: 3px;
+    }
+
+    .button-small, input.button-small {
+        padding: 1rem 1.8rem;
+        font-size: 1.4rem;
+        line-height: 1rem;
+    }
+
+    .button-link {
+        color: #1572d4;
+        background: none;
+        border: none;
+        padding: 0;
+        margin: 0 1rem;
+    }
+
+    .button-link:hover {
+        text-decoration: underline;
+        background-color: transparent;
+    }
+
+    .button-ish {
+        cursor: pointer;
+        user-select: none;
+        touch-action: manipulation;
+    }
+
+    .button-ish:hover {
+        box-shadow: 0 0 0.5rem rgba(128,128,128,0.2);
+    }
+
+    /* Forms
+    /---------------------------------------------------------- */
+
+
+    input, select, textarea {
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 2rem;
+        position: relative;
+    }
+
+    textarea, select, .input, input
+    {
+        display: block;
+        height: 4rem;
+        width: 100%;
+        max-width: 400px;
+        padding: 0.5rem 1rem;
+        font-size: 2rem;
+        border: 1px solid #ccc;
+        border-radius: .25rem;
+        background: #fcfcfc;
+        margin: 0;
+    }
+
+    input[type="submit"],
+    input[type="button"],
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: initial;
+        height: initial;
+    }
+
+    textarea:focus, select:focus, .input:focus, input:focus
+    {
+        border-color: #66afe9;
+        outline: 0;
+    }
+
+    input[type="file"] {
+        padding: 0.75rem;
+        font-size: 1.5rem;
+        overflow: hidden;
+    }
+    input[type=file]::-webkit-file-upload-button {
+        height: 100%;
+        border: solid 1px #ddd;
+        background: #fff;
+        font-size: 1.5rem;
+        padding: 0 1.5rem;
+    }
+
+    select[multiple] {
+        height: 15rem;
+        padding: 0;
+    }
+
+    select option {
+        padding: 0 0.75rem;
+    }
+
+    input[type="week"],
+    input[type="month"],
+    input[type="datetime-local"] {
+        max-width: 300px;
+    }
+
+    input[type="range"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="year"],
+    input[type="date"],
+    input[type="time"] {
+        max-width: 200px;
+    }
+
+    input[type="number"] {
+        max-width: 150px;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+        display: inline;
+        position: relative;
+        top: 0.05rem;
+        transform: scale(1.1);
+    }
+
+    input[disabled], textarea[disabled], select[disabled] {
+        background-color: #f6f6f6;
+        color: #666;
+        border: 0;
+    }
+
+    input[readonly], textarea[readonly], select[readonly] {
+        background: none;
+        border: 0;
+        padding: 0;
+        margin-top: -0.5rem;
+    }
+
+    textarea {
+        resize: vertical;
+        padding-top: 1rem;
+        height: 13rem;  /* about 4 lines */
+        line-height: 1.25;
+        max-width: 600px;
+    }
+
+    .form-check {
+        display: block;
+        padding: 0.75rem 1rem 0.75rem 1.5rem;
+        max-width: 400px;
+        cursor: pointer;
+        margin: 0;
+        border-bottom: solid 1px #f2f2f2;
+        font-weight: 400;
+    }
+
+    .form-checks {
+        border: solid 1px #e8e8e8;
+        border-radius: 0.25rem;
+        max-width: 400px;
+    }
+
+    .form-check:hover {
+        background-color: rgba(0,0,0,0.01);
+    }
+
+    .form-show-password {
+        color: #666;
+        margin-left: 2rem;
+        font-size: 70%;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .form-show-password input {
+        transform: scale(1.0);
+        margin-right: 0.25rem;
+    }
+
+
+    /* Form Labels
+    /---------------------------------------------------------- */
+
+    label[disabled], input[disabled] + label { color: #999; }
+
+    label {
+        display: inline-block;
+        margin-bottom: .5rem;
+        user-select: none;
+        max-width: 400px;
+        font-weight: 700;
+    }
+
+    label > input {
+        margin-right: 1.25rem;
+    }
+
+    input[type=radio] + label,
+    input[type=checkbox] + label {
+        margin-left: 1rem;
+        margin-bottom: 0;
+        cursor: pointer;
+        display: inline-block;
+        font-weight: 400;
+    }
+
+    /* optional text next to label */
+    label + small, label > small {
+        margin-left: 1rem;
+        color: #888;
+        font-weight: 400;
+    }
+
+    /* help text */
+    input + small, select + small, .form-group + small {
+        margin-top: 0.5rem;
+        margin-bottom: 1.5rem;
+        margin-left: 1rem;
+        display: block;
+        color: #888;
+    }
+
+
+
+    /* Alerts
+    /---------------------------------------------------------- */
+
+    .alert {
+        padding: 1rem 1.5rem;
+        margin-bottom: 1rem;
+        border-radius: 0.3rem;
+        color: #124c77;
+        border: solid 1px #cfe6f9;
+        background-color: #F8FCFF;
+    }
+
+    .alert b, .alert strong, .alert code {
+        color: inherit;
+    }
+
+    .alert strong:first-child {
+        color: #4683c3;
+        font-size: inherit;
+        margin-right: 1.5rem;
+        font-weight: bold;
+    }
+
+    .alert.alert-error {
+        color: #7d1616;
+        background-color: #FFF5F5;
+        border-color: #eacece;
+    }
+
+    .alert.alert-error strong:first-child {
+        color: #B74A4A;
+    }
+
+    .alert.alert-success {
+        color: #105d10;
+        border-color: #c6e0c6;
+        background-color: #FBFFFB;
+    }
+
+    .alert.alert-success strong:first-child {
+        color: #393;
+    }
+
+
+
+    /* Grid
+    /---------------------------------------------------------- */
+
+    .grid {
+        display: grid;
+        grid-gap: 1rem;
+        grid-template-columns: 1fr 1fr;
+    }
+
+
+
+
+    /* Icons
+    /---------------------------------------------------------- */
+
+    .ticon {
+        display: inline-block;
+        position: relative;
+        height: 1em;
+        width: 1em;
+        top: 0.15em;
+        fill: currentColor;
+    }
+
+    .ticon * {
+        stroke: currentColor;
+        stroke-width: 15;
+        fill: none;
+    }
+
+    .ticon .svgfill {
+        stroke: none;
+        fill: currentColor;
+    }
+
+    button .ticon:first-child, .button .ticon:first-child {
+        margin: 0 0.1em 0 -0.3em;
+    }
+}
+
+
+/*
+
+    Create database
+    Create table (schema)
+    Alter table
+      Rename table
+      Drop table
+      Empty table
+    Perms: (just create a user for sqladmin)
+    
+    Browse table
+
+    Select rows
+      Search
+    edit row (insert as new row)
+    insert row
+    delete row
+
+    multi-check rows (delete)
+
+*/
+
+

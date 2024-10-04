@@ -1,0 +1,187 @@
+
+public fun run($t) {
+
+
+    $t.section('Number')
+
+        .ok(Math.pi().round(2) == 3.14, 'rounded pi to precision 2')
+        .ok((2.6).round() == 3, 'round - up')
+        .ok((2.4).round() == 2, 'round - down')
+        .ok((1025.1).round(-1) == 1030, 'round - place: -1')
+        .ok((2.5).round(0, { half: 'down' }) == 2, 'round - half down')
+        .ok((2.5).round(0, { half: 'odd' }) == 3, 'round - half odd')
+        .ok((2.5).round(0, { half: 'even' }) == 2, 'round - half even')
+
+        .ok((2.4).ceiling() == 3, 'ceiling')
+        .ok((-2.4).ceiling() == -2, 'ceiling negative')
+
+        .ok((2.55).ceiling(1) == 2.6, 'ceiling - precision 1')
+        .ok((2.555).ceiling(2) == 2.56, 'ceiling - precision 2')
+
+        .ok((2.6).floor() == 2, 'floor')
+        .ok((-2.6).floor() == -3, 'floor negative')
+
+        .ok((2.55).floor(1) == 2.5, 'floor - precision 1')
+        .ok((2.555).floor(2) == 2.55, 'floor - precision 2')
+
+        .ok((5).clamp(1, 10) == 5, 'clamp in boundary')
+        .ok((20).clamp(1, 10) == 10, 'clamp max')
+        .ok((-20).clamp(1, 10) == 1, 'clamp min')
+
+        .ok((1).sign() == 1, 'sign positive')
+        .ok((0).sign() == 0, 'sign zero')
+        .ok((-1).sign() == -1, 'sign negative')
+
+        .ok((-5).absolute() == 5, 'absolute - negative')
+        .ok((0).absolute() == 0, 'absolute - zero')
+        .ok((1.1).absolute() == 1.1, 'absolute - positive float')
+        .ok((-3.1).absolute() == 3.1, 'absolute - negative float')
+
+        .ok((100).clampMax(10) == 10, 'clampMax - clamped')
+        .ok((100).clampMax(200) == 100, 'clampMax - not clamped')
+
+        .ok((-10).clampMin(0) == 0, 'clampMin - clamped')
+        .ok((100).clampMin(10) == 100, 'clampMin - not clamped')
+
+        .ok((123).roundToStep(100) == 100, 'roundToStep(123, 100) == 100')
+        .ok((123).roundToStep(-100) == 100, 'roundToStep(123, -100) == 100')
+        .ok((123).roundToStep(0) == 123, 'roundToStep(123, 0) == 123')
+        .ok((200).roundToStep(200) == 200, 'roundToStep(200, 200) == 200')
+        .ok((-23).roundToStep(10) == -30, 'roundToStep(-23, 10) == -30')
+        .ok((3.8).roundToStep(0.5) == 3.5, 'roundToStep(3.8, 0.5) == 3.5')
+
+        .ok(Math.range(0, 3).join(',') == '0,1,2,3', 'range')
+        .ok(Math.range(3, 0).join(',') == '3,2,1,0', 'range - desc')
+        .ok(Math.range(-2, 2).join(',') == '-2,-1,0,1,2', 'range - neg to pos')
+        .ok(Math.range(0, 8, 2).join(',') == '0,2,4,6,8', 'range - step')
+        .ok(Math.range(0.1, 0.5, 0.1).join(',') == '0.1,0.2,0.3,0.4,0.5', 'range - floats')
+        .dies(
+            fun { Math.range(1, 10, 100) }, 'can not be greater than the total range'
+        )
+
+
+
+    $t.section('Lists')
+
+        .ok(Math.min([5, 0, -33, 10]) == -33, 'min')
+        .ok(Math.max([5, 0, -33, 10]) == 10, 'max')
+        .ok(Math.min([]) == 0, 'empty min')
+
+        .ok(Math.sum([-5, 10.5, 0, 33]) == 38.5, 'sum')
+        .ok(Math.sum([]) == 0, 'empty sum')
+
+        .ok(Math.product([-1, 32, 0.5]) == -16, 'product')
+        .ok(Math.product([]) == 1, 'empty product')
+
+        .dies(fun { Math.sum([123, 0, '55']) }, 'must be a number')
+
+        .ok((123).zeroPadLeft(2) == '123', 'zeroPadLeft - less')
+        .ok((123).zeroPadLeft(6) == '000123', 'zeroPadLeft - more')
+        .ok((123.4).zeroPadLeft(6) == '000123', 'zeroPadLeft - float is removed')
+
+        .ok((123).zeroPadRight(2) == '123.00', 'zeroPadRight - int ')
+        .ok((123.4).zeroPadRight(3) == '123.400', 'zeroPadRight - float 3')
+        .ok((123.4567).zeroPadRight(2) == '123.46', 'zeroPadRight - float - less')
+
+        .ok((1).isOdd(), 'isOdd: 1')
+        .ok((-1).isOdd(), 'isOdd: -1')
+        .ok(!(2).isOdd(), '!isOdd: 2')
+        .ok(!(-2).isOdd(), '!isOdd: -2')
+        .ok(!(0).isOdd(), '!isOdd: 0')
+        .ok((1.5).isOdd(), 'isOdd: 1.5')
+        .ok(!(2.5).isOdd(), '!isOdd: 2.5')
+
+        .ok((0).isEven(), 'isEven: 0')
+        .ok((2).isEven(), 'isEven: 2')
+        .ok((-2).isEven(), 'isEven: -2')
+        .ok(!(1).isEven(), '!isEven: 1')
+        .ok(!(-1).isEven(), '!isEven: -1')
+        .ok(!(1.5).isEven(), '!isEven: 1.5')
+        .ok((2.5).isEven(), 'isEven: 2.5')
+
+        .ok((16).isMultipleOf(2), 'isMultipleOf')
+        .ok((-16).isMultipleOf(2), 'isMultipleOf - negative')
+        .ok(!(16).isMultipleOf(5), '!isMultipleOf')
+        .ok((0).isMultipleOf(2), 'isMultipleOf zero')
+
+
+    $num = 1234.56
+    $t.ok($num.format() == '1,235', 'format')
+    $t.ok($num.format({ numDecimals: 1 }) == '1,234.6', 'format - numDecimals')
+    $t.ok($num.format({ numDecimals: 2, thousandSep: '' }) == '1234.56', 'format - blank sep')
+    $flags = { numDecimals: 2, thousandSep: ' ', decimalSep: ',' }
+    $t.ok($num.format($flags) == '1 234,56', 'format - sep & dec')
+    $t.ok(
+        $num.format({ sign: true, numDecimals: 1 }) == '+1,234.6'
+        'format - sign positive'
+    )
+    $t.ok(
+        $num.format({ parens: true }) == '1,235'
+        'format - negative parens / positive'
+    )
+
+    $num = -1234.56
+    $t.ok($num.format() == '-1,235', 'format - negative')
+    $t.ok($num.format({ numDecimals: 1 }) == '-1,234.6', 'format - negative - numDecimals')
+    $t.ok(
+        $num.format({ parens: true }) == '(1,235)'
+        'format - negative parens / negative'
+    )
+
+
+    $num = 0
+    $t
+        .ok($num.format() == '0', 'format - negative')
+        .ok($num.format({ numDecimals: 3 }) == '0.000', 'format - zero - numDecimals')
+        .ok($num.format({ sign: true, zeroSign: '-' }) == '-0', 'format - zero - negative')
+        .ok($num.format({ sign: true, zeroSign: '+' }) == '+0', 'format - zero - positive')
+        .ok(
+            $num.format({ parens: true, zeroSign: '-' }) == '(0)'
+            'format - zero - negative parens'
+        )
+        .ok(
+            $num.format({ parens: true, zeroSign: '-', numDecimals: 3 }) == '(0.000)'
+            'format - zero - negative parens - numDecimals'
+        )
+
+    $num = 1234.56
+    $t.dies(fun { $num.format({ thousandSep: '*&*' }) }, 'Invalid option map value')
+
+
+    $num = 1234.56
+    $t
+        .ok($num.toString() == '1234.56', 'toString')
+        .ok($num.toBoolean() == true, 'toBoolean')
+        .ok((0).toBoolean() == false, 'toBoolean - false')
+        .ok((-1).toBoolean() == true, 'toBoolean - negative')
+        .ok((0.1).toBoolean() == true, 'toBoolean - float')
+
+        .ok((1.0).isInt() == true, 'isInt true')
+        .ok((1.2).isInt() == false, 'isInt false')
+        .ok((1.2).isFloat() == true, 'isFloat true')
+        .ok((1).isFloat() == false, 'isFloat false')
+        .ok((1.2).toInt() == 1, 'toInt')
+        .ok((1).toFloat() == 1.0, 'toFloat')
+
+        .ok((0).humanizeCount() == '0th', 'humanizeCount - 0th')
+        .ok((1).humanizeCount() == '1st', 'humanizeCount - 1st')
+        .ok((2).humanizeCount() == '2nd', 'humanizeCount - 2nd')
+        .ok((3).humanizeCount() == '3rd', 'humanizeCount - 3rd')
+        .ok((4).humanizeCount() == '4th', 'humanizeCount - 4th')
+        .ok((9).humanizeCount() == '9th', 'humanizeCount - 9th')
+        .ok((30).humanizeCount() == '30th', 'humanizeCount - 30th')
+        .ok((31).humanizeCount() == '31st', 'humanizeCount - 31st')
+        .ok((32).humanizeCount() == '32nd', 'humanizeCount - 32nd')
+        .ok((33).humanizeCount() == '33rd', 'humanizeCount - 33rd')
+
+        .ok((7).toRoman() == 'VII', 'toRoman - 7')
+        .ok((17).toRoman() == 'XVII', 'toRoman - 17')
+        .ok((19).toRoman() == 'XIX', 'toRoman - 19')
+        .ok((1234).toRoman() == 'MCCXXXIV', 'toRoman - 1234')
+        .ok((2025).toRoman() == 'MMXXV', 'toRoman - 2024')
+        .dies(fun { (-2).toRoman() }, 'greater than zero')
+        .dies(fun { (0).toRoman() }, 'greater than zero')
+        .dies(fun { (1.23).toRoman() }, 'integer')
+
+    return $t
+}

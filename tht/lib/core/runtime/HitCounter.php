@@ -5,6 +5,7 @@ namespace o;
 class HitCounter {
 
     static public $skipThisPage = false;
+    static private $SAVE_RATE = 20; // per cent
 
     static private $BOT_REGEX =
         '/bot\b|crawl|spider|slurp|baidu|\bbing|duckduckgo|yandex|teoma|aolbuild/i';
@@ -18,27 +19,23 @@ class HitCounter {
             return;
         }
 
-        Tht::module('Perf')->u_start('tht.hitCounter');
+        $perfTask = Tht::module('Perf')->u_start('tht.hitCounter');
 
         self::countDate();
         self::countPage();
         self::countReferrer();
 
-        Tht::module('Perf')->u_stop();
+        $perfTask->u_stop();
     }
 
     static private function skipCounter() {
 
-        if (!Tht::getConfig('hitCounter')) {
+        if (Tht::module('Web')->skipHitCounter) {
             return true;
         }
 
-        if (self::$skipThisPage) {
-            return true;
-        }
-
-        // Only log a 20% sample
-        if (rand(1, 100) > 20) {
+        // Only log a sample
+        if (rand(1, 100) > self::$SAVE_RATE) {
             return true;
         }
 
@@ -54,7 +51,7 @@ class HitCounter {
 
         // Only count routes, not files (dotted)
         $path = Tht::module('Request')->u_get_url()->u_get_path();
-        if (strpos($path, '.') !== false) {
+        if (str_contains($path, '.')) {
             return true;
         }
 
@@ -119,13 +116,13 @@ class HitCounter {
 
         if (!$ref) { return; }
 
-        if (stripos($ref, $url->u_get_host()) !== false) {
+        if (str_contains(strtolower($ref), strtolower($url->u_get_host()))) {
             // only log external referrers
             return;
         }
 
         // Format search query.  From a search engine and has 'q=<search term>' in query
-        if (preg_match(self::$SEARCH_ENGINE_REGEX, $ref) && strpos($ref, 'q=') !== false) {
+        if (preg_match(self::$SEARCH_ENGINE_REGEX, $ref) && str_contains($ref, 'q=')) {
             preg_match('/q=(.*)(&|$)/', $ref, $m);
             $cleanQuery = trim(preg_replace('/[^a-zA-Z0-9]+/', ' ', $m[1]));
             $ref = 'search: "' . $cleanQuery . '"';
@@ -197,7 +194,7 @@ class HitCounter {
         $pageDir = self::logDir('page');
         $handle = opendir($pageDir);
         while ($f = readdir($handle)) {
-            if ($f != "." && $f != ".." && strpos($f, '.txt') !== false) {
+            if ($f != "." && $f != ".." && str_contains($f, '.txt')) {
                 $log = $pageDir . '/' . $f;
                 $label = str_replace('.txt', '', $f);
                 $label = str_replace('__', '/', $label);

@@ -193,7 +193,7 @@ class LitemarkParser {
         return $this->parse($text);
     }
 
-    function parse ($raw, $flags=[]) {
+    function parse($raw, $flags=[]) {
 
         $lines = explode("\n", $raw);
 
@@ -265,7 +265,7 @@ class LitemarkParser {
         }
     }
 
-    function addParaLine ($l) {
+    function addParaLine($l) {
 
         $l = trim($l);
         if ($l) {
@@ -320,7 +320,7 @@ class LitemarkParser {
         $this->tableRows = [];
     }
 
-    function command ($raw) {
+    function command($raw) {
 
         $parts = preg_split('#\s+#', trim($raw), 2);
         $cmd = trim($parts[0]);
@@ -386,7 +386,7 @@ class LitemarkParser {
         return $out;
     }
 
-    function countIndent ($line) {
+    function countIndent($line) {
 
         $len = strlen($line);
 
@@ -425,7 +425,7 @@ class LitemarkParser {
         $this->blockMode = '';
     }
 
-    function parseLine ($rawLine) {
+    function parseLine($rawLine) {
 
         $indent = $this->countIndent($rawLine);
         $line = trim($rawLine);
@@ -545,7 +545,7 @@ class LitemarkParser {
         return false;
     }
 
-    function parseInline ($line, $autoLinkUrls=true) {
+    function parseInline($line, $autoLinkUrls=true) {
 
         $lp = new LitemarkInlineParser($this, $line, $autoLinkUrls);
 
@@ -669,7 +669,7 @@ class LitemarkInlineParser {
         $after = '';
         $lastChar = $url[strlen($url) - 1];
 
-        if (strpos('()[]{},.!"\'', $lastChar) !== false) {
+        if (str_contains('()[]{},.!"\'', $lastChar)) {
             // exclude common separators
             $after = $lastChar;
             $url = substr($url, 0, strlen($url) - 1);
@@ -878,7 +878,7 @@ function escapeHtml($in) {
     return htmlspecialchars($in, ENT_QUOTES|ENT_HTML5, 'UTF-8');
 }
 
-function trimLines ($val) {
+function trimLines($val) {
 
     $trimmed = rtrim($val);
     $lines = explode("\n", $trimmed);
@@ -895,7 +895,7 @@ function trimLines ($val) {
     return implode("\n", $lines);
 }
 
-function trimIndent ($v) {
+function trimIndent($v) {
 
     $minIndent = 999;
     $trimmed = trimLines($v);

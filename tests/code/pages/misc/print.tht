@@ -1,0 +1,28 @@
+
+
+$mixedList = [1, 'b', true, null, Date.now()]
+
+$mixedMap = {
+    list: [1, 2, 3]
+    date: Date.now()
+    bool: false
+    nada: null
+    inner: { z: 999 }
+    str: 'This is "double" & `back\`tick` & \'escaped\''
+    sql: sql'select * from table'
+    file: file'dir/file.txt'
+    mixedList: $mixedList
+}
+
+>> $mixedList
+>> $mixedMap
+
+>> '-------------------------------'
+
+foreach $mixedMap as $k/$v {
+    print($v)
+}
+
+>> Json.encode($mixedMap).renderString()
+
+

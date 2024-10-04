@@ -1,0 +1,54 @@
+
+public fun run($t) {
+
+    if $t.skipSlowTests(): return $t
+
+    $t.section('Module: Perf')
+
+    // Perf.forceActive(true)
+    // Perf.start('test.perfModule')
+    // System.sleep(1)
+    // Perf.stop(true)
+
+    // $res = Perf.results(true)
+    // $found = false
+    // for (r in res.single) {
+    //     if (r.task == 'testPerf') {
+    //         found = true
+    //         break
+    //     }
+    // }
+    // $t.ok(found, 'Perf task & results')
+
+    // Perf.forceActive(false)
+
+
+    $t.section('Performance Speed Tests')
+
+    $numIters = 1000
+
+    // make sure array access doesn't hit performance
+    // 0.57 ms  0.04 MB
+    $perfTask = Perf.start('test.perf.largeArray')
+    $start = Perf.now()
+    $nums = Math.range(1, $numIters)
+    foreach $nums as $nn {
+        $a = $nums[$nn]
+    }
+    $elapsed = Perf.now() - $start
+    $perfTask.stop()
+    $t.ok($elapsed <= 1, 'ArrayAccess loop ({} elements) took <= 1 ms'.fill($numIters))
+
+    // 1 million = 40ms
+    $perfTask = Perf.start('test.perf.rangeGenerator')
+    $start = Perf.now()
+    $gen = range(1, $numIters)
+    foreach $gen as $n {
+        // ...
+    }
+    $perfTask.stop()
+    $elapsed = Perf.now() - $start
+    $t.ok($elapsed <= 1, 'rangeGenerator loop ({} iters) took <= 1 ms'.fill($numIters))
+
+    return $t
+}

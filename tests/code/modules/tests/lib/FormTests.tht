@@ -1,0 +1,66 @@
+
+public fun run($t) {
+
+    $t.section('Module: Form')
+
+    $form = Form.create('testForm', {
+        num: {
+            tag: 'number'
+            rule: 'i|max:100'
+        }
+        comment: {
+            tag: 'textarea'
+        }
+        email: {
+            tag: 'email'
+        }
+        password: {
+            tag: 'password'
+        }
+    })
+
+    $fhtml = $form.toHtml('Submit').renderString()
+
+    $currUrl = Request.getUrl().getPath()
+    $t.ok(
+        $fhtml.contains('<form method="post" action="' ~ $currUrl ~ '" id="testForm"')
+        'form render - form tag'
+    )
+
+    $t.ok(
+        $fhtml.contains('<input aria-label="Num" name="num" value="0" type="number"')
+        'form render - num input tag'
+    )
+
+    $t.ok(
+        $fhtml.contains('''
+            <input aria-label="Email" autocomplete="email" name="email" value="" type="email"
+        ''')
+        'form render - email input tag'
+    )
+
+    $t.ok(
+        $fhtml.contains('"csrfToken":')
+        'form render - csrfToken'
+    )
+
+    $t.ok(
+        $fhtml.contains('type="submit">Submit</button>')
+        'form render - submit button'
+    )
+
+    $t.ok(
+        $fhtml.contains('<span>Show Password</span>') && $fhtml.contains('''
+            <input aria-label="Password" autocomplete="current-password" name="password" value="" type="password"
+        ''')
+        'form render - password'
+    )
+
+
+
+    // TODO: more tests!
+
+    return $t
+}
+
+

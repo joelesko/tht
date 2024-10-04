@@ -1,0 +1,13 @@
+
+$html = helloHtml()
+
+Output.sendHtml($html)
+
+tem helloHtml {
+
+    <div style="font-family: arial; font-size: 120%; color: #26a; padding: 0 2rem;">
+        <h1> Hello World
+
+        <p> This is an example of sending HTML directly to the browser.
+    </>
+}

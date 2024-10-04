@@ -1,0 +1,4 @@
+fun main {
+    Php.require('PhpModule.php')
+    Php.call('runtime_error')
+}

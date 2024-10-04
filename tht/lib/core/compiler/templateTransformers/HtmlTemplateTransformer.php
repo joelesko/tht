@@ -27,7 +27,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         $this->reader->error($msg, $pos);
     }
 
-    function transformNext () {
+    function transformNext() {
 
         $r = $this->reader;
 
@@ -65,7 +65,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
     }
 
     // eg '<div'
-    function readTagStart () {
+    function readTagStart() {
 
         $this->currentContext = 'tag';
 
@@ -205,7 +205,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         if ($this->currentTag['name'] == 'script' && !preg_match('/nonce\s*=/i', $this->currentTag['html'])) {
             ErrorHandler::setHelpLink('/manual/module/web/nonce', 'Web.nonce');
             $this->error(
-                'Tag needs a `nonce` parameter to safely allow it to execute. Try: `nonce="{{ Web.nonce() }}"`',
+                'Tag needs a `nonce` attribute to let it execute safely.  Try: Add `nonce="{{ Web.nonce() }}"`',
                 $this->currentTagPos, true
             );
         }
@@ -340,7 +340,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         return v($b)->u_trim_indent(OMap::create(['keepRelative' => true]));
     }
 
-    function getClosingTag ($seeTagName='') {
+    function getClosingTag($seeTagName='') {
 
         $r = $this->reader;
 
@@ -376,7 +376,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
     }
 
-    function validateTag ($tag) {
+    function validateTag($tag) {
 
         $r = $this->reader;
         $name = $tag['name'];
@@ -385,7 +385,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
             $this->error("Missing tag name", $tag['pos']);
         }
         else if (preg_match('/class\s*=.*class\s*=/i', $tag['html'])) {
-            $this->error("Can not have both class name and class attribute for tag.", $tag['pos']);
+            $this->error("Can't have both class name and class attribute for tag.", $tag['pos']);
         }
         else if (preg_match('/#/', $name)) {
             $this->error("ID of `$name` should be in an `id` attribute instead.", $tag['pos']);
@@ -406,7 +406,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
         }
     }
 
-    function newTag ($tagName, $pos) {
+    function newTag($tagName, $pos) {
 
         $tagHtml = $tagName;
 
@@ -453,7 +453,7 @@ class HtmlTemplateTransformer extends TemplateTransformer {
 
         if (count($this->openTags)) {
             $tag = array_pop($this->openTags);
-            $this->error('Missing closing tag `</>` within block: `<' . $tag['name'] . '>` Try: If this is intentional, add a continue tag `</...>`', $tag['pos']);
+            $this->error('Missing closing tag `</>` within block: `<' . $tag['name'] . '>`  Try: If this is intentional, add a continue tag `</...>`', $tag['pos']);
         }
     }
 
