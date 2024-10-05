@@ -47,7 +47,7 @@ However, I'm open to design-related suggestions.
 
 
 
-## THT Design Philosophy
+### THT Design Philosophy
 
 In rough order of priority:
 
@@ -63,22 +63,51 @@ In rough order of priority:
 See also: https://tht.dev/about/design-notes
 
 
-## Execution Flow
+## Writing THT Project Code
+
+If you are writing actual THT project code, you can set this flag in your `app.jcon`:
+```
+_coreDevMode: true
+```
+
+This will include all stack frames in error pages, and also re-compile THT code on every refresh (byassing the cache).
+
+
+### Error Handling
+
+All errors (php & tht) are routed to this file:
+- lib/core/main/Error/ErrorHandler.php
+
+Sometimes internal THT errors will show a blank page (esp if the ErrorHandler itself has an error.)
+
+To show raw PHP errors, you can set `DEV_ERRORS` to `true` in `Tht.php`:
+
+```
+define('DEV_ERRORS', true);
+```
+
+
+### Execution Flow
 
 The main files are (in rough order of execution):
 
 - app/public/front.php - The entry point / front controller
-- lib/core/Tht.php - Overall logic & setup
-- lib/core/modes/WebMode.php - Determine which page to execute based on the URL route
+- lib/core/main/Tht.php - Overall logic & setup
+- lib/core/main/modes/WebMode.php - Determine which page to execute based on the URL route
 - lib/core/compiler/Compiler.php - Compile the page if it isn't cached.  Execute the transpiled PHP.
-- lib/core/compiler/Tokenizer.php - Break THT source into tokens, apply template function transforms (e.g. HTML)
-- lib/core/compiler/Parser.php - Convert the tokens into an AST
-- lib/core/compiler/symbols/* - The parser logic for each symbol
-- lib/core/compiler/EmitterPhp.php - Convert the AST to a PHP file
-- lib/core/runtime/ErrorHandler.php - All errors (php & tht) are routed here
+
+If the target THT needs to be compiled to PHP, the following will run:
+
+- lib/core/compiler/1_Tokenizer.php - Break THT source into tokens, apply template function transforms (e.g. HTML)
+- lib/core/compiler/2_Parser.php - Convert the tokens into an AST
+- lib/core/compiler/3_EmitterPhp.php - Convert the AST to a PHP file
+
+The parser logic for each symbol is located in these files:
+- lib/core/compiler/symbols/*
 
 
-## Parser
+
+### Parser
 
 The parser uses "Top Down Operator Precedence" aka "Pratt Parsing", as described here:
 http://crockford.com/javascript/tdop/tdop.html
@@ -90,6 +119,17 @@ Each symbol can have one or more of the following methods, based on its position
 - asInner: in the middle of an expression. e.g. `+`, `.`
 
 For example, `-` (minus) can have `asLeft` (prefix, e.g. '-123') and `asInner` (infix, e.g. '45 - 23').
+
+
+
+### Internal Code Style
+
+Please try to stay consistent with the code that already exists.
+
+The code doesn't follow any particular PHP standard, but I am open to doing so.
+
+Likewise, many sections of the codebase can be refactored.  For any wide-reaching refactor, please run it by me first, but I'll probably be open to it.
+
 
 
 ## Performance
