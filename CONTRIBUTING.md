@@ -132,6 +132,22 @@ Likewise, many sections of the codebase can be refactored.  For any wide-reachin
 
 
 
+### Unit Tests
+
+Please include unit tests with any patches you submit. If you don't, then I'll have to do it, which means it'll take much longer to get included.
+
+There is a THT app that runs all of the unit tests, located in the `tests` directory.
+
+Just run it like a normal THT app, via `tht server`.
+
+The tests themselves are organized into modules that can be run separate from the main file (if you don't want to wait a few seconds every time), via the "Run Individual Test File" pulldown.
+
+The tests themselves use the [Test](https://tht.dev/manual/module/test) module for checking assertions, etc.
+
+Don't forget to include tests that make sure errors are being triggered correctly -- not just the "happy path".
+
+
+
 ## Performance
 
 It's probably too early to optimize for performance.  We will wait until the implementation is stable.
