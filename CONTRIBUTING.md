@@ -147,6 +147,14 @@ The tests themselves use the [Test](https://tht.dev/manual/module/test) module f
 Don't forget to include tests that make sure errors are being triggered correctly -- not just the "happy path".
 
 
+### Adding Dependencies
+
+THT is mostly free of dependencies.  This is a big reason why it's so much smaller (and arguably faster) than similar projects.
+
+The few that it does have are included in `lib/vendor`.
+
+Please let me know if you plan to work on a feature that will include a new dependency.
+
 
 ## Performance
 
