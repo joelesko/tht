@@ -1,7 +1,7 @@
-{"date":"2024-09-30 12:16:15","level":"TRACE","ip":"::1","url":"/all-tests","message":"trace!"}
-{"date":"2024-09-30 12:16:15","level":"DEBUG","ip":"::1","url":"/all-tests","message":"debug!"}
-{"date":"2024-09-30 12:16:15","level":"INFO","ip":"::1","url":"/all-tests","message":"info!"}
-{"date":"2024-09-30 12:16:15","level":"WARN","ip":"::1","url":"/all-tests","message":"warn!"}
-{"date":"2024-09-30 12:16:15","level":"ERROR","ip":"::1","url":"/all-tests","message":"error!"}
-{"date":"2024-09-30 12:16:15","level":"FATAL","ip":"::1","url":"/all-tests","message":"fatal!"}
-{"date":"2024-09-30 12:16:15","level":"INFO","ip":"::1","url":"/all-tests","a":123,"z":true}
+{"date":"2024-10-13 17:04:15","level":"TRACE","ip":"::1","url":"/all-tests","message":"trace!"}
+{"date":"2024-10-13 17:04:15","level":"DEBUG","ip":"::1","url":"/all-tests","message":"debug!"}
+{"date":"2024-10-13 17:04:15","level":"INFO","ip":"::1","url":"/all-tests","message":"info!"}
+{"date":"2024-10-13 17:04:15","level":"WARN","ip":"::1","url":"/all-tests","message":"warn!"}
+{"date":"2024-10-13 17:04:15","level":"ERROR","ip":"::1","url":"/all-tests","message":"error!"}
+{"date":"2024-10-13 17:04:15","level":"FATAL","ip":"::1","url":"/all-tests","message":"fatal!"}
+{"date":"2024-10-13 17:04:15","level":"INFO","ip":"::1","url":"/all-tests","a":123,"z":true}

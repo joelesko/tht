@@ -128,6 +128,14 @@ public fun run($t) {
         'format - negative parens / negative'
     )
 
+    $num = 0.1234
+    $t.ok($num.toPercent() == '12%', 'toPercent')
+    $t.ok($num.toPercent(1) == '12.3%', 'toPercent - 1 decimal')
+    $t.ok($num.toPercent(2) == '12.34%', 'toPercent - 2 decimal')
+    $t.ok($num.toPercent(3) == '12.340%', 'toPercent - 3 decimal')
+    $num = -0.1234
+    $t.ok($num.toPercent(1) == '-12.3%', 'toPercent - negative')
+
 
     $num = 0
     $t

@@ -268,6 +268,16 @@ class ONumber extends OVar {
         return $out;
     }
 
+    function u_to_percent($numDecimals = 0) {
+
+        $this->ARGS('i', func_get_args());
+
+        $options = OMap::create([ 'numDecimals' => $numDecimals ]);
+        $num = v($this->val * 100);
+
+        return $num->u_format($options) . '%';
+    }
+
     function u_is_odd() {
 
         $this->ARGS('', func_get_args());
