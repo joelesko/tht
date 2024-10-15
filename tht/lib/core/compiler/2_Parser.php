@@ -512,7 +512,7 @@ class Parser {
 
         if (isset(CompilerConstants::SUGGEST_TOKEN[$tokenValue])) {
             $correct = CompilerConstants::SUGGEST_TOKEN[$tokenValue];
-            $this->error("Unknown token: `$tokenValue`  Try: `$correct`", $token);
+            $this->error("Unknown token: `$tokenValue`  Try: $correct", $token);
         }
     }
 

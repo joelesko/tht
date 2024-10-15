@@ -1,6 +1,7 @@
 
 public fun run($t) {
 
+
     $t.section('Parser')
 
     $code = '''
@@ -27,7 +28,6 @@ public fun run($t) {
 
     $longFn = 'fun tooManyArgs($a1, $a2, $a3, $a4, $a5) { }'
     $t.parserError($longFn, 'Can`t have more than 4 arguments')
-
 
 
     $t.section('Parser Errors - Names')
@@ -185,6 +185,10 @@ public fun run($t) {
 
         .parserError('$a = `str``', 'Extra quote')
         .parserError('$test = 123\\n', 'Unknown token: `\\`')
+
+        .parserError('$a = ✖', 'Unsupported non-ASCII character')
+        .parserError('$a = "sdfsdf"', 'Unknown token: `"`')
+        .parserError('$a = \`sdfsdf\`', 'Unknown token: ```')
 
 
     $t.section('Parser Errors - Adjacent Tokens')
@@ -379,9 +383,6 @@ public fun run($t) {
         .parserError('$a = { b: tt }', 'Try: `$tt`')
 
 
-
-    //$a = 3 - t
-    //return t
 
      // TODO: this is a runtime error.  capture this at compileTime
     //$code = '$outer = 1\nfn()\fun fn() {\nprint($outer)\n}'

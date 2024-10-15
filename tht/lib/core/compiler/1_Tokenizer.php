@@ -202,6 +202,9 @@ class Tokenizer extends StringReader {
             else if ($c <= ' ') {
                 $this->handleWhitespace($c);
             }
+            else if (ord($c) > 126) {
+                $this->error("Unsupported non-ASCII character outside of string.");
+            }
             else {
                 if ($this->isGlyph(Glyph::LINE_COMMENT)) {
                     $this->handleLineComment();
@@ -211,7 +214,6 @@ class Tokenizer extends StringReader {
                     if ($this->isCloseBrace($c)) {
                         $this->handleCloseBrace($c);
                     }
-
                     if ($this->isFirstCharOfLine($c)) {
                        $this->checkIndent($c);
                     }

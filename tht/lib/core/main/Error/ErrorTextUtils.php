@@ -33,6 +33,8 @@ class ErrorTextUtils {
         $v = preg_replace('/\bO(?=[A-Z][a-z])/', '', $v);                // internal classes e.g. "OString"
         $v = ltrim($v, '\\');
 
+        $v = preg_replace("/```/", '`(backtick)`', $v);   // prevent ambigiuity & double-wrapping of code tags later
+
         return $v;
     }
 
