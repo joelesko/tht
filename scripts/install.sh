@@ -2,9 +2,9 @@
 
 # Install the latest version of THT
 
-MIN_PHP_VERSION="8.1.0"
-THT_REMOTE_URL="https://tht.dev/downloads/tht_v0_7_1.zip"
-THT_TEMP_FILE=~/tht_v0_7_1.zip
+MIN_PHP_VERSION="8.3.0"
+THT_REMOTE_URL="https://tht.dev/downloads/tht_v0_8_0.zip"
+THT_TEMP_FILE=~/tht_v0_8_0.zip
 THT_TEMP_DIR=~/tht_install
 THT_INSTALL_DIR=~/tht
 THT_COMMAND="$THT_INSTALL_DIR/run/tht.php"
@@ -15,24 +15,27 @@ function error {
     printf "\n$1\n\n";
 }
 
+# $1 = bash profile fileName
 function add_alias {
-    echo "ADDING ALIAS TO: $1"
-    # $1 = bash profile fileName
+
     if grep -q "alias tht" "$1"; then
+        printf "[ OK ] 'tht' command already found in: $1\n"
         return
     fi
-    echo $THT_ALIAS >> $1
-    source $1 >/dev/null 2>&1
 
-    printf "[ OK ] Added 'tht' command to: $1\n"
+    # append to file and reload
+    echo $THT_ALIAS >> $1
+    . $1
+
+    printf "[ OK ] 'tht' command added to: $1\n"
 }
 
 function install {
 
     printf "\n"
-    printf "+--------------------------------+\n";
-    printf "|   INSTALL THT  v0.7.1 - Beta   |\n";
-    printf "+--------------------------------+\n";
+    printf "-----------------\n";
+    printf "   INSTALL THT   \n";
+    printf "-----------------\n";
 
 
     # Check that unzip is installed
@@ -64,43 +67,37 @@ function install {
     }
 
     # Remove previous
-    #[ -d $THT_INSTALL_DIR ] && { rm -rf $THT_INSTALL_DIR; }
+    [ -d $THT_INSTALL_DIR ] && { rm -rf $THT_INSTALL_DIR; }
 
     # Deploy and clean up
-    #mv $THT_TEMP_DIR/tht $THT_INSTALL_DIR
-    #rm -r $THT_TEMP_DIR
-    #rm $THT_TEMP_FILE
+    mv $THT_TEMP_DIR/tht $THT_INSTALL_DIR
+    rm -r $THT_TEMP_DIR
+    rm $THT_TEMP_FILE
 
 
-    printf "\n[ OK ] Unzip and deploy files\n"
+    printf "\n[ OK ] Unzip and deploy files to: $THT_INSTALL_DIR\n"
 
 
     # Create alias
-    # TODO probably would be best to make a simple sh script binary
+
     if [ -f ~/.bash_aliases ]
     then
         add_alias ~/.bash_aliases
-        . ~/.bash_aliases # no need to reload terminal
     elif [ -f ~/.bash_profile ]
     then
         add_alias ~/.bash_profile
-        . ~/.bash_profile # no need to reload terminal
     elif [ -f ~/.profile ]
     then
         add_alias ~/.profile
-        . ~/.profile # no need to reload terminal
     elif [ -f ~/.bashrc ]
     then
         add_alias ~/.bashrc
-        . ~/.bashrc # no need to reload terminal
     elif [ -f ~/.zshrc ]
     then
         add_alias ~/.zshrc
-        . ~/.zshrc # no need to reload terminal
     elif [ -f ~/.zprofile ]
     then
         add_alias ~/.zprofile
-        . ~/.zprofile # no need to reload terminal
     else
         error "Unable to find your shell profile to create the `tht` alias."; return;
     fi
