@@ -43,7 +43,7 @@ class u_Json extends OStdModule {
     }
 
     // Convert JSON TypeString to data
-    function u_decode($jsonTypeString) {
+    function u_decode(\o\JsonTypeString $jsonTypeString) {
 
         $this->ARGS('*', func_get_args());
 
@@ -64,6 +64,32 @@ class u_Json extends OStdModule {
         }
 
         return $obj;
+    }
+
+    function u_read_file(\o\FileTypeString $file) {
+
+        $this->ARGS('*', func_get_args());
+
+        $rawJsonString = $file->u_read(OMap::create(['join' => true]));
+
+        return Security::jsonDecode($rawJsonString);
+    }
+
+    function u_write_file(\o\FileTypeString $file, $data) {
+
+        $this->ARGS('**', func_get_args());
+
+        $rawJsonString = Security::jsonEncode($data);
+
+        // Not exactly sure why null comes back as 'null'
+        if ($rawJsonString === false || $rawJsonString === null || $rawJsonString === 'null') {
+            $c = v($data)->u_z_class_name();
+            $this->error("Unable to encode JSON for data of type: `$c`");
+        }
+
+        $file->u_write($rawJsonString);
+
+        return true;
     }
 
     function formatOneLineSummary($obj, $maxLen) {

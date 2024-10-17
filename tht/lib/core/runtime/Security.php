@@ -359,12 +359,13 @@ class Security {
         return json_validate($rawJsonString, 512, JSON_INVALID_UTF8_IGNORE);
     }
 
-    static function jsonEncode($rawString) {
+    // TODO: Separate json used internally for print() statements & stack traces from user-facing json methods.
+    static function jsonEncode($rawData) {
 
         // SECURITY: Using JSON_UNESCAPED_SLASHES for internal usability.
         // Apparently allowing "</script>" inside a string will end any <script> block and create a vulnerability.
         // However, this gets escaped downstream.
-        $json = json_encode($rawString, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+        $json = json_encode($rawData, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_PRESERVE_ZERO_FRACTION);
 
         return $json;
     }
