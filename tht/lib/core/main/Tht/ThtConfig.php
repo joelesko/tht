@@ -4,8 +4,8 @@ namespace o;
 
 trait ThtConfig {
 
-    static private $VERSION = '0.8.0 - Beta';
-    static private $VERSION_DIGITS = '00800';
+    static private $VERSION = '0.8.1 - Beta';
+    static private $VERSION_DIGITS = '00801';
     static private $VERSION_DIGITS_PHP = '';  // filled in later
 
     static private $REQUIRE_PHP_VERSION_DIGITS = '00803';
